@@ -17,7 +17,7 @@ import pathlib
 
 from absl.testing import absltest
 from mseb import encoder
-from mseb.encoders import whisper as whisper_encoder
+from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq

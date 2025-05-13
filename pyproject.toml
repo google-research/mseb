@@ -15,7 +15,13 @@ keywords = []
 
 # pip dependencies of the project
 # Installed locally with `pip install -e .`
-dependencies = []
+dependencies = [
+    "absl-py",
+    "librosa",
+    "numpy",
+    "openai-whisper",
+    "pyarrow",
+]
 
 # `version` is automatically set by flit to use `mseb.__version__`
 dynamic = ["version"]
