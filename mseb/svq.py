@@ -26,7 +26,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Configuration of Simple QA tasks for MSEB."""
+"""Configuration of Simple Voice Questions (SVQ) tasks for MSEB."""
 
 from flax import core
 
