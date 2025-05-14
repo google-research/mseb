@@ -48,7 +48,7 @@ class SpeechToTextEncoderTest(absltest.TestCase):
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
     sample_rate = 48000
-    context = encoder.ContextParams(language='en', sample_rate=48000)
+    context = encoder.ContextParams(language='en', sample_rate=sample_rate)
     timestamps, embeddings = self.whisper_encoder.encode(waveform, context)
     npt.assert_equal(timestamps.shape, [1, 2])
     npt.assert_equal(timestamps[0, 0] >= 0.0, True)
@@ -57,6 +57,15 @@ class SpeechToTextEncoderTest(absltest.TestCase):
         embeddings,
         [' How many members does the National Labor Relations Board have?']
     )
+
+  def test_encode_word_level(self):
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    context = encoder.ContextParams(language='en', sample_rate=48000)
+    timestamps, embeddings = self.whisper_encoder.encode(
+        waveform, context, word_timestamps=True)
+    npt.assert_equal(timestamps.shape[0], embeddings.shape[0])
 
 
 if __name__ == '__main__':
