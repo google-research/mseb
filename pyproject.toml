@@ -17,6 +17,7 @@ keywords = []
 # Installed locally with `pip install -e .`
 dependencies = [
     "absl-py",
+    "flax>=0.8.2",
     "librosa",
     "numpy",
     "openai-whisper",
