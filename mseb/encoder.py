@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""MSEB Sound Encoder base class."""
+"""MSEB Encoder base class."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ class ContextParams:
 
 @runtime_checkable
 class Encoder(Protocol):
-  """The MSEB encoder.
+  """The MSEB encoder's base class.
 
   The base class to encode waveform sequences along with optional context to
   sequence of embeddings.
