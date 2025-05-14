@@ -207,7 +207,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'query_reranking': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'EM', 'WER'),
         'languages': (
             'star',
             'ar',
