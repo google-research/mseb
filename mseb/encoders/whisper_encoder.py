@@ -17,6 +17,7 @@
 import abc
 from typing import Any, Union, Optional, Sequence, Tuple
 
+from absl import logging
 import librosa
 from mseb import encoder
 import numpy as np
@@ -193,3 +194,75 @@ class SpeechToTextEncoder(Whisper):
         timestamps[i, :] = [segment['start'], segment['end']]
         embeddings[i] = segment['text']
     return timestamps, embeddings
+
+
+class ForcedAlignmentEncoder(Whisper):
+  """Embeds by forced-alignment of speech and text by Whisper model."""
+
+  def __init__(self,
+               model: whisper.Whisper,
+               language: Optional[str] = None):
+    """Initializes the Whisper encoder.
+
+    Args:
+      model: An instance of whisper model.
+      language: Whisper language.
+    """
+    super().__init__(model)
+    self.tokenizer = whisper.tokenizer.get_tokenizer(
+        self.model.is_multilingual,
+        num_languages=self.model.num_languages,
+        language=language,
+        task='transcript')
+
+  def _encode(self,
+              waveform: np.ndarray,
+              context: encoder.ContextParams,
+              ) -> Tuple[np.ndarray, np.ndarray]:
+    """Encodes speech and text using forced alignment with the Whisper model.
+
+    Args:
+      waveform: A one-dimensional NumPy array of floating-point numbers,
+                representing the audio waveform. This array must be sampled
+                at whisper.audio.SAMPLE_RATE.
+      context: Encoder input context parameters, expected to have a text
+               attribute containing the transcription to align.
+
+    Returns:
+      A tuple (timestamps, words).
+      timestamps: A NumPy array containing the start and end times for each
+                  word. Shape is [n_words, 2], where each row is
+                  [start_time, end_time].
+      words: A NumPy array containing the transcribed words corresponding to
+             the timestamps. Shape is [n_words].
+
+    Raise:
+      ValueError: If context does not include text or tokenizer can not
+                  tokenize text.
+    """
+    mel = whisper.audio.log_mel_spectrogram(
+        waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
+    )
+    num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
+    mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
+    if not context.text:
+      logging.warning(
+          'Context text is empty. No alignment will be performed.'
+      )
+      return np.empty((0, 2), dtype=float), np.empty((0), dtype=object)
+    tokens = self.tokenizer.encode(context.text)
+    if not tokens:
+      logging.warning(
+          'No tokens generated from context text. Ensure text is valid.'
+      )
+      return np.empty((0, 2), dtype=float), np.empty((0), dtype=object)
+    alignment = whisper.timing.find_alignment(
+        self.model, self.tokenizer, tokens, mel, num_frames)
+    n_words = len(alignment)
+    timestamps = np.empty((n_words, 2), dtype=float)
+    words = np.empty((n_words), dtype=object)
+    for i, word_timing in enumerate(alignment):
+      timestamps[i, :] = [word_timing.start, word_timing.end]
+      words[i] = word_timing.word
+
+    return timestamps, words

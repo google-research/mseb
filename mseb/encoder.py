@@ -30,6 +30,7 @@ class ContextParams:
   speaker_age: Optional[int] = None
   speaker_gender: Optional[int] = None
   sample_rate: Optional[int] = None
+  text: Optional[str] = None
 
 
 @runtime_checkable

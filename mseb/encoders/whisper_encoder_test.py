@@ -68,5 +68,27 @@ class SpeechToTextEncoderTest(absltest.TestCase):
     npt.assert_equal(timestamps.shape[0], embeddings.shape[0])
 
 
+class ForcedAlignmentEncoderTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
+    self.svq_samples = pq.ParquetFile(
+        os.path.join(testdata_path, 'en_us.parquet'))
+    model = whisper.load_model('base', device='cpu')
+    self.whisper_encoder = whisper_encoder.ForcedAlignmentEncoder(model, 'en')
+
+  def test_encode_speech_transcript_truth(self):
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    context = encoder.ContextParams(language='en',
+                                    text=svq_example['text'].to_numpy()[0],
+                                    sample_rate=48000)
+    timestamps, embeddings = self.whisper_encoder.encode(waveform, context)
+    npt.assert_equal(timestamps.shape[0], embeddings.shape[0])
+
+
 if __name__ == '__main__':
   absltest.main()
