@@ -15,12 +15,13 @@
 """Whisper Encoders."""
 
 import abc
-from typing import Any, Union, Optional, Sequence, Tuple
+from typing import Any, Callable, Optional, Sequence, Union, Tuple
 
 from absl import logging
 import librosa
 from mseb import encoder
 import numpy as np
+import torch
 import whisper
 
 
@@ -266,3 +267,65 @@ class ForcedAlignmentEncoder(Whisper):
       words[i] = word_timing.word
 
     return timestamps, words
+
+
+class PooledAudioEncoder(Whisper):
+  """Embeds by pooling Whisper audio encoder activations."""
+
+  def __init__(self,
+               model: whisper.Whisper,
+               pooling: Optional[str] = None):
+    """Initializes the Whisper encoder.
+
+    Args:
+      model: An instance of whisper model.
+      pooling: The type of pooling to apply to the encoder activations.
+                     Supported options: 'last', 'mean', 'max'.
+                     Defaults to 'mean'.
+    """
+    super().__init__(model)
+    self.pool_fn: Callable[[np.ndarray], np.ndarray]
+    if pooling == 'last':
+      self.pool_fn = lambda x: x[-1][None, :]
+    elif pooling == 'mean':
+      self.pool_fn = lambda x: np.mean(x, axis=0, keepdims=True)
+    elif pooling == 'max':
+      self.pool_fn = lambda x: np.max(x, axis=0, keepdims=True)
+    else:
+      raise ValueError(f'Unsupported pooling type: {pooling}. '
+                       'Expected one of last, mean, max.')
+
+  def _encode(self,
+              waveform: np.ndarray,
+              context: encoder.ContextParams,
+              ) -> Tuple[np.ndarray, np.ndarray]:
+    """Encodes speech into a pooled embedding of Whisper encoder activations.
+
+    Args:
+      waveform: A one-dimensional NumPy array of floating-point numbers,
+                representing the audio waveform. This array must be sampled
+                at whisper.audio.SAMPLE_RATE.
+      context: Encoder input context parameters. This parameter is part of the
+               abstract _encode interface defined in the parent class Whisper,
+               but it is not directly utilized by this encoder.
+
+    Returns:
+      A tuple (timestamp, embedding).
+      timestamp: A NumPy array with a single row [start, end], representing
+                 the start and end times of the input audio. start is always 0,
+                 and end is the total duration of the waveform in seconds.
+                 Shape will be (1, 2).
+      embedding: A NumPy array of shape (1, D) representing the pooled audio
+                 embedding. Here D is the dimension of the Whisper model's
+                 audio encoder output.
+    """
+    mel = whisper.audio.log_mel_spectrogram(
+        waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
+    )
+    mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
+    with torch.no_grad():
+      embeddings = self.model.embed_audio(mel[None, :, :].to(self.model.device))
+    embeddings = embeddings.to('cpu').detach().numpy().squeeze(0)
+    audio_duration_seconds = len(waveform) / whisper.audio.SAMPLE_RATE
+    timestamp = np.array([[0, audio_duration_seconds]])
+    return timestamp, self.pool_fn(embeddings)

@@ -90,5 +90,47 @@ class ForcedAlignmentEncoderTest(absltest.TestCase):
     npt.assert_equal(timestamps.shape[0], embeddings.shape[0])
 
 
+class PooledAudioEncoderTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
+    svq_samples = pq.ParquetFile(
+        os.path.join(testdata_path, 'en_us.parquet'))
+    svq_example = svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    self.waveform = waveform.astype(np.float32) / 32767.0
+    self.context = encoder.ContextParams(sample_rate=48000)
+    self.model = whisper.load_model('base', device='cpu')
+
+  def test_pool_fn(self):
+    x = np.array([[1.0, 2.0], [3.0, 4.0]])
+    enc = whisper_encoder.PooledAudioEncoder(self.model, 'last')
+    npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
+    enc = whisper_encoder.PooledAudioEncoder(self.model, 'mean')
+    npt.assert_equal(enc.pool_fn(x), [[2.0, 3.0]])
+    enc = whisper_encoder.PooledAudioEncoder(self.model, 'max')
+    npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
+
+  def test_encode_last_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoder(self.model, 'last')
+    timestamp, embedding = enc.encode(self.waveform, self.context)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [1, 512])
+
+  def test_encode_mean_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoder(self.model, 'mean')
+    timestamp, embedding = enc.encode(self.waveform, self.context)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [1, 512])
+
+  def test_encode_max_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoder(self.model, 'max')
+    timestamp, embedding = enc.encode(self.waveform, self.context)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [1, 512])
+
+
 if __name__ == '__main__':
   absltest.main()
