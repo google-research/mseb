@@ -34,7 +34,6 @@ config_by_task = core.FrozenDict({
     'document_retrieval_in_lang': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
-            'star',
             'en',
             'ar',
             'bn',
@@ -49,7 +48,6 @@ config_by_task = core.FrozenDict({
     'document_retrieval_cross_lang': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
-            'star',
             'ar',
             'bn',
             'fi',
@@ -69,7 +67,6 @@ config_by_task = core.FrozenDict({
     'document_retrieval_in_lang_small': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
-            'star',
             'en',
             'ar',
             'bn',
@@ -84,7 +81,6 @@ config_by_task = core.FrozenDict({
     'document_retrieval_cross_lang_small': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
-            'star',
             'ar',
             'bn',
             'fi',
@@ -104,7 +100,6 @@ config_by_task = core.FrozenDict({
     'passage_retrieval_in_lang': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
-            'star',
             'en',
             'ar',
             'bn',
@@ -119,7 +114,6 @@ config_by_task = core.FrozenDict({
     'passage_retrieval_cross_lang': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
-            'star',
             'ar',
             'bn',
             'fi',
@@ -139,7 +133,6 @@ config_by_task = core.FrozenDict({
     'span_retrieval_in_lang': {
         'evaluation_metric': 'F1',
         'languages': (
-            'star',
             'en',
             'ar',
             'bn',
@@ -154,7 +147,6 @@ config_by_task = core.FrozenDict({
     'span_retrieval_cross_lang': {
         'evaluation_metric': 'F1',
         'languages': (
-            'star',
             'ar',
             'bn',
             'fi',
@@ -174,7 +166,6 @@ config_by_task = core.FrozenDict({
     'span_reasoning_in_lang': {
         'evaluation_metric': 'F1',
         'languages': (
-            'star',
             'en',
             'ar',
             'bn',
@@ -189,7 +180,6 @@ config_by_task = core.FrozenDict({
     'span_reasoning_cross_lang': {
         'evaluation_metric': 'F1',
         'languages': (
-            'star',
             'ar',
             'bn',
             'fi',
@@ -209,7 +199,6 @@ config_by_task = core.FrozenDict({
     'query_reranking': {
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM', 'WER', 'QER'),
         'languages': (
-            'star',
             'ar',
             'bn',
             'en',
