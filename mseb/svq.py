@@ -32,7 +32,7 @@ from flax import core
 
 config_by_task = core.FrozenDict({
     'document_retrieval_in_lang': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'star',
             'en',
@@ -47,7 +47,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'document_retrieval_cross_lang': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'star',
             'ar',
@@ -67,7 +67,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'document_retrieval_in_lang_small': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'star',
             'en',
@@ -82,7 +82,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'document_retrieval_cross_lang_small': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'star',
             'ar',
@@ -102,7 +102,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'passage_retrieval_in_lang': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'star',
             'en',
@@ -117,7 +117,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'passage_retrieval_cross_lang': {
-        'evaluation_metric': ('MRR', 'EM'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'star',
             'ar',
@@ -207,7 +207,7 @@ config_by_task = core.FrozenDict({
         ),
     },
     'query_reranking': {
-        'evaluation_metric': ('MRR', 'EM', 'WER'),
+        'evaluation_metric': ('MRR', 'MRR_STD', 'EM', 'WER', 'QER'),
         'languages': (
             'star',
             'ar',
