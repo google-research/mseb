@@ -25,6 +25,8 @@ import numpy as np
 @dataclasses.dataclass
 class ContextParams:
   """A dataclass to hold configuration parameters for a model."""
+  frame_length: Optional[int] = None
+  frame_step: Optional[int] = None
   language: Optional[str] = None
   speaker_id: Optional[str] = None
   speaker_age: Optional[int] = None
