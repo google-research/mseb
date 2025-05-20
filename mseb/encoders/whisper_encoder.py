@@ -274,14 +274,13 @@ class PooledAudioEncoder(Whisper):
 
   def __init__(self,
                model: whisper.Whisper,
-               pooling: Optional[str] = None):
+               pooling: str = 'mean'):
     """Initializes the Whisper encoder.
 
     Args:
       model: An instance of whisper model.
       pooling: The type of pooling to apply to the encoder activations.
-                     Supported options: 'last', 'mean', 'max'.
-                     Defaults to 'mean'.
+               Supported options: 'last', 'mean', 'max'. Defaults to 'mean'.
     """
     super().__init__(model)
     self.pool_fn: Callable[[np.ndarray], np.ndarray]
