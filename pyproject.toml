@@ -18,10 +18,12 @@ keywords = []
 dependencies = [
     "absl-py",
     "flax>=0.8.2",
+    "huggingface_hub",
     "librosa",
     "numpy",
     "openai-whisper",
     "pyarrow",
+    "transformers",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`
