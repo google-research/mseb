@@ -16,12 +16,14 @@ keywords = []
 # pip dependencies of the project
 # Installed locally with `pip install -e .`
 dependencies = [
+    "array-record",
     "absl-py",
     "flax>=0.8.2",
     "huggingface_hub",
     "librosa",
     "numpy",
     "openai-whisper",
+    "pandas",
     "pyarrow",
     "transformers",
 ]
