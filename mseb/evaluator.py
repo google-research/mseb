@@ -20,6 +20,7 @@ import abc
 from typing import Any, Dict, List, Sequence, Union
 
 from mseb import encoder
+import numpy as np
 
 
 class Evaluator(abc.ABC):
@@ -71,3 +72,49 @@ class Evaluator(abc.ABC):
       The keys represent metric names and values are their combined results.
     """
     ...
+
+
+def compute_weighted_average_and_std(
+    scores: List[Dict[str, float]],
+    statistic_metric_pairs: Sequence[tuple[str, str]],
+    weight_suffix: str = '_weight',
+) -> Dict[str, float]:
+  """Computes weighted average and standard deviation for a list of scores.
+
+  Args:
+    scores: A list of dictionaries, where each dictionary represents the
+      statistics and possibly weights for a single example.
+    statistic_metric_pairs: A list of tuples, where each tuple represents a
+      statistic name and its corresponding metric name.
+    weight_suffix: The suffix to use for the weight key.
+
+  Returns:
+    A dictionary containing the weighted average and standard deviation
+    for each metric. The keys represent metric names and values are
+    their combined results.
+  """
+  statistics_by_name = {}
+  weights_by_name = {}
+  for s, _ in statistic_metric_pairs:
+    statistics_by_name[s] = [score[s] for score in scores]
+    weights_by_name[s] = [
+        score.get(f'{s}{weight_suffix}', 1) for score in scores
+    ]
+
+  combined_scores = {}
+  for s, m in statistic_metric_pairs:
+    mean = np.average(
+        np.array(statistics_by_name[s]),
+        weights=np.array(weights_by_name[s]),
+    )
+    std = (
+        np.average(
+            (np.array(statistics_by_name[s]) - mean) ** 2,
+            weights=weights_by_name[s],
+        )
+        ** 0.5
+    )
+    combined_scores[m] = float(mean)
+    combined_scores[m + '_std'] = float(std)
+
+  return combined_scores
