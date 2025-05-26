@@ -26,6 +26,8 @@ dependencies = [
     "pandas",
     "pyarrow",
     "transformers",
+    "tensorflow",
+    "tensorflow-hub",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`
