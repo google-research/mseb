@@ -20,6 +20,7 @@ dependencies = [
     "absl-py",
     "flax>=0.8.2",
     "huggingface_hub",
+    "jiwer",
     "librosa",
     "numpy",
     "openai-whisper",
