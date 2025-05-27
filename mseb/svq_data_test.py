@@ -31,6 +31,16 @@ class SvqDataTest(absltest.TestCase):
     waveform = utt_lookup("utt_14868079180393484423")
     self.assertEqual(waveform.shape, (88320,))
 
+  def test_generate_exapmles(self):
+    filepath = self.get_testdata_path("test_task.jsonl")
+    self.assertTrue(os.path.exists(filepath))
+    examples = list(svq_data.generate_examples(filepath))
+    self.assertLen(examples, 1)
+    ex = examples[0]
+    self.assertEqual(ex["text"], "When did the Ottoman empire conquer Italy?")
+    self.assertEqual(ex["utt_id"], "utt_14868079180393484423")
+    self.assertEqual(ex["waveform"].shape, (88320,))
+
 
 if __name__ == "__main__":
   absltest.main()

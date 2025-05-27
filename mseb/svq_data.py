@@ -79,3 +79,14 @@ class UttLookup:
         b[0], resample_hz=self.resample_hz
     )
     return waveform
+
+
+def generate_examples(filepath, resample_hz: float | None = None):
+  """Generate examples from a jsonl task file."""
+  basepath = os.path.dirname(filepath)
+  utt_lookup = UttLookup(basepath, resample_hz=resample_hz)
+  task = pd.read_json(filepath, lines=True)
+  for ex in task.to_dict(orient="records"):
+    utt = utt_lookup(ex["utt_id"])
+    ex["waveform"] = utt
+    yield ex
