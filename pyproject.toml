@@ -18,6 +18,7 @@ keywords = []
 dependencies = [
     "array-record",
     "absl-py",
+    "datasets",
     "flax>=0.8.2",
     "huggingface_hub",
     "jiwer",
