@@ -26,7 +26,14 @@ from scipy.io import wavfile
 def read_wav_bytes_to_normalized_float(
     wav_bytes, resample_hz: float | None = None
 ):
-  """Reads WAV bytes object and returns normalized float numpy array."""
+  """Reads WAV bytes object and returns normalized float numpy array.
+
+  Args:
+    wav_bytes: WAV bytes object.
+    resample_hz: Optional resample rate.
+  Returns:
+    (waveform, original sample rate before any resample)
+  """
   rate, data = wavfile.read(io.BytesIO(wav_bytes))
 
   if data.ndim > 1 and data.shape[1] > 1:
@@ -43,7 +50,6 @@ def read_wav_bytes_to_normalized_float(
     raise TypeError(f"Unsupported data type: {data.dtype}")
   if resample_hz is not None and resample_hz != rate:
     x = librosa.resample(x, orig_sr=rate, target_sr=resample_hz)
-    rate = resample_hz
   return x, rate
 
 
@@ -66,6 +72,14 @@ class UttLookup:
     self.resample_hz = resample_hz
     self.utt_id_to_path_idx = read_utt_index(basepath)
     self.readers = {}
+    self.orig_sample_rate_ = None
+
+  @property
+  def orig_sample_rate(self):
+    if self.orig_sample_rate_ is None:
+      utt_id = next(iter(self.utt_id_to_path_idx))
+      self(utt_id)
+    return self.orig_sample_rate_
 
   def __call__(self, utt_id: str):
     path, idx = self.utt_id_to_path_idx[utt_id].split(":")
@@ -75,9 +89,15 @@ class UttLookup:
           array_record_path
       )
     b = self.readers[path].read([int(idx)])
-    waveform, _ = read_wav_bytes_to_normalized_float(
+    waveform, sample_rate = read_wav_bytes_to_normalized_float(
         b[0], resample_hz=self.resample_hz
     )
+    if self.orig_sample_rate_ is None:
+      self.orig_sample_rate_ = sample_rate
+    if sample_rate != self.orig_sample_rate_:
+      raise ValueError(
+          f"Sample rate mismatch: {sample_rate} != {self.orig_sample_rate_}"
+      )
     return waveform
 
 

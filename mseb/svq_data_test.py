@@ -29,7 +29,15 @@ class SvqDataTest(absltest.TestCase):
     basedir = self.get_testdata_path()
     utt_lookup = svq_data.UttLookup(basedir)
     waveform = utt_lookup("utt_14868079180393484423")
+    self.assertEqual(utt_lookup.orig_sample_rate, 16000)
     self.assertEqual(waveform.shape, (88320,))
+
+  def test_lookup_with_resampling(self):
+    basedir = self.get_testdata_path()
+    utt_lookup = svq_data.UttLookup(basedir, resample_hz=8000)
+    waveform = utt_lookup("utt_14868079180393484423")
+    self.assertEqual(utt_lookup.orig_sample_rate, 16000)
+    self.assertEqual(waveform.shape, (88320 / 2,))
 
   def test_generate_exapmles(self):
     filepath = self.get_testdata_path("test_task.jsonl")
