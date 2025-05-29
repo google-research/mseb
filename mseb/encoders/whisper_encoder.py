@@ -274,17 +274,19 @@ class PooledAudioEncoder(Whisper):
 
   def __init__(self,
                model: whisper.Whisper,
-               pooling: str = 'mean'):
+               pooling: str | None = None):
     """Initializes the Whisper encoder.
 
     Args:
       model: An instance of whisper model.
       pooling: The type of pooling to apply to the encoder activations.
-               Supported options: 'last', 'mean', 'max'. Defaults to 'mean'.
+               Supported options: 'last', 'mean', 'max'. Defaults to None.
     """
     super().__init__(model)
     self.pool_fn: Callable[[np.ndarray], np.ndarray]
-    if pooling == 'last':
+    if pooling is None:
+      self.pool_fn = lambda x: x
+    elif pooling == 'last':
       self.pool_fn = lambda x: x[-1][None, :]
     elif pooling == 'mean':
       self.pool_fn = lambda x: np.mean(x, axis=0, keepdims=True)
@@ -293,6 +295,8 @@ class PooledAudioEncoder(Whisper):
     else:
       raise ValueError(f'Unsupported pooling type: {pooling}. '
                        'Expected one of last, mean, max.')
+    # In whisper.audio: N_SAMPLES_PER_TOKEN = 2 * HOP_LENGTH
+    self.encoder_stride = 2
 
   def _encode(self,
               waveform: np.ndarray,
@@ -314,17 +318,19 @@ class PooledAudioEncoder(Whisper):
                  the start and end times of the input audio. start is always 0,
                  and end is the total duration of the waveform in seconds.
                  Shape will be (1, 2).
-      embedding: A NumPy array of shape (1, D) representing the pooled audio
-                 embedding. Here D is the dimension of the Whisper model's
-                 audio encoder output.
+      embedding: A NumPy array of shape (1, D) if pooling is not None and (n, D)
+                 if pooling is None. Here D is the dimension of the Whisper
+                 model's audio encoder output.
     """
     mel = whisper.audio.log_mel_spectrogram(
         waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
     )
+    num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
     mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
     with torch.no_grad():
       embeddings = self.model.embed_audio(mel[None, :, :].to(self.model.device))
     embeddings = embeddings.to('cpu').detach().numpy().squeeze(0)
+    num_embeddings = num_frames // self.encoder_stride
     audio_duration_seconds = len(waveform) / whisper.audio.SAMPLE_RATE
     timestamp = np.array([[0, audio_duration_seconds]])
-    return timestamp, self.pool_fn(embeddings)
+    return timestamp, self.pool_fn(embeddings[:num_embeddings, :])

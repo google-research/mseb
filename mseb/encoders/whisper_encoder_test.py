@@ -106,12 +106,20 @@ class PooledAudioEncoderTest(absltest.TestCase):
 
   def test_pool_fn(self):
     x = np.array([[1.0, 2.0], [3.0, 4.0]])
+    enc = whisper_encoder.PooledAudioEncoder(self.model)
+    npt.assert_equal(enc.pool_fn(x), [[1.0, 2.0], [3.0, 4.0]])
     enc = whisper_encoder.PooledAudioEncoder(self.model, 'last')
     npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
     enc = whisper_encoder.PooledAudioEncoder(self.model, 'mean')
     npt.assert_equal(enc.pool_fn(x), [[2.0, 3.0]])
     enc = whisper_encoder.PooledAudioEncoder(self.model, 'max')
     npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
+
+  def test_encode_no_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoder(self.model)
+    timestamp, embedding = enc.encode(self.waveform, self.context)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [375, 512])
 
   def test_encode_last_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model, 'last')
