@@ -121,6 +121,8 @@ year={2025}
 }
 """
 
+_NUM_SHARDS = 128  # Internal sharding for parallel data loading.
+
 
 class SvqDataset(datasets.GeneratorBasedBuilder):
   """SVQ dataset."""
@@ -142,7 +144,7 @@ class SvqDataset(datasets.GeneratorBasedBuilder):
         ),
         features=datasets.Features({
             "utt_id": datasets.Value("string"),
-            "waveform": datasets.Value("float32"),
+            "waveform": datasets.Sequence(datasets.Value("float32")),
             "text": datasets.Value("string"),
             "locale": datasets.Value("string"),
             "environment": datasets.Value("string"),
@@ -159,3 +161,29 @@ class SvqDataset(datasets.GeneratorBasedBuilder):
         license="Apache 2.0",
         citation=_CITATION,
     )
+
+  def _split_generators(self, dl_manager):
+    basepath = os.getcwd()
+    return [
+        datasets.SplitGenerator(
+            name="span_reasoning_in_lang",
+            gen_kwargs={
+                "filepath": os.path.join(
+                    basepath, "span_reasoning_in_lang.jsonl"
+                ),
+                "shards": list(range(_NUM_SHARDS))
+            },
+        ),
+    ]
+
+  def _generate_examples(self, filepath=None, shards=None):
+    basepath = os.path.dirname(filepath)
+    utt_lookup = UttLookup(basepath)
+    task = pd.read_json(filepath, lines=True)
+    task_shards = np.array_split(task, _NUM_SHARDS)
+    for idx in shards:
+      for ex in task_shards[idx].to_dict(orient="records"):
+        utt = utt_lookup(ex["utt_id"])
+        ex["waveform"] = utt
+        del ex["task"]
+        yield "_".join([ex["utt_id"], ex["passage_id"]]), ex
