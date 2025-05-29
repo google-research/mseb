@@ -33,6 +33,8 @@ class ContextParams:
   speaker_gender: Optional[int] = None
   sample_rate: Optional[int] = None
   text: Optional[str] = None
+  audio_start_seconds: float = 0.0
+  audio_end_seconds: float = np.finfo(np.float32).max
 
 
 @runtime_checkable
