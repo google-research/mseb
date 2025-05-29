@@ -130,33 +130,48 @@ class SvqDataset(datasets.GeneratorBasedBuilder):
   VERSION = datasets.Version("1.1.0")
 
   BUILDER_CONFIGS = [
-      datasets.BuilderConfig(
-          name="span_reasoning_in_lang",
-          description="Span reasoning in language.",
-      ),
+      datasets.BuilderConfig(name=name, description=desc)
+      for name, desc in [
+          ("span_reasoning_in_lang", "Span reasoning in language."),
+          ("span_retrieval_in_lang", "Span retrieval in language."),
+          ("span_reasoning_cross_lang", "Span reasoning cross language."),
+          ("span_retrieval_cross_lang", "Span retrieval cross language."),
+          ("passage_retrieval_in_lang", "Passage retrieval in language."),
+          ("passage_retrieval_cross_lang", "Passage retrieval cross language."),
+          ("document_retrieval_in_lang", "Document retrieval in language."),
+          (
+              "document_retrieval_cross_lang",
+              "Document retrieval cross language.",
+          ),
+      ]
   ]
 
+  DEFAULT_WRITER_BATCH_SIZE = 64
+
   def _info(self):
+    task = self.config.name
+    features = {
+        "utt_id": datasets.Value("string"),
+        "waveform": datasets.Sequence(datasets.Value("float32")),
+        "text": datasets.Value("string"),
+        "locale": datasets.Value("string"),
+        "environment": datasets.Value("string"),
+        "speaker_id": datasets.Value("string"),
+        "speaker_age": datasets.Value("int32"),
+        "speaker_gender": datasets.Value("string"),
+        "page_id": datasets.Value("string"),
+        "page_title": datasets.Value("string"),
+        "passage_id": datasets.Value("string"),
+        "passage_text": datasets.Value("string"),
+    }
+    if "span" in task:
+      features["span"] = datasets.Value("string")
     return datasets.DatasetInfo(
         description=(
             "Simple Voice Queries (SVQ) dataset, Task: span reasoning in"
             " language."
         ),
-        features=datasets.Features({
-            "utt_id": datasets.Value("string"),
-            "waveform": datasets.Sequence(datasets.Value("float32")),
-            "text": datasets.Value("string"),
-            "locale": datasets.Value("string"),
-            "environment": datasets.Value("string"),
-            "speaker_id": datasets.Value("string"),
-            "speaker_age": datasets.Value("int32"),
-            "speaker_gender": datasets.Value("string"),
-            "page_id": datasets.Value("string"),
-            "page_title": datasets.Value("string"),
-            "passage_id": datasets.Value("string"),
-            "passage_text": datasets.Value("string"),
-            "span": datasets.Value("string"),
-        }),
+        features=datasets.Features(**features),
         homepage="https://huggingface.co/datasets/google/svq",
         license="Apache 2.0",
         citation=_CITATION,
@@ -164,26 +179,35 @@ class SvqDataset(datasets.GeneratorBasedBuilder):
 
   def _split_generators(self, dl_manager):
     basepath = os.getcwd()
+    task = self.config.name
     return [
         datasets.SplitGenerator(
-            name="span_reasoning_in_lang",
+            name="eval",
             gen_kwargs={
                 "filepath": os.path.join(
-                    basepath, "span_reasoning_in_lang.jsonl"
+                    basepath, f"{task}.jsonl"
                 ),
-                "shards": list(range(_NUM_SHARDS))
+                "shards": list(range(_NUM_SHARDS)),
+                "resample_hz": 16000,
+                "task_name": task,
             },
         ),
     ]
 
-  def _generate_examples(self, filepath=None, shards=None):
+  def _generate_examples(
+      self, filepath=None, shards=None, resample_hz=None, task_name=None
+  ):
     basepath = os.path.dirname(filepath)
-    utt_lookup = UttLookup(basepath)
+    utt_lookup = UttLookup(basepath, resample_hz=resample_hz)
     task = pd.read_json(filepath, lines=True)
-    task_shards = np.array_split(task, _NUM_SHARDS)
-    for idx in shards:
-      for ex in task_shards[idx].to_dict(orient="records"):
+    task = np.array_split(task, _NUM_SHARDS)
+    task_shards = [task[idx].to_dict(orient="records") for idx in shards]
+    del task
+    for shard in task_shards:
+      for ex in shard:
         utt = utt_lookup(ex["utt_id"])
         ex["waveform"] = utt
         del ex["task"]
+        if "span" not in task_name:
+          del ex["span"]
         yield "_".join([ex["utt_id"], ex["passage_id"]]), ex
