@@ -22,8 +22,9 @@ import jiwer
 from mseb import encoder
 from mseb import evaluator
 from mseb.evaluators import retrieval_evaluator
-from mseb.evaluators import retriever as retriever_lib
 import numpy as np
+import tensorflow as tf
+import tensorflow_recommenders as tfrs
 from whisper.normalizers import basic
 from whisper.normalizers import english
 
@@ -91,32 +92,36 @@ class RerankingEvaluator(evaluator.Evaluator):
     _, query_embeddings = self.sound_encoder.encode(
         sequence=sequence, context=context, **self.encode_kwargs
     )
-    retriever = retriever_lib.ExactMatchRetriever()
-    retriever.build_index(
-        all_doc_embeds=candidate_embeddings, ids=candidate_texts
+    searcher = tfrs.layers.factorized_top_k.BruteForce(k=document_top_k)
+    searcher.index(
+        candidates=tf.constant(candidate_embeddings, dtype=tf.float32)
     )
-    ranked_doc_ids, _ = retriever.retrieve_docs(
-        query_embeddings, document_top_k=document_top_k
+    _, ranked_candidate_ids = searcher(
+        tf.constant(query_embeddings, dtype=tf.float32)
     )
+    ranked_candidate_texts = [  # pylint: disable=g-complex-comprehension
+        [candidate_texts[int(x.numpy())] for x in ids]
+        for ids in ranked_candidate_ids
+    ]
 
     assert context.language is not None
     is_english = context.language.lower() == 'en'
 
     word_errors, word_errors_weight = compute_word_errors(
         truth=candidate_texts[0],
-        hypothesis=ranked_doc_ids[0][0],
+        hypothesis=ranked_candidate_texts[0][0],
         is_english=is_english,
     )
 
     return {
         'reciprocal_rank': compute_reciprocal_rank(
-            candidate_texts[0], ranked_doc_ids[0]
+            candidate_texts[0], ranked_candidate_texts[0]
         ),
         'word_errors': word_errors,
         'word_errors_weight': word_errors_weight,
         'correct': compute_correct(
             truth=candidate_texts[0],
-            hypothesis=ranked_doc_ids[0][0],
+            hypothesis=ranked_candidate_texts[0][0],
             is_english=is_english,
         ),
     }

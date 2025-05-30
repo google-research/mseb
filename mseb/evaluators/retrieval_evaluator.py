@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
-from mseb.evaluators import retriever as retriever_lib
+import tensorflow_recommenders as tfrs
 
 
 def compute_reciprocal_rank(
@@ -44,18 +44,19 @@ class RetrievalEvaluator(evaluator.Evaluator):
       self,
       sound_encoder: encoder.Encoder,
       encode_kwargs: dict[str, Any],
-      retriever: retriever_lib.Retriever,
+      searcher: tfrs.layers.factorized_top_k.TopK,
+      id_by_index_id: Sequence[str],
   ):
     """Initializes the evaluator with the encoder and retrieval parameters."""
     super().__init__(sound_encoder, encode_kwargs)
-    self.retriever = retriever
+    self.searcher = searcher
+    self.id_by_index_id = id_by_index_id
 
   def __call__(
       self,
       sequence: Union[str, Sequence[float]],
       context: encoder.ContextParams,
       reference_id: str = '',
-      document_top_k: int = 10,
   ) -> dict[str, float]:
     """Evaluates quality of the encoder for input sequence and return metrics.
 
@@ -64,7 +65,6 @@ class RetrievalEvaluator(evaluator.Evaluator):
         interpreted as sound file paths.
       context: Encoder input context parameters.
       reference_id: Reference document id.
-      document_top_k: Number of documents to retrieve.
 
     Returns:
       Dictionary of metrics, including mean reciprocal rank (MRR) and exact
@@ -73,15 +73,16 @@ class RetrievalEvaluator(evaluator.Evaluator):
     _, query_embeddings = self.sound_encoder.encode(
         sequence=sequence, context=context, **self.encode_kwargs
     )
-    ranked_doc_ids, _ = self.retriever.retrieve_docs(
-        query_embeddings, document_top_k=document_top_k
-    )
-
+    _, ranked_index_ids = self.searcher(query_embeddings)
+    ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
+        [self.id_by_index_id[int(x.numpy())] for x in ids]
+        for ids in ranked_index_ids
+    ]
     return {
         'reciprocal_rank': compute_reciprocal_rank(
             reference_id, ranked_doc_ids[0]
         ),
-        'correct': 1 if reference_id == ranked_doc_ids[0][0] else 0,
+        'correct': float(reference_id == ranked_doc_ids[0][0]),
     }
 
   def combine_scores(self, scores: List[Dict[str, float]]) -> Dict[str, float]:

@@ -29,7 +29,7 @@ dependencies = [
     "pyarrow",
     "transformers",
     "tensorflow",
-    "tensorflow-hub",
+    "tensorflow-recommenders",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`

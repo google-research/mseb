@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from os import path
+import pathlib
 from typing import Sequence, Tuple, Union
 
 from absl.testing import absltest
 from mseb import encoder
 from mseb.evaluators import retrieval_evaluator
-from mseb.evaluators import retriever as retriever_lib
 import numpy as np
 import numpy.testing as npt
+import tensorflow as tf
+import tensorflow_recommenders as tfrs
 
 
 class IdentityEncoder(encoder.Encoder):
@@ -28,7 +31,6 @@ class IdentityEncoder(encoder.Encoder):
       self,
       sequence: Union[str, Sequence[float]],
       context: encoder.ContextParams,
-      index: int = 0,
   ) -> Tuple[np.ndarray, np.ndarray]:
     timestamps = np.array([[0.0, 1.0]])
     embeddings = np.array([sequence], dtype=np.float32)
@@ -41,25 +43,55 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     super().setUp()
     self.identity_encoder = IdentityEncoder()
     self.context = encoder.ContextParams()
+    self.testdata_path = path.join(
+        pathlib.Path(path.abspath(__file__)).parent.parent,
+        'testdata',
+    )
 
   def test_call(self):
-    retriever = retriever_lib.ExactMatchRetriever()
-    retriever.build_index(
-        all_doc_embeds=np.array(
-            [[1.0, 2.0, 3.0], [2.0, 3.0, 4.0], [3.0, 4.0, 5.0], [4.0, 5.0, 6.0]]
+    searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
+    id_by_index_id = ('bli', 'bla', 'blo', 'blu')
+    searcher.index(
+        candidates=tf.constant(
+            [
+                [1.0, 2.0, 3.0],
+                [2.0, 3.0, 4.0],
+                [3.0, 4.0, 5.0],
+                [4.0, 5.0, 6.0],
+            ],
+            tf.float32,
         ),
-        ids=['bli', 'bla', 'blo', 'blu'],
     )
     evaluator = retrieval_evaluator.RetrievalEvaluator(
         sound_encoder=self.identity_encoder,
         encode_kwargs={},
-        retriever=retriever,
+        searcher=searcher,
+        id_by_index_id=id_by_index_id,
     )
     scores = evaluator(
         np.array([1.0, 2.0, 3.0]),
         self.context,
         reference_id='blo',
-        document_top_k=2,
+    )
+    npt.assert_equal(len(scores), 2)
+    npt.assert_equal(scores['reciprocal_rank'], 0.5)
+    npt.assert_equal(scores['correct'], 0.0)
+
+  def test_call_with_cache(self):
+    id_by_index_id = ('bli', 'bla', 'blo', 'blu')
+    cache_path = path.join(self.testdata_path, 'scann_artefacts')
+    searcher = tf.saved_model.load(cache_path)
+    _ = searcher(tf.constant([[1.0, 2.0, 3.0]], dtype=tf.float32))
+    evaluator = retrieval_evaluator.RetrievalEvaluator(
+        sound_encoder=self.identity_encoder,
+        encode_kwargs={},
+        searcher=searcher,
+        id_by_index_id=id_by_index_id,
+    )
+    scores = evaluator(
+        np.array([1.0, 2.0, 3.0]),
+        self.context,
+        reference_id='blo',
     )
     npt.assert_equal(len(scores), 2)
     npt.assert_equal(scores['reciprocal_rank'], 0.5)
@@ -69,7 +101,8 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     evaluator = retrieval_evaluator.RetrievalEvaluator(
         sound_encoder=self.identity_encoder,
         encode_kwargs={},
-        retriever=retriever_lib.ExactMatchRetriever(),  # Not used.
+        searcher=tfrs.layers.factorized_top_k.BruteForce(),  # Not used.
+        id_by_index_id=(),
     )
     combined_scores = evaluator.combine_scores([
         {'reciprocal_rank': 1, 'correct': 1},

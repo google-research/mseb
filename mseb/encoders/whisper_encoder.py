@@ -15,7 +15,7 @@
 """Whisper Encoders."""
 
 import abc
-from typing import Any, Callable, Optional, Sequence, Union, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 from absl import logging
 import librosa
@@ -173,10 +173,10 @@ class SpeechToTextEncoder(Whisper):
                   on word_timestamps. Dtype will be object for strings.
     """
     recognition_result = self.model.transcribe(
-        waveform,
+        waveform.astype(np.float32),
         language=context.language,
         temperature=temperature,
-        word_timestamps=word_timestamps
+        word_timestamps=word_timestamps,
     )
     if word_timestamps:
       timestamps_list = []
