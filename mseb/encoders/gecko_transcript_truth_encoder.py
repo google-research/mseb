@@ -24,17 +24,23 @@ import tensorflow as tf
 class GeckoTranscriptTruthEncoder(encoder.Encoder):
   """Transcript truth encoder with Gecko model."""
 
-  def __init__(self, gecko_model: tf.keras.Model):
+  def __init__(
+      self,
+      gecko_model: tf.keras.Model,
+      prompt_template: str = 'task: search result | query: {text}',
+  ):
     """Initializes the transcript truth and Gecko models.
 
     Args:
       gecko_model: An instance of Gecko model.
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents".
     """
-    self.transcript_truths_encode_fn = (
-        lambda x: gecko_model.signatures['serving_default'](tf.constant(x))[
-            'encodings'
-        ].numpy()
-    )
+    self.transcript_truths_encode_fn = lambda x: gecko_model.signatures[
+        'serving_default'
+    ](tf.constant(x))['encodings'].numpy()
+    self.prompt_template = prompt_template
 
   def encode(
       self,
@@ -46,5 +52,7 @@ class GeckoTranscriptTruthEncoder(encoder.Encoder):
     timestamps = np.array(
         [[context.audio_start_seconds, context.audio_end_seconds]]
     )
-    embeddings = self.transcript_truths_encode_fn([context.text])
+    title = hasattr(context, 'title') and context.title or 'None'
+    prompts = [self.prompt_template.format(text=context.text, title=title)]
+    embeddings = self.transcript_truths_encode_fn(prompts)
     return timestamps, embeddings

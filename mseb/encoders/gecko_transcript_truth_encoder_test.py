@@ -32,15 +32,13 @@ GeckoTranscriptTruthEncoder = (
 
 
 def create_gecko_model_mock(
-    embedding_by_transcript_truth: dict[str, Sequence[float]],
+    embedding_by_text: dict[str, Sequence[float]],
 ) -> mock.Mock:
   """Creates a mock for Gecko model."""
   mock_model = mock.create_autospec(tf.keras.Model, instance=True)
   mock_model.signatures = {
       'serving_default': lambda x: {
-          'encodings': tf.constant(
-              [embedding_by_transcript_truth[x[0].numpy().decode()]]
-          )
+          'encodings': tf.constant([embedding_by_text[x[0].numpy().decode()]])
       }
   }
   return mock_model
@@ -65,8 +63,11 @@ class GeckoTranscriptTruthEncoderTest(absltest.TestCase):
 
     enc = GeckoTranscriptTruthEncoder(
         gecko_model=create_gecko_model_mock(
-            embedding_by_transcript_truth={
-                'This is the transcript truth.': [1.0, 2.0]
+            embedding_by_text={
+                'task: search result | query: This is the transcript truth.': [
+                    1.0,
+                    2.0,
+                ]
             }
         ),
     )

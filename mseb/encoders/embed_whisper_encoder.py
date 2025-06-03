@@ -30,6 +30,7 @@ class EmbedWhisperEncoder(encoder.Encoder):
       self,
       whisper_model: whisper.Whisper,
       transcripts_encode_fn: Callable[[Sequence[str]], np.ndarray],
+      prompt_template: str = '{text}',
   ):
     """Initializes the Whisper and text embedder.
 
@@ -37,9 +38,11 @@ class EmbedWhisperEncoder(encoder.Encoder):
       whisper_model: An instance of Whisper model.
       transcripts_encode_fn: A function that takes a sequence of strings and
         returns a numpy array of embeddings.
+      prompt_template: Prompt template to be used for the text embedder.
     """
     self.whisper_encoder = whisper_encoder.SpeechToTextEncoder(whisper_model)
     self.transcripts_encode_fn = transcripts_encode_fn
+    self.prompt_template = prompt_template
 
   def encode(
       self,
@@ -50,7 +53,11 @@ class EmbedWhisperEncoder(encoder.Encoder):
     timestamps, transcripts = self.whisper_encoder.encode(
         sequence, context, **kwargs
     )
-    embeddings = self.transcripts_encode_fn(transcripts)
+    prompts = [
+        self.prompt_template.format(text=transcript)
+        for transcript in transcripts
+    ]
+    embeddings = self.transcripts_encode_fn(prompts)
     return timestamps, embeddings
 
 
@@ -61,16 +68,21 @@ class GeckoWhisperEncoder(EmbedWhisperEncoder):
       self,
       whisper_model: whisper.Whisper,
       gecko_model: tf.keras.Model,
+      prompt_template: str = 'task: search result | query: {text}',
   ):
     """Initializes the Whisper and Gecko models.
 
     Args:
       whisper_model: An instance of Whisper model.
       gecko_model: An instance of Gecko model.
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents"
     """
     super().__init__(
         whisper_model=whisper_model,
         transcripts_encode_fn=lambda x: gecko_model.signatures[
             'serving_default'
         ](tf.constant(x))['encodings'].numpy(),
+        prompt_template=prompt_template,
     )
