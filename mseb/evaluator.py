@@ -54,6 +54,35 @@ class Evaluator(abc.ABC):
     """
     ...
 
+  def evaluate(
+      self,
+      sequence: Union[str, Sequence[float]],
+      context: encoder.ContextParams,
+      **kwargs: Any,
+  ) -> Dict[str, float]:
+    """Evaluates quality of the encoder for input sequence and return metrics."""
+    return self.__call__(sequence, context, **kwargs)
+
+  def evaluate_batch(
+      self,
+      sequences: Sequence[Union[str, Sequence[float]]],
+      contexts: Sequence[encoder.ContextParams],
+      **kwargs: Any,
+  ) -> Sequence[Dict[str, float]]:
+    """Evaluates quality of the encoder for a batch of input sequences.
+
+    Args:
+      sequences: Input sound sequences to encode. String-type sequences are
+        interpreted as sound file paths.
+      contexts: Encoder input context parameters.
+      **kwargs: Additional arguments to pass to the evaluator.
+
+    Returns:
+      List of dictionaries of metrics.
+    """
+    return [self.evaluate(sequence, context, **kwargs)
+            for sequence, context in zip(sequences, contexts)]
+
   @abc.abstractmethod
   def combine_scores(self, scores: List[Dict[str, float]]) -> Dict[str, float]:
     """Combines individual example scores into a merged score dictionary.

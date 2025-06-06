@@ -59,6 +59,28 @@ class Encoder(Protocol):
       **kwargs: Additional arguments to pass to the encoder.
 
     Returns:
-      The encoded sentences.
+      The encoded sentence.
     """
     ...
+
+  def encode_batch(
+      self,
+      sequences: Sequence[Union[str, Sequence[float]]],
+      contexts: Sequence[ContextParams],
+      **kwargs: Any,
+  ) -> Sequence[Tuple[np.ndarray, np.ndarray]]:
+    """Encodes the given sentences in batch using the encoder.
+
+    Args:
+      sequences: Input sound sequences to encode. String-type sequences are
+        interpreted as sound file paths.
+      contexts: Encoder input context parameters, one per sequence.
+      **kwargs: Additional arguments to pass to the encoder.
+
+    Returns:
+      The encoded sentences.
+    """
+    return [
+        self.encode(sequence, context, **kwargs)
+        for sequence, context in zip(sequences, contexts)
+    ]

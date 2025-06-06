@@ -48,7 +48,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         'testdata',
     )
 
-  def test_call(self):
+  def test_evaluate(self):
     searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
     searcher.index(
@@ -77,7 +77,39 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     npt.assert_equal(scores['reciprocal_rank'], 0.5)
     npt.assert_equal(scores['correct'], 0.0)
 
-  def test_call_with_cache(self):
+  def test_evaluate_batch(self):
+    searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
+    id_by_index_id = ('bli', 'bla', 'blo', 'blu')
+    searcher.index(
+        candidates=tf.constant(
+            [
+                [1.0, 2.0, 3.0],
+                [2.0, 3.0, 4.0],
+                [3.0, 4.0, 5.0],
+                [4.0, 5.0, 6.0],
+            ],
+            tf.float32,
+        ),
+    )
+    evaluator = retrieval_evaluator.RetrievalEvaluator(
+        sound_encoder=self.identity_encoder,
+        encode_kwargs={},
+        searcher=searcher,
+        id_by_index_id=id_by_index_id,
+    )
+    scores_batch = evaluator.evaluate_batch(
+        [np.array([1.0, 2.0, 3.0]), np.array([1.0, 2.0, 3.0])],
+        [self.context, self.context],
+        reference_ids=['blo', 'blu'],
+    )
+    npt.assert_equal(len(scores_batch[0]), 2)
+    npt.assert_equal(scores_batch[0]['reciprocal_rank'], 0.5)
+    npt.assert_equal(scores_batch[0]['correct'], 0.0)
+    npt.assert_equal(len(scores_batch[1]), 2)
+    npt.assert_equal(scores_batch[1]['reciprocal_rank'], 1.0)
+    npt.assert_equal(scores_batch[1]['correct'], 1.0)
+
+  def test_evaluate_with_cache(self):
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
     cache_path = path.join(self.testdata_path, 'scann_artefacts')
     searcher = tf.saved_model.load(cache_path)

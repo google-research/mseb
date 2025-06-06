@@ -70,20 +70,50 @@ class RetrievalEvaluator(evaluator.Evaluator):
       Dictionary of metrics, including mean reciprocal rank (MRR) and exact
       match (EM).
     """
-    _, query_embeddings = self.sound_encoder.encode(
-        sequence=sequence, context=context, **self.encode_kwargs
+    return self.evaluate_batch(
+        sequences=[sequence],
+        contexts=[context],
+        reference_ids=[reference_id],
+    )[0]
+
+  def evaluate_batch(
+      self,
+      sequences: Sequence[Union[str, Sequence[float]]],
+      contexts: Sequence[encoder.ContextParams],
+      reference_ids: Sequence[str] = (),
+  ) -> Sequence[dict[str, float]]:
+    """Evaluates quality of the encoder for input sequences and return metrics.
+
+    Args:
+      sequences: Input sound sequences to encode. String-type sequences are
+        interpreted as sound file paths.
+      contexts: Encoder input context parameters, one per sequence.
+      reference_ids: Reference document ids, one per sequence.
+
+    Returns:
+      List of dictionaries of metrics, including mean reciprocal rank (MRR) and
+      exact
+      match (EM).
+    """
+    timestamps_and_embeddings = self.sound_encoder.encode_batch(
+        sequences=sequences, contexts=contexts, **self.encode_kwargs
     )
-    _, ranked_index_ids = self.searcher(query_embeddings)
-    ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
-        [self.id_by_index_id[int(x.numpy())] for x in ids]
-        for ids in ranked_index_ids
-    ]
-    return {
-        'reciprocal_rank': compute_reciprocal_rank(
-            reference_id, ranked_doc_ids[0]
-        ),
-        'correct': float(reference_id == ranked_doc_ids[0][0]),
-    }
+    metrics_batch = []
+    for reference_id, (_, embeddings) in zip(
+        reference_ids, timestamps_and_embeddings
+    ):
+      _, ranked_index_ids = self.searcher(embeddings)
+      ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
+          [self.id_by_index_id[int(x.numpy())] for x in ids]
+          for ids in ranked_index_ids
+      ]
+      metrics_batch.append({
+          'reciprocal_rank': compute_reciprocal_rank(
+              reference_id, ranked_doc_ids[0]
+          ),
+          'correct': float(reference_id == ranked_doc_ids[0][0]),
+      })
+    return metrics_batch
 
   def combine_scores(self, scores: List[Dict[str, float]]) -> Dict[str, float]:
     """Combines the scores of the examples."""
