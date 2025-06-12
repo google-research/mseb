@@ -15,7 +15,9 @@
 """SVQ data reading."""
 
 import io
+import json
 import os
+import apache_beam as beam
 from array_record.python import array_record_module as array_record
 import librosa
 import numpy as np
@@ -31,6 +33,7 @@ def read_wav_bytes_to_normalized_float(
   Args:
     wav_bytes: WAV bytes object.
     resample_hz: Optional resample rate.
+
   Returns:
     (waveform, original sample rate before any resample)
   """
@@ -85,9 +88,7 @@ class UttLookup:
     path, idx = self.utt_id_to_path_idx[utt_id].split(":")
     if path not in self.readers:
       array_record_path = os.path.join(self.basepath, f"{path}.array_record")
-      self.readers[path] = array_record.ArrayRecordReader(
-          array_record_path
-      )
+      self.readers[path] = array_record.ArrayRecordReader(array_record_path)
     b = self.readers[path].read([int(idx)])
     waveform, sample_rate = read_wav_bytes_to_normalized_float(
         b[0], resample_hz=self.resample_hz
@@ -110,3 +111,14 @@ def generate_examples(filepath, resample_hz: float | None = None):
     utt = utt_lookup(ex["utt_id"])
     ex["waveform"] = utt
     yield ex
+
+
+def generate_examples_beam(pipeline, filepath: str):
+  """Generate examples from a jsonl task file with beam."""
+  utt_lookup = UttLookup(os.path.dirname(filepath))
+  return (
+      pipeline
+      | beam.io.ReadFromText(filepath)
+      | beam.Map(json.loads)
+      | beam.Map(lambda x: x | {"waveform": utt_lookup(x["utt_id"])})
+  )

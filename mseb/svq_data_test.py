@@ -15,6 +15,9 @@
 import os
 import pathlib
 from absl.testing import absltest
+import apache_beam as beam
+from apache_beam.testing import test_pipeline
+from apache_beam.testing import util as beam_testing_util
 from mseb import svq_data
 
 
@@ -22,7 +25,8 @@ class SvqDataTest(absltest.TestCase):
 
   def get_testdata_path(self, *args):
     testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent, "testdata")
+        pathlib.Path(os.path.abspath(__file__)).parent, "testdata"
+    )
     return os.path.join(testdata_path, *args)
 
   def test_lookup(self):
@@ -49,6 +53,29 @@ class SvqDataTest(absltest.TestCase):
     self.assertEqual(ex["utt_id"], "utt_14868079180393484423")
     self.assertEqual(ex["waveform"].shape, (88320,))
 
+  def test_beam_examples(self):
+    filepath = self.get_testdata_path("test_task.jsonl")
+    self.assertTrue(os.path.exists(filepath))
+    with test_pipeline.TestPipeline() as p:
+      examples = svq_data.generate_examples_beam(p, filepath)
+      expected_output = [
+          {
+              "text": "When did the Ottoman empire conquer Italy?",
+              "utt_id": "utt_14868079180393484423",
+              "waveform": (88320,),
+          }
+      ]
+      beam_testing_util.assert_that(
+          examples
+          | beam.Map(
+              lambda x: {
+                  "text": x["text"],
+                  "utt_id": x["utt_id"],
+                  "waveform": x["waveform"].shape,
+              }
+          ),
+          beam_testing_util.equal_to(expected_output),
+      )
 
 if __name__ == "__main__":
   absltest.main()
