@@ -17,6 +17,7 @@
 import io
 import json
 import os
+import subprocess
 import apache_beam as beam
 from array_record.python import array_record_module as array_record
 import librosa
@@ -54,6 +55,46 @@ def read_wav_bytes_to_normalized_float(
   if resample_hz is not None and resample_hz != rate:
     x = librosa.resample(x, orig_sr=rate, target_sr=resample_hz)
   return x, rate
+
+
+def maybe_clone_svq_dataset(output_dir: str) -> str:
+  """Clones the google/svq dataset from Hugging Face if not already present.
+
+  Args:
+    output_dir: The directory where the 'svq' dataset subdirectory should reside
+      or be created.
+
+  Returns:
+    The path to the local 'svq' dataset directory.
+
+  Raises:
+    RuntimeError: If git clone fails.
+  """
+  dataset_name = "svq"
+  repo_url = "https://huggingface.co/datasets/google/svq"
+  target_repo_path = os.path.join(output_dir, dataset_name)
+
+  if os.path.exists(os.path.join(target_repo_path, ".git")):
+    print(
+        f"Dataset '{dataset_name}' already found at {target_repo_path}."
+        " Skipping clone."
+    )
+    return target_repo_path
+
+  os.makedirs(output_dir, exist_ok=True)
+
+  print(
+      f"Cloning dataset '{dataset_name}' from {repo_url} to {target_repo_path}"
+  )
+  cmd = ["git", "clone", repo_url, target_repo_path]
+  result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+
+  if result.returncode != 0:
+    raise RuntimeError(
+        f"Failed to clone repository. Git command output:\n{result.stderr}"
+    )
+  print(f"Successfully cloned '{dataset_name}' to {target_repo_path}.")
+  return target_repo_path
 
 
 def read_utt_index(basepath):
