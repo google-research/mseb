@@ -32,6 +32,26 @@ from whisper.normalizers import english
 compute_reciprocal_rank = retrieval_evaluator.compute_reciprocal_rank
 
 
+def _compute_levenshtein_stats(truth: str, hypothesis: str) -> Dict[str, float]:
+  """Wrapper around jiwer library to compute Levenshtein statistics."""
+  try:
+    stats = jiwer.compute_measures(truth=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
+    return {
+        'substitutions': stats['substitutions'],
+        'deletions': stats['deletions'],
+        'insertions': stats['insertions'],
+        'hits': stats['hits'],
+    }
+  except AttributeError:
+    stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
+    return {
+        'substitutions': stats.substitutions,
+        'deletions': stats.deletions,
+        'insertions': stats.insertions,
+        'hits': stats.hits,
+    }
+
+
 def compute_word_errors(
     truth: str, hypothesis: str, *, is_english: bool
 ) -> tuple[float, float]:
@@ -42,13 +62,12 @@ def compute_word_errors(
       else basic.BasicTextNormalizer()
   )
 
-  results = jiwer.compute_measures(
-      truth=[text_transform(truth)],
-      hypothesis=[text_transform(hypothesis)],
+  stats = _compute_levenshtein_stats(
+      truth=text_transform(truth), hypothesis=text_transform(hypothesis)
   )
   return (
-      results['substitutions'] + results['deletions'] + results['insertions'],
-      results['hits'] + results['substitutions'] + results['deletions'],
+      stats['substitutions'] + stats['deletions'] + stats['insertions'],
+      stats['hits'] + stats['substitutions'] + stats['deletions'],
   )
 
 
