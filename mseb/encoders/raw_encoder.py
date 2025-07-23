@@ -14,10 +14,10 @@
 
 """Raw Sound Encoder."""
 
-from typing import Callable, Sequence, Union, Any, Tuple
+from typing import Callable, Optional, Sequence, Any, Tuple
 
-import librosa
 from mseb import encoder
+from mseb import types
 import numpy as np
 
 
@@ -31,11 +31,11 @@ def hanning_window_transform(x: np.ndarray) -> np.ndarray:
     The input array with the Hanning window applied to each frame.
 
   Raises:
-    If input array is not 2D or first dimension is not 1.
+    If input array is not 2D.
   """
   if x.ndim != 2:
     raise ValueError(
-        f'Input must be a 2D array. Received shape: {x.shape}.'
+        f"Input must be a 2D array. Received shape: {x.shape}."
     )
   return x * np.hanning(x.shape[-1])
 
@@ -50,11 +50,11 @@ def spectrogram_transform(x: np.ndarray) -> np.ndarray:
     Spectrogram of the input frames, with shape (num_frames, fft_bins).
 
   Raises:
-    If input array is not 2D or first dimension is not 1.
+    If input array is not 2D.
   """
   if x.ndim != 2:
     raise ValueError(
-        f'Input must be a 2D array. Received shape: {x.shape}.'
+        f"Input must be a 2D array. Received shape: {x.shape}."
     )
   frame_length = x.shape[-1]
   window = np.hanning(frame_length)
@@ -107,25 +107,27 @@ def linear_to_mel_weight_matrix(
       ordered, `upper_edge_hertz` is larger than the Nyquist frequency.
   [mel]: https://en.wikipedia.org/wiki/Mel_scale
   """
-
-  # Input validator from tensorflow/python/ops/signal/mel_ops.py#L71
   if num_mel_bins <= 0:
-    raise ValueError('num_mel_bins must be positive. Got: %s' % num_mel_bins)
+    raise ValueError(
+        "num_mel_bins must be positive. Got: %s" % num_mel_bins
+    )
   if lower_edge_hertz < 0.0:
     raise ValueError(
-        'lower_edge_hertz must be non-negative. Got: %s' % lower_edge_hertz
+        "lower_edge_hertz must be non-negative. Got: %s" % lower_edge_hertz
     )
   if lower_edge_hertz >= upper_edge_hertz:
     raise ValueError(
-        'lower_edge_hertz %.1f >= upper_edge_hertz %.1f'
+        "lower_edge_hertz %.1f >= upper_edge_hertz %.1f"
         % (lower_edge_hertz, upper_edge_hertz)
     )
   if sample_rate <= 0.0:
-    raise ValueError('sample_rate must be positive. Got: %s' % sample_rate)
+    raise ValueError(
+        "sample_rate must be positive. Got: %s" % sample_rate
+    )
   if upper_edge_hertz > sample_rate / 2:
     raise ValueError(
-        'upper_edge_hertz must not be larger than the Nyquist '
-        'frequency (sample_rate / 2). Got %s for sample_rate: %s'
+        "upper_edge_hertz must not be larger than the Nyquist "
+        "frequency (sample_rate / 2). Got %s for sample_rate: %s"
         % (upper_edge_hertz, sample_rate)
     )
 
@@ -195,130 +197,145 @@ def log_mel_transform(x: np.ndarray,
   """
   if x.ndim != 2:
     raise ValueError(
-        f'Input must be a 2D array. Received shape: {x.shape}.'
+        f"Input must be a 2D array. Received shape: {x.shape}."
     )
-  frame_length = x.shape[-1]
-  fft_length = int(2 ** np.ceil(np.log2(frame_length)))
-  window = np.hanning(frame_length)
-  frames = x.astype(mel_matrix.dtype)
-  frames = frames * window
-  frames = np.fft.rfft(frames, n=fft_length)
-  frames = np.abs(frames)
-  frames = np.square(frames)
-  if mel_matrix.ndim != 2 or mel_matrix.shape[0] != frames.shape[-1]:
-    raise ValueError(f'The mel matrix shape of {mel_matrix.shape} '
-                     f'is not compatible with spectrogram shape {frames.shape}.'
-                     ' The mel_matrix.shape[0] must match x.shape[-1].')
-  mels = np.matmul(frames, mel_matrix)
+  power_spectrograms = spectrogram_transform(x).astype(mel_matrix.dtype)
+  if (mel_matrix.ndim != 2 or
+      mel_matrix.shape[0] != power_spectrograms.shape[-1]):
+    raise ValueError(
+        f"The mel matrix shape of {mel_matrix.shape} "
+        f"is not compatible with spectrogram shape {power_spectrograms.shape}."
+        " The mel_matrix.shape[0] must match x.shape[-1]."
+    )
+  mels = np.matmul(power_spectrograms, mel_matrix)
   mels = np.maximum(mels, power_floor)
   log_mels = np.log(mels)
   return log_mels
 
 
-class RawEncoder(encoder.Encoder):
-  """Minimal sound encoder.
+class RawEncoder(encoder.SoundEncoder):
+  """Encodes raw audio into frames using a specified transform.
 
-  Encodes sound into sequence of fixed-size frames with a frame-stride.
-  Applies an optional transform or pooling function.
-
+  This class implements the SoundEncoder interface to create feature frames
+  from a raw waveform. It is configured by passing parameters like
+  `frame_length`, `frame_step`, `transform_fn`, and `pooling`
+  as keyword arguments during initialization.
   """
 
-  def __init__(self,
-               transform_fn: Callable[..., np.ndarray],
-               pooling: str | None = None):
-    """Initialises raw encoder.
+  def __init__(self, model_path: str = "raw_feature_encoder", **kwargs: Any):
+    """Initializes the RawEncoder with its configuration.
+
+    Note: This method is lightweight. All configuration is stored in
+    `self._kwargs` and processed later in the `setup()` method.
 
     Args:
-      transform_fn: A transformation applied to each frame (e.g.,
-                    spectrogram_transform, log_mel_transform). This function
-                    should accept a NumPy array of frames and any additional
-                    keyword arguments.
-      pooling: The pooling strategy to apply to the transformed frames.
-               Options are 'last', 'mean', 'max', or None for no pooling.
+      model_path: A descriptive name for the encoder configuration. Not used
+        for loading a model file but required by the base class.
+      **kwargs: Configuration arguments. Expected keys include:
+        - `frame_length` (int): The number of samples in each frame.
+        - `frame_step` (int): The number of samples to advance between frames.
+        - `transform_fn` (Callable): A function to apply to the batch of
+          frames (e.g., `spectrogram_transform`).
+        - `pooling` (Optional[str]): Pooling strategy ('mean', 'max', 'last')
+          or None.
+        - `transform_fn_kwargs` (Optional[dict]): Keyword arguments to
+          pass to the `transform_fn`.
     """
-    self.transform_fn = transform_fn
-    self.pool_fn: Callable[[np.ndarray], np.ndarray]
-    if pooling == 'last':
+    super().__init__(model_path, **kwargs)
+
+    # Declare all attributes that will be set in setup()
+    # This tells the type checker that these attributes will exist.
+    self.frame_length: Optional[int] = None
+    self.frame_step: Optional[int] = None
+    self.transform_fn: Optional[Callable[..., np.ndarray]] = None
+    self.pooling: Optional[str] = None
+    self.transform_fn_kwargs: dict[str, Any] = {}
+    self.pool_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None
+
+  def setup(self):
+    """Sets up the encoder by validating configuration and preparing functions.
+
+    This method extracts configuration from `self._kwargs`, validates that
+    required parameters are present, and sets up the pooling function.
+    """
+    self.frame_length = self._kwargs.get("frame_length")
+    self.frame_step = self._kwargs.get("frame_step")
+    self.transform_fn = self._kwargs.get("transform_fn")
+    self.pooling = self._kwargs.get("pooling")
+    self.transform_fn_kwargs = self._kwargs.get("transform_fn_kwargs", {})
+
+    if not all([self.frame_length, self.frame_step, self.transform_fn]):
+      raise ValueError(
+          "`frame_length`, `frame_step`, and `transform_fn` must be"
+          " provided in kwargs during initialization."
+      )
+
+    if self.pooling == "last":
       self.pool_fn = lambda x: x[-1][None, :]
-    elif pooling == 'mean':
+    elif self.pooling == "mean":
       self.pool_fn = lambda x: np.mean(x, axis=0, keepdims=True)
-    elif pooling == 'max':
+    elif self.pooling == "max":
       self.pool_fn = lambda x: np.max(x, axis=0, keepdims=True)
-    elif pooling is None:
+    elif self.pooling is None:
       self.pool_fn = lambda x: x
     else:
-      raise ValueError(f'Unknown pooling strategy: {pooling}. Supported are '
-                       'last, mean, max, or None.')
-    self.pooling = pooling
+      raise ValueError(
+          f"Unknown pooling strategy: {self.pooling}. Supported are "
+          "'last', 'mean', 'max', or None."
+      )
 
-  def encode(self,
-             sequence: Union[str, Sequence[float]],
-             context: encoder.ContextParams,
-             transform_fn_kwargs: dict[str, Any] | None = None,
-             ) -> Tuple[np.ndarray, np.ndarray]:
-    """Encodes sound to frames of embeddings and optionally pools them into one.
+    self._model_loaded = True
+
+  def _encode(
+      self,
+      waveform: Sequence[float],
+      params: types.SoundContextParams,
+      **kwargs: Any,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+    """Encodes a single waveform into embeddings and timestamps.
 
     Args:
-      sequence: Input audio, either as a file path (str) or a sequence of audio
-                samples (list or np.ndarray).
-      context: An object containing context parameters like sample_rate,
-               frame_length, and frame_step.
-      transform_fn_kwargs: A dictionary of keyword arguments to pass to the
-                           transform_fn.
+      waveform: The pre-loaded sound source as a sequence of floats.
+        params: A `SoundContextParams` object. This encoder does not use it.
+      **kwargs: Runtime arguments that are passed to the transform function.
+        These will override any `transform_fn_kwargs` set at init.
 
     Returns:
       A tuple containing:
-      timestamps: A NumPy array of shape (num_embeddings, 2) where each row is
-                  [start_time, end_time]. If pooling is applied, this will be
-                  [[0, total_duration]].
-      embeddings: A NumPy array of the extracted embeddings.
-
-    Raises:
-      ValueError: If required context parameters are not set or input sequence
-                  is invalid.
-      FileNotFoundError: If the audio file path is not found.
+        - embeddings (np.ndarray): A 2D array of transformed features.
+        - timestamps (np.ndarray): A 2D array of [start, end] sample
+          indices for each embedding frame.
     """
-    if transform_fn_kwargs is None:
-      transform_fn_kwargs = {}
+    waveform = np.asarray(waveform, dtype=np.float32)
+    assert len(waveform) == params.length, (
+        f"Input waveform length {len(waveform)} does not match "
+        f"params.length {params.length}."
+    )
+    num_frames = (
+        (len(waveform) - self.frame_length + self.frame_step) // self.frame_step
+    )
+    if num_frames <= 0:
+      return np.array([]), np.array([])
 
-    if isinstance(sequence, str):
-      try:
-        audio_sequence, sample_rate = librosa.load(sequence, sr=None)
-      except FileNotFoundError as exc:
-        raise FileNotFoundError(f'Audio file not found: {sequence}') from exc
-      if context.sample_rate is None:
-        context.sample_rate = sample_rate
-      elif context.sample_rate != sample_rate:
-        print(f'Warning: context.sample_rate ({context.sample_rate}) differs '
-              'from audio file sample rate ({sample_rate}). Using file sample '
-              'rate.')
-        context.sample_rate = sample_rate
-      sequence = audio_sequence
-    elif not isinstance(sequence, np.ndarray):
-      sequence = np.asarray(sequence, dtype=np.float32)
-
-    if context.sample_rate is None:
-      raise ValueError('Sample rate must be set in context when sequence is '
-                       'a raw array or via librosa.load.')
-    if not context.frame_length:
-      raise ValueError('Frame length should be set in context input.')
-    if not context.frame_step:
-      raise ValueError('Frame step should be set in context input.')
-
-    frame_length = context.frame_length
-    frame_step = context.frame_step
-    num_frames = np.maximum(0, len(sequence) - frame_length + frame_step)
-    num_frames = num_frames  // frame_step
-    frames = np.zeros([num_frames, frame_length])
-    timestamps = []
+    frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)
+    timestamps_list = []
     for i in range(num_frames):
-      start = i * frame_step
-      end = start + frame_length
-      frames[i] = sequence[start : end]
-      timestamps.append([start / context.sample_rate,
-                         end / context.sample_rate])
-    embeddings = self.transform_fn(frames, **transform_fn_kwargs)
-    embeddings = self.pool_fn(embeddings)
+      start = i * self.frame_step
+      end = start + self.frame_length
+      frames[i] = waveform[start:end]
+      timestamps_list.append([start, end])
+
+    final_transform_kwargs = self.transform_fn_kwargs.copy()
+    final_transform_kwargs.update(kwargs)
+
+    embeddings = self.transform_fn(frames, **final_transform_kwargs)
+    waveform_embeddings = self.pool_fn(embeddings)
+
+    # Adjust timestamps if pooling was applied
     if self.pooling is not None:
-      timestamps = [[0, len(sequence) / context.sample_rate]]
-    return np.array(timestamps), embeddings
+      # A single timestamp for the entire utterance
+      embedding_timestamps = np.array([[0, len(waveform)]], dtype=int)
+    else:
+      embedding_timestamps = np.array(timestamps_list, dtype=int)
+
+    return waveform_embeddings, embedding_timestamps
