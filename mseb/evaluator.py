@@ -20,7 +20,106 @@ import abc
 from typing import Any, Dict, List, Sequence, Union
 
 from mseb import encoder
+from mseb import types
 import numpy as np
+
+
+class SoundEmbeddingEvaluator(abc.ABC):
+  """The base class for all MSEB evaluators.
+
+  This component is responsible for calculating metrics from an encoder's
+  output. It is designed to be stateless and has no direct knowledge of the
+  encoder that produced the embeddings.
+  """
+
+  def __init__(self, **kwargs: Any):
+    """Initializes the evaluator with metric-specific parameters.
+
+    Args:
+      **kwargs: Keyword arguments for the specific evaluation metric.
+    """
+    self._kwargs = kwargs
+
+  @abc.abstractmethod
+  def evaluate(
+      self,
+      waveform_embeddings: np.ndarray,
+      embedding_timestamps: np.ndarray,
+      params: types.SoundContextParams,
+      **kwargs: Any,
+  ) -> list[types.Score]:
+    """Evaluates the quality of embeddings for a single example.
+
+    Subclasses MUST implement this method.
+
+    Args:
+      waveform_embeddings: A 2D array of shape (n, embedding_dim) from the
+        encoder.
+      embedding_timestamps: A 2D array of shape (m, 2) from the encoder, where
+        each row is a [start, end] pair by waveform index.
+      params: The sound context parameters for the waveform embeddings. These
+        parameters can be used as a source of ground truth labels for scoring.
+      **kwargs: Additional runtime arguments to pass to the evaluator.
+
+    Returns:
+      A list of Score objects for the single example. There can be multiple
+      scores if the evaluator computes multiple related metrics.
+    """
+    ...
+
+  def evaluate_batch(
+      self,
+      encoder_outputs_batch: Sequence[tuple[np.ndarray, np.ndarray]],
+      params_batch: Sequence[types.SoundContextParams],
+      **kwargs: Any,
+  ) -> list[list[types.Score]]:
+    """Evaluates a batch of examples.
+
+    This is a default, non-performant implementation that processes items
+    serially. For optimal performance, subclasses SHOULD override this method
+    with a truly batched or vectorized implementation if possible for the given
+    metric.
+
+    Args:
+      encoder_outputs_batch: A sequence of
+        (waveform_embeddings, embedding_timestamps) tuples, one for each example
+        in the batch.
+      params_batch: A sequence of `SoundContextParams` objects, each
+        corresponding to an example.
+      **kwargs: Additional runtime arguments.
+
+    Returns:
+      A list of score lists, where each inner list contains the Score
+      objects from a single evaluated example.
+    """
+    return [
+        self.evaluate(
+            waveform_embeddings=encoder_outputs[0],
+            embedding_timestamps=encoder_outputs[1],
+            params=params,
+            **kwargs,
+        )
+        for encoder_outputs, params in zip(encoder_outputs_batch, params_batch)
+    ]
+
+  @abc.abstractmethod
+  def combine_scores(
+      self, scores_per_example: list[list[types.Score]]
+  ) -> list[types.Score]:
+    """Combines scores from all examples into a final aggregated list of Scores.
+
+    Subclasses MUST implement this method to define how the scores for their
+    specific metric should be aggregated (e.g., by arithmetic or geometric
+    averaging).
+
+    Args:
+      scores_per_example: A sequence of lists, where each inner list contains
+        the Score objects from a single evaluated example.
+
+    Returns:
+      A list of Score objects containing the final, aggregated scores.
+    """
+    ...
 
 
 class Evaluator(abc.ABC):
