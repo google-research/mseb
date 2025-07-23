@@ -12,9 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""MSEB tasks metadata class."""
+"""MSEB types."""
 
 import dataclasses
+from typing import Optional
+
+import numpy as np
+
+
+@dataclasses.dataclass
+class SoundContextParams:
+  """Parameters for a sound example."""
+  sample_rate: int
+  length: int
+
+  language: Optional[str] = None
+  speaker_id: Optional[str] = None
+  speaker_age: Optional[int] = None
+  speaker_gender: Optional[int] = None
+  text: Optional[str] = None
+  # The starting second of the relevant waveform segment.
+  # Defaults to 0, representing the beginning of the waveform array.
+  waveform_start_second: int = 0
+  # The exclusive ending second for the segment. The
+  # slice of sound segment is `[start:end]`. Defaults to the
+  # maximum float32 value to signify "to the end of the waveform."
+  waveform_end_second: int = np.finfo(np.float32).max
 
 
 @dataclasses.dataclass(frozen=True)
@@ -22,6 +45,7 @@ class Score:
   """A dataclass for a single evaluation metric."""
   metric: str
   description: str
+  value: float
   min: int | float
   max: int | float
 
@@ -31,6 +55,8 @@ class Score:
       raise TypeError("Score 'metric' must be a non-empty string.")
     if not isinstance(self.description, str):
       raise TypeError("Score 'description' must be a string.")
+    if not isinstance(self.value, float):
+      raise TypeError("Score 'value' must be a float.")
     if (not isinstance(self.min, (int, float)) or
         not isinstance(self.max, (int, float))):
       raise TypeError("Score 'min' and 'max' must be numbers.")

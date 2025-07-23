@@ -17,17 +17,77 @@ from typing import Any
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from mseb.abstasks import meta_data
+from mseb import types
+import numpy as np
 
 
-class TaskMetaDataTest(parameterized.TestCase):
+class SoundContextParamsTest(parameterized.TestCase):
+
+  def test_context_params_successful_instantiation(self):
+    params = types.SoundContextParams(
+        sample_rate=16000,
+        length=88000,
+        language="en",
+        text="This is a test.",
+        speaker_id="speaker_001",
+        waveform_start_second=5.0,
+    )
+    assert params.sample_rate == 16000
+    assert params.length == 88000
+    assert params.text == "This is a test."
+
+  def test_context_params_requires_sample_rate_and_length(self):
+    with self.assertRaises(TypeError):
+      types.SoundContextParams(text="This should fail.")
+
+  def test_context_params_requires_sample_rate(self):
+    with self.assertRaises(TypeError):
+      types.SoundContextParams(
+          length=80000,
+          text="This should fail."
+      )
+
+  def test_context_params_requires_length(self):
+    with self.assertRaises(TypeError):
+      types.SoundContextParams(
+          sample_rate=16000,
+          text="This should fail."
+      )
+
+  def test_context_params_default_values(self):
+    params = types.SoundContextParams(
+        sample_rate=22050,
+        length=80000,
+    )
+    assert params.sample_rate == 22050
+    assert params.language is None
+    assert params.text is None
+    assert params.speaker_id is None
+    assert params.waveform_start_second == 0.0
+    assert params.waveform_end_second == np.finfo(np.float32).max
+
+  def test_context_params_mutability(self):
+    params = types.SoundContextParams(
+        sample_rate=16000,
+        length=80000,
+    )
+    assert params.text is None
+    params.text = "New text value."
+    assert params.text == "New text value."
+    params.sample_rate = 48000
+    assert params.sample_rate == 48000
+    params.length = 84000
+    assert params.length == 84000
+
+
+class TaskMetadataTest(parameterized.TestCase):
 
   def _get_valid_params(self) -> dict[str, Any]:
     return {
         "name": "MyTestTask",
         "description": "A test task for validation.",
         "reference": "https://example.com/reference",
-        "dataset": meta_data.Dataset(
+        "dataset": types.Dataset(
             path="mteb/my-test-dataset",
             revision="1.0.0",
         ),
@@ -38,9 +98,10 @@ class TaskMetaDataTest(parameterized.TestCase):
         "main_score": "v_measure",
         "revision": "v1.0.0",
         "scores": [
-            meta_data.Score(
+            types.Score(
                 metric="v_measure",
                 description="The V-Measure score.",
+                value=0.5,
                 min=0,
                 max=1,
             )
@@ -50,10 +111,10 @@ class TaskMetaDataTest(parameterized.TestCase):
     }
 
   def test_successful_instantiation(self):
-    meta_data.TaskMetadata(**self._get_valid_params())
+    types.TaskMetadata(**self._get_valid_params())
 
   def test_is_frozen(self):
-    metadata = meta_data.TaskMetadata(**self._get_valid_params())
+    metadata = types.TaskMetadata(**self._get_valid_params())
     with self.assertRaises(dataclasses.FrozenInstanceError):
       metadata.name = "A New Name"
 
@@ -76,7 +137,7 @@ class TaskMetaDataTest(parameterized.TestCase):
         TypeError,
         f"Metadata attribute '{field}' must be a non-empty string."
     ):
-      meta_data.TaskMetadata(**params)
+      types.TaskMetadata(**params)
 
   @parameterized.named_parameters(
       (
@@ -102,14 +163,14 @@ class TaskMetaDataTest(parameterized.TestCase):
     params = self._get_valid_params()
     params[field] = invalid_value
     with self.assertRaisesRegex(TypeError, message):
-      meta_data.TaskMetadata(**params)
+      types.TaskMetadata(**params)
 
   def test_dataset_instantiation_requires_path(self):
     with self.assertRaisesRegex(
         TypeError,
         "got an unexpected keyword argument 'wrong_key'"
     ):
-      meta_data.Dataset(wrong_key="some-path")  # type: ignore
+      types.Dataset(wrong_key="some-path")  # type: ignore
 
   def test_main_score_must_be_in_scores_list(self):
     params = self._get_valid_params()
@@ -118,7 +179,7 @@ class TaskMetaDataTest(parameterized.TestCase):
         ValueError,
         "main_score 'accuracy' is not defined in the 'scores' list."
     ):
-      meta_data.TaskMetadata(**params)
+      types.TaskMetadata(**params)
 
 
 if __name__ == "__main__":
