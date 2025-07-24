@@ -1,0 +1,104 @@
+# Copyright 2025 The MSEB Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Clustering tasks."""
+
+import os
+import apache_beam as beam
+from mseb import encoder as encoder_lib
+from mseb import svq_data
+from mseb import types
+import numpy as np
+import sklearn
+
+
+def cluster_kmeans(
+    data: np.ndarray, nlabels: int, batch_size: int
+) -> np.ndarray:
+  model = sklearn.cluster.MiniBatchKMeans(
+      n_clusters=nlabels, batch_size=batch_size, n_init='auto'
+  )
+  model.fit(data)
+  return model.labels_
+
+
+class EncodeDoFn(beam.DoFn):
+  """A DoFn that wraps a SoundEncoder."""
+
+  def __init__(self, encoder: encoder_lib.SoundEncoder):
+    self._encoder = encoder
+    self._sample_rate = 48000
+
+  def setup(self):
+    self._encoder.setup()
+
+  def process(self, element):
+    waveform = element['waveform']
+    params = types.SoundContextParams(
+        sample_rate=self._sample_rate,
+        length=len(waveform),
+    )
+    yield self._encoder.encode(waveform, params=params)
+
+
+def encode_svq_beam(base_path, encoder: encoder_lib.SoundEncoder):
+  """Run SoundEncoder over svq dataset using beam."""
+  with beam.Pipeline() as root:
+    examples = svq_data.generate_examples_beam(
+        root, os.path.join(base_path, 'utt_index.jsonl')
+    )
+    encoded = (
+        root
+        | 'ReadExamples' >> beam.Create(examples)
+        | 'Encode' >> beam.ParDo(EncodeDoFn(encoder))
+    )
+    return encoded
+
+
+def encode_svq(base_path, encoder: encoder_lib.SoundEncoder):
+  """Run SoundEncoder over svq dataset returning ndarray of embeddings."""
+  examples = svq_data.generate_examples(
+      os.path.join(base_path, 'utt_index.jsonl')
+  )
+  encoder.setup()
+  encoded = []
+  labels = []
+  for ex in examples:
+    encoded.append(
+        encoder.encode(
+            ex['waveform'],
+            types.SoundContextParams(
+                sample_rate=48000, length=len(ex['waveform'])
+            ),
+        )[0]
+    )
+    labels.append(ex['speaker_gender'])
+  return np.vstack(encoded), labels
+
+
+def run(base_path, encoder: encoder_lib.SoundEncoder):
+  """Run clustering on svq dataset evaluated on speaker_gender."""
+  encoded, labels = encode_svq(base_path, encoder)
+  clusters = cluster_kmeans(encoded, nlabels=len(set(labels)), batch_size=32)
+  v_measure = sklearn.metrics.v_measure_score(
+      labels_true=labels, labels_pred=clusters
+  )
+  score = types.Score(
+      metric='v_measure speaker_gender clustering',
+      description='V-measure',
+      value=v_measure,
+      min=0,
+      max=1,
+  )
+  return score
