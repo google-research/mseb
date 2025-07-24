@@ -18,6 +18,7 @@ import os
 import apache_beam as beam
 from mseb import encoder as encoder_lib
 from mseb import svq_data
+from mseb import task
 from mseb import types
 import numpy as np
 import sklearn
@@ -87,18 +88,55 @@ def encode_svq(base_path, encoder: encoder_lib.SoundEncoder):
   return np.vstack(encoded), labels
 
 
-def run(base_path, encoder: encoder_lib.SoundEncoder):
-  """Run clustering on svq dataset evaluated on speaker_gender."""
-  encoded, labels = encode_svq(base_path, encoder)
-  clusters = cluster_kmeans(encoded, nlabels=len(set(labels)), batch_size=32)
-  v_measure = sklearn.metrics.v_measure_score(
-      labels_true=labels, labels_pred=clusters
+class ClusteringTask(task.MSEBTask):
+  """Clustering task."""
+  metadata = types.TaskMetadata(
+      name='clustering',
+      description='Clustering task.',
+      reference='TODO',
+      type='Clustering',
+      category='speech',
+      main_score='v_measure speaker_gender clustering',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[
+          types.Score(
+              metric='v_measure speaker_gender clustering',
+              description='V-measure',
+              value=0.0,
+              min=0,
+              max=1,
+          ),
+      ],
+      eval_splits=['test'],
+      eval_langs=['en-US'],
+      domains=['speech'],
+      task_subtypes=['clustering'],
   )
-  score = types.Score(
-      metric='v_measure speaker_gender clustering',
-      description='V-measure',
-      value=v_measure,
-      min=0,
-      max=1,
-  )
-  return score
+
+  def __init__(self, sound_encoder: encoder_lib.SoundEncoder, base_path: str):
+    self._base_path = base_path
+    self._sound_encoder = sound_encoder
+
+  def load_data(self):
+    yield [0.0], types.SoundContextParams(
+        sample_rate=48000, length=16000
+    )
+
+  def run(self, batch_size: int = 1) -> list[types.Score]:
+    encoded, labels = encode_svq(self._base_path, self._sound_encoder)
+    clusters = cluster_kmeans(encoded, nlabels=len(set(labels)), batch_size=32)
+    v_measure = sklearn.metrics.v_measure_score(
+        labels_true=labels, labels_pred=clusters
+    )
+    score = types.Score(
+        metric='v_measure speaker_gender clustering',
+        description='V-measure',
+        value=v_measure,
+        min=0,
+        max=1,
+    )
+    return [score]

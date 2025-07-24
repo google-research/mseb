@@ -19,6 +19,15 @@ from mseb.encoders import raw_encoder
 from mseb.tasks import clustering
 
 
+def get_test_encoder():
+  return raw_encoder.RawEncoder(
+      transform_fn=raw_encoder.spectrogram_transform,
+      pooling="mean",
+      frame_length=(48000 // 1000 * 25),
+      frame_step=(48000 // 1000 * 10),
+  )
+
+
 class ClusteringTest(absltest.TestCase):
 
   def get_testdata_path(self, *args):
@@ -28,17 +37,18 @@ class ClusteringTest(absltest.TestCase):
     return os.path.join(testdata_path, *args)
 
   def test_encode_svq_beam(self):
-    encoder = raw_encoder.RawEncoder(
-        transform_fn=raw_encoder.spectrogram_transform,
-        pooling="mean",
-        frame_length=(48000 // 1000 * 25),
-        frame_step=(48000 // 1000 * 10),
-    )
+    encoder = get_test_encoder()
     base_path = self.get_testdata_path()
     encoded, labels = clustering.encode_svq(base_path, encoder)
     self.assertLen(encoded, 1)
     self.assertLen(labels, 1)
 
+  def test_clustering_task(self):
+    task = clustering.ClusteringTask(
+        sound_encoder=get_test_encoder(), base_path=self.get_testdata_path()
+    )
+    scores = task.run()
+    self.assertLen(scores, 1)
+
 if __name__ == "__main__":
   absltest.main()
-

@@ -38,7 +38,11 @@ def main(argv):
       frame_length=(48000 // 1000 * 25),
       frame_step=(48000 // 1000 * 10),
   )
-  clustering.run(_SVQ_BASE_PATH.value, encoder=encoder)
+  task = clustering.ClusteringTask(
+      sound_encoder=encoder, base_path=_SVQ_BASE_PATH.value
+  )
+  scores = task.run()
+  print('Scores: ', scores)
 
 if __name__ == '__main__':
   app.run(main)
