@@ -88,6 +88,19 @@ def encode_svq(base_path, encoder: encoder_lib.SoundEncoder):
   return np.vstack(encoded), labels
 
 
+def vmeasure_score(value: float = 0.0):
+  return types.Score(
+      metric='VMeasure',
+      description=(
+          'V-measure clustering metric: Normalised mutal information'
+          ' against a set of labels.'
+      ),
+      value=value,
+      min=0,
+      max=1,
+  )
+
+
 class ClusteringTask(task.MSEBTask):
   """Clustering task."""
   metadata = types.TaskMetadata(
@@ -96,21 +109,13 @@ class ClusteringTask(task.MSEBTask):
       reference='TODO',
       type='Clustering',
       category='speech',
-      main_score='v_measure speaker_gender clustering',
+      main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
-      scores=[
-          types.Score(
-              metric='v_measure speaker_gender clustering',
-              description='V-measure',
-              value=0.0,
-              min=0,
-              max=1,
-          ),
-      ],
+      scores=[vmeasure_score()],
       eval_splits=['test'],
       eval_langs=['en-US'],
       domains=['speech'],
@@ -132,11 +137,5 @@ class ClusteringTask(task.MSEBTask):
     v_measure = sklearn.metrics.v_measure_score(
         labels_true=labels, labels_pred=clusters
     )
-    score = types.Score(
-        metric='v_measure speaker_gender clustering',
-        description='V-measure',
-        value=v_measure,
-        min=0,
-        max=1,
-    )
+    score = vmeasure_score(v_measure)
     return [score]
