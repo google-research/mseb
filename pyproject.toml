@@ -28,6 +28,8 @@ dependencies = [
     "openai-whisper",
     "pandas",
     "pyarrow",
+    "pygtrie",
+    "spacy",
     "transformers",
     "tensorflow",
     "tensorflow-recommenders",
