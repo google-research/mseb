@@ -204,7 +204,7 @@ class MSEBTaskTest(absltest.TestCase):
     self.assertEqual(mock_task.encoder.encode_batch.call_count, num_batches)
     self.assertEqual(mock_task.evaluator.evaluate_batch.call_count, num_batches)
     mock_task.evaluator.combine_scores.assert_called_once()
-    self.assertEqual(final_scores[0].metric, "agg")
+    self.assertEqual(final_scores["mock_task"][0].metric, "agg")
 
   def test_run_with_empty_dataset(self):
     mock_task = MockTask(
@@ -217,7 +217,7 @@ class MSEBTaskTest(absltest.TestCase):
       final_scores = mock_task.run()
       self.assertIn("Warning: No scores were generated", cm.output[0])
 
-    self.assertEqual(final_scores, [])
+    self.assertEqual(final_scores, {"mock_task": []})
     mock_task.evaluator.combine_scores.assert_not_called()
 
 

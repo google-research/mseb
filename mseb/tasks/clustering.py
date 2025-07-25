@@ -67,14 +67,16 @@ def encode_svq_beam(base_path, encoder: encoder_lib.SoundEncoder):
     return encoded
 
 
-def encode_svq(base_path, encoder: encoder_lib.SoundEncoder):
+def encode_svq(
+    base_path, encoder: encoder_lib.SoundEncoder, label_fields: list[str]
+):
   """Run SoundEncoder over svq dataset returning ndarray of embeddings."""
   examples = svq_data.generate_examples(
       os.path.join(base_path, 'utt_index.jsonl')
   )
   encoder.setup()
   encoded = []
-  labels = []
+  labels = {k: [] for k in label_fields}
   for ex in examples:
     encoded.append(
         encoder.encode(
@@ -84,7 +86,8 @@ def encode_svq(base_path, encoder: encoder_lib.SoundEncoder):
             ),
         )[0]
     )
-    labels.append(ex['speaker_gender'])
+    for k, v in labels.items():
+      v.append(ex[k])
   return np.vstack(encoded), labels
 
 
@@ -131,11 +134,20 @@ class ClusteringTask(task.MSEBTask):
         sample_rate=48000, length=16000
     )
 
-  def run(self, batch_size: int = 1) -> list[types.Score]:
-    encoded, labels = encode_svq(self._base_path, self._sound_encoder)
-    clusters = cluster_kmeans(encoded, nlabels=len(set(labels)), batch_size=32)
-    v_measure = sklearn.metrics.v_measure_score(
-        labels_true=labels, labels_pred=clusters
+  def run(self, batch_size: int = 1):
+    encoded, all_labels = encode_svq(
+        self._base_path,
+        self._sound_encoder,
+        label_fields=['speaker_gender', 'speaker_age', 'speaker_id'],
     )
-    score = vmeasure_score(v_measure)
-    return [score]
+    scores = {}
+    for label_key, labels in all_labels.items():
+      clusters = cluster_kmeans(
+          encoded, nlabels=len(set(labels)), batch_size=32
+      )
+      v_measure = sklearn.metrics.v_measure_score(
+          labels_true=labels, labels_pred=clusters
+      )
+      scores[label_key] = [vmeasure_score(v_measure)]
+    return scores
+

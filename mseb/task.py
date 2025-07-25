@@ -103,7 +103,7 @@ class MSEBTask(abc.ABC):
         break
       yield batch
 
-  def run(self, batch_size: int = 1) -> list[types.Score]:
+  def run(self, batch_size: int = 1) -> dict[str, list[types.Score]]:
     """Default "simple runner" for local, single-machine, batched execution.
 
     This runner orchestrates the entire process: it ensures the model is
@@ -114,7 +114,9 @@ class MSEBTask(abc.ABC):
       batch_size: The number of examples to process in each batch.
 
     Returns:
-      A list of final, aggregated Score objects for the task.
+      A dictionary of lists of aggregated Score object keyed by sub-task name.
+      Sub-tasks are useful when a single dataset contains examples for multiple
+      related tasks that re-use the same encoder outputs.
     """
     # 1. Ensure the model is loaded.
     self.setup()
@@ -135,7 +137,7 @@ class MSEBTask(abc.ABC):
           "Warning: No scores were generated for task %s. "
           "The dataset might be empty.", self.metadata.name
       )
-      return []
+      return {self.metadata.name: []}
 
     # 3. Combine the final scores using the evaluator's aggregation logic.
     logger.info(
@@ -146,4 +148,4 @@ class MSEBTask(abc.ABC):
 
     logger.info("--- Evaluation for %s complete ---", self.metadata.name)
 
-    return final_scores
+    return {self.metadata.name: final_scores}
