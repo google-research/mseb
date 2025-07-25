@@ -12,136 +12,546 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Sequence, Tuple, Union
-
 from absl.testing import absltest
-from mseb import encoder
+from mseb import types
 from mseb.evaluators import segmentation_evaluator
 import numpy as np
-import numpy.testing as npt
-
-
-class IdentityEncoder(encoder.Encoder):
-
-  def __init__(self,
-               timestamps: list[list[list[float]]],
-               embeddings: list[list[str]]):
-    self.timestamps = timestamps
-    self.embeddings = embeddings
-
-  def encode(self,
-             sequence: Union[str, Sequence[float]],
-             context: encoder.ContextParams,
-             index: int = 0) -> Tuple[np.ndarray, np.ndarray]:
-    timestamps = np.array(self.timestamps[index])
-    embeddings = np.array(self.embeddings[index])
-    return timestamps, embeddings
 
 
 class SegmentationEvaluatorTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.timestamps = [
-        [[0, 1.24], [1.24, 1.4], [1.4, 1.82], [1.82, 2.52]],
-        [[0, 1.10], [1.10, 1.4], [1.4, 2.01], [2.01, 2.70]],
-        [[0.21, 1.24], [1.24, 1.61], [1.61, 1.82], [1.82, 2.73]],
-        [[0, 1.27], [1.27, 1.43], [1.43, 2.52]]
+    self.evaluator = segmentation_evaluator.SegmentationEvaluator(tau=0.1)
+    self.sample_rate = 16000
+    self.params = types.SoundContextParams(
+        sample_rate=self.sample_rate,
+        length=self.sample_rate * 5
+    )
+
+  def _assert_scores(
+      self,
+      scores: list[types.Score],
+      expected_scores: list[types.Score]
+  ):
+    self.assertLen(scores, len(expected_scores))
+    scores_map = {s.metric: s for s in scores}
+    expected_scores_map = {s.metric: s for s in expected_scores}
+    self.assertCountEqual(scores_map.keys(), expected_scores_map.keys())
+    for metric, expected_score in expected_scores_map.items():
+      actual_score = scores_map[metric]
+      self.assertEqual(actual_score.metric, expected_score.metric)
+      self.assertEqual(actual_score.description, expected_score.description)
+      self.assertAlmostEqual(actual_score.value, expected_score.value)
+      self.assertEqual(actual_score.min, expected_score.min)
+      self.assertEqual(actual_score.max, expected_score.max)
+
+  def test_evaluate_perfect_match(self):
+    ref_ts = np.array([[0.5, 1.0], [2.0, 2.5]])
+    ref_emb = np.array(["dog", "cat"])
+    scores = self.evaluator.evaluate(
+        waveform_embeddings=ref_emb,
+        embedding_timestamps=ref_ts,
+        params=self.params,
+        reference_waveform_embeddings=ref_emb,
+        reference_embedding_timestamps=ref_ts,
+    )
+    expected_scores = [
+        types.Score(
+            metric="TimestampsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["TimestampsHits"]
+            ),
+            value=2.0,
+            min=0.0,
+            max=2.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["EmbeddingsHits"]
+            ),
+            value=2.0,
+            min=0.0,
+            max=2.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingsHits"]
+            ),
+            value=2.0,
+            min=0.0,
+            max=2.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=2.0,
+            min=0.0,
+            max=2.0
+        ),
     ]
-    self.embeddings = [
-        ['Massive', ' Sound', ' Embedding', ' Benchmark'],
-        ['Benchmark', ' Embedding', ' Sound', ' Massive'],
-        ['Massive', ' Sound', ' Embedding', ' Benchmark'],
-        ['Massive', ' Speech', ' Embedding']
+    self._assert_scores(scores, expected_scores)
+
+  def test_evaluate_no_match(self):
+    ref_ts = np.array([[0.5, 1.0]])
+    ref_emb = np.array(["dog"])
+    pred_ts = np.array([[3.0, 3.5]])
+    pred_emb = np.array(["cat"])
+    scores = self.evaluator.evaluate(
+        waveform_embeddings=pred_emb,
+        embedding_timestamps=pred_ts,
+        params=self.params,
+        reference_waveform_embeddings=ref_emb,
+        reference_embedding_timestamps=ref_ts,
+    )
+    expected_scores = [
+        types.Score(
+            metric="TimestampsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["TimestampsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["EmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
     ]
-    self.identity_encoder = IdentityEncoder(
-        timestamps=self.timestamps,
-        embeddings=self.embeddings)
-    self.context = encoder.ContextParams()
+    self._assert_scores(scores, expected_scores)
 
-  def test_exact_match(self):
-    evaluator = segmentation_evaluator.SegmentationEvaluator(
-        self.identity_encoder, {'index': 0})
-    reference_timestamps = np.array(self.timestamps[0])
-    reference_embeddings = np.array(self.embeddings[0])
-    scores = evaluator(np.array([1.0, 2.0, 3.0]), self.context,
-                       reference_timestamps, reference_embeddings, 0.0)
-    npt.assert_equal(list(scores.values()), [4, 4, 4, 4])
-
-  def test_timestamps_hits(self):
-    evaluator = segmentation_evaluator.SegmentationEvaluator(
-        self.identity_encoder, {'index': 1})
-    reference_timestamps = np.array(self.timestamps[0])
-    reference_embeddings = np.array(self.embeddings[0])
-    scores = evaluator(np.array([1.0, 2.0, 3.0]), self.context,
-                       reference_timestamps, reference_embeddings, 0.2)
-    npt.assert_equal(scores['TimestampsHits'], 4)
-    npt.assert_equal(scores['EmbeddingsHits'], 2)
-    npt.assert_equal(scores['TimestampsAndEmbeddingsHits'], 0)
-    npt.assert_equal(scores['NumSegments'], 4)
-
-  def test_embeddings_hits(self):
-    evaluator = segmentation_evaluator.SegmentationEvaluator(
-        self.identity_encoder, {'index': 2})
-    reference_timestamps = np.array(self.timestamps[0])
-    reference_embeddings = np.array(self.embeddings[0])
-    scores = evaluator(np.array([1.0, 2.0, 3.0]), self.context,
-                       reference_timestamps, reference_embeddings, 0.2)
-    npt.assert_equal(scores['TimestampsHits'], 0)
-    npt.assert_equal(scores['EmbeddingsHits'], 4)
-    npt.assert_equal(scores['TimestampsAndEmbeddingsHits'], 0)
-    npt.assert_equal(scores['NumSegments'], 4)
-
-  def test_timestamps_and_embeddings_hits(self):
-    evaluator = segmentation_evaluator.SegmentationEvaluator(
-        self.identity_encoder, {'index': 3})
-    reference_timestamps = np.array(self.timestamps[0])
-    reference_embeddings = np.array(self.embeddings[0])
-    scores = evaluator(np.array([1.0, 2.0, 3.0]), self.context,
-                       reference_timestamps, reference_embeddings, 0.1)
-    npt.assert_equal(scores['TimestampsHits'], 2)
-    npt.assert_equal(scores['EmbeddingsHits'], 2)
-    npt.assert_equal(scores['TimestampsAndEmbeddingsHits'], 1)
-    npt.assert_equal(scores['NumSegments'], 4)
-
-  def test_combine_scores(self):
-    evaluator = segmentation_evaluator.SegmentationEvaluator(
-        self.identity_encoder, {'index': 0})
-    scores = [
-        {
-            'TimestampsHits': 4,
-            'EmbeddingsHits': 4,
-            'TimestampsAndEmbeddingsHits': 4,
-            'NumSegments': 4,
-        },
-        {
-            'TimestampsHits': 4,
-            'EmbeddingsHits': 2,
-            'TimestampsAndEmbeddingsHits': 0,
-            'NumSegments': 4,
-        },
-        {
-            'TimestampsHits': 0,
-            'EmbeddingsHits': 4,
-            'TimestampsAndEmbeddingsHits': 0,
-            'NumSegments': 4,
-        },
-        {
-            'TimestampsHits': 2,
-            'EmbeddingsHits': 2,
-            'TimestampsAndEmbeddingsHits': 1,
-            'NumSegments': 4,
-        },
+  def test_evaluate_timestamp_hit_with_tolerance(self):
+    ref_ts = np.array([[1.0, 2.0]])
+    ref_emb = np.array(["sound"])
+    pred_ts = np.array([[1.05, 1.95]])
+    pred_emb = np.array(["different_sound"])
+    scores = self.evaluator.evaluate(
+        waveform_embeddings=pred_emb,
+        embedding_timestamps=pred_ts,
+        params=self.params,
+        reference_waveform_embeddings=ref_emb,
+        reference_embedding_timestamps=ref_ts,
+        tau=0.1,
+    )
+    expected_scores = [
+        types.Score(
+            metric="TimestampsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["TimestampsHits"]
+            ),
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["EmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
     ]
-    combined_scores = evaluator.combine_scores(scores)
-    npt.assert_equal(combined_scores['TimestampsHits'], 10)
-    npt.assert_equal(combined_scores['EmbeddingsHits'], 12)
-    npt.assert_equal(combined_scores['TimestampsAndEmbeddingsHits'], 5)
-    npt.assert_equal(combined_scores['TimestampsAccuracy'], 0.625)
-    npt.assert_equal(combined_scores['EmbeddingsAccuracy'], 0.75)
-    npt.assert_equal(combined_scores['TimestampsAndEmbeddingsAccuracy'], 0.3125)
-    npt.assert_equal(combined_scores['NumSegments'], 16)
+    self._assert_scores(scores, expected_scores)
+
+  def test_evaluate_embedding_hit_only(self):
+    ref_ts = np.array([[1.0, 2.0]])
+    ref_emb = np.array(["sound"])
+    pred_ts = np.array([[4.0, 4.5]])
+    pred_emb = np.array(["sound"])
+    scores = self.evaluator.evaluate(
+        waveform_embeddings=pred_emb,
+        embedding_timestamps=pred_ts,
+        params=self.params,
+        reference_waveform_embeddings=ref_emb,
+        reference_embedding_timestamps=ref_ts,
+    )
+    expected_scores = [
+        types.Score(
+            metric="TimestampsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["TimestampsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["EmbeddingsHits"]
+            ),
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
+    ]
+    self._assert_scores(scores, expected_scores)
+
+  def test_evaluate_fails_on_out_of_bounds_prediction(self):
+    ref_ts = np.array([[1.0, 2.0]])
+    ref_emb = np.array(["sound"])
+    invalid_pred_ts = np.array([[4.0, 5.1]])
+    with self.assertRaisesRegex(
+        ValueError,
+        "exceeds the total waveform length"
+    ):
+      self.evaluator.evaluate(
+          waveform_embeddings=ref_emb,
+          embedding_timestamps=invalid_pred_ts,
+          params=self.params,
+          reference_waveform_embeddings=ref_emb,
+          reference_embedding_timestamps=ref_ts,
+      )
+
+  def test_evaluate_fails_on_out_of_bounds_reference(self):
+    ref_ts = np.array([[6.0, 7.0]])
+    ref_emb = np.array(["sound"])
+    pred_ts = np.array([[1.0, 2.0]])
+    with self.assertRaisesRegex(
+        ValueError,
+        "exceeds the total waveform length"
+    ):
+      self.evaluator.evaluate(
+          waveform_embeddings=ref_emb,
+          embedding_timestamps=pred_ts,
+          params=self.params,
+          reference_waveform_embeddings=ref_emb,
+          reference_embedding_timestamps=ref_ts,
+      )
+
+  def test_evaluate_fails_on_negative_timestamp(self):
+    ref_ts = np.array([[1.0, 2.0]])
+    ref_emb = np.array(["sound"])
+    invalid_pred_ts = np.array([[-0.1, 1.0]])
+    with self.assertRaisesRegex(
+        ValueError,
+        "contains negative timestamps"
+    ):
+      self.evaluator.evaluate(
+          waveform_embeddings=ref_emb,
+          embedding_timestamps=invalid_pred_ts,
+          params=self.params,
+          reference_waveform_embeddings=ref_emb,
+          reference_embedding_timestamps=ref_ts,
+      )
+
+  def test_evaluate_fails_on_invalid_start_end_order(self):
+    ref_ts = np.array([[1.0, 2.0]])
+    ref_emb = np.array(["sound"])
+    invalid_pred_ts = np.array([[2.0, 1.0]])
+    with self.assertRaisesRegex(
+        ValueError,
+        "start_time > end_time"
+    ):
+      self.evaluator.evaluate(
+          waveform_embeddings=ref_emb,
+          embedding_timestamps=invalid_pred_ts,
+          params=self.params,
+          reference_waveform_embeddings=ref_emb,
+          reference_embedding_timestamps=ref_ts,
+      )
+
+  def test_combine_scores_aggregation(self):
+    scores_example_1 = [
+        types.Score(
+            metric="TimestampsHits",
+            description="desc",
+            value=1.0,
+            min=0.0,
+            max=2.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description="desc",
+            value=1.0,
+            min=0.0,
+            max=2.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description="desc",
+            value=0.0,
+            min=0.0,
+            max=2.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description="desc",
+            value=2.0,
+            min=0.0,
+            max=2.0
+        ),
+    ]
+    scores_example_2 = [
+        types.Score(
+            metric="TimestampsHits",
+            description="desc",
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description="desc",
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description="desc",
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description="desc",
+            value=1.0,
+            min=0.0,
+            max=1.0
+        ),
+    ]
+
+    final_scores = self.evaluator.combine_scores(
+        [scores_example_1, scores_example_2]
+    )
+
+    expected_scores = [
+        types.Score(
+            metric="TimestampsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["TimestampsHits"]
+            ),
+            value=2.0,
+            min=0.0,
+            max=3.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["EmbeddingsHits"]
+            ),
+            value=1.0,
+            min=0.0,
+            max=3.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=3.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=3.0,
+            min=0.0,
+            max=3.0
+        ),
+        types.Score(
+            metric="TimestampsAccuracy",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAccuracy"
+                ]
+            ),
+            value=2.0 / 3.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="EmbeddingsAccuracy",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "EmbeddingsAccuracy"
+                ]
+            ),
+            value=1.0 / 3.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingAccuracy",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingAccuracy"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+    ]
+    self._assert_scores(final_scores, expected_scores)
+
+  def test_combine_scores_empty_input(self):
+    final_scores = self.evaluator.combine_scores([])
+    self.assertEqual(final_scores, [])
+
+  def test_combine_scores_no_segments(self):
+    scores_no_segments = [[
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=0.0
+        )
+    ]]
+    final_scores = self.evaluator.combine_scores(scores_no_segments)
+    expected_scores = [
+        types.Score(
+            metric="TimestampsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["TimestampsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=0.0
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["EmbeddingsHits"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=0.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingsHits"
+                ]
+            ),
+            value=0.0,
+            min=0.0,
+            max=0.0
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS["NumSegments"]
+            ),
+            value=0.0,
+            min=0.0,
+            max=0.0
+        ),
+        types.Score(
+            metric="TimestampsAccuracy",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAccuracy"
+                ]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="EmbeddingsAccuracy",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "EmbeddingsAccuracy"
+                ]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingAccuracy",
+            description=(
+                segmentation_evaluator._METRIC_DESCRIPTIONS[
+                    "TimestampsAndEmbeddingAccuracy"
+                ]
+            ),
+            value=0.0,
+            min=0.0,
+            max=1.0
+        ),
+    ]
+    self._assert_scores(final_scores, expected_scores)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   absltest.main()

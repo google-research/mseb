@@ -12,194 +12,276 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Segmentation evaluators metrics include.
+"""Segmentation evaluators metrics include."""
 
-1.  TimestampsAccuracy: Measures the percentage of segments where both the
-    predicted start and end timestamps fall within an tau distance from
-    their respective reference timestamps. This metric assesses the temporal
-    precision.
+import collections
+from typing import Any
 
-2.  EmbeddingsAccuracy: Measures the percentage of segments where the predicted
-    embedding exactly matches the reference embedding, regardless of timestamp
-    accuracy. This metric verifies if the transcribed content is correct.
-
-3.  TimestampsAndEmbeddingAccuracy: Measures the percentage of segments where
-    both the embedding is correct AND its corresponding timestamps (start and
-    end) are within the tau distance of the reference. This represents
-    the overall accuracy of both content and timing.
-"""
-
-from typing import Sequence, Union
-
-from mseb import encoder
 from mseb import evaluator
+from mseb import types
 import numpy as np
 
 
-class SegmentationEvaluator(evaluator.Evaluator):
-  """Segmentation evaluator."""
+_METRIC_DESCRIPTIONS: dict[str, str] = {
+    "TimestampsAccuracy": (
+        "Temporal Precision: The percentage of predicted segments whose start "
+        "and end times are both within a specified tolerance (tau) of the "
+        "reference timestamps."
+    ),
+    "EmbeddingsAccuracy": (
+        "Content Accuracy: The percentage of predicted segments where the "
+        "embedding (e.g., a transcribed label) exactly matches the reference, "
+        "irrespective of its timing."
+    ),
+    "TimestampsAndEmbeddingAccuracy": (
+        "Overall Accuracy: The percentage of segments where the embedding is "
+        "correct AND its associated start/end times are within the tolerance "
+        "(tau). This is the strictest metric."
+    ),
+    "TimestampsHits": (
+        "The raw count of reference segments with a temporally aligned "
+        "prediction."
+    ),
+    "EmbeddingsHits": (
+        "The raw count of reference segments with a content-matched prediction."
+    ),
+    "TimestampsAndEmbeddingsHits": (
+        "The raw count of segments matching in both content and time."
+    ),
+    "NumSegments": (
+        "The total number of ground-truth segments in the reference."
+    ),
+}
 
-  def __call__(self,
-               sequence: Union[str, Sequence[float]],
-               context: encoder.ContextParams,
-               reference_timestamps: np.ndarray = np.empty((0, 2)),
-               reference_embeddings: np.ndarray = np.empty(0),
-               tau: float = 0
-               ) -> dict[str, float]:
-    """Evaluates segmentation quality of the encoder.
 
+class SegmentationEvaluator(evaluator.SoundEmbeddingEvaluator):
+  """Evaluates segmentation quality of sound encodings.
 
-    Metrics are extracted to evaluate quality of segmentation, with respect
-    to timestamp only, embedding only, and both.
+  This evaluator calculates metrics by comparing predicted segments
+  (waveform_embeddings, embedding_timestamps) against a ground truth
+  reference. It measures how well the encoder identifies the content
+  and timing of sound events.
+  """
+
+  def __init__(self, **kwargs: Any):
+    """Initializes the evaluator.
 
     Args:
-      sequence: Input sound sequence to encode. String-type sequences are
-                interpreted as sound file paths.
-      context: Encoder input context parameters.
-      reference_timestamps: A NumPy array of shape [N, 2] representing
-                            the ground truth segment start and end times.
-      reference_embeddings: A NumPy array of shape [N] representing
-                            the ground truth embeddings (e.g.,
-                            transcribed words/sentences) corresponding to
-                            reference_timestamps.
-      tau: Acceptable threshold (in seconds) for timestamp start and end.
-           If a candidate's timestamp start or end falls further than `tau`
-           seconds from the closest reference segment's start/end, it's
-           considered a missegmentation.
+      **kwargs: Keyword arguments for evaluation. Expected keys include:
+        - `tau` (float): The acceptable tolerance in seconds for a timestamp
+          to be considered a match. Defaults to 0.0.
+    """
+    super().__init__(**kwargs)
+    self.tau = self._kwargs.get("tau", 0.0)
+
+  def _validate_timestamps(
+      self,
+      timestamps: np.ndarray,
+      max_length: float,
+      name: str
+  ):
+    """Checks if all timestamps are within the valid range [0, max_length]."""
+    if timestamps.size == 0:
+      return  # Nothing to validate.
+    if np.any(timestamps < 0):
+      raise ValueError(
+          f"'{name}' contains negative timestamps, which is invalid."
+      )
+    if np.any(timestamps > max_length):
+      raise ValueError(
+          f"'{name}' contains a timestamp ({np.max(timestamps):.2f}s) that"
+          f" exceeds the total waveform length ({max_length:.2f}s)."
+      )
+    if np.any(timestamps[:, 0] > timestamps[:, 1]):
+      raise ValueError(
+          f"'{name}' contains entries where start_time > end_time."
+      )
+
+  def evaluate(
+      self,
+      waveform_embeddings: np.ndarray,
+      embedding_timestamps: np.ndarray,
+      params: types.SoundContextParams,
+      **kwargs: Any,
+  ) -> list[types.Score]:
+    """Evaluates segmentation quality for a single example.
+
+    Args:
+      waveform_embeddings: A 2D array from the encoder.
+      embedding_timestamps: A 2D array of [start, end] sample seconds.
+      params: The waveform context parameters, used as a source of ground truth.
+      **kwargs: Additional runtime arguments. MUST contain:
+        - `reference_waveform_embeddings` (np.ndarray): Ground truth
+          waveform_embeddings.
+        - `reference_embedding_timestamps` (np.ndarray): Ground truth
+          embedding_timestamps.
+        - `tau` (Optional[float]): Overrides the init `tau` value.
 
     Returns:
-      Dictionary of four metrics:
-      TimestampsHits: Measures the number of segments for which the predicted
-                      timestamps are within tau of the reference timestamp.
-      EmbeddingsHits: Measures the number of matches between reference's
-                      and candidate's embeddings (exact string match assumed).
-      TimestampsAndEmbeddingsHits: Measures the number of matches where both
-                                   timestamp criteria are met AND the
-                                   corresponding embedding matches.
-      NumSegments: Total number of segments in the reference.
-
-    Raises:
-      ValueError: If either of reference_timestamps or reference_embeddings
-                  is empty array or None.
+      A list of Score objects containing the raw hit counts and total
+      segments for this single example.
     """
-    if reference_timestamps is None or reference_timestamps.size == 0:
-      raise ValueError('The reference_timestamps should not be None.')
-    if reference_embeddings is None or reference_embeddings.size == 0:
-      raise ValueError('The reference_embeddings should not be None.')
+    reference_embeddings = kwargs.get("reference_waveform_embeddings")
+    reference_timestamps = kwargs.get("reference_embedding_timestamps")
 
-    candidate_timestamps, candidate_embeddings = self.sound_encoder.encode(
-        sequence=sequence,
-        context=context,
-        **self.encode_kwargs
+    if reference_embeddings is None or reference_embeddings.size == 0:
+      raise ValueError(
+          "Missing required kwarg: `reference_waveform_embeddings`."
+      )
+    if reference_timestamps is None or reference_timestamps.size == 0:
+      raise ValueError(
+          "Missing required kwarg: `reference_embedding_timestamps`."
+      )
+
+    max_duration_seconds = params.length / params.sample_rate
+    self._validate_timestamps(
+        embedding_timestamps,
+        max_duration_seconds,
+        "Predicted `embedding_timestamps`"
+    )
+    self._validate_timestamps(
+        reference_timestamps,
+        max_duration_seconds,
+        "Ground-truth `reference_embedding_timestamps`",
     )
 
+    tau_seconds = kwargs.get("tau", self.tau)
     num_reference_segments = len(reference_timestamps)
-    num_candidate_segments = len(candidate_timestamps)
+    num_candidate_segments = len(embedding_timestamps)
+    timestamps_hits, embeddings_hits, timestamps_and_embeddings_hits = 0, 0, 0
 
-    timestamps_hits = 0
-    embeddings_hits = 0
-    timestamps_and_embeddings_hits = 0
+    if num_reference_segments > 0 and num_candidate_segments > 0:
+      cand_embeds_str = [str(e).lower() for e in waveform_embeddings]
+      for i in range(num_reference_segments):
+        ref_start, ref_end = reference_timestamps[i]
+        ref_emb_str = str(reference_embeddings[i]).lower()
 
-    if num_reference_segments == 0 or num_candidate_segments == 0:
-      return {
-          'TimestampsHits': 0.0,
-          'EmbeddingsHits': 0.0,
-          'TimestampsAndEmbeddingsHits': 0.0,
-          'NumSegments': float(num_reference_segments),
-      }
+        if i < num_candidate_segments:
+          cand_start, cand_end = embedding_timestamps[i]
+          time_match = (
+              abs(ref_start - cand_start) <= tau_seconds
+              and abs(ref_end - cand_end) <= tau_seconds
+          )
+          embedding_match = ref_emb_str == cand_embeds_str[i]
+          if time_match and embedding_match:
+            timestamps_and_embeddings_hits += 1
 
-    for i in range(num_reference_segments):
-      ref_start, ref_end = reference_timestamps[i]
-      ref_emb = str(reference_embeddings[i])
+        if any(
+            (abs(ref_start - cs) <= tau_seconds
+             and abs(ref_end - ce) <= tau_seconds)
+            for cs, ce in embedding_timestamps
+        ):
+          timestamps_hits += 1
 
-      best_time_match = False
-      best_embedding_match = False
-      time_and_embedding_match = False
+        if ref_emb_str in cand_embeds_str:
+          embeddings_hits += 1
 
-      # Find the best candidate match for the current reference segment
-      # This nested loop can be optimized for large datasets
-      # (e.g., using spatial trees)
-      for j in range(num_candidate_segments):
-        cand_start, cand_end = candidate_timestamps[j]
-        cand_emb = str(candidate_embeddings[j])
+    max_val = float(num_reference_segments)
+    return [
+        types.Score(
+            metric="TimestampsHits",
+            description=_METRIC_DESCRIPTIONS["TimestampsHits"],
+            value=float(timestamps_hits),
+            min=0.0,
+            max=max_val
+        ),
+        types.Score(
+            metric="EmbeddingsHits",
+            description=_METRIC_DESCRIPTIONS["EmbeddingsHits"],
+            value=float(embeddings_hits),
+            min=0.0,
+            max=max_val
+        ),
+        types.Score(
+            metric="TimestampsAndEmbeddingsHits",
+            description=_METRIC_DESCRIPTIONS["TimestampsAndEmbeddingsHits"],
+            value=float(timestamps_and_embeddings_hits),
+            min=0.0,
+            max=max_val
+        ),
+        types.Score(
+            metric="NumSegments",
+            description=_METRIC_DESCRIPTIONS["NumSegments"],
+            value=max_val,
+            min=0.0,
+            max=max_val
+        ),
+    ]
 
-        # Check timestamp match (within tau for both start and end)
-        time_match = (abs(ref_start - cand_start) <= tau and
-                      abs(ref_end - cand_end) <= tau)
+  def combine_scores(
+      self, scores_per_example: list[list[types.Score]]
+  ) -> list[types.Score]:
+    """Combines raw hit counts from all examples and computes final accuracy."""
+    if not scores_per_example:
+      return []
 
-        # Check embedding match (exact string match)
-        embedding_match = (ref_emb.lower() == cand_emb.lower())
+    aggregated_counts = collections.defaultdict(float)
+    for example_scores in scores_per_example:
+      for score in example_scores:
+        if score.metric in _METRIC_DESCRIPTIONS:
+          aggregated_counts[score.metric] += score.value
 
-        if time_match:
-          best_time_match = True
-        if embedding_match:
-          best_embedding_match = True
-        if time_match and embedding_match and i == j:
-          time_and_embedding_match = True
-          break
+    final_scores = []
+    total_segments = aggregated_counts.get("NumSegments", 0.0)
 
-      if best_time_match:
-        timestamps_hits += 1
-      if best_embedding_match:
-        embeddings_hits += 1
-      if time_and_embedding_match:
-        timestamps_and_embeddings_hits += 1
+    for name in ["TimestampsHits",
+                 "EmbeddingsHits",
+                 "TimestampsAndEmbeddingsHits",
+                 "NumSegments"]:
+      value = aggregated_counts.get(name, 0.0)
+      final_scores.append(
+          types.Score(
+              metric=name,
+              description=_METRIC_DESCRIPTIONS[name],
+              value=value,
+              min=0.0,
+              max=total_segments
+          )
+      )
+    accuracy_names = [
+        "TimestampsAccuracy",
+        "EmbeddingsAccuracy",
+        "TimestampsAndEmbeddingAccuracy"
+    ]
+    if total_segments > 0:
+      final_scores.extend([
+          types.Score(
+              metric="TimestampsAccuracy",
+              description=_METRIC_DESCRIPTIONS["TimestampsAccuracy"],
+              value=aggregated_counts["TimestampsHits"] / total_segments,
+              min=0.0,
+              max=1.0
+          ),
+          types.Score(
+              metric="EmbeddingsAccuracy",
+              description=_METRIC_DESCRIPTIONS["EmbeddingsAccuracy"],
+              value=aggregated_counts["EmbeddingsHits"] / total_segments,
+              min=0.0,
+              max=1.0
+          ),
+          types.Score(
+              metric="TimestampsAndEmbeddingAccuracy",
+              description=_METRIC_DESCRIPTIONS[
+                  "TimestampsAndEmbeddingAccuracy"],
+              value=(
+                  aggregated_counts["TimestampsAndEmbeddingsHits"]
+                  / total_segments
+              ),
+              min=0.0,
+              max=1.0
+          ),
+      ])
+    else:
+      for name in accuracy_names:
+        final_scores.append(
+            types.Score(
+                metric=name,
+                description=_METRIC_DESCRIPTIONS[name],
+                value=0.0,
+                min=0.0,
+                max=1.0
+            )
+        )
 
-    return {
-        'TimestampsHits': float(timestamps_hits),
-        'EmbeddingsHits': float(embeddings_hits),
-        'TimestampsAndEmbeddingsHits': float(timestamps_and_embeddings_hits),
-        'NumSegments': float(num_reference_segments),
-    }
+    return final_scores
 
-  def combine_scores(self, scores: list[dict[str, float]]) -> dict[str, float]:
-    """Combines individual segmentation evaluation scores by averaging them.
-
-    Args:
-      scores: A list of dictionaries, where each dictionary contains the
-              segmentation metrics for a single example (e.g., TimestampsHits,
-              EmbeddingsHits, TimestampsAndEmbeddingsHits, NumSegments).
-
-    Returns:
-      A single dictionary with the averaged metrics across all examples.
-      For NumSegments, it will return the sum of segments across all examples.
-    """
-    if not scores:
-      return {
-          'TimestampsHits': 0.0,
-          'EmbeddingsHits': 0.0,
-          'TimestampsAndEmbeddingsHits': 0.0,
-          'NumSegments': 0.0,
-      }
-
-    combined_metrics: dict[str, float] = {
-        'TimestampsHits': 0.0,
-        'EmbeddingsHits': 0.0,
-        'TimestampsAndEmbeddingsHits': 0.0,
-        'NumSegments': 0.0,
-        'TimestampsAccuracy': 0.0,
-        'EmbeddingsAccuracy': 0.0,
-        'TimestampsAndEmbeddingsAccuracy': 0.0,
-    }
-
-    for score_dict in scores:
-      combined_metrics['TimestampsHits'] += score_dict.get(
-          'TimestampsHits', 0.0)
-      combined_metrics['EmbeddingsHits'] += score_dict.get(
-          'EmbeddingsHits', 0.0)
-      combined_metrics['TimestampsAndEmbeddingsHits'] += score_dict.get(
-          'TimestampsAndEmbeddingsHits', 0.0)
-      combined_metrics['NumSegments'] += score_dict.get(
-          'NumSegments', 0.0)
-
-    accuracy = lambda x, y: x / y
-    if combined_metrics['NumSegments'] > 0:
-      combined_metrics['TimestampsAccuracy'] = accuracy(
-          combined_metrics['TimestampsHits'], combined_metrics['NumSegments'])
-      combined_metrics['EmbeddingsAccuracy'] = accuracy(
-          combined_metrics['EmbeddingsHits'], combined_metrics['NumSegments'])
-      combined_metrics['TimestampsAndEmbeddingsAccuracy'] = accuracy(
-          combined_metrics['TimestampsAndEmbeddingsHits'],
-          combined_metrics['NumSegments'])
-
-    return combined_metrics
