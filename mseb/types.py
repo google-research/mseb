@@ -48,6 +48,7 @@ class Score:
   value: float
   min: int | float
   max: int | float
+  weight: float = 1.0
 
   def __post_init__(self):
     """Validates the score data."""
@@ -63,6 +64,10 @@ class Score:
     if self.min > self.max:
       raise ValueError(
           f"Score 'min' ({self.min}) cannot be greater than 'max' ({self.max})."
+      )
+    if not isinstance(self.weight, float) or self.weight < 0:
+      raise ValueError(
+          "Score 'weight' must be a non-negative float."
       )
 
 
