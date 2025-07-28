@@ -220,6 +220,10 @@ class MSEBTaskTest(absltest.TestCase):
     self.assertEqual(final_scores, {"mock_task": []})
     mock_task.evaluator.combine_scores.assert_not_called()
 
+  def test_list_tasks(self):
+    tasks = task.get_name_to_task()
+    self.assertIn("mock_task", tasks)
+
 
 if __name__ == "__main__":
   absltest.main()

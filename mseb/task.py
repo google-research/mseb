@@ -149,3 +149,13 @@ class MSEBTask(abc.ABC):
     logger.info("--- Evaluation for %s complete ---", self.metadata.name)
 
     return {self.metadata.name: final_scores}
+
+
+def get_task_list() -> list[type[MSEBTask]]:
+  return list(MSEBTask.__subclasses__())
+
+
+def get_name_to_task() -> dict[str, type[MSEBTask]]:
+  tasks = get_task_list()
+  return {cls.metadata.name: cls for cls in tasks if cls.metadata}
+
