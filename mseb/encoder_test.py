@@ -31,14 +31,14 @@ class MockSoundEncoder(encoder.SoundEncoder):
   def setup(self):
     pass
 
-  def _encode(self, audio, params, **kwargs):
+  def _encode_batch(self, waveform_batch, params_batch, **kwargs):
     pass
 
   def __init__(self, model_path: str, **kwargs: Any):
     super().__init__(model_path, **kwargs)
     self.setup = mock.MagicMock(side_effect=self._setup_impl)
-    self._encode = mock.MagicMock(
-        return_value=(np.zeros((10, 8)), np.zeros((10, 2)))
+    self._encode_batch = mock.MagicMock(
+        return_value=[(np.zeros((10, 8)), np.zeros((10, 2)))]
     )
 
   def _setup_impl(self):
@@ -52,8 +52,8 @@ class FaultySetupEncoder(encoder.SoundEncoder):
   def setup(self):
     logger.info("Faulty setup was called, but did not set the flag.")
 
-  def _encode(self, waveform, params, **kwargs):
-    return (np.array([]), np.array([]))
+  def _encode_batch(self, waveform_batch, params_batch, **kwargs):
+    return [(np.array([]), np.array([]))]
 
 
 class SoundEncoderTest(absltest.TestCase):
@@ -72,7 +72,7 @@ class SoundEncoderTest(absltest.TestCase):
     mock_encoder.encode([1.0, 2.0, 3.0, 4.0], params)
     mock_encoder.setup.assert_called_once()
 
-    mock_encoder.encode([5.0, 6.0, 7.0, 8.0], params)
+    mock_encoder.encode_batch([5.0, 6.0, 7.0, 8.0], params)
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_triggers_setup_exactly_once(self):
@@ -88,22 +88,8 @@ class SoundEncoderTest(absltest.TestCase):
     mock_encoder.encode_batch([a[0] for a in batch], [a[1] for a in batch])
     mock_encoder.setup.assert_called_once()
 
-  def test_encode_delegates_to_encode_with_correct_args(self):
+  def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(
-        sample_rate=2,
-        length=4,
-        language="en",
-    )
-    waveform = [1.0, 2.0, 3.0, 4.0]
-    mock_encoder.encode(waveform, params, runtime_kwarg="hello")
-    mock_encoder._encode.assert_called_once_with(
-        waveform, params, runtime_kwarg="hello"
-    )
-
-  def test_default_encode_batch_calls_encode_for_each_item(self):
-    mock_encoder = MockSoundEncoder("path/to/model")
-    mock_encoder.encode = mock.MagicMock()
     params = types.SoundContextParams(
         sample_rate=2,
         length=4,
@@ -111,14 +97,29 @@ class SoundEncoderTest(absltest.TestCase):
     waveform_batch = [
         [1.0, 2.0, 4.0, 8.0],
         [2.0, 5.0, 3.0, 7.0],
-        [3.0, 7.0, 8.0, 9.0]
+        [3.0, 7.0, 8.0, 9.0],
     ]
     params_batch = [params] * 3
+    mock_encoder.encode_batch(
+        waveform_batch, params_batch, runtime_kwarg="hello"
+    )
+    mock_encoder._encode_batch.assert_called_once_with(
+        waveform_batch, params_batch, runtime_kwarg="hello"
+    )
 
-    mock_encoder.encode_batch(waveform_batch, params_batch)
-    self.assertEqual(mock_encoder.encode.call_count, 3)
-    mock_encoder.encode.assert_any_call([1.0, 2.0, 4.0, 8.0], params)
-    mock_encoder.encode.assert_any_call([3.0, 7.0, 8.0, 9.0], params)
+  def test_default_encode_calls_encode_batch_with_single_item(self):
+    mock_encoder = MockSoundEncoder("path/to/model")
+    mock_encoder.encode_batch = mock.MagicMock()
+    params = types.SoundContextParams(
+        sample_rate=2,
+        length=4,
+    )
+    waveform = [1.0, 2.0, 3.0, 4.0]
+
+    mock_encoder.encode(waveform, params)
+    mock_encoder.encode_batch.assert_called_once_with(
+        [waveform], [params], **{}
+    )
 
   def test_faulty_setup_raises_runtime_error(self):
     mock_encoder = FaultySetupEncoder("faulty/path")
@@ -137,14 +138,14 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_final_decorator_prevents_override_in_static_analysis(self):
     class BadSoundEncoder(encoder.SoundEncoder):
-      def encode(self, waveform, params, **kwargs):
-        return (np.array([-1]), np.array([-1]))
+      def encode_batch(self, waveform_batch, params_batch, **kwargs):
+        return [(np.array([-1]), np.array([-1]))]
 
       def setup(self):
         self._model_loaded = True
 
-      def _encode(self, waveform, params, **kwargs):
-        return (np.array([0]), np.array([0]))
+      def _encode_batch(self, waveform_batch, params_batch, **kwargs):
+        return [(np.array([0]), np.array([0]))]
 
     bad_encoder = BadSoundEncoder("path")
     self.assertIsNotNone(bad_encoder)

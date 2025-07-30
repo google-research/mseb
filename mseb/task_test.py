@@ -54,19 +54,11 @@ MOCK_TASK_METADATA = types.TaskMetadata(
 class MockSoundEncoder(encoder.SoundEncoder):
   """A minimal, concrete encoder for instantiating tasks in tests."""
 
-  def _encode(self, audio, params, **kwargs):
+  def _encode_batch(self, audio, params, **kwargs):
     pass
 
   def setup(self):
     self._model_loaded = True
-
-  def _encode_single(
-      self,
-      waveform,
-      params,
-      **kwargs
-  ) -> tuple[np.ndarray, np.ndarray]:
-    return (np.zeros((5, 16)), np.zeros((5, 2)))
 
 
 class MockSoundEmbeddingEvaluator(evaluator.SoundEmbeddingEvaluator):

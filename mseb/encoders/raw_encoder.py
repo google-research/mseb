@@ -14,7 +14,7 @@
 
 """Raw Sound Encoder."""
 
-from typing import Callable, Optional, Sequence, Any, Tuple
+from typing import Any, Callable, Optional, Sequence
 
 from mseb import encoder
 from mseb import types
@@ -291,21 +291,8 @@ class RawEncoder(encoder.SoundEncoder):
       waveform: Sequence[float],
       params: types.SoundContextParams,
       **kwargs: Any,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-    """Encodes a single waveform into embeddings and timestamps.
-
-    Args:
-      waveform: The pre-loaded sound source as a sequence of floats.
-        params: A `SoundContextParams` object. This encoder does not use it.
-      **kwargs: Runtime arguments that are passed to the transform function.
-        These will override any `transform_fn_kwargs` set at init.
-
-    Returns:
-      A tuple containing:
-        - embeddings (np.ndarray): A 2D array of transformed features.
-        - timestamps (np.ndarray): A 2D array of [start, end] sample
-          indices for each embedding frame.
-    """
+  ) -> tuple[np.ndarray, np.ndarray]:
+    """Encodes a single sound source."""
     waveform = np.asarray(waveform, dtype=np.float32)
     assert len(waveform) == params.length, (
         f"Input waveform length {len(waveform)} does not match "
@@ -315,7 +302,7 @@ class RawEncoder(encoder.SoundEncoder):
         (len(waveform) - self.frame_length + self.frame_step) // self.frame_step
     )
     if num_frames <= 0:
-      return np.array([]), np.array([])
+      return (np.array([]), np.array([]))
 
     frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)
     timestamps_list = []
@@ -339,3 +326,32 @@ class RawEncoder(encoder.SoundEncoder):
       embedding_timestamps = np.array(timestamps_list, dtype=int)
 
     return waveform_embeddings, embedding_timestamps
+
+  def _encode_batch(
+      self,
+      waveform_batch: Sequence[Sequence[float]],
+      params_batch: Sequence[types.SoundContextParams],
+      **kwargs: Any,
+  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+    """Encodes a batch of sound sources.
+
+    Args:
+      waveform_batch: A sequence of sound sources to encode.
+      params_batch: A sequence of `SoundContextParams` objects, each
+        corresponding to an item in `sound_batch`.
+      **kwargs: Runtime arguments that are passed to the transform function.
+        These will override any `transform_fn_kwargs` set at init.
+
+    Returns:
+      A list of tuples, one for each input, each tuple containing:
+        - embeddings (np.ndarray): A 2D array of transformed features.
+        - timestamps (np.ndarray): A 2D array of [start, end] sample
+          indices for each embedding frame.
+    """
+    outputs = []
+    for waveform, params in zip(waveform_batch, params_batch):
+      waveform_embeddings, embedding_timestamps = self._encode(
+          waveform, params, **kwargs
+      )
+      outputs.append((waveform_embeddings, embedding_timestamps))
+    return outputs

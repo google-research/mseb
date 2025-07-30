@@ -74,24 +74,27 @@ class SoundEncoder(abc.ABC):
         )
 
   @abc.abstractmethod
-  def _encode(
+  def _encode_batch(
       self,
-      waveform: Sequence[float],
-      params: types.SoundContextParams,
+      waveform_batch: Sequence[Sequence[float]],
+      params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> tuple[np.ndarray, np.ndarray]:
-    """Encodes a single sound source into embeddings and timestamps.
+  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+    """Encodes a batch of sound sources.
+
+    This is a default, non-performant implementation that processes items
+    serially. For optimal performance, subclasses SHOULD override this method
+    with a truly batched implementation that processes the entire batch in a
+    single model call.
 
     Args:
-      waveform: The sound source to encode. It is pre-loaded  waveform
-        (Sequence[float]).
-      params: A `SoundContextParams` object containing metadata and context
-        about the sound, such as its sample rate.
-      **kwargs: Any additional, model-specific runtime parameters required for
-        this specific encoding call.
+      waveform_batch: A sequence of sound sources to encode.
+      params_batch: A sequence of `SoundContextParams` objects, each
+        corresponding to an item in `sound_batch`.
+      **kwargs: Any additional parameters required for encoding.
 
     Returns:
-      A tuple containing:
+      A list of tuples, one for each input, each tuple containing:
         - waveform_embeddings (np.ndarray): A 2D array of shape
           (n, embedding_dim).
         - embedding_timestamps (np.ndarray): A 2D array of shape (m, 2),
@@ -107,7 +110,6 @@ class SoundEncoder(abc.ABC):
     """
     ...
 
-  @final
   def encode(
       self,
       waveform: Sequence[float],
@@ -127,10 +129,22 @@ class SoundEncoder(abc.ABC):
         about the sound, such as its sample rate.
       **kwargs: Any additional, model-specific runtime parameters required for
         this specific encoding call.
-    """
-    self._ensure_model_loaded()
-    return self._encode(waveform, params, **kwargs)
 
+    Returns:
+      A tuple containing:
+        - waveform_embeddings (np.ndarray): A 2D array of shape
+          (n, embedding_dim).
+        - embedding_timestamps (np.ndarray): A 2D array of shape (m, 2),
+          where each row is an [start, end] pair indicating a segment by
+          sound waveform index.
+          There are two common cases for the relation between embeddings (n)
+          and timestamps (m):
+            - Frame-Aligned (m == n): The i-th timestamp corresponds
+              directly to the i
+    """
+    return self.encode_batch([waveform], [params], **kwargs)[0]
+
+  @final
   def encode_batch(
       self,
       waveform_batch: Sequence[Sequence[float]],
@@ -155,10 +169,7 @@ class SoundEncoder(abc.ABC):
       for each input.
     """
     self._ensure_model_loaded()
-    return [
-        self.encode(waveform, params, **kwargs)
-        for waveform, params in zip(waveform_batch, params_batch)
-    ]
+    return self._encode_batch(waveform_batch, params_batch, **kwargs)
 
 
 @dataclasses.dataclass
