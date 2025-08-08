@@ -17,9 +17,11 @@
 from typing import Any, Callable, Sequence, Tuple, Union
 
 from mseb import encoder
+from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
 import tensorflow as tf
+import tensorflow_hub as tf_hub
 import whisper
 
 
@@ -86,3 +88,94 @@ class GeckoWhisperEncoder(EmbedWhisperEncoder):
         ](tf.constant(x))['encodings'].numpy(),
         prompt_template=prompt_template,
     )
+
+
+class EmbedWhisperEncoderV2(encoder.SoundEncoder):
+  """A base class for encoding speech with a text embedder."""
+
+  def __init__(self, model_path: str, prompt_template: str = '{text}'):
+    """Initializes the Whisper and text embedder.
+
+    Args:
+      model_path: An instance of Whisper model.
+      prompt_template: Prompt template to be used for the text embedder.
+    """
+    super().__init__(model_path)
+    self.whisper_encoder = whisper_encoder.SpeechToTextEncoderV2(model_path)
+    self.transcripts_encode_fn = None
+    self.prompt_template = prompt_template
+
+  def setup(self):
+    """Loads the Whisper model."""
+    self.whisper_encoder.setup()
+    self._model_loaded = True
+
+  def _encode_batch(
+      self,
+      waveform_batch: Sequence[Sequence[float]],
+      params_batch: Sequence[types.SoundContextParams],
+      **kwargs: Any,
+  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+    """Encodes the transcript truth and Gecko embeddings.
+
+    Args:
+      waveform_batch: A sequence of sound sources to encode.
+      params_batch: A sequence of `SoundContextParams` objects, each
+        corresponding to an item in `sound_batch`.
+      **kwargs: Any additional parameters required for encoding.
+
+    Returns:
+      A list of tuples, one for each input, each tuple containing:
+        - waveform_embeddings (np.ndarray): A 2D array of shape
+          (1, embedding_dim).
+        - embedding_timestamps (np.ndarray): A 2D array of shape (1, 2),
+          where the row is the [start, end] pair indicating the segment by
+          sound waveform index.
+    """
+    transcripts_and_timestamps = self.whisper_encoder.encode_batch(
+        waveform_batch, params_batch, **kwargs
+    )
+    prompts = [
+        self.prompt_template.format(text=transcript[0])
+        for transcript, _ in transcripts_and_timestamps
+    ]
+    assert self.transcripts_encode_fn is not None
+    embeddings = self.transcripts_encode_fn(prompts)
+    outputs = [
+        (embedding[np.newaxis], timestamp)
+        for (_, timestamp), embedding in zip(
+            transcripts_and_timestamps, embeddings
+        )
+    ]
+    return outputs
+
+
+class GeckoWhisperEncoderV2(EmbedWhisperEncoderV2):
+  """Cascaded Whisper and Gecko encoder."""
+
+  def __init__(
+      self,
+      model_path: str,
+      gecko_model_path: str,
+      prompt_template: str = 'task: search result | query: {text}',
+  ):
+    """Initializes the Whisper and text embedder.
+
+    Args:
+      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
+        the Whisper model to be loaded in setup().
+      gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
+        pointing to the Gecko model to be loaded in setup().
+      prompt_template: Prompt template to be used for Gecko.
+    """
+    super().__init__(model_path, prompt_template)
+    self.gecko_model_path = gecko_model_path
+
+  def setup(self):
+    """Loads the Whisper model."""
+    self.whisper_encoder.setup()
+    gecko_model = tf_hub.load(self.gecko_model_path)
+    self.transcripts_encode_fn = lambda x: gecko_model.signatures[
+        'serving_default'
+    ](tf.constant(x))['encodings'].numpy()
+    self._model_loaded = True
