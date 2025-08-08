@@ -161,28 +161,37 @@ class GeckoTranscriptTruthEncoderV2Test(absltest.TestCase):
     enc = MockGeckoTranscriptTruthEncoderV2(
         transcript_truths_encode_fn=self.transcript_truths_encode_fn
     )
-    embeddings, timestamps = enc.encode(self.waveform1, self.params1)
-    npt.assert_equal(timestamps.shape, [1, 2])
-    npt.assert_equal(timestamps[0, 0] == 0.0, True)
+    result = enc.encode(self.waveform1, self.params1)
+    npt.assert_equal(result.timestamps.shape, [1, 2])
+    npt.assert_equal(result.timestamps[0, 0] == 0.0, True)
     npt.assert_equal(
-        timestamps[0, 1] == self.waveform1.shape[0] / self.params1.sample_rate,
+        result.timestamps[0, 1]
+        == self.waveform1.shape[0] / self.params1.sample_rate,
         True,
     )
-    npt.assert_equal(embeddings, [[1.0, 2.0]])
+    npt.assert_equal(result.embedding, [[1.0, 2.0]])
 
   def test_gecko_transcript_truth_encoder_with_mock_model_encode_batch(self):
     enc = MockGeckoTranscriptTruthEncoderV2(
         transcript_truths_encode_fn=self.transcript_truths_encode_fn
     )
-    embeddings_1, timestamps_1 = enc.encode(self.waveform1, self.params1)
-    embeddings_2, timestamps_2 = enc.encode(self.waveform2, self.params2)
-    embeddings_and_timestamps_batch = enc.encode_batch(
+    result1 = enc.encode(self.waveform1, self.params1)
+    result2 = enc.encode(self.waveform2, self.params2)
+    results_batch = enc.encode_batch(
         [self.waveform1, self.waveform2], [self.params1, self.params2]
     )
-    npt.assert_equal(len(embeddings_and_timestamps_batch), 2)
-    npt.assert_equal(
-        embeddings_and_timestamps_batch,
-        ((embeddings_1, timestamps_1), (embeddings_2, timestamps_2)),
+    npt.assert_equal(len(results_batch), 2)
+    self.assertEqual(
+        results_batch[0].embedding.tolist(), result1.embedding.tolist()
+    )
+    self.assertEqual(
+        results_batch[0].timestamps.tolist(), result1.timestamps.tolist()
+    )
+    self.assertEqual(
+        results_batch[1].embedding.tolist(), result2.embedding.tolist()
+    )
+    self.assertEqual(
+        results_batch[1].timestamps.tolist(), result2.timestamps.tolist()
     )
 
 

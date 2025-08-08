@@ -84,7 +84,7 @@ def encode_svq(
             types.SoundContextParams(
                 sample_rate=48000, length=len(ex['waveform'])
             ),
-        )[0]
+        ).embedding
     )
     for k, v in labels.items():
       v.append(ex[k])
@@ -150,4 +150,3 @@ class ClusteringTask(task.MSEBTask):
       )
       scores[label_key] = [vmeasure_score(v_measure)]
     return scores
-

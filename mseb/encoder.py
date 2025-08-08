@@ -79,7 +79,7 @@ class SoundEncoder(abc.ABC):
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
     Args:
@@ -110,7 +110,7 @@ class SoundEncoder(abc.ABC):
       waveform: Sequence[float],
       params: types.SoundContextParams,
       **kwargs: Any,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Ensures the model is loaded, then encodes a single audio source.
 
     This method acts as a template, handling the model loading check before
@@ -145,7 +145,7 @@ class SoundEncoder(abc.ABC):
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
     This is a default, non-performant implementation that processes items

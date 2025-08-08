@@ -291,7 +291,7 @@ class RawEncoder(encoder.SoundEncoder):
       waveform: Sequence[float],
       params: types.SoundContextParams,
       **kwargs: Any,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Encodes a single sound source."""
     waveform = np.asarray(waveform, dtype=np.float32)
     assert len(waveform) == params.length, (
@@ -302,7 +302,9 @@ class RawEncoder(encoder.SoundEncoder):
         (len(waveform) - self.frame_length + self.frame_step) // self.frame_step
     )
     if num_frames <= 0:
-      return (np.array([]), np.array([]))
+      return types.SoundEmbedding(
+          embedding=np.array([]), timestamps=np.array([]), context=params
+      )
 
     frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)
     timestamps_list = []
@@ -325,14 +327,18 @@ class RawEncoder(encoder.SoundEncoder):
     else:
       embedding_timestamps = np.array(timestamps_list, dtype=int)
 
-    return waveform_embeddings, embedding_timestamps
+    return types.SoundEmbedding(
+        embedding=waveform_embeddings,
+        timestamps=embedding_timestamps,
+        context=params,
+    )
 
   def _encode_batch(
       self,
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
     Args:
@@ -350,8 +356,5 @@ class RawEncoder(encoder.SoundEncoder):
     """
     outputs = []
     for waveform, params in zip(waveform_batch, params_batch):
-      waveform_embeddings, embedding_timestamps = self._encode(
-          waveform, params, **kwargs
-      )
-      outputs.append((waveform_embeddings, embedding_timestamps))
+      outputs.append(self._encode(waveform, params, **kwargs))
     return outputs

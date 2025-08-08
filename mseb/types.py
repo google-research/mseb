@@ -40,6 +40,23 @@ class SoundContextParams:
   waveform_end_second: float = np.finfo(np.float32).max
 
 
+@dataclasses.dataclass
+class Sound:
+  """A sound with context."""
+
+  waveform: np.ndarray
+  context: SoundContextParams
+
+
+@dataclasses.dataclass
+class SoundEmbedding:
+  """A sound embedding with context."""
+
+  embedding: np.ndarray
+  timestamps: np.ndarray
+  context: SoundContextParams
+
+
 @dataclasses.dataclass(frozen=True)
 class Score:
   """A dataclass for a single evaluation metric."""

@@ -115,7 +115,7 @@ class EmbedWhisperEncoderV2(encoder.SoundEncoder):
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes the transcript truth and Gecko embeddings.
 
     Args:
@@ -125,28 +125,26 @@ class EmbedWhisperEncoderV2(encoder.SoundEncoder):
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
-      A list of tuples, one for each input, each tuple containing:
-        - waveform_embeddings (np.ndarray): A 2D array of shape
-          (1, embedding_dim).
-        - embedding_timestamps (np.ndarray): A 2D array of shape (1, 2),
-          where the row is the [start, end] pair indicating the segment by
-          sound waveform index.
+      A list of types.SoundEmbedding objects, one for each input.
     """
-    transcripts_and_timestamps = self.whisper_encoder.encode_batch(
+    whisper_results = self.whisper_encoder.encode_batch(
         waveform_batch, params_batch, **kwargs
     )
     prompts = [
-        self.prompt_template.format(text=transcript[0])
-        for transcript, _ in transcripts_and_timestamps
+        self.prompt_template.format(text=result.embedding[0])
+        for result in whisper_results
     ]
     assert self.transcripts_encode_fn is not None
     embeddings = self.transcripts_encode_fn(prompts)
-    outputs = [
-        (embedding[np.newaxis], timestamp)
-        for (_, timestamp), embedding in zip(
-            transcripts_and_timestamps, embeddings
-        )
-    ]
+    outputs = []
+    for result, embedding in zip(whisper_results, embeddings):
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=embedding[np.newaxis],
+              timestamps=result.timestamps,
+              context=result.context,
+          )
+      )
     return outputs
 
 

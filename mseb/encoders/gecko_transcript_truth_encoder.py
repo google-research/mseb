@@ -94,7 +94,7 @@ class GeckoTranscriptTruthEncoderV2(encoder.SoundEncoder):
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes the transcript truth and Gecko embeddings.
 
     Args:
@@ -104,12 +104,7 @@ class GeckoTranscriptTruthEncoderV2(encoder.SoundEncoder):
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
-      A list of tuples, one for each input, each tuple containing:
-        - waveform_embeddings (np.ndarray): A 2D array of shape
-          (1, embedding_dim).
-        - embedding_timestamps (np.ndarray): A 2D array of shape (1, 2),
-          where the row is an [start, end] pair indicating the segment by
-          sound waveform index.
+      A list of types.SoundEmbedding objects, one for each input.
     """
     del waveform_batch, kwargs  # Unused.
 
@@ -131,6 +126,12 @@ class GeckoTranscriptTruthEncoderV2(encoder.SoundEncoder):
       timestamp = np.array(
           [[params.waveform_start_second, params.waveform_end_second]]
       )
-      outputs.append((embedding[np.newaxis], timestamp))
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=embedding[np.newaxis],
+              timestamps=timestamp,
+              context=params,
+          )
+      )
 
     return outputs

@@ -160,11 +160,13 @@ class EmbedWhisperEncoderV2Test(absltest.TestCase):
         waveform_start_second=0.0,
         waveform_end_second=waveform.shape[0] / sample_rate,
     )
-    embeddings, timestamps = enc.encode(waveform, params)
-    npt.assert_equal(timestamps.shape, [1, 2])
-    npt.assert_equal(timestamps[0, 0] >= 0.0, True)
-    npt.assert_equal(timestamps[0, 1] <= waveform.shape[0] / sample_rate, True)
-    npt.assert_equal(embeddings, [(1.0, 2.0)])
+    result = enc.encode(waveform, params)
+    npt.assert_equal(result.timestamps.shape, [1, 2])
+    npt.assert_equal(result.timestamps[0, 0] >= 0.0, True)
+    npt.assert_equal(
+        result.timestamps[0, 1] <= waveform.shape[0] / sample_rate, True
+    )
+    npt.assert_equal(result.embedding, [[1.0, 2.0]])
 
 
 if __name__ == '__main__':

@@ -395,7 +395,7 @@ class WhisperV2(encoder.SoundEncoder):
       waveform: np.ndarray,
       params: types.SoundContextParams,
       **kwargs: Any,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Encodes speech using Whisper model.
 
     The embedding can be the transcription output or some activations extracted
@@ -430,7 +430,7 @@ class WhisperV2(encoder.SoundEncoder):
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources into embeddings and timestamps.
 
     Args:
@@ -470,7 +470,7 @@ class SpeechToTextEncoderV2(WhisperV2):
       params: types.SoundContextParams,
       word_timestamps: Optional[bool] = False,
       temperature: Optional[float] = 0.0,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Encodes speech to text using the Whisper model.
 
     The output structure of the embeddings and timestamps arrays
@@ -532,7 +532,9 @@ class SpeechToTextEncoderV2(WhisperV2):
       for i, segment in enumerate(recognition_result['segments']):
         timestamps[i, :] = [segment['start'], segment['end']]
         embeddings[i] = segment['text']
-    return embeddings, timestamps
+    return types.SoundEmbedding(
+        embedding=embeddings, timestamps=timestamps, context=params
+    )
 
 
 class ForcedAlignmentEncoderV2(WhisperV2):
@@ -565,7 +567,7 @@ class ForcedAlignmentEncoderV2(WhisperV2):
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Encodes speech and text using forced alignment with the Whisper model.
 
     Args:
@@ -597,13 +599,21 @@ class ForcedAlignmentEncoderV2(WhisperV2):
       logging.warning(
           'Context text is empty. No alignment will be performed.'
       )
-      return np.empty((0, 2), dtype=float), np.empty((0), dtype=object)
+      return types.SoundEmbedding(
+          embedding=np.empty((0), dtype=object),
+          timestamps=np.empty((0, 2), dtype=float),
+          context=params,
+      )
     tokens = self.tokenizer.encode(params.text)
     if not tokens:
       logging.warning(
           'No tokens generated from context text. Ensure text is valid.'
       )
-      return np.empty((0, 2), dtype=float), np.empty((0), dtype=object)
+      return types.SoundEmbedding(
+          embedding=np.empty((0), dtype=object),
+          timestamps=np.empty((0, 2), dtype=float),
+          context=params,
+      )
     alignment = whisper.timing.find_alignment(
         self.model, self.tokenizer, tokens, mel, num_frames)
     n_words = len(alignment)
@@ -613,7 +623,9 @@ class ForcedAlignmentEncoderV2(WhisperV2):
       timestamps[i, :] = [word_timing.start, word_timing.end]
       words[i] = word_timing.word
 
-    return words, timestamps
+    return types.SoundEmbedding(
+        embedding=words, timestamps=timestamps, context=params
+    )
 
 
 class PooledAudioEncoderV2(WhisperV2):
@@ -651,7 +663,7 @@ class PooledAudioEncoderV2(WhisperV2):
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Encodes speech into a pooled embedding of Whisper encoder activations.
 
     Args:
@@ -684,4 +696,8 @@ class PooledAudioEncoderV2(WhisperV2):
     num_embeddings = num_frames // self.encoder_stride
     audio_duration_seconds = len(waveform) / whisper.audio.SAMPLE_RATE
     timestamp = np.array([[0, audio_duration_seconds]])
-    return self.pool_fn(embeddings[:num_embeddings, :]), timestamp
+    return types.SoundEmbedding(
+        embedding=self.pool_fn(embeddings[:num_embeddings, :]),
+        timestamps=timestamp,
+        context=params,
+    )

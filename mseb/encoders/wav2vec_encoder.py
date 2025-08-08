@@ -154,7 +154,7 @@ class Wav2VecEncoder(encoder.SoundEncoder):
       waveform: Sequence[float],
       params: types.SoundContextParams,
       **kwargs: Any,
-  ) -> tuple[np.ndarray, np.ndarray]:
+  ) -> types.SoundEmbedding:
     """Encodes speech by Wav2Vec encoder activations and optionally pools them.
 
     Args:
@@ -164,12 +164,8 @@ class Wav2VecEncoder(encoder.SoundEncoder):
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
-      A  tuple containing:
-        - waveform_embeddings (np.ndarray): A 2D array of shape
-          (1, embedding_dim).
-        - embedding_timestamps (np.ndarray): A 2D array of shape (1, 2),
-          where the first row is the [start, end] pair indicating the segment by
-          sound waveform index.
+      A types.SoundEmbedding object containing the embeddings, timestamps, and
+      context.
 
     Raises:
       ValueError: If required context parameters are not set or input sequence
@@ -209,14 +205,17 @@ class Wav2VecEncoder(encoder.SoundEncoder):
 
     embeddings = self.transform_fn(embeddings, **transform_fn_kwargs)
     embedding = self.pool_fn(embeddings)
-    return (embedding, np.array([[0, params.length / params.sample_rate]]))
+    timestamps = np.array([[0, params.length / params.sample_rate]])
+    return types.SoundEmbedding(
+        embedding=embedding, timestamps=timestamps, context=params
+    )
 
   def _encode_batch(
       self,
       waveform_batch: Sequence[Sequence[float]],
       params_batch: Sequence[types.SoundContextParams],
       **kwargs: Any,
-  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes speech by Wav2Vec encoder activations and optionally pools them.
 
     Args:
