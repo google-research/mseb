@@ -17,8 +17,10 @@
 from typing import Any, Sequence, Tuple, Union
 
 from mseb import encoder
+from mseb import types
 import numpy as np
 import tensorflow as tf
+import tensorflow_hub as tf_hub
 
 
 class GeckoTranscriptTruthEncoder(encoder.Encoder):
@@ -56,3 +58,79 @@ class GeckoTranscriptTruthEncoder(encoder.Encoder):
     prompts = [self.prompt_template.format(text=context.text, title=title)]
     embeddings = self.transcript_truths_encode_fn(prompts)
     return timestamps, embeddings
+
+
+class GeckoTranscriptTruthEncoderV2(encoder.SoundEncoder):
+  """Transcript truth encoder with Gecko model."""
+
+  def __init__(
+      self,
+      model_path: str,
+      prompt_template: str = 'task: search result | query: {text}',
+  ):
+    """Initializes the transcript truth and Gecko models.
+
+    Args:
+      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
+        the model to be loaded in setup().
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents".
+    """
+    super().__init__(model_path)
+    self.prompt_template = prompt_template
+    self.transcript_truths_encode_fn = None
+
+  def setup(self):
+    """Loads the Gecko model."""
+    gecko_model = tf_hub.load(self.model_path)
+    self.transcript_truths_encode_fn = lambda x: gecko_model.signatures[
+        'serving_default'
+    ](tf.constant(x))['encodings'].numpy()
+    self._model_loaded = True
+
+  def _encode_batch(
+      self,
+      waveform_batch: Sequence[Sequence[float]],
+      params_batch: Sequence[types.SoundContextParams],
+      **kwargs: Any,
+  ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
+    """Encodes the transcript truth and Gecko embeddings.
+
+    Args:
+      waveform_batch: A sequence of sound sources to encode.
+      params_batch: A sequence of `SoundContextParams` objects, each
+        corresponding to an item in `sound_batch`.
+      **kwargs: Any additional parameters required for encoding.
+
+    Returns:
+      A list of tuples, one for each input, each tuple containing:
+        - waveform_embeddings (np.ndarray): A 2D array of shape
+          (1, embedding_dim).
+        - embedding_timestamps (np.ndarray): A 2D array of shape (1, 2),
+          where the row is an [start, end] pair indicating the segment by
+          sound waveform index.
+    """
+    del waveform_batch, kwargs  # Unused.
+
+    prompts = []
+    for params in params_batch:
+      if hasattr(params, 'title') and params.title is not None:
+        title = params.title
+      else:
+        title = 'None'
+      if params.text is None:
+        raise ValueError('Text is required for encoding.')
+      prompts.append(self.prompt_template.format(text=params.text, title=title))
+
+    assert self.transcript_truths_encode_fn is not None
+    embeddings = self.transcript_truths_encode_fn(prompts)
+
+    outputs = []
+    for params, embedding in zip(params_batch, embeddings):
+      timestamp = np.array(
+          [[params.waveform_start_second, params.waveform_end_second]]
+      )
+      outputs.append((embedding[np.newaxis], timestamp))
+
+    return outputs
