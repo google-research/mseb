@@ -68,27 +68,40 @@ def encode_svq_beam(base_path, encoder: encoder_lib.SoundEncoder):
 
 
 def encode_svq(
-    base_path, encoder: encoder_lib.SoundEncoder, label_fields: list[str]
+    base_path: str, encoder: encoder_lib.SoundEncoder
 ):
   """Run SoundEncoder over svq dataset returning ndarray of embeddings."""
   examples = svq_data.generate_examples(
       os.path.join(base_path, 'utt_index.jsonl')
   )
   encoder.setup()
-  encoded = []
-  labels = {k: [] for k in label_fields}
+  embeddings = task.SoundEmbeddingsInMemory(encoder)
   for ex in examples:
-    encoded.append(
-        encoder.encode(
-            ex['waveform'],
-            types.SoundContextParams(
-                sample_rate=48000, length=len(ex['waveform'])
-            ),
-        )[0]
+    context = types.SoundContextParams(
+        sample_rate=48000, length=len(ex['waveform'])
     )
-    for k, v in labels.items():
-      v.append(ex[k])
-  return np.vstack(encoded), labels
+    embedding, timestamps = encoder.encode(ex['waveform'], context)
+    embeddings.embeddings[ex['utt_id']] = types.SoundEmbedding(
+        embedding, timestamps, context
+    )
+    break
+  return embeddings
+
+
+def get_examples_svq(
+    base_path: str, label_field: str, embeddings: task.SoundEmbeddings
+) -> tuple[np.ndarray, np.ndarray]:
+  """Get (utt_id, label) examples from svq dataset."""
+  examples = svq_data.generate_examples(
+      os.path.join(base_path, 'utt_index.jsonl')
+  )
+  embedded = []
+  labels = []
+  for ex in examples:
+    embedded.append(embeddings[ex['utt_id']].embedding)
+    labels.append(ex[label_field])
+    break
+  return np.vstack(embedded), np.array(labels)
 
 
 def vmeasure_score(value: float = 0.0):
@@ -129,25 +142,39 @@ class ClusteringTask(task.MSEBTask):
     self._base_path = base_path
     self._sound_encoder = sound_encoder
 
+  def setup(self):
+    self._sound_encoder.setup()
+
   def load_data(self):
     yield [0.0], types.SoundContextParams(
         sample_rate=48000, length=16000
     )
 
-  def run(self, batch_size: int = 1):
-    encoded, all_labels = encode_svq(
+  def encode(self, embeddings: task.SoundEmbeddings) -> task.SoundEmbeddings:
+    return encode_svq(
         self._base_path,
         self._sound_encoder,
-        label_fields=['speaker_gender', 'speaker_age', 'speaker_id'],
     )
+
+  def evaluate(
+      self, embeddings: task.SoundEmbeddings
+  ) -> dict[str, list[types.Score]]:
     scores = {}
-    for label_key, labels in all_labels.items():
+    for label_field in ['speaker_gender', 'speaker_age', 'speaker_id']:
+      embedded, labels = get_examples_svq(
+          self._base_path, label_field, embeddings
+      )
       clusters = cluster_kmeans(
-          encoded, nlabels=len(set(labels)), batch_size=32
+          embedded, nlabels=len(set(labels)), batch_size=32
       )
       v_measure = sklearn.metrics.v_measure_score(
           labels_true=labels, labels_pred=clusters
       )
-      scores[label_key] = [vmeasure_score(v_measure)]
+      scores[label_field] = [vmeasure_score(v_measure)]
     return scores
 
+  def run(
+      self, embeddings: task.SoundEmbeddings
+  ) -> dict[str, list[types.Score]]:
+    embeddings = self.encode(embeddings)
+    return self.evaluate(embeddings)
