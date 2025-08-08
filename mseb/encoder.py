@@ -82,11 +82,6 @@ class SoundEncoder(abc.ABC):
   ) -> Sequence[tuple[np.ndarray, np.ndarray]]:
     """Encodes a batch of sound sources.
 
-    This is a default, non-performant implementation that processes items
-    serially. For optimal performance, subclasses SHOULD override this method
-    with a truly batched implementation that processes the entire batch in a
-    single model call.
-
     Args:
       waveform_batch: A sequence of sound sources to encode.
       params_batch: A sequence of `SoundContextParams` objects, each

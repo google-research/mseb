@@ -17,6 +17,7 @@ import pathlib
 
 from absl.testing import absltest
 from mseb import encoder
+from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
@@ -136,6 +137,140 @@ class PooledAudioEncoderTest(absltest.TestCase):
   def test_encode_max_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model, 'max')
     timestamp, embedding = enc.encode(self.waveform, self.context)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [1, 512])
+
+
+class SpeechToTextEncoderV2Test(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
+    )
+    self.svq_samples = pq.ParquetFile(
+        os.path.join(testdata_path, 'en_us.parquet')
+    )
+    self.whisper_encoder = whisper_encoder.SpeechToTextEncoderV2(
+        model_path='base', device='cpu'
+    )
+    self.whisper_encoder.setup()
+
+  def test_preprocess(self):
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    sample_rate = 48000
+    preprocessed = self.whisper_encoder.preprocess(waveform, sample_rate)
+    npt.assert_allclose(preprocessed.shape[0], waveform.shape[0] / 3)
+
+  def test_encode_sentence_level(self):
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    sample_rate = 48000
+    params = types.SoundContextParams(
+        sample_rate=sample_rate, length=waveform.shape[0], language='en'
+    )
+    embeddings, timestamps = self.whisper_encoder.encode(waveform, params)
+    npt.assert_equal(timestamps.shape, [1, 2])
+    npt.assert_equal(timestamps[0, 0] >= 0.0, True)
+    npt.assert_equal(timestamps[0, 1] <= waveform.shape[0] / sample_rate, True)
+    npt.assert_equal(
+        embeddings,
+        [' How many members does the National Labor Relations Board have?'],
+    )
+
+  def test_encode_word_level(self):
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    params = types.SoundContextParams(
+        sample_rate=48000, length=waveform.shape[0], language='en'
+    )
+    embeddings, timestamps = self.whisper_encoder.encode(
+        waveform, params, word_timestamps=True
+    )
+    npt.assert_equal(timestamps.shape[0], embeddings.shape[0])
+
+
+class ForcedAlignmentEncoder2Test(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
+    )
+    self.svq_samples = pq.ParquetFile(
+        os.path.join(testdata_path, 'en_us.parquet')
+    )
+    self.whisper_encoder = whisper_encoder.ForcedAlignmentEncoderV2(
+        model_path='base', device='cpu', language='en'
+    )
+    self.whisper_encoder.setup()
+
+  def test_encode_speech_transcript_truth(self):
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    params = types.SoundContextParams(
+        sample_rate=48000,
+        length=waveform.shape[0],
+        language='en',
+        text=svq_example['text'].to_numpy()[0],
+    )
+    embeddings, timestamps = self.whisper_encoder.encode(waveform, params)
+    npt.assert_equal(timestamps.shape[0], embeddings.shape[0])
+
+
+class PooledAudioEncoderV2Test(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
+    )
+    svq_samples = pq.ParquetFile(os.path.join(testdata_path, 'en_us.parquet'))
+    svq_example = svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    self.waveform = waveform.astype(np.float32) / 32767.0
+    self.params = types.SoundContextParams(
+        sample_rate=48000, length=waveform.shape[0]
+    )
+    self.model_path = 'base'
+
+  def test_pool_fn(self):
+    x = np.array([[1.0, 2.0], [3.0, 4.0]])
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path)
+    npt.assert_equal(enc.pool_fn(x), [[1.0, 2.0], [3.0, 4.0]])
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='last')
+    npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='mean')
+    npt.assert_equal(enc.pool_fn(x), [[2.0, 3.0]])
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='max')
+    npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
+
+  def test_encode_no_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path)
+    embedding, timestamp = enc.encode(self.waveform, self.params)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [375, 512])
+
+  def test_encode_last_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='last')
+    embedding, timestamp = enc.encode(self.waveform, self.params)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [1, 512])
+
+  def test_encode_mean_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='mean')
+    embedding, timestamp = enc.encode(self.waveform, self.params)
+    npt.assert_equal(timestamp, [[0, 7.5]])
+    npt.assert_equal(embedding.shape, [1, 512])
+
+  def test_encode_max_pooling(self):
+    enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='max')
+    embedding, timestamp = enc.encode(self.waveform, self.params)
     npt.assert_equal(timestamp, [[0, 7.5]])
     npt.assert_equal(embedding.shape, [1, 512])
 
