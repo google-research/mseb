@@ -33,11 +33,11 @@ class SoundContextParams:
   text: Optional[str] = None
   # The starting second of the relevant waveform segment.
   # Defaults to 0, representing the beginning of the waveform array.
-  waveform_start_second: int = 0
+  waveform_start_second: float = 0.0
   # The exclusive ending second for the segment. The
   # slice of sound segment is `[start:end]`. Defaults to the
   # maximum float32 value to signify "to the end of the waveform."
-  waveform_end_second: int = np.finfo(np.float32).max
+  waveform_end_second: float = np.finfo(np.float32).max
 
 
 @dataclasses.dataclass(frozen=True)

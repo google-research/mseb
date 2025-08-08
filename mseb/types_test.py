@@ -30,11 +30,17 @@ class SoundContextParamsTest(parameterized.TestCase):
         language="en",
         text="This is a test.",
         speaker_id="speaker_001",
-        waveform_start_second=5.0,
+        waveform_start_second=0.5,
     )
-    assert params.sample_rate == 16000
-    assert params.length == 88000
-    assert params.text == "This is a test."
+    self.assertEqual(params.sample_rate, 16000)
+    self.assertEqual(params.length, 88000)
+    self.assertEqual(params.language, "en")
+    self.assertEqual(params.speaker_id, "speaker_001")
+    self.assertIsNone(params.speaker_age)
+    self.assertIsNone(params.speaker_gender)
+    self.assertEqual(params.text, "This is a test.")
+    self.assertEqual(params.waveform_start_second, 0.5)
+    self.assertEqual(params.waveform_end_second, np.finfo(np.float32).max)
 
   def test_context_params_requires_sample_rate_and_length(self):
     with self.assertRaises(TypeError):
