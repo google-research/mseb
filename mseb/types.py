@@ -23,6 +23,7 @@ import numpy as np
 @dataclasses.dataclass
 class SoundContextParams:
   """Parameters for a sound example."""
+  sound_id: str  # Identifier for the sound example unique within the dataset.
   sample_rate: int
   length: int
 

@@ -46,6 +46,7 @@ class RawEncoderTest(absltest.TestCase):
     self.params = types.SoundContextParams(
         sample_rate=self.sample_rate,
         length=len(waveform),
+        sound_id='test',
     )
 
     self.fft_length = int(2 ** np.ceil(np.log2(self.frame_length)))
@@ -158,6 +159,7 @@ class RawEncoderTest(absltest.TestCase):
         types.SoundContextParams(
             sample_rate=self.sample_rate,
             length=len(short_waveform),
+            sound_id='short',
         ),
     )
     self.assertEqual(embedding.embedding.shape, (0,))
@@ -176,7 +178,8 @@ class RawEncoderTest(absltest.TestCase):
         self.params,
         types.SoundContextParams(
             sample_rate=self.sample_rate,
-            length=len(short_waveform)
+            length=len(short_waveform),
+            sound_id='test',
         ),
     ]
 

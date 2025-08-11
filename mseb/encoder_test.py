@@ -64,10 +64,7 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_encode_triggers_setup_exactly_once(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(
-        sample_rate=2,
-        length=4,
-    )
+    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
 
     mock_encoder.encode([1.0, 2.0, 3.0, 4.0], params)
     mock_encoder.setup.assert_called_once()
@@ -77,10 +74,7 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_encode_batch_triggers_setup_exactly_once(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(
-        sample_rate=2,
-        length=4,
-    )
+    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
     batch = [([1.0, 2.0, 3.0, 4.0], params),
              ([5.0, 6.0, 7.0, 8.0], params)]
     mock_encoder.encode_batch([a[0] for a in batch], [a[1] for a in batch])
@@ -90,10 +84,7 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(
-        sample_rate=2,
-        length=4,
-    )
+    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
     waveform_batch = [
         [1.0, 2.0, 4.0, 8.0],
         [2.0, 5.0, 3.0, 7.0],
@@ -110,10 +101,7 @@ class SoundEncoderTest(absltest.TestCase):
   def test_default_encode_calls_encode_batch_with_single_item(self):
     mock_encoder = MockSoundEncoder("path/to/model")
     mock_encoder.encode_batch = mock.MagicMock()
-    params = types.SoundContextParams(
-        sample_rate=2,
-        length=4,
-    )
+    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
     waveform = [1.0, 2.0, 3.0, 4.0]
 
     mock_encoder.encode(waveform, params)
@@ -123,10 +111,7 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_faulty_setup_raises_runtime_error(self):
     mock_encoder = FaultySetupEncoder("faulty/path")
-    params = types.SoundContextParams(
-        sample_rate=2,
-        length=4,
-    )
+    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
     with self.assertRaises(RuntimeError):
       mock_encoder.encode([1.0, 2.0, 4.0, 8.0], params)
 

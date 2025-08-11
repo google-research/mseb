@@ -26,7 +26,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     self.sample_rate = 16000
     self.params = types.SoundContextParams(
         sample_rate=self.sample_rate,
-        length=self.sample_rate * 5
+        length=self.sample_rate * 5,
+        sound_id="test",
     )
 
   def _assert_scores(

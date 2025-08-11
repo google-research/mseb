@@ -170,7 +170,10 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
     waveform = waveform.astype(np.float32) / 32767.0
     sample_rate = 48000
     params = types.SoundContextParams(
-        sample_rate=sample_rate, length=waveform.shape[0], language='en'
+        sample_rate=sample_rate,
+        length=waveform.shape[0],
+        language='en',
+        sound_id='test',
     )
     result = self.whisper_encoder.encode(waveform, params)
     npt.assert_equal(result.timestamps.shape, [1, 2])
@@ -188,7 +191,10 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
     params = types.SoundContextParams(
-        sample_rate=48000, length=waveform.shape[0], language='en'
+        sample_rate=48000,
+        length=waveform.shape[0],
+        language='en',
+        sound_id='test',
     )
     result = self.whisper_encoder.encode(waveform, params, word_timestamps=True)
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
@@ -218,6 +224,7 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
         length=waveform.shape[0],
         language='en',
         text=svq_example['text'].to_numpy()[0],
+        sound_id='test',
     )
     result = self.whisper_encoder.encode(waveform, params)
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
@@ -235,7 +242,9 @@ class PooledAudioEncoderV2Test(absltest.TestCase):
     waveform = svq_example['waveform'].to_numpy()[0]
     self.waveform = waveform.astype(np.float32) / 32767.0
     self.params = types.SoundContextParams(
-        sample_rate=48000, length=waveform.shape[0]
+        sample_rate=48000,
+        length=waveform.shape[0],
+        sound_id='test',
     )
     self.model_path = 'base'
 

@@ -75,8 +75,7 @@ class SoundEmbeddingEvaluatorTest(absltest.TestCase):
     waveform_embeddings = np.zeros((10, 16))
     embedding_timestamps = np.zeros((10, 2))
     params = types.SoundContextParams(
-        sample_rate=16000,
-        length=80000,
+        sample_rate=16000, length=80000, sound_id="test"
     )
 
     encoder_outputs_batch = [

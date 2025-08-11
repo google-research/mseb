@@ -49,6 +49,7 @@ class EncodeDoFn(beam.DoFn):
     params = types.SoundContextParams(
         sample_rate=self._sample_rate,
         length=len(waveform),
+        sound_id=element['utt_id'],
     )
     yield self._encoder.encode(waveform, params=params)
 
@@ -82,7 +83,9 @@ def encode_svq(
         encoder.encode(
             ex['waveform'],
             types.SoundContextParams(
-                sample_rate=48000, length=len(ex['waveform'])
+                sample_rate=48000,
+                length=len(ex['waveform']),
+                sound_id=ex['utt_id'],
             ),
         ).embedding
     )
@@ -130,8 +133,9 @@ class ClusteringTask(task.MSEBTask):
     self._sound_encoder = sound_encoder
 
   def load_data(self):
+    # TODO(tombagby): Update this placeholder.
     yield [0.0], types.SoundContextParams(
-        sample_rate=48000, length=16000
+        sample_rate=48000, length=16000, sound_id='0'
     )
 
   def run(self, batch_size: int = 1):

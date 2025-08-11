@@ -31,6 +31,7 @@ class SoundContextParamsTest(parameterized.TestCase):
         text="This is a test.",
         speaker_id="speaker_001",
         waveform_start_second=0.5,
+        sound_id="test",
     )
     self.assertEqual(params.sample_rate, 16000)
     self.assertEqual(params.length, 88000)
@@ -50,20 +51,23 @@ class SoundContextParamsTest(parameterized.TestCase):
     with self.assertRaises(TypeError):
       types.SoundContextParams(
           length=80000,
-          text="This should fail."
+          text="This should fail.",
+          sound_id="fail",
       )
 
   def test_context_params_requires_length(self):
     with self.assertRaises(TypeError):
       types.SoundContextParams(
           sample_rate=16000,
-          text="This should fail."
+          text="This should fail.",
+          sound_id="fail",
       )
 
   def test_context_params_default_values(self):
     params = types.SoundContextParams(
         sample_rate=22050,
         length=80000,
+        sound_id="test",
     )
     assert params.sample_rate == 22050
     assert params.language is None
@@ -76,6 +80,7 @@ class SoundContextParamsTest(parameterized.TestCase):
     params = types.SoundContextParams(
         sample_rate=16000,
         length=80000,
+        sound_id="test",
     )
     assert params.text is None
     params.text = "New text value."

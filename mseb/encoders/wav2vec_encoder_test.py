@@ -71,6 +71,7 @@ class Wav2VecEncoderTest(absltest.TestCase):
     self.params = types.SoundContextParams(
         sample_rate=48000,
         length=len(self.waveform),
+        sound_id='test',
     )
 
   def test_wav2vec_encoder_last_pooling(self):

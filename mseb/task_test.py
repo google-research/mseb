@@ -109,9 +109,13 @@ class MockTask(task.MSEBTask):
     self._dataset_size = dataset_size
 
   def load_data(self):
-    for _ in range(self._dataset_size):
-      yield (np.zeros(16000), types.SoundContextParams(
-          sample_rate=16000, length=16000))
+    for i in range(self._dataset_size):
+      yield (
+          np.zeros(16000),
+          types.SoundContextParams(
+              sample_rate=16000, length=16000, sound_id=str(i)
+          ),
+      )
 
 
 class MSEBTaskTest(absltest.TestCase):
