@@ -73,32 +73,33 @@ class Wav2VecEncoderTest(absltest.TestCase):
         length=len(self.waveform),
         sound_id='test',
     )
+    self.sound = types.Sound(waveform=self.waveform, context=self.params)
 
   def test_wav2vec_encoder_last_pooling(self):
     transform_fn = lambda x: x
     enc = MockWav2VecEncoder(transform_fn, device='cpu', pooling='last')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 768])
 
   def test_wav2vec_encoder_mean_pooling(self):
     transform_fn = lambda x: x
     enc = MockWav2VecEncoder(transform_fn, pooling='mean')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 768])
 
   def test_wav2vec_encoder_max_pooling(self):
     transform_fn = lambda x: x
     enc = MockWav2VecEncoder(transform_fn, device='cpu', pooling='max')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 768])
 
   def test_wav2vec_encoder_normalized_last_pooling(self):
     transform_fn = wav2vec_encoder.normalize_embeddings
     enc = MockWav2VecEncoder(transform_fn, pooling='last')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 768])
     npt.assert_allclose(
@@ -111,7 +112,7 @@ class Wav2VecEncoderTest(absltest.TestCase):
   def test_wav2vec_encoder_normalized_mean_pooling(self):
     transform_fn = wav2vec_encoder.normalize_embeddings
     enc = MockWav2VecEncoder(transform_fn, device='cpu', pooling='mean')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 768])
     npt.assert_array_less(result.embedding, 1.0)
@@ -120,7 +121,7 @@ class Wav2VecEncoderTest(absltest.TestCase):
   def test_wav2vec_encoder_normalized_max_pooling(self):
     transform_fn = wav2vec_encoder.normalize_embeddings
     enc = MockWav2VecEncoder(transform_fn, pooling='max')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 768])
     npt.assert_array_less(result.embedding, 1.0)

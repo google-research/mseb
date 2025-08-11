@@ -119,6 +119,7 @@ class MockEmbedWhisperEncoderV2(embed_whisper_encoder.EmbedWhisperEncoderV2):
 
   def setup(self):
     """Mock setup method."""
+    super().setup()
     assert self.transcripts_encode_fn is not None
     self._model_loaded = True
 
@@ -161,7 +162,8 @@ class EmbedWhisperEncoderV2Test(absltest.TestCase):
         waveform_end_second=waveform.shape[0] / sample_rate,
         sound_id='test',
     )
-    result = enc.encode(waveform, params)
+    sound = types.Sound(waveform=waveform, context=params)
+    result = enc.encode(sound)
     npt.assert_equal(result.timestamps.shape, [1, 2])
     npt.assert_equal(result.timestamps[0, 0] >= 0.0, True)
     npt.assert_equal(

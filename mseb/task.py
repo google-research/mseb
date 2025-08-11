@@ -17,7 +17,7 @@
 import abc
 import itertools
 import logging
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable
 
 from mseb import encoder
 from mseb import evaluator
@@ -68,9 +68,7 @@ class MSEBTask(abc.ABC):
     self.encoder.setup()
 
   @abc.abstractmethod
-  def load_data(
-      self
-    ) -> Iterable[tuple[Sequence[float], types.SoundContextParams]]:
+  def load_data(self) -> Iterable[types.Sound]:
     """Loads and yields dataset examples one by one.
 
     This method must return an iterable (like a generator) that yields
@@ -84,7 +82,7 @@ class MSEBTask(abc.ABC):
 
   def load_batched_data(
       self, batch_size: int
-    ) -> Iterable[list[tuple[Sequence[float], types.SoundContextParams]]]:
+    ) -> Iterable[list[types.Sound]]:
     """Yields batches of data from the `load_data` iterable.
 
     Subclasses CAN override this method for a more performant, framework-native
@@ -127,8 +125,8 @@ class MSEBTask(abc.ABC):
     # 2. Orchestrate the batch encode -> batch evaluate pipeline.
     all_scores_per_example: list[list[types.Score]] = []
     for batch in dataset_iterable:
-      waveforms, params = zip(*batch)
-      encoder_outputs = self.encoder.encode_batch(waveforms, params)
+      encoder_outputs = self.encoder.encode_batch(batch)
+      params = [x.context for x in batch]
       scores = self.evaluator.evaluate_batch(encoder_outputs, params)
       all_scores_per_example.extend(scores)
 

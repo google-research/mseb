@@ -288,12 +288,12 @@ class RawEncoder(encoder.SoundEncoder):
 
   def _encode(
       self,
-      waveform: Sequence[float],
-      params: types.SoundContextParams,
+      sound: types.Sound,
       **kwargs: Any,
   ) -> types.SoundEmbedding:
     """Encodes a single sound source."""
-    waveform = np.asarray(waveform, dtype=np.float32)
+    waveform = np.asarray(sound.waveform, dtype=np.float32)
+    params = sound.context
     assert len(waveform) == params.length, (
         f"Input waveform length {len(waveform)} does not match "
         f"params.length {params.length}."
@@ -335,16 +335,13 @@ class RawEncoder(encoder.SoundEncoder):
 
   def _encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of sound sources to encode.
       **kwargs: Runtime arguments that are passed to the transform function.
         These will override any `transform_fn_kwargs` set at init.
 
@@ -355,6 +352,6 @@ class RawEncoder(encoder.SoundEncoder):
           indices for each embedding frame.
     """
     outputs = []
-    for waveform, params in zip(waveform_batch, params_batch):
-      outputs.append(self._encode(waveform, params, **kwargs))
+    for sound in sound_batch:
+      outputs.append(self._encode(sound, **kwargs))
     return outputs

@@ -48,6 +48,7 @@ class RawEncoderTest(absltest.TestCase):
         length=len(waveform),
         sound_id='test',
     )
+    self.sound = types.Sound(waveform=self.waveform, context=self.params)
 
     self.fft_length = int(2 ** np.ceil(np.log2(self.frame_length)))
     self.mel_matrix = raw_encoder.linear_to_mel_weight_matrix(
@@ -64,7 +65,7 @@ class RawEncoderTest(absltest.TestCase):
         frame_length=self.frame_length,
         frame_step=self.frame_step,
     )
-    embedding = enc.encode(self.waveform, self.params)
+    embedding = enc.encode(self.sound)
     self.assertEqual(embedding.embedding.shape, (44, self.frame_length))
     self.assertEqual(embedding.timestamps.shape, (44, 2))
     for i in range(44):
@@ -79,7 +80,7 @@ class RawEncoderTest(absltest.TestCase):
         frame_step=self.frame_step,
         pooling='mean',
     )
-    embedding = enc.encode(self.waveform, self.params)
+    embedding = enc.encode(self.sound)
     self.assertEqual(embedding.embedding.shape, (1, self.frame_length))
     npt.assert_equal(embedding.timestamps, [[0, len(self.waveform)]])
 
@@ -89,7 +90,7 @@ class RawEncoderTest(absltest.TestCase):
         frame_length=self.frame_length,
         frame_step=self.frame_step,
     )
-    embedding = enc.encode(self.waveform, self.params)
+    embedding = enc.encode(self.sound)
     self.assertEqual(embedding.embedding.shape, (44, 1 + self.fft_length // 2))
     self.assertEqual(embedding.timestamps.shape, (44, 2))
 
@@ -100,7 +101,7 @@ class RawEncoderTest(absltest.TestCase):
         frame_step=self.frame_step,
         pooling='max',
     )
-    embedding = enc.encode(self.waveform, self.params)
+    embedding = enc.encode(self.sound)
     self.assertEqual(embedding.embedding.shape, (1, 1 + self.fft_length // 2))
     npt.assert_equal(embedding.timestamps, [[0, len(self.waveform)]])
 
@@ -111,7 +112,7 @@ class RawEncoderTest(absltest.TestCase):
         frame_step=self.frame_step,
         transform_fn_kwargs={'mel_matrix': self.mel_matrix},
     )
-    embedding = enc.encode(self.waveform, self.params)
+    embedding = enc.encode(self.sound)
     self.assertEqual(embedding.embedding.shape, (44, self.num_mel_bins))
     self.assertEqual(embedding.timestamps.shape, (44, 2))
 
@@ -123,14 +124,14 @@ class RawEncoderTest(absltest.TestCase):
         pooling='last',
         transform_fn_kwargs={'mel_matrix': self.mel_matrix},
     )
-    embedding = enc.encode(self.waveform, self.params)
+    embedding = enc.encode(self.sound)
     self.assertEqual(embedding.embedding.shape, (1, self.num_mel_bins))
     npt.assert_equal(embedding.timestamps, [[0, len(self.waveform)]])
 
   def test_initialization_missing_params(self):
     with self.assertRaises(ValueError):
       enc = raw_encoder.RawEncoder(transform_fn=lambda x: x)
-      enc.encode(self.waveform, self.params)
+      enc.encode(self.sound)
 
   def test_encode_with_runtime_kwargs(self):
     runtime_mel_matrix = self.mel_matrix[:, ::2]
@@ -142,26 +143,25 @@ class RawEncoderTest(absltest.TestCase):
         frame_step=self.frame_step,
         transform_fn_kwargs={'mel_matrix': self.mel_matrix},
     )
-    embedding = enc.encode(
-        self.waveform, self.params, mel_matrix=runtime_mel_matrix
-    )
+    embedding = enc.encode(self.sound, mel_matrix=runtime_mel_matrix)
     self.assertEqual(embedding.embedding.shape, (44, self.num_mel_bins // 2))
 
   def test_encode_short_waveform(self):
     short_waveform = self.waveform[: self.frame_length - 1]
-    enc = raw_encoder.RawEncoder(
-        transform_fn=lambda x: x,
-        frame_length=self.frame_length,
-        frame_step=self.frame_step,
-    )
-    embedding = enc.encode(
-        short_waveform,
-        types.SoundContextParams(
+    short_sound = types.Sound(
+        waveform=short_waveform,
+        context=types.SoundContextParams(
             sample_rate=self.sample_rate,
             length=len(short_waveform),
             sound_id='short',
         ),
     )
+    enc = raw_encoder.RawEncoder(
+        transform_fn=lambda x: x,
+        frame_length=self.frame_length,
+        frame_step=self.frame_step,
+    )
+    embedding = enc.encode(short_sound)
     self.assertEqual(embedding.embedding.shape, (0,))
     self.assertEqual(embedding.timestamps.shape, (0,))
 
@@ -173,23 +173,23 @@ class RawEncoderTest(absltest.TestCase):
         pooling='mean',
     )
     short_waveform = self.waveform[: len(self.waveform) // 2]
-    batch_waveforms = [self.waveform, short_waveform]
-    batch_params = [
-        self.params,
-        types.SoundContextParams(
+    short_sound = types.Sound(
+        waveform=short_waveform,
+        context=types.SoundContextParams(
             sample_rate=self.sample_rate,
             length=len(short_waveform),
-            sound_id='test',
+            sound_id='short',
         ),
-    ]
+    )
+    batch_sounds = [self.sound, short_sound]
 
-    results = enc.encode_batch(batch_waveforms, batch_params)
+    results = enc.encode_batch(batch_sounds)
 
     self.assertLen(results, 2)
     self.assertEqual(results[0].embedding.shape, (1, self.frame_length))
-    npt.assert_equal(results[0].timestamps, [[0, len(batch_waveforms[0])]])
+    npt.assert_equal(results[0].timestamps, [[0, len(self.waveform)]])
     self.assertEqual(results[1].embedding.shape, (1, self.frame_length))
-    npt.assert_equal(results[1].timestamps, [[0, len(batch_waveforms[1])]])
+    npt.assert_equal(results[1].timestamps, [[0, len(short_waveform)]])
 
 
 if __name__ == '__main__':

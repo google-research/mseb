@@ -76,16 +76,13 @@ class SoundEncoder(abc.ABC):
   @abc.abstractmethod
   def _encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of sound sources to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
@@ -107,8 +104,7 @@ class SoundEncoder(abc.ABC):
 
   def encode(
       self,
-      waveform: Sequence[float],
-      params: types.SoundContextParams,
+      sound: types.Sound,
       **kwargs: Any,
   ) -> types.SoundEmbedding:
     """Ensures the model is loaded, then encodes a single audio source.
@@ -118,10 +114,7 @@ class SoundEncoder(abc.ABC):
     Subclasses should not override this method.
 
     Args:
-      waveform: The sound source to encode. It is pre-loaded  waveform
-        (Sequence[float]).
-      params: A `SoundContextParams` object containing metadata and context
-        about the sound, such as its sample rate.
+      sound: The sound source to encode.
       **kwargs: Any additional, model-specific runtime parameters required for
         this specific encoding call.
 
@@ -137,13 +130,12 @@ class SoundEncoder(abc.ABC):
             - Frame-Aligned (m == n): The i-th timestamp corresponds
               directly to the i
     """
-    return self.encode_batch([waveform], [params], **kwargs)[0]
+    return self.encode_batch([sound], **kwargs)[0]
 
   @final
   def encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
@@ -154,17 +146,14 @@ class SoundEncoder(abc.ABC):
     single model call.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of sound sources to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
-      A list of (waveform_embeddings, embedding_timestamps) tuples, one
-      for each input.
+      A list of SoundEmbedding, one for each input.
     """
     self._ensure_model_loaded()
-    return self._encode_batch(waveform_batch, params_batch, **kwargs)
+    return self._encode_batch(sound_batch, **kwargs)
 
 
 @dataclasses.dataclass

@@ -427,16 +427,13 @@ class WhisperV2(encoder.SoundEncoder):
 
   def _encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources into embeddings and timestamps.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of types.Sound objects to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
@@ -455,9 +452,9 @@ class WhisperV2(encoder.SoundEncoder):
               embeddings were extracted.
     """
     outputs = []
-    for waveform, params in zip(waveform_batch, params_batch):
-      sequence_data = self.preprocess(waveform, params.sample_rate)
-      outputs.append(self._encode(sequence_data, params, **kwargs))
+    for sound in sound_batch:
+      sequence_data = self.preprocess(sound.waveform, sound.context.sample_rate)
+      outputs.append(self._encode(sequence_data, sound.context, **kwargs))
     return outputs
 
 

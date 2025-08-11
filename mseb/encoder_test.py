@@ -64,56 +64,74 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_encode_triggers_setup_exactly_once(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
+    sound = types.Sound(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(
+            sample_rate=2, length=4, sound_id="test"
+        ),
+    )
 
-    mock_encoder.encode([1.0, 2.0, 3.0, 4.0], params)
+    mock_encoder.encode(sound)
     mock_encoder.setup.assert_called_once()
 
-    mock_encoder.encode_batch([5.0, 6.0, 7.0, 8.0], params)
+    sound2 = types.Sound(
+        waveform=np.array([5.0, 6.0, 7.0, 8.0]),
+        context=types.SoundContextParams(
+            sample_rate=2, length=4, sound_id="test"
+        ),
+    )
+    mock_encoder.encode(sound2)
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_triggers_setup_exactly_once(self):
     mock_encoder = MockSoundEncoder("path/to/model")
     params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
-    batch = [([1.0, 2.0, 3.0, 4.0], params),
-             ([5.0, 6.0, 7.0, 8.0], params)]
-    mock_encoder.encode_batch([a[0] for a in batch], [a[1] for a in batch])
+    batch = [
+        types.Sound(waveform=np.array([1.0, 2.0, 3.0, 4.0]), context=params),
+        types.Sound(waveform=np.array([5.0, 6.0, 7.0, 8.0]), context=params),
+    ]
+    mock_encoder.encode_batch(batch)
     mock_encoder.setup.assert_called_once()
-    mock_encoder.encode_batch([a[0] for a in batch], [a[1] for a in batch])
+    mock_encoder.encode_batch(batch)
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
     mock_encoder = MockSoundEncoder("path/to/model")
     params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
-    waveform_batch = [
-        [1.0, 2.0, 4.0, 8.0],
-        [2.0, 5.0, 3.0, 7.0],
-        [3.0, 7.0, 8.0, 9.0],
+    sound_batch = [
+        types.Sound(waveform=np.array([1.0, 2.0, 4.0, 8.0]), context=params),
+        types.Sound(waveform=np.array([2.0, 5.0, 3.0, 7.0]), context=params),
+        types.Sound(waveform=np.array([3.0, 7.0, 8.0, 9.0]), context=params),
     ]
-    params_batch = [params] * 3
-    mock_encoder.encode_batch(
-        waveform_batch, params_batch, runtime_kwarg="hello"
-    )
-    mock_encoder._encode_batch.assert_called_once_with(
-        waveform_batch, params_batch, runtime_kwarg="hello"
-    )
+    mock_encoder.encode_batch(sound_batch, runtime_kwarg="hello")
+    mock_encoder._encode_batch.assert_called_once()
+    args, kwargs = mock_encoder._encode_batch.call_args
+    self.assertEqual(args[0], sound_batch)
+    self.assertEqual(kwargs, {"runtime_kwarg": "hello"})
 
   def test_default_encode_calls_encode_batch_with_single_item(self):
     mock_encoder = MockSoundEncoder("path/to/model")
     mock_encoder.encode_batch = mock.MagicMock()
-    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
-    waveform = [1.0, 2.0, 3.0, 4.0]
-
-    mock_encoder.encode(waveform, params)
-    mock_encoder.encode_batch.assert_called_once_with(
-        [waveform], [params], **{}
+    sound = types.Sound(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(
+            sample_rate=2, length=4, sound_id="test"
+        ),
     )
+
+    mock_encoder.encode(sound)
+    mock_encoder.encode_batch.assert_called_once_with([sound], **{})
 
   def test_faulty_setup_raises_runtime_error(self):
     mock_encoder = FaultySetupEncoder("faulty/path")
-    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
+    sound = types.Sound(
+        waveform=np.array([1.0, 2.0, 4.0, 8.0]),
+        context=types.SoundContextParams(
+            sample_rate=2, length=4, sound_id="test"
+        ),
+    )
     with self.assertRaises(RuntimeError):
-      mock_encoder.encode([1.0, 2.0, 4.0, 8.0], params)
+      mock_encoder.encode(sound)
 
   def test_init_kwargs_are_stored_for_later_use(self):
     mock_encoder = MockSoundEncoder(

@@ -51,7 +51,7 @@ class EncodeDoFn(beam.DoFn):
         length=len(waveform),
         sound_id=element['utt_id'],
     )
-    yield self._encoder.encode(waveform, params=params)
+    yield self._encoder.encode(types.Sound(waveform=waveform, context=params))
 
 
 def encode_svq_beam(base_path, encoder: encoder_lib.SoundEncoder):
@@ -81,12 +81,14 @@ def encode_svq(
   for ex in examples:
     encoded.append(
         encoder.encode(
-            ex['waveform'],
-            types.SoundContextParams(
-                sample_rate=48000,
-                length=len(ex['waveform']),
-                sound_id=ex['utt_id'],
-            ),
+            types.Sound(
+                waveform=ex['waveform'],
+                context=types.SoundContextParams(
+                    sample_rate=48000,
+                    length=len(ex['waveform']),
+                    sound_id=ex['utt_id'],
+                ),
+            )
         ).embedding
     )
     for k, v in labels.items():

@@ -175,7 +175,8 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
         language='en',
         sound_id='test',
     )
-    result = self.whisper_encoder.encode(waveform, params)
+    sound = types.Sound(waveform=waveform, context=params)
+    result = self.whisper_encoder.encode(sound)
     npt.assert_equal(result.timestamps.shape, [1, 2])
     npt.assert_equal(result.timestamps[0, 0] >= 0.0, True)
     npt.assert_equal(
@@ -196,7 +197,8 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
         language='en',
         sound_id='test',
     )
-    result = self.whisper_encoder.encode(waveform, params, word_timestamps=True)
+    sound = types.Sound(waveform=waveform, context=params)
+    result = self.whisper_encoder.encode(sound, word_timestamps=True)
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
 
 
@@ -226,7 +228,8 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
         text=svq_example['text'].to_numpy()[0],
         sound_id='test',
     )
-    result = self.whisper_encoder.encode(waveform, params)
+    sound = types.Sound(waveform=waveform, context=params)
+    result = self.whisper_encoder.encode(sound)
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
 
 
@@ -246,6 +249,7 @@ class PooledAudioEncoderV2Test(absltest.TestCase):
         length=waveform.shape[0],
         sound_id='test',
     )
+    self.sound = types.Sound(waveform=self.waveform, context=self.params)
     self.model_path = 'base'
 
   def test_pool_fn(self):
@@ -261,25 +265,25 @@ class PooledAudioEncoderV2Test(absltest.TestCase):
 
   def test_encode_no_pooling(self):
     enc = whisper_encoder.PooledAudioEncoderV2(self.model_path)
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [375, 512])
 
   def test_encode_last_pooling(self):
     enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='last')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
   def test_encode_mean_pooling(self):
     enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='mean')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
   def test_encode_max_pooling(self):
     enc = whisper_encoder.PooledAudioEncoderV2(self.model_path, pooling='max')
-    result = enc.encode(self.waveform, self.params)
+    result = enc.encode(self.sound)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 

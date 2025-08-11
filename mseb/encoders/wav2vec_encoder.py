@@ -151,16 +151,13 @@ class Wav2VecEncoder(encoder.SoundEncoder):
 
   def _encode(
       self,
-      waveform: Sequence[float],
-      params: types.SoundContextParams,
+      sound: types.Sound,
       **kwargs: Any,
   ) -> types.SoundEmbedding:
     """Encodes speech by Wav2Vec encoder activations and optionally pools them.
 
     Args:
-      waveform: A sequence of sound sources to encode.
-      params: A sequence of `SoundContextParams` objects, each corresponding to
-        an item in `sound_batch`.
+      sound: A types.Sound object to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
@@ -173,11 +170,12 @@ class Wav2VecEncoder(encoder.SoundEncoder):
       FileNotFoundError: If the audio file path is not found.
     """
     transform_fn_kwargs = kwargs.get('transform_fn_kwargs', {})
+    waveform = np.asarray(sound.waveform, dtype=np.float32)
+    params = sound.context
 
     assert self.processor is not None
     # TODO(mseb): In the new design, we need to assume encoder does not do any
     # preprocessing and only get sequence of floats.
-    waveform = np.asarray(waveform, dtype=np.float32)
 
     if params.sample_rate is None:
       raise ValueError(
@@ -212,16 +210,13 @@ class Wav2VecEncoder(encoder.SoundEncoder):
 
   def _encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes speech by Wav2Vec encoder activations and optionally pools them.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of types.Sound objects to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
@@ -238,6 +233,6 @@ class Wav2VecEncoder(encoder.SoundEncoder):
       FileNotFoundError: If the audio file path is not found.
     """
     outputs = []
-    for waveform, params in zip(waveform_batch, params_batch):
-      outputs.append(self._encode(waveform, params, **kwargs))
+    for sound in sound_batch:
+      outputs.append(self._encode(sound, **kwargs))
     return outputs

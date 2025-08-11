@@ -54,7 +54,7 @@ MOCK_TASK_METADATA = types.TaskMetadata(
 class MockSoundEncoder(encoder.SoundEncoder):
   """A minimal, concrete encoder for instantiating tasks in tests."""
 
-  def _encode_batch(self, audio, params, **kwargs):
+  def _encode_batch(self, sound, **kwargs):
     pass
 
   def setup(self):
@@ -73,11 +73,7 @@ class MockSoundEmbeddingEvaluator(evaluator.SoundEmbeddingEvaluator):
   ) -> list[types.Score]:
     return [
         types.Score(
-            metric="mock_metric",
-            value=0.5,
-            description="desc",
-            min=0,
-            max=1
+            metric="mock_metric", value=0.5, description="desc", min=0, max=1
         )
     ]
 
@@ -110,9 +106,9 @@ class MockTask(task.MSEBTask):
 
   def load_data(self):
     for i in range(self._dataset_size):
-      yield (
-          np.zeros(16000),
-          types.SoundContextParams(
+      yield types.Sound(
+          waveform=np.zeros(16000),
+          context=types.SoundContextParams(
               sample_rate=16000, length=16000, sound_id=str(i)
           ),
       )
@@ -135,8 +131,12 @@ class MSEBTaskTest(absltest.TestCase):
       evaluator_cls = MockSoundEmbeddingEvaluator
 
       def load_data(self):
-        yield (np.zeros(1), types.SoundContextParams(
-            sample_rate=16000, length=1))
+        yield types.Sound(
+            waveform=np.zeros(1),
+            context=types.SoundContextParams(
+                sample_rate=16000, length=1, sound_id="test",
+            ),
+        )
 
     with self.assertRaisesRegex(NotImplementedError, "metadata"):
       BadTask(self.mock_encoder)
@@ -147,8 +147,12 @@ class MSEBTaskTest(absltest.TestCase):
       metadata = MOCK_TASK_METADATA
 
       def load_data(self):
-        yield (np.zeros(1), types.SoundContextParams(
-            sample_rate=16000, length=1))
+        yield types.Sound(
+            waveform=np.zeros(1),
+            context=types.SoundContextParams(
+                sample_rate=16000, length=1, sound_id="test",
+            ),
+        )
 
     with self.assertRaisesRegex(NotImplementedError, "evaluator_cls"):
       BadTask(self.mock_encoder)

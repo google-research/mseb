@@ -107,29 +107,25 @@ class EmbedWhisperEncoderV2(encoder.SoundEncoder):
 
   def setup(self):
     """Loads the Whisper model."""
+    super().setup()
     self.whisper_encoder.setup()
     self._model_loaded = True
 
   def _encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes the transcript truth and Gecko embeddings.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of types.Sound objects to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
       A list of types.SoundEmbedding objects, one for each input.
     """
-    whisper_results = self.whisper_encoder.encode_batch(
-        waveform_batch, params_batch, **kwargs
-    )
+    whisper_results = self.whisper_encoder.encode_batch(sound_batch, **kwargs)
     prompts = [
         self.prompt_template.format(text=result.embedding[0])
         for result in whisper_results

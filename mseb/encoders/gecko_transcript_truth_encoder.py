@@ -91,25 +91,23 @@ class GeckoTranscriptTruthEncoderV2(encoder.SoundEncoder):
 
   def _encode_batch(
       self,
-      waveform_batch: Sequence[Sequence[float]],
-      params_batch: Sequence[types.SoundContextParams],
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any,
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes the transcript truth and Gecko embeddings.
 
     Args:
-      waveform_batch: A sequence of sound sources to encode.
-      params_batch: A sequence of `SoundContextParams` objects, each
-        corresponding to an item in `sound_batch`.
+      sound_batch: A sequence of types.Sound objects to encode.
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
       A list of types.SoundEmbedding objects, one for each input.
     """
-    del waveform_batch, kwargs  # Unused.
+    del kwargs  # Unused.
 
     prompts = []
-    for params in params_batch:
+    for sound in sound_batch:
+      params = sound.context
       if hasattr(params, 'title') and params.title is not None:
         title = params.title
       else:
@@ -122,7 +120,8 @@ class GeckoTranscriptTruthEncoderV2(encoder.SoundEncoder):
     embeddings = self.transcript_truths_encode_fn(prompts)
 
     outputs = []
-    for params, embedding in zip(params_batch, embeddings):
+    for sound, embedding in zip(sound_batch, embeddings):
+      params = sound.context
       timestamp = np.array(
           [[params.waveform_start_second, params.waveform_end_second]]
       )

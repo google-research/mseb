@@ -130,6 +130,7 @@ class GeckoTranscriptTruthEncoderV2Test(absltest.TestCase):
         waveform_end_second=self.waveform1.shape[0] / sample_rate,
         sound_id='test1',
     )
+    self.sound1 = types.Sound(waveform=self.waveform1, context=self.params1)
     self.waveform2 = svq_example['waveform'].to_numpy()[0][100:]
     self.waveform2 = self.waveform2.astype(np.float32) / 32767.0
     self.params2 = types.SoundContextParams(
@@ -141,6 +142,7 @@ class GeckoTranscriptTruthEncoderV2Test(absltest.TestCase):
         waveform_end_second=self.waveform2.shape[0] / sample_rate,
         sound_id='test2',
     )
+    self.sound2 = types.Sound(waveform=self.waveform2, context=self.params2)
 
     def transcript_truths_encode_fn(prompts: Sequence[str]) -> np.ndarray:
       embedding_by_prompt = {
@@ -163,7 +165,7 @@ class GeckoTranscriptTruthEncoderV2Test(absltest.TestCase):
     enc = MockGeckoTranscriptTruthEncoderV2(
         transcript_truths_encode_fn=self.transcript_truths_encode_fn
     )
-    result = enc.encode(self.waveform1, self.params1)
+    result = enc.encode(self.sound1)
     npt.assert_equal(result.timestamps.shape, [1, 2])
     npt.assert_equal(result.timestamps[0, 0] == 0.0, True)
     npt.assert_equal(
@@ -177,11 +179,9 @@ class GeckoTranscriptTruthEncoderV2Test(absltest.TestCase):
     enc = MockGeckoTranscriptTruthEncoderV2(
         transcript_truths_encode_fn=self.transcript_truths_encode_fn
     )
-    result1 = enc.encode(self.waveform1, self.params1)
-    result2 = enc.encode(self.waveform2, self.params2)
-    results_batch = enc.encode_batch(
-        [self.waveform1, self.waveform2], [self.params1, self.params2]
-    )
+    result1 = enc.encode(self.sound1)
+    result2 = enc.encode(self.sound2)
+    results_batch = enc.encode_batch([self.sound1, self.sound2])
     npt.assert_equal(len(results_batch), 2)
     self.assertEqual(
         results_batch[0].embedding.tolist(), result1.embedding.tolist()
