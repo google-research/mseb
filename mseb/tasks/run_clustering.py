@@ -16,6 +16,7 @@
 
 from absl import app
 from absl import flags
+from mseb import runner as runner_lib
 from mseb.encoders import raw_encoder
 from mseb.tasks import clustering
 
@@ -38,10 +39,10 @@ def main(argv):
       frame_length=(48000 // 1000 * 25),
       frame_step=(48000 // 1000 * 10),
   )
-  task = clustering.ClusteringTask(
-      sound_encoder=encoder, base_path=_SVQ_BASE_PATH.value
-  )
-  scores = task.run()
+  runner = runner_lib.DirectRunner(sound_encoder=encoder)
+  task = clustering.SVQClustering(base_path=_SVQ_BASE_PATH.value)
+  embeddings = runner.run(task.sounds())
+  scores = task.compute_scores(embeddings)
   print('Scores: ', scores)
 
 if __name__ == '__main__':

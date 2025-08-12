@@ -15,6 +15,7 @@
 import os
 import pathlib
 from absl.testing import absltest
+from mseb import runner as runner_lib
 from mseb.encoders import raw_encoder
 from mseb.tasks import clustering
 
@@ -36,30 +37,22 @@ class ClusteringTest(absltest.TestCase):
     )
     return os.path.join(testdata_path, *args)
 
-  def test_encode_svq_beam(self):
-    encoder = get_test_encoder()
-    base_path = self.get_testdata_path()
-    encoded, labels = clustering.encode_svq(
-        base_path, encoder, label_fields=["speaker_gender", "speaker_age"]
-    )
-    self.assertLen(encoded, 1)
-    self.assertLen(labels, 2)
-    self.assertIn("speaker_gender", labels)
-    self.assertLen(labels["speaker_gender"], 1)
-    self.assertIn("speaker_age", labels)
-    self.assertLen(labels["speaker_age"], 1)
-
   def test_clustering_task(self):
-    task = clustering.ClusteringTask(
-        sound_encoder=get_test_encoder(), base_path=self.get_testdata_path()
+    encoder = get_test_encoder()
+    runner = runner_lib.DirectRunner(sound_encoder=encoder)
+    task = clustering.SVQClustering(base_path=self.get_testdata_path())
+    self.assertEqual(
+        task.sub_tasks, ["speaker_gender", "speaker_age", "speaker_id"]
     )
-    scores = task.run()
+    embeddings = runner.run(task.sounds())
+    scores = task.compute_scores(embeddings)
     self.assertLen(scores, 3)
     self.assertIn("speaker_gender", scores)
     self.assertLen(scores["speaker_gender"], 1)
     self.assertEqual(scores["speaker_gender"][0].metric, "VMeasure")
     self.assertIn("speaker_age", scores)
     self.assertIn("speaker_id", scores)
+
 
 if __name__ == "__main__":
   absltest.main()

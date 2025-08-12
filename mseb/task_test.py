@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Any
-from unittest import mock
 
 from absl.testing import absltest
 from mseb import encoder
@@ -119,106 +118,6 @@ class MSEBTaskTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
     self.mock_encoder = MockSoundEncoder("mock/path")
-
-  def test_init_success(self):
-    mock_task = MockTask(sound_encoder=self.mock_encoder)
-    self.assertIsInstance(mock_task.encoder, MockSoundEncoder)
-    self.assertIsInstance(mock_task.evaluator, MockSoundEmbeddingEvaluator)
-
-  def test_init_fails_if_metadata_is_missing(self):
-
-    class BadTask(task.MSEBTask):
-      evaluator_cls = MockSoundEmbeddingEvaluator
-
-      def load_data(self):
-        yield types.Sound(
-            waveform=np.zeros(1),
-            context=types.SoundContextParams(
-                sample_rate=16000, length=1, sound_id="test",
-            ),
-        )
-
-    with self.assertRaisesRegex(NotImplementedError, "metadata"):
-      BadTask(self.mock_encoder)
-
-  def test_init_fails_if_evaluator_cls_is_missing(self):
-
-    class BadTask(task.MSEBTask):
-      metadata = MOCK_TASK_METADATA
-
-      def load_data(self):
-        yield types.Sound(
-            waveform=np.zeros(1),
-            context=types.SoundContextParams(
-                sample_rate=16000, length=1, sound_id="test",
-            ),
-        )
-
-    with self.assertRaisesRegex(NotImplementedError, "evaluator_cls"):
-      BadTask(self.mock_encoder)
-
-  def test_setup_delegates_to_encoder(self):
-    with mock.patch.object(
-        self.mock_encoder,
-        "setup",
-        autospec=True
-    ) as spy_setup:
-      mock_task = MockTask(sound_encoder=self.mock_encoder)
-      mock_task.setup()
-      spy_setup.assert_called_once()
-
-  def test_load_batched_data_logic(self):
-    mock_task = MockTask(
-        sound_encoder=self.mock_encoder,
-        dataset_size=10
-    )
-    batches = list(mock_task.load_batched_data(batch_size=4))
-    self.assertLen(batches, 3)  # 10 items, batch size 4 -> [4, 4, 2]
-    self.assertLen(batches[0], 4)
-    self.assertLen(batches[1], 4)
-    self.assertLen(batches[2], 2)
-
-  def test_run_orchestrates_pipeline_correctly(self):
-    dataset_size = 5
-    batch_size = 2
-    num_batches = 3  # 5 items, batch size 2 -> 3 batches
-    mock_task = MockTask(
-        sound_encoder=self.mock_encoder,
-        dataset_size=dataset_size
-    )
-
-    mock_task.setup = mock.MagicMock()
-    mock_task.encoder.encode_batch = mock.MagicMock(
-        return_value=[(np.zeros(1), np.zeros(1))] * 2
-    )
-    mock_task.evaluator.evaluate_batch = mock.MagicMock(
-        return_value=[[types.Score("m", "d", 0.0, 0, 1)]] * 2
-    )
-    mock_task.evaluator.combine_scores = mock.MagicMock(
-        return_value=[types.Score("agg", "ad", 1.0, 0, 1)]
-    )
-
-    final_scores = mock_task.run(batch_size=batch_size)
-
-    mock_task.setup.assert_called_once()
-    self.assertEqual(mock_task.encoder.encode_batch.call_count, num_batches)
-    self.assertEqual(mock_task.evaluator.evaluate_batch.call_count, num_batches)
-    mock_task.evaluator.combine_scores.assert_called_once()
-    self.assertEqual(final_scores["mock_task"][0].metric, "agg")
-
-  def test_run_with_empty_dataset(self):
-    mock_task = MockTask(
-        sound_encoder=self.mock_encoder,
-        dataset_size=0
-    )
-    mock_task.evaluator.combine_scores = mock.MagicMock()
-
-    with self.assertLogs(level="WARNING") as cm:
-      final_scores = mock_task.run()
-      self.assertIn("Warning: No scores were generated", cm.output[0])
-
-    self.assertEqual(final_scores, {"mock_task": []})
-    mock_task.evaluator.combine_scores.assert_not_called()
 
   def test_list_tasks(self):
     tasks = task.get_name_to_task()

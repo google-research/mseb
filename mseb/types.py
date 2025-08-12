@@ -15,7 +15,7 @@
 """MSEB types."""
 
 import dataclasses
-from typing import Optional
+from typing import Mapping, Optional
 
 import numpy as np
 
@@ -154,3 +154,6 @@ class TaskMetadata:
       raise ValueError(
           f"main_score '{self.main_score}' is not defined in the 'scores' list."
       )
+
+
+SoundEmbeddingCache = Mapping[str, SoundEmbedding]

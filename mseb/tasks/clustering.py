@@ -14,103 +14,46 @@
 
 """Clustering tasks."""
 
+import abc
 import os
-import apache_beam as beam
-from mseb import encoder as encoder_lib
+from typing import Iterable
+
 from mseb import svq_data
 from mseb import task
 from mseb import types
-import numpy as np
-import sklearn
-
-
-def cluster_kmeans(
-    data: np.ndarray, nlabels: int, batch_size: int
-) -> np.ndarray:
-  model = sklearn.cluster.MiniBatchKMeans(
-      n_clusters=nlabels, batch_size=batch_size, n_init='auto'
-  )
-  model.fit(data)
-  return model.labels_
-
-
-class EncodeDoFn(beam.DoFn):
-  """A DoFn that wraps a SoundEncoder."""
-
-  def __init__(self, encoder: encoder_lib.SoundEncoder):
-    self._encoder = encoder
-    self._sample_rate = 48000
-
-  def setup(self):
-    self._encoder.setup()
-
-  def process(self, element):
-    waveform = element['waveform']
-    params = types.SoundContextParams(
-        sample_rate=self._sample_rate,
-        length=len(waveform),
-        sound_id=element['utt_id'],
-    )
-    yield self._encoder.encode(types.Sound(waveform=waveform, context=params))
-
-
-def encode_svq_beam(base_path, encoder: encoder_lib.SoundEncoder):
-  """Run SoundEncoder over svq dataset using beam."""
-  with beam.Pipeline() as root:
-    examples = svq_data.generate_examples_beam(
-        root, os.path.join(base_path, 'utt_index.jsonl')
-    )
-    encoded = (
-        root
-        | 'ReadExamples' >> beam.Create(examples)
-        | 'Encode' >> beam.ParDo(EncodeDoFn(encoder))
-    )
-    return encoded
-
-
-def encode_svq(
-    base_path, encoder: encoder_lib.SoundEncoder, label_fields: list[str]
-):
-  """Run SoundEncoder over svq dataset returning ndarray of embeddings."""
-  examples = svq_data.generate_examples(
-      os.path.join(base_path, 'utt_index.jsonl')
-  )
-  encoder.setup()
-  encoded = []
-  labels = {k: [] for k in label_fields}
-  for ex in examples:
-    encoded.append(
-        encoder.encode(
-            types.Sound(
-                waveform=ex['waveform'],
-                context=types.SoundContextParams(
-                    sample_rate=48000,
-                    length=len(ex['waveform']),
-                    sound_id=ex['utt_id'],
-                ),
-            )
-        ).embedding
-    )
-    for k, v in labels.items():
-      v.append(ex[k])
-  return np.vstack(encoded), labels
-
-
-def vmeasure_score(value: float = 0.0):
-  return types.Score(
-      metric='VMeasure',
-      description=(
-          'V-measure clustering metric: Normalised mutal information'
-          ' against a set of labels.'
-      ),
-      value=value,
-      min=0,
-      max=1,
-  )
+from mseb.evaluators import clustering_evaluator
 
 
 class ClusteringTask(task.MSEBTask):
   """Clustering task."""
+
+  def __init__(self, base_path: str):
+    self._base_path = base_path
+    self._evaluator = clustering_evaluator.ClusteringEvaluator()
+
+  def compute_scores(
+      self, embeddings: types.SoundEmbeddingCache
+  ) -> dict[str, list[types.Score]]:
+    scores = {}
+    for sub_task in self.sub_tasks:
+      scores[sub_task] = self._evaluator(embeddings, self.examples(sub_task))
+    return scores
+
+  @abc.abstractmethod
+  def examples(
+      self, sub_task: str
+  ) -> Iterable[clustering_evaluator.ClusteringExample]:
+    """Get (utt_id, label) examples from dataset for a given sub-task."""
+
+  @property
+  @abc.abstractmethod
+  def sub_tasks(self) -> list[str]:
+    """Get the list of sub-tasks for the clustering task."""
+
+
+class SVQClustering(ClusteringTask):
+  """SVQ clustering."""
+
   metadata = types.TaskMetadata(
       name='clustering',
       description='Clustering task.',
@@ -123,36 +66,38 @@ class ClusteringTask(task.MSEBTask):
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
-      scores=[vmeasure_score()],
+      scores=[clustering_evaluator.vmeasure_score()],
       eval_splits=['test'],
       eval_langs=['en-US'],
       domains=['speech'],
       task_subtypes=['clustering'],
   )
 
-  def __init__(self, sound_encoder: encoder_lib.SoundEncoder, base_path: str):
-    self._base_path = base_path
-    self._sound_encoder = sound_encoder
+  @property
+  def sub_tasks(self) -> list[str]:
+    return ['speaker_gender', 'speaker_age', 'speaker_id']
 
-  def load_data(self):
-    # TODO(tombagby): Update this placeholder.
-    yield [0.0], types.SoundContextParams(
-        sample_rate=48000, length=16000, sound_id='0'
-    )
+  def sounds(self) -> Iterable[types.Sound]:
+    for example in svq_data.generate_examples(
+        os.path.join(self._base_path, 'utt_index.jsonl')
+    ):
+      yield types.Sound(
+          example['waveform'],
+          types.SoundContextParams(
+              sample_rate=48000,
+              length=len(example['waveform']),
+              sound_id=example['utt_id'],
+              speaker_id=example['speaker_id'],
+              speaker_age=example['speaker_age'],
+              speaker_gender=example['speaker_gender'],
+          ),
+      )
 
-  def run(self, batch_size: int = 1):
-    encoded, all_labels = encode_svq(
-        self._base_path,
-        self._sound_encoder,
-        label_fields=['speaker_gender', 'speaker_age', 'speaker_id'],
-    )
-    scores = {}
-    for label_key, labels in all_labels.items():
-      clusters = cluster_kmeans(
-          encoded, nlabels=len(set(labels)), batch_size=32
-      )
-      v_measure = sklearn.metrics.v_measure_score(
-          labels_true=labels, labels_pred=clusters
-      )
-      scores[label_key] = [vmeasure_score(v_measure)]
-    return scores
+  def examples(
+      self, sub_task: str
+  ) -> Iterable[clustering_evaluator.ClusteringExample]:
+    """Get (utt_id, label) examples from svq dataset."""
+    for ex in svq_data.generate_examples(
+        os.path.join(self._base_path, 'utt_index.jsonl')
+    ):
+      yield clustering_evaluator.ClusteringExample(ex['utt_id'], ex[sub_task])
