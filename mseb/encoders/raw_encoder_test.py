@@ -69,9 +69,9 @@ class RawEncoderTest(absltest.TestCase):
     self.assertEqual(embedding.embedding.shape, (44, self.frame_length))
     self.assertEqual(embedding.timestamps.shape, (44, 2))
     for i in range(44):
-      start = i * self.frame_step
-      end = start + self.frame_length
-      npt.assert_equal(embedding.timestamps[i], [start, end])
+      start = i * self.frame_step / self.sample_rate
+      end = start + self.frame_length / self.sample_rate
+      npt.assert_allclose(embedding.timestamps[i], [start, end])
 
   def test_raw_encoder_mean_pooling(self):
     enc = raw_encoder.RawEncoder(

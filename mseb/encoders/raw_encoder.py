@@ -312,7 +312,9 @@ class RawEncoder(encoder.SoundEncoder):
       start = i * self.frame_step
       end = start + self.frame_length
       frames[i] = waveform[start:end]
-      timestamps_list.append([start, end])
+      timestamps_list.append(
+          [start / params.sample_rate, end / params.sample_rate]
+      )
 
     final_transform_kwargs = self.transform_fn_kwargs.copy()
     final_transform_kwargs.update(kwargs)
@@ -323,14 +325,14 @@ class RawEncoder(encoder.SoundEncoder):
     # Adjust timestamps if pooling was applied
     if self.pooling is not None:
       # A single timestamp for the entire utterance
-      embedding_timestamps = np.array([[0, len(waveform)]], dtype=int)
+      embedding_timestamps = np.array([[0, len(waveform)]], dtype=np.float32)
     else:
-      embedding_timestamps = np.array(timestamps_list, dtype=int)
+      embedding_timestamps = np.array(timestamps_list, dtype=np.float32)
 
     return types.SoundEmbedding(
         embedding=waveform_embeddings,
         timestamps=embedding_timestamps,
-        context=params,
+        context=sound.context,
     )
 
   def _encode_batch(

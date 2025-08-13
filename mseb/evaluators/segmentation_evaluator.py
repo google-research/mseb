@@ -54,6 +54,36 @@ _METRIC_DESCRIPTIONS: dict[str, str] = {
 }
 
 
+def timestamps_accuracy_score(value: float = 0.0):
+  return types.Score(
+      metric="TimestampsAccuracy",
+      description=_METRIC_DESCRIPTIONS["TimestampsAccuracy"],
+      value=value,
+      min=0,
+      max=1,
+  )
+
+
+def embeddings_accuracy_score(value: float = 0.0):
+  return types.Score(
+      metric="EmbeddingsAccuracy",
+      description=_METRIC_DESCRIPTIONS["EmbeddingsAccuracy"],
+      value=value,
+      min=0,
+      max=1,
+  )
+
+
+def timestamps_and_embedding_accuracy_score(value: float = 0.0):
+  return types.Score(
+      metric="TimestampsAndEmbeddingAccuracy",
+      description=_METRIC_DESCRIPTIONS["TimestampsAndEmbeddingAccuracy"],
+      value=value,
+      min=0,
+      max=1,
+  )
+
+
 class SegmentationEvaluator(evaluator.SoundEmbeddingEvaluator):
   """Evaluates segmentation quality of sound encodings.
 
@@ -284,4 +314,3 @@ class SegmentationEvaluator(evaluator.SoundEmbeddingEvaluator):
         )
 
     return final_scores
-
