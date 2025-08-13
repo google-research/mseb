@@ -14,14 +14,11 @@
 
 """Runs clustering example on svq."""
 
-import dataclasses
-import json
 from absl import app
 from absl import flags
+from mseb import leaderboard
 from mseb import runner as runner_lib
-from mseb import task as task_lib
 from mseb import tasks
-from mseb import types
 from mseb.encoders import raw_encoder
 
 FLAGS = flags.FLAGS
@@ -32,19 +29,6 @@ _SVQ_BASE_PATH = flags.DEFINE_string(
     'Path to data.',
     required=True,
 )
-
-
-def scores_to_json(
-    metadata: types.TaskMetadata, scores: dict[str, list[types.Score]]
-) -> str:
-  """Convert metrics to JSON string."""
-  scores_json = []
-  for k, v in scores.items():
-    scores_json.append({
-        'name': f'{metadata.name}/{k}',
-        'scores': [dataclasses.asdict(x) for x in v],
-    })
-  return json.dumps(scores_json, indent=2)
 
 
 def main(argv):
@@ -58,15 +42,17 @@ def main(argv):
       frame_length=(48000 // 1000 * 25),
       frame_step=(48000 // 1000 * 10),
   )
+  runner = runner_lib.DirectRunner(sound_encoder=encoder)
   task_cls = tasks.get_name_to_task()['SVQClustering']
   # TODO(tombagby): We won't have required task args, add handling for the
   # dataset disk locations/finish making svq look like a hf dataset.
   assert issubclass(task_cls, tasks.ClusteringTask)
   task = task_cls(base_path=_SVQ_BASE_PATH.value)
-  runner = runner_lib.DirectRunner(sound_encoder=encoder)
-  embeddings = runner.run(task.sounds())
-  scores = task.compute_scores(embeddings)
-  print(task_lib.scores_to_json(task.metadata, scores))
+  results = leaderboard.run_benchmark(
+      encoder_name='RawEncoder_25_10_mean', runner=runner, task=task
+  )
+  for result in results:
+    print(result.to_json())
 
 
 if __name__ == '__main__':

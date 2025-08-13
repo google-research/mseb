@@ -50,5 +50,12 @@ def get_task_list() -> list[type[MSEBTask]]:
 
 
 def get_name_to_task() -> dict[str, type[MSEBTask]]:
+  name_to_task: dict[str, type[MSEBTask]] = {}
   tasks = get_task_list()
-  return {cls.metadata.name: cls for cls in tasks if cls.metadata}
+  while tasks:
+    cls = tasks.pop()
+    if cls.metadata:
+      name_to_task[cls.metadata.name] = cls
+    else:
+      tasks.extend(cls.__subclasses__())
+  return name_to_task

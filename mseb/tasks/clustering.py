@@ -55,7 +55,7 @@ class SVQClustering(ClusteringTask):
   """SVQ clustering."""
 
   metadata = types.TaskMetadata(
-      name='clustering',
+      name='SVQClustering',
       description='Clustering task.',
       reference='TODO',
       type='Clustering',
