@@ -15,11 +15,14 @@
 """Runners for executing encoders and storing embeddings."""
 
 import abc
+import os
+import pickle
 from typing import Iterable
 
 import apache_beam as beam
 from mseb import encoder as encoder_lib
 from mseb import types
+import tensorflow as tf
 
 
 class EncoderRunner(abc.ABC):
@@ -89,20 +92,44 @@ class EncodeDoFn(beam.DoFn):
     self._encoder.setup()
 
   def process(self, element: types.Sound):
-    yield self._encoder.encode(types.SoundEmbedding)
+    yield self._encoder.encode(element)
 
 
 class BeamRunner(EncoderRunner):
   """Runner that encodes using beam, then loads results into in-memory dict."""
 
+  def __init__(
+      self, output_path: str, runner: beam.runners.PipelineRunner, **kwargs
+  ):
+    """Initializes the BeamRunner.
+
+    Args:
+      output_path: The root directory to write temporary output files to.
+      runner: The beam pipeline runner to use.
+      **kwargs: Additional keyword arguments for the base class.
+    """
+    super().__init__(**kwargs)
+    self._output_path = output_path
+    self._runner = runner
+
   def run(self, sounds: Iterable[types.Sound]) -> types.SoundEmbeddingCache:
-    with beam.Pipeline() as root:
-      encoded = (
+    output_prefix = os.path.join(self._output_path, 'embeddings')
+    with beam.Pipeline(runner=self._runner) as root:
+      _ = (
           root
           | 'ReadExamples' >> beam.Create(list(sounds))
           | 'Encode' >> beam.ParDo(EncodeDoFn(self._encoder))
+          | 'Serialize' >> beam.Map(pickle.dumps)
+          # Using TFRecord because it's available as standard beam io.
+          | 'WriteTFRecord' >> beam.io.tfrecordio.WriteToTFRecord(output_prefix)
       )
-      del encoded
-      # TODO(tombagby): Pick a serialized file format to write results.
-    # TODO(tombagby): Run the pipeline, wait for completion, then load results.
-    return {}
+
+    embeddings = {}
+    output_files = tf.io.gfile.glob(output_prefix + '*')
+    for filename in output_files:
+      # But don't know how to read back from TFRecord except via tf.data.
+      dataset = tf.data.TFRecordDataset(filename)
+      for record in dataset:
+        embedding: types.SoundEmbedding = pickle.loads(record.numpy())
+        embeddings[embedding.context.sound_id] = embedding
+    return embeddings
