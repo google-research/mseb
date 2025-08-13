@@ -13,4 +13,6 @@
 # limitations under the License.
 
 """MSEB Tasks."""
+
+from mseb.task import get_name_to_task
 from .clustering import ClusteringTask

@@ -14,11 +14,15 @@
 
 """Runs clustering example on svq."""
 
+import dataclasses
+import json
 from absl import app
 from absl import flags
 from mseb import runner as runner_lib
+from mseb import task as task_lib
+from mseb import tasks
+from mseb import types
 from mseb.encoders import raw_encoder
-from mseb.tasks import clustering
 
 FLAGS = flags.FLAGS
 
@@ -30,20 +34,40 @@ _SVQ_BASE_PATH = flags.DEFINE_string(
 )
 
 
+def scores_to_json(
+    metadata: types.TaskMetadata, scores: dict[str, list[types.Score]]
+) -> str:
+  """Convert metrics to JSON string."""
+  scores_json = []
+  for k, v in scores.items():
+    scores_json.append({
+        'name': f'{metadata.name}/{k}',
+        'scores': [dataclasses.asdict(x) for x in v],
+    })
+  return json.dumps(scores_json, indent=2)
+
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   encoder = raw_encoder.RawEncoder(
+      # TODO(tombagby): Should "name" or other metadata also be included
+      # in Encoder for use when printing metrics?
       transform_fn=raw_encoder.spectrogram_transform,
       pooling='mean',
       frame_length=(48000 // 1000 * 25),
       frame_step=(48000 // 1000 * 10),
   )
+  task_cls = tasks.get_name_to_task()['SVQClustering']
+  # TODO(tombagby): We won't have required task args, add handling for the
+  # dataset disk locations/finish making svq look like a hf dataset.
+  assert issubclass(task_cls, tasks.ClusteringTask)
+  task = task_cls(base_path=_SVQ_BASE_PATH.value)
   runner = runner_lib.DirectRunner(sound_encoder=encoder)
-  task = clustering.SVQClustering(base_path=_SVQ_BASE_PATH.value)
   embeddings = runner.run(task.sounds())
   scores = task.compute_scores(embeddings)
-  print('Scores: ', scores)
+  print(task_lib.scores_to_json(task.metadata, scores))
+
 
 if __name__ == '__main__':
   app.run(main)
