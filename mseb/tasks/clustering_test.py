@@ -14,10 +14,19 @@
 
 import os
 import pathlib
+from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import runner as runner_lib
+from mseb import svq_data
 from mseb.encoders import raw_encoder
 from mseb.tasks import clustering
+
+FLAGS = flags.FLAGS
+
+# Ensure flags are parsed, for example when running with pytest
+if not FLAGS.is_parsed():
+  FLAGS([""])
 
 
 def get_test_encoder():
@@ -31,6 +40,12 @@ def get_test_encoder():
 
 class ClusteringTest(absltest.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    self.enter_context(
+        flagsaver.flagsaver((svq_data.SVQ_BASEPATH, self.get_testdata_path()))
+    )
+
   def get_testdata_path(self, *args):
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
@@ -40,7 +55,7 @@ class ClusteringTest(absltest.TestCase):
   def test_clustering_task(self):
     encoder = get_test_encoder()
     runner = runner_lib.DirectRunner(sound_encoder=encoder)
-    task = clustering.SVQClustering(base_path=self.get_testdata_path())
+    task = clustering.SVQClustering()
     self.assertEqual(
         task.sub_tasks, ["speaker_gender", "speaker_age", "speaker_id"]
     )

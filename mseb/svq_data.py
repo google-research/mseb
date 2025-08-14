@@ -14,16 +14,36 @@
 
 """SVQ data reading."""
 
+
 import io
 import json
 import os
 import subprocess
+from absl import flags
 import apache_beam as beam
 from array_record.python import array_record_module as array_record
 import librosa
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
+
+SVQ_BASEPATH = flags.DEFINE_string(
+    "svq_basepath",
+    None,
+    "Path to the SVQ dataset.",
+)
+
+
+def _get_basepath(basepath: str | None = None) -> str:
+  """Return basepath from argument or flag."""
+  if basepath is not None:
+    return basepath
+  if SVQ_BASEPATH.value is not None:
+    return SVQ_BASEPATH.value
+  raise ValueError(
+      "basepath must be provided either as an argument or through the"
+      " --svq_basepath flag."
+  )
 
 
 def read_wav_bytes_to_normalized_float(
@@ -97,8 +117,9 @@ def maybe_clone_svq_dataset(output_dir: str) -> str:
   return target_repo_path
 
 
-def read_utt_index(basepath):
+def read_utt_index(basepath: str | None = None):
   """Read utt_index.jsonl file to a dict of {uttid: path:index}."""
+  basepath = _get_basepath(basepath)
   df = pd.read_json(os.path.join(basepath, "utt_index.jsonl"), lines=True)
   return dict(zip(df["utt_id"], df["index"]))
 
@@ -111,10 +132,12 @@ class UttLookup:
     waveform = utt_lookup(utt_id)
   """
 
-  def __init__(self, basepath, resample_hz: float | None = None):
-    self.basepath = basepath
+  def __init__(
+      self, basepath: str | None = None, resample_hz: float | None = None
+  ):
+    self.basepath = _get_basepath(basepath)
     self.resample_hz = resample_hz
-    self.utt_id_to_path_idx = read_utt_index(basepath)
+    self.utt_id_to_path_idx = read_utt_index(self.basepath)
     self.readers = {}
     self.orig_sample_rate_ = None
 
@@ -145,7 +168,8 @@ class UttLookup:
 
 def generate_examples(filepath, resample_hz: float | None = None):
   """Generate examples from a jsonl task file."""
-  basepath = os.path.dirname(filepath)
+  basepath = _get_basepath(os.path.dirname(filepath) or None)
+  filepath = os.path.join(basepath, os.path.basename(filepath))
   utt_lookup = UttLookup(basepath, resample_hz=resample_hz)
   task = pd.read_json(filepath, lines=True)
   for ex in task.to_dict(orient="records"):
