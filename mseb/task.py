@@ -15,7 +15,7 @@
 """MSEB Task Class."""
 
 import abc
-from typing import Iterable
+from typing import Iterable, Type
 
 from mseb import types
 
@@ -49,7 +49,7 @@ def get_task_list() -> list[type[MSEBTask]]:
   return list(MSEBTask.__subclasses__())
 
 
-def get_name_to_task() -> dict[str, type[MSEBTask]]:
+def get_name_to_task() -> dict[str, Type[MSEBTask]]:
   name_to_task: dict[str, type[MSEBTask]] = {}
   tasks = get_task_list()
   while tasks:

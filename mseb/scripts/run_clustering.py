@@ -14,21 +14,16 @@
 
 """Runs clustering example on svq."""
 
+from typing import Type
 from absl import app
 from absl import flags
 from mseb import leaderboard
 from mseb import runner as runner_lib
+from mseb import task as task_lib
 from mseb import tasks
 from mseb.encoders import raw_encoder
 
 FLAGS = flags.FLAGS
-
-_SVQ_BASE_PATH = flags.DEFINE_string(
-    'svq_base_path',
-    None,
-    'Path to data.',
-    required=True,
-)
 
 
 def main(argv):
@@ -43,11 +38,8 @@ def main(argv):
       frame_step=(48000 // 1000 * 10),
   )
   runner = runner_lib.DirectRunner(sound_encoder=encoder)
-  task_cls = tasks.get_name_to_task()['SVQClustering']
-  # TODO(tombagby): We won't have required task args, add handling for the
-  # dataset disk locations/finish making svq look like a hf dataset.
-  assert issubclass(task_cls, tasks.ClusteringTask)
-  task = task_cls(base_path=_SVQ_BASE_PATH.value)
+  task_cls: Type[task_lib.MSEBTask] = tasks.get_name_to_task()['SVQClustering']
+  task = task_cls()
   results = leaderboard.run_benchmark(
       encoder_name='RawEncoder_25_10_mean', runner=runner, task=task
   )

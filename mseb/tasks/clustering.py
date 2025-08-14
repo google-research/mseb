@@ -15,7 +15,6 @@
 """Clustering tasks."""
 
 import abc
-import os
 from typing import Iterable
 
 from mseb import svq_data
@@ -27,8 +26,7 @@ from mseb.evaluators import clustering_evaluator
 class ClusteringTask(task.MSEBTask):
   """Clustering task."""
 
-  def __init__(self, base_path: str):
-    self._base_path = base_path
+  def __init__(self):
     self._evaluator = clustering_evaluator.ClusteringEvaluator()
 
   def compute_scores(
@@ -78,9 +76,7 @@ class SVQClustering(ClusteringTask):
     return ['speaker_gender', 'speaker_age', 'speaker_id']
 
   def sounds(self) -> Iterable[types.Sound]:
-    for example in svq_data.generate_examples(
-        os.path.join(self._base_path, 'utt_index.jsonl')
-    ):
+    for example in svq_data.generate_examples('utt_index.jsonl'):
       yield types.Sound(
           example['waveform'],
           types.SoundContextParams(
@@ -97,7 +93,5 @@ class SVQClustering(ClusteringTask):
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     """Get (utt_id, label) examples from svq dataset."""
-    for ex in svq_data.generate_examples(
-        os.path.join(self._base_path, 'utt_index.jsonl')
-    ):
+    for ex in svq_data.generate_examples('utt_index.jsonl'):
       yield clustering_evaluator.ClusteringExample(ex['utt_id'], ex[sub_task])
