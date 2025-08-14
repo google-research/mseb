@@ -14,6 +14,7 @@
 
 import os
 import pathlib
+from unittest import mock
 
 from absl.testing import absltest
 from mseb import encoder
@@ -25,10 +26,20 @@ import pyarrow.parquet as pq
 import whisper
 
 
+def whisper_cache_context(name: str):
+  # Use a unique cache directory for each test to avoid collisions when
+  # running tests in parallel via pytest.
+  original_xdg_cache_home = os.path.join(os.path.expanduser('~'), '.cache')
+  new_xdg_cache_home = os.path.join(original_xdg_cache_home, f'{name}_whisper')
+  return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
+
+
 class SpeechToTextEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
+
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
     self.svq_samples = pq.ParquetFile(
@@ -73,6 +84,7 @@ class ForcedAlignmentEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
     self.svq_samples = pq.ParquetFile(
@@ -95,6 +107,7 @@ class PooledAudioEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
     svq_samples = pq.ParquetFile(
@@ -145,6 +158,7 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
@@ -206,6 +220,7 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
@@ -237,6 +252,7 @@ class PooledAudioEncoderV2Test(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
@@ -288,6 +304,5 @@ class PooledAudioEncoderV2Test(absltest.TestCase):
     npt.assert_equal(result.embedding.shape, [1, 512])
 
 
-# TODO(tombagby): Temporary disable, not working with github CI tasks.
-# if __name__ == '__main__':
-#   absltest.main()
+if __name__ == '__main__':
+  absltest.main()
