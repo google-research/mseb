@@ -32,6 +32,14 @@ EmbedWhisperEncoder = embed_whisper_encoder.EmbedWhisperEncoder
 GeckoWhisperEncoder = embed_whisper_encoder.GeckoWhisperEncoder
 
 
+def whisper_cache_context(name: str):
+  # Use a unique cache directory for each test to avoid collisions when
+  # running tests in parallel via pytest.
+  original_xdg_cache_home = os.path.join(os.path.expanduser('~'), '.cache')
+  new_xdg_cache_home = os.path.join(original_xdg_cache_home, f'{name}_whisper')
+  return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
+
+
 def create_gecko_model_mock(
     embedding_by_text: dict[str, Sequence[float]],
 ) -> mock.Mock:
@@ -49,6 +57,7 @@ class EmbedWhisperEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
@@ -128,6 +137,7 @@ class EmbedWhisperEncoderV2Test(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
@@ -172,6 +182,5 @@ class EmbedWhisperEncoderV2Test(absltest.TestCase):
     npt.assert_equal(result.embedding, [[1.0, 2.0]])
 
 
-# TODO(tombagby): Temporary disable, not working with github CI tasks.
-# if __name__ == '__main__':
-#   absltest.main()
+if __name__ == '__main__':
+  absltest.main()

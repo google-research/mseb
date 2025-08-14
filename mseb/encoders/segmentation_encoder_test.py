@@ -14,8 +14,9 @@
 
 import os
 import pathlib
+from unittest import mock
 
-# from absl.testing import absltest
+from absl.testing import absltest
 from absl.testing import parameterized
 from mseb import encoder
 from mseb.encoders import segmentation_encoder
@@ -34,10 +35,19 @@ IDF_TABLE = {
 }
 
 
+def whisper_cache_context(name: str):
+  # Use a unique cache directory for each test to avoid collisions when
+  # running tests in parallel via pytest.
+  original_xdg_cache_home = os.path.join(os.path.expanduser('~'), '.cache')
+  new_xdg_cache_home = os.path.join(original_xdg_cache_home, f'{name}_whisper')
+  return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
+
+
 class SegmentationEncoderTests(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
     self.svq_samples = pq.ParquetFile(
@@ -92,6 +102,5 @@ class SegmentationEncoderUsingTruthTests(SegmentationEncoderTests):
     )
     self.encode_kwargs = {}
 
-# TODO(variani): Temp disabled due to problems with cached whisper on github.
-# if __name__ == '__main__':
-#   absltest.main()
+if __name__ == '__main__':
+  absltest.main()
