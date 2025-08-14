@@ -252,7 +252,7 @@ def compute_weighted_average_and_std_v2(
     scores_list: list[list[types.Score]],
     statistic_metric_pairs: Sequence[tuple[str, str]],
 ) -> list[types.Score]:
-  """Computes weighted average and stddev for a list of list of scores.
+  """Computes weighted average and standard deviation for a list of scores.
 
   Args:
     scores_list: A list of lists of Score objects, where each inner list
@@ -300,15 +300,7 @@ def compute_weighted_average_and_std_v2(
             value=float(mean),
             min=min_value,
             max=max_value,
-        )
-    )
-    final_scores.append(
-        types.Score(
-            metric=m + '_std',
-            description=description_by_metric[s],
-            value=float(std),
-            min=0.0,
-            max=(max_value - min_value) / 2,
+            std=float(std),
         )
     )
 

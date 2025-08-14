@@ -66,6 +66,7 @@ class Score:
   value: float
   min: int | float
   max: int | float
+  std: float | None = None
   weight: float = 1.0
 
   def __post_init__(self):
@@ -83,9 +84,15 @@ class Score:
       raise ValueError(
           f"Score 'min' ({self.min}) cannot be greater than 'max' ({self.max})."
       )
+    if self.std is not None and (
+        not isinstance(self.std, float) or self.std < 0
+    ):
+      raise ValueError(
+          f"Score 'std' ({self.std}) must be a non-negative float."
+      )
     if not isinstance(self.weight, float) or self.weight < 0:
       raise ValueError(
-          "Score 'weight' must be a non-negative float."
+          f"Score 'weight' ({self.weight}) must be a non-negative float."
       )
 
 

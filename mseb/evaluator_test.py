@@ -197,24 +197,20 @@ class EvaluatorTest(absltest.TestCase):
             ("width_example", "width"),
         ],
     )
-    npt.assert_equal(len(metrics), 4)
+    npt.assert_equal(len(metrics), 2)
     for metric in metrics:
       if metric.metric == "height":
         npt.assert_equal(metric.value, 3.0)
         npt.assert_equal(metric.min, 0.0)
         npt.assert_equal(metric.max, 10.0)
-      elif metric.metric == "height_std":
-        npt.assert_almost_equal(metric.value**2, 8 / 3)
-        npt.assert_equal(metric.min, 0.0)
-        npt.assert_equal(metric.max, 5.0)
+        npt.assert_equal(metric.std**2, 8 / 3)
+        npt.assert_equal(metric.description, "Height of the example.")
       elif metric.metric == "width":
         npt.assert_equal(metric.value, 5 / 3)
         npt.assert_equal(metric.min, 0.0)
         npt.assert_equal(metric.max, 10.0)
-      elif metric.metric == "width_std":
-        npt.assert_almost_equal(metric.value**2, 5 / 9)
-        npt.assert_equal(metric.min, 0.0)
-        npt.assert_equal(metric.max, 5.0)
+        npt.assert_almost_equal(metric.std**2, 5 / 9)
+        npt.assert_equal(metric.description, "Width of the example.")
       else:
         raise ValueError(f"Unexpected metric: {metric.metric}")
 
