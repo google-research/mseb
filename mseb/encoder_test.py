@@ -153,5 +153,136 @@ class SoundEncoderTest(absltest.TestCase):
     bad_encoder = BadSoundEncoder("path")
     self.assertIsNotNone(bad_encoder)
 
+
+class MockTextEncoder(encoder.TextEncoder):
+  """A concrete implementation of TextEncoder for testing purposes."""
+
+  def setup(self):
+    pass
+
+  def _encode_batch(self, text_batch, **kwargs):
+    pass
+
+  def __init__(self, **kwargs: Any):
+    super().__init__(**kwargs)
+    self.setup = mock.MagicMock(side_effect=self._setup_impl)
+    self._encode_batch = mock.MagicMock(
+        return_value=[
+            types.TextEmbeddings(
+                id="id",
+                embeddings=np.zeros((10, 8)),
+                spans=np.zeros((10, 2)),
+            )
+        ]
+    )
+
+  def _setup_impl(self):
+    """The actual implementation for the mocked setup method."""
+    self._model_loaded = True
+
+
+class FaultySetupTextEncoder(encoder.TextEncoder):
+  """An encoder that "forgets" to set the _model_loaded flag in setup."""
+
+  def setup(self):
+    logger.info("Faulty setup was called, but did not set the flag.")
+
+  def _encode_batch(self, text_batch, **kwargs):
+    return [
+        types.TextEmbeddings(
+            id="",
+            embeddings=np.array([]),
+            spans=np.array([]),
+        )
+    ]
+
+
+class TextEncoderTest(absltest.TestCase):
+
+  def test_initialization_is_lazy_and_does_not_call_setup(self):
+    mock_encoder = MockTextEncoder()
+    mock_encoder.setup.assert_not_called()
+
+  def test_encode_triggers_setup_exactly_once(self):
+    mock_encoder = MockTextEncoder()
+    params = types.TextContextParams()
+
+    mock_encoder.encode(
+        types.Text(id="id", text="This is a text.", params=params)
+    )
+    mock_encoder.setup.assert_called_once()
+
+    mock_encoder.encode_batch(
+        [types.Text(id="id", text="This is another text.", params=params)]
+    )
+    mock_encoder.setup.assert_called_once()
+
+  def test_encode_batch_triggers_setup_exactly_once(self):
+    mock_encoder = MockTextEncoder()
+    params = types.TextContextParams()
+    batch = [
+        types.Text(id="id1", text="This is a text.", params=params),
+        types.Text(id="id2", text="This is another text.", params=params),
+    ]
+    mock_encoder.encode_batch(batch)
+    mock_encoder.setup.assert_called_once()
+
+  def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
+    mock_encoder = MockTextEncoder()
+    params = types.TextContextParams()
+    text_batch = [
+        types.Text(id="id1", text="This is a text.", params=params),
+        types.Text(id="id2", text="This is another text.", params=params),
+        types.Text(id="id3", text="This is the third text.", params=params),
+    ]
+    mock_encoder.encode_batch(text_batch, runtime_kwarg="hello")
+    mock_encoder._encode_batch.assert_called_once_with(
+        text_batch, runtime_kwarg="hello"
+    )
+
+  def test_default_encode_calls_encode_batch_with_single_item(self):
+    mock_encoder = MockTextEncoder()
+    mock_encoder.encode_batch = mock.MagicMock()
+    text = types.Text(
+        id="id", text="This is a text.", params=types.TextContextParams()
+    )
+
+    mock_encoder.encode(text)
+    mock_encoder.encode_batch.assert_called_once_with([text], **{})
+
+  def test_faulty_setup_raises_runtime_error(self):
+    mock_encoder = FaultySetupTextEncoder()
+    with self.assertRaises(RuntimeError):
+      mock_encoder.encode(
+          types.Text(
+              id="id", text="This is a text.", params=types.TextContextParams()
+          )
+      )
+
+  def test_init_kwargs_are_stored_for_later_use(self):
+    mock_encoder = MockTextEncoder(special_param=123, other_param="abc")
+    self.assertIn("special_param", mock_encoder._kwargs)
+    self.assertEqual(mock_encoder._kwargs["special_param"], 123)
+
+  def test_final_decorator_prevents_override_in_static_analysis(self):
+    class BadTextEncoder(encoder.TextEncoder):
+
+      def encode_batch(self, text_batch, **kwargs):
+        return types.TextEmbeddings(
+            id="", embeddings=np.array([-1]), spans=np.array([0])
+        )
+
+      def setup(self):
+        self._model_loaded = True
+
+      def _encode_batch(self, text_batch, params_batch, **kwargs):
+        return types.TextEmbeddings(
+            id="", embeddings=np.array([-1]), spans=np.array([0])
+        )
+
+    bad_encoder = BadTextEncoder()
+    self.assertIsNotNone(bad_encoder)
+
+
 if __name__ == "__main__":
   absltest.main()

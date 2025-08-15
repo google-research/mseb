@@ -19,6 +19,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from mseb import types
 import numpy as np
+import numpy.testing as npt
 
 
 class SoundContextParamsTest(parameterized.TestCase):
@@ -89,6 +90,54 @@ class SoundContextParamsTest(parameterized.TestCase):
     assert params.sample_rate == 48000
     params.length = 84000
     assert params.length == 84000
+
+
+class TextContextParamsTest(parameterized.TestCase):
+
+  def test_context_params_successful_instantiation(self):
+    params = types.TextContextParams(title="This is a title.")
+    self.assertEqual(params.title, "This is a title.")
+    self.assertIsNone(params.context)
+
+  def test_context_params_default_values(self):
+    params = types.TextContextParams()
+    self.assertIsNone(params.title)
+    self.assertIsNone(params.context)
+
+  def test_context_params_mutability(self):
+    params = types.TextContextParams(title="This is a title.")
+    self.assertEqual(params.title, "This is a title.")
+    self.assertIsNone(params.context)
+    params.context = "This is a context."
+    self.assertEqual(params.title, "This is a title.")
+    self.assertEqual(params.context, "This is a context.")
+
+
+class TextTest(parameterized.TestCase):
+
+  def test_text_successful_instantiation(self):
+    text = types.Text(
+        id="id",
+        text="This is a test.",
+        params=types.TextContextParams(),
+    )
+    self.assertEqual(text.id, "id")
+    self.assertEqual(text.text, "This is a test.")
+    self.assertIsNone(text.params.title)
+    self.assertIsNone(text.params.context)
+
+
+class TextEmbeddingsTest(parameterized.TestCase):
+
+  def test_text_embeddings_successful_instantiation(self):
+    embeddings = types.TextEmbeddings(
+        id="id",
+        embeddings=np.array([1, 2, 3]),
+        spans=np.array([[0, 1], [2, 3]]),
+    )
+    self.assertEqual(embeddings.id, "id")
+    npt.assert_array_equal(embeddings.embeddings, np.array([1, 2, 3]))
+    npt.assert_array_equal(embeddings.spans, np.array([[0, 1], [2, 3]]))
 
 
 class TaskMetadataTest(parameterized.TestCase):

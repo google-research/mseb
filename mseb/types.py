@@ -58,6 +58,29 @@ class SoundEmbedding:
   context: SoundContextParams
 
 
+@dataclasses.dataclass
+class TextContextParams:
+  """Parameters for a text example."""
+  title: Optional[str] = None
+  context: Optional[str] = None
+
+
+@dataclasses.dataclass
+class Text:
+  """A dataclass for a text."""
+  id: str
+  text: str
+  params: TextContextParams
+
+
+@dataclasses.dataclass
+class TextEmbeddings:
+  """A dataclass for text embeddings."""
+  id: str
+  embeddings: np.ndarray
+  spans: np.ndarray
+
+
 @dataclasses.dataclass(frozen=True)
 class Score:
   """A dataclass for a single evaluation metric."""
