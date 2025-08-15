@@ -20,6 +20,7 @@ and reporting the results.
 
 import dataclasses
 import json
+from typing import Any, Iterator, List, TextIO, Iterable
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import types
@@ -79,3 +80,78 @@ def run_benchmark(
       )
       for sub_task_name, scores in scores.items()
   ]
+
+
+@dataclasses.dataclass
+class FlattenedLeaderboardResult:
+  """Flattened leaderboard result for analysis."""
+
+  name: str
+  task_name: str
+  task_type: str
+  main_score_metric: str
+  main_score_value: float
+  metric: str
+  metric_value: float
+  metric_description: str
+  metric_min: int | float
+  metric_max: int | float
+  metric_std: float | None
+  metric_weight: float
+
+
+def flatten_leaderboard_results(
+    results: Iterator[str],
+) -> List[FlattenedLeaderboardResult]:
+  """Parses and flattens leaderboard results for analysis.
+
+  Args:
+    results: An iterator of JSON strings, each representing a LeaderboardResult.
+
+  Returns:
+    A list of FlattenedLeaderboardResult objects.
+  """
+  flattened_results = []
+  for result_json in results:
+    result = LeaderboardResult.from_json(result_json)
+    task_metadata = result.task_metadata
+    main_score_metric = task_metadata.main_score
+    main_score_value = None
+    for score in result.scores:
+      if score.metric == main_score_metric:
+        main_score_value = score.value
+        break
+
+    for score in result.scores:
+      flattened_results.append(
+          FlattenedLeaderboardResult(
+              name=result.name,
+              task_name=f'{task_metadata.name}/{result.sub_task_name}',
+              task_type=task_metadata.type,
+              main_score_metric=main_score_metric,
+              main_score_value=main_score_value,
+              metric=score.metric,
+              metric_value=score.value,
+              metric_description=score.description,
+              metric_min=score.min,
+              metric_max=score.max,
+              metric_std=score.std,
+              metric_weight=score.weight,
+          )
+      )
+  return flattened_results
+
+
+def write_dataclasses_to_jsonl(
+    results: Iterable[Any],
+    f: TextIO,
+) -> None:
+  """Writes an iterable of dataclass objects to a file as JSONL.
+
+  Args:
+    results: An iterable of dataclass objects.
+    f: An open file object to write to.
+  """
+  for result in results:
+    json.dump(dataclasses.asdict(result), f)
+    f.write('\n')
