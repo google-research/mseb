@@ -86,12 +86,11 @@ class SoundEncoder(abc.ABC):
       **kwargs: Any additional parameters required for encoding.
 
     Returns:
-      A list of tuples, one for each input, each tuple containing:
-        - waveform_embeddings (np.ndarray): A 2D array of shape
-          (n, embedding_dim).
-        - embedding_timestamps (np.ndarray): A 2D array of shape (m, 2),
-          where each row is an [start, end] pair indicating a segment where
-          start and end are in seconds.
+      A list of types.SoundEmbedding objects, one for each input:
+        - embeddings (np.ndarray): A 2D array of shape (n, embedding_dim).
+        - timestamps (np.ndarray): A 2D array of shape (m, 2), where each row is
+          an [start, end] pair indicating a segment where start and end are in
+          seconds.
           There are two common cases for the relation between embeddings (n)
           and timestamps (m):
             - Frame-Aligned (m == n): The i-th timestamp corresponds
