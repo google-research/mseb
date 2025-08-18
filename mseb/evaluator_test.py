@@ -138,81 +138,27 @@ class EvaluatorTest(absltest.TestCase):
     npt.assert_almost_equal(metrics["width_std"]**2, 5 / 9)
 
   def test_compute_weighted_average_and_std_v2(self):
-    metrics = evaluator.compute_weighted_average_and_std_v2(
-        scores_list=[
-            [
-                types.Score(
-                    metric="height_example",
-                    description="Height of the example.",
-                    value=1.0,
-                    min=0.0,
-                    max=10.0,
-                ),
-                types.Score(
-                    metric="width_example",
-                    description="Width of the example.",
-                    value=3.0,
-                    min=0.0,
-                    max=10.0,
-                    weight=1.0,
-                ),
-            ],
-            [
-                types.Score(
-                    metric="height_example",
-                    description="Height of the example.",
-                    value=5.0,
-                    min=0.0,
-                    max=10.0,
-                ),
-                types.Score(
-                    metric="width_example",
-                    description="Width of the example.",
-                    value=2.0,
-                    min=0.0,
-                    max=10.0,
-                    weight=2.0,
-                ),
-            ],
-            [
-                types.Score(
-                    metric="height_example",
-                    description="Height of the example.",
-                    value=3.0,
-                    min=0.0,
-                    max=10.0,
-                ),
-                types.Score(
-                    metric="width_example",
-                    description="Width of the example.",
-                    value=1.0,
-                    min=0.0,
-                    max=10.0,
-                    weight=3.0,
-                ),
-            ],
-        ],
-        statistic_metric_pairs=[
-            ("height_example", "height"),
-            ("width_example", "width"),
+    mean, std = evaluator.compute_weighted_average_and_std_v2(
+        values=[
+            types.WeightedValue(value=1.0),
+            types.WeightedValue(value=5.0),
+            types.WeightedValue(value=3.0),
         ],
     )
-    npt.assert_equal(len(metrics), 2)
-    for metric in metrics:
-      if metric.metric == "height":
-        npt.assert_equal(metric.value, 3.0)
-        npt.assert_equal(metric.min, 0.0)
-        npt.assert_equal(metric.max, 10.0)
-        npt.assert_equal(metric.std**2, 8 / 3)
-        npt.assert_equal(metric.description, "Height of the example.")
-      elif metric.metric == "width":
-        npt.assert_equal(metric.value, 5 / 3)
-        npt.assert_equal(metric.min, 0.0)
-        npt.assert_equal(metric.max, 10.0)
-        npt.assert_almost_equal(metric.std**2, 5 / 9)
-        npt.assert_equal(metric.description, "Width of the example.")
-      else:
-        raise ValueError(f"Unexpected metric: {metric.metric}")
+    npt.assert_almost_equal(mean, 3.0)
+    npt.assert_almost_equal(std**2, 8 / 3)
+
+  def test_compute_weighted_average_and_std_v2_with_weights(self):
+    mean, std = evaluator.compute_weighted_average_and_std_v2(
+        values=[
+            types.WeightedValue(value=3.0),
+            types.WeightedValue(value=2.0, weight=2.0),
+            types.WeightedValue(value=1.0, weight=3.0),
+        ],
+    )
+    npt.assert_almost_equal(mean, 5 / 3)
+    npt.assert_almost_equal(std**2, 5 / 9)
+
 
 if __name__ == "__main__":
   absltest.main()

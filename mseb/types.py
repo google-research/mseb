@@ -120,6 +120,13 @@ class Score:
 
 
 @dataclasses.dataclass(frozen=True)
+class WeightedValue:
+  """A dataclass for a single weighted value."""
+  value: float
+  weight: float = 1.0
+
+
+@dataclasses.dataclass(frozen=True)
 class Dataset:
   """A dataclass for dataset metadata."""
   path: str

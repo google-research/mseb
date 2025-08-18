@@ -249,59 +249,20 @@ def compute_weighted_average_and_std(
 
 
 def compute_weighted_average_and_std_v2(
-    scores_list: list[list[types.Score]],
-    statistic_metric_pairs: Sequence[tuple[str, str]],
-) -> list[types.Score]:
-  """Computes weighted average and standard deviation for a list of scores.
+    values: list[types.WeightedValue],
+) -> tuple[float, float]:
+  """Computes weighted average and standard deviation for a list of values."""
 
-  Args:
-    scores_list: A list of lists of Score objects, where each inner list
-      contains the scores for a single evaluated example.
-    statistic_metric_pairs: A list of tuples, where each tuple represents a
-      statistic name and its corresponding metric name.
-
-  Returns:
-    A list of Score objects containing the weighted average and standard
-    deviation for each metric.
-  """
-  values_by_metric = {k: [] for k, _ in statistic_metric_pairs}
-  weights_by_metric = {k: [] for k, _ in statistic_metric_pairs}
-  mins_by_metric = {k: [] for k, _ in statistic_metric_pairs}
-  maxs_by_metric = {k: [] for k, _ in statistic_metric_pairs}
-  description_by_metric = {}
-  for scores in scores_list:
-    for score in scores:
-      if score.metric in values_by_metric:
-        values_by_metric[score.metric].append(score.value)
-        weights_by_metric[score.metric].append(score.weight)
-        mins_by_metric[score.metric].append(score.min)
-        maxs_by_metric[score.metric].append(score.max)
-        description_by_metric[score.metric] = score.description
-
-  final_scores = []
-  for s, m in statistic_metric_pairs:
-    mean = np.average(
-        np.array(values_by_metric[s]),
-        weights=np.array(weights_by_metric[s]),
-    )
-    std = (
-        np.average(
-            (np.array(values_by_metric[s]) - mean) ** 2,
-            weights=weights_by_metric[s],
-        )
-        ** 0.5
-    )
-    min_value = float(np.min(mins_by_metric[s]))
-    max_value = float(np.max(maxs_by_metric[s]))
-    final_scores.append(
-        types.Score(
-            metric=m,
-            description=description_by_metric[s],
-            value=float(mean),
-            min=min_value,
-            max=max_value,
-            std=float(std),
-        )
-    )
-
-  return final_scores
+  weights = np.array([x.weight for x in values])
+  mean = np.average(
+      np.array([x.value for x in values]),
+      weights=weights,
+  )
+  std = (
+      np.average(
+          (np.array([x.value for x in values]) - mean) ** 2,
+          weights=weights,
+      )
+      ** 0.5
+  )
+  return mean, std

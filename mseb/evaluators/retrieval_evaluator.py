@@ -16,11 +16,36 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Union
+import dataclasses
+from typing import Any, Dict, Iterable, List, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
+from mseb import types
+import numpy as np
 import tensorflow_recommenders as tfrs
+
+
+def mrr(value: float = 0.0, std: float | None = None):
+  return types.Score(
+      metric='MRR',
+      description='Mean Reciprocal Rank',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
+
+
+def em(value: float = 0.0, std: float | None = None):
+  return types.Score(
+      metric='EM',
+      description='Exact Match',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
 
 
 def compute_reciprocal_rank(
@@ -33,8 +58,8 @@ def compute_reciprocal_rank(
       # Matched the referebce at this position in the ranking.
       rank = i + 1
       break
-  mrr = 1 / rank if rank > 0 else 0
-  return mrr
+  reciprocal_rank = 1 / rank if rank > 0 else 0
+  return reciprocal_rank
 
 
 class RetrievalEvaluator(evaluator.Evaluator):
@@ -120,3 +145,68 @@ class RetrievalEvaluator(evaluator.Evaluator):
     return evaluator.compute_weighted_average_and_std(
         scores, (('reciprocal_rank', 'mrr'), ('correct', 'em'))
     )
+
+
+@dataclasses.dataclass
+class RetrievalReferenceId:
+  sound_id: str
+  reference_id: str
+
+
+class RetrievalEvaluatorV2:
+  """Evaluator for retrieval tasks."""
+
+  def __init__(
+      self,
+      searcher: tfrs.layers.factorized_top_k.TopK,
+      id_by_index_id: Sequence[str],
+  ):
+    self.searcher = searcher
+    self.id_by_index_id = id_by_index_id
+
+  def __call__(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      reference_ids: Iterable[RetrievalReferenceId],
+  ) -> list[types.Score]:
+    """Evaluates quality of the encoder for input sequence and return metrics.
+
+    Args:
+      embeddings: The embeddings to evaluate.
+      reference_ids: The reference ids used for metric computation.
+
+    Returns:
+      A list of Score objects containing the final, aggregated scores. The
+      scores include mean reciprocal rank (MRR) and exact match (EM).
+    """
+    values_by_metric = {'mrr': [], 'em': []}
+    for reference_id in reference_ids:
+      embedding = embeddings[reference_id.sound_id].embedding
+      if embedding.ndim != 2 or embedding.shape[0] != 1:
+        raise ValueError(
+            'Embedding must be a 2D array of shape (1, embedding_dim),'
+            f' but got a {embedding.shape} array.'
+        )
+      _, ranked_index_ids = self.searcher(embedding.astype(np.float32))
+      ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
+          [self.id_by_index_id[int(x.numpy())] for x in ids]
+          for ids in ranked_index_ids
+      ]
+      values_by_metric['mrr'].append(
+          types.WeightedValue(
+              value=compute_reciprocal_rank(
+                  reference_id.reference_id, ranked_doc_ids[0]
+              )
+          )
+      )
+      values_by_metric['em'].append(
+          types.WeightedValue(value=float(reference_id == ranked_doc_ids[0][0]))
+      )
+
+    mrr_score = mrr(
+        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['mrr'])
+    )
+    em_score = em(
+        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['em'])
+    )
+    return [mrr_score, em_score]

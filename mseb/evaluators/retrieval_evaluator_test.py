@@ -18,6 +18,7 @@ from typing import Sequence, Tuple, Union
 
 from absl.testing import absltest
 from mseb import encoder
+from mseb import types
 from mseb.evaluators import retrieval_evaluator
 import numpy as np
 import numpy.testing as npt
@@ -145,6 +146,75 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     npt.assert_equal(combined_scores['mrr_std'], 1 / 4)
     npt.assert_equal(combined_scores['em'], 1 / 2)
     npt.assert_equal(combined_scores['em_std'], 1 / 2)
+
+
+class RetrievalEvaluatorV2Test(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    sample_rate = 16000
+    self.params = types.SoundContextParams(
+        sound_id='test', sample_rate=sample_rate, length=sample_rate * 5
+    )
+    self.testdata_path = path.join(
+        pathlib.Path(path.abspath(__file__)).parent.parent,
+        'testdata',
+    )
+
+  def test_call(self):
+    searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
+    id_by_index_id = ('bli', 'bla', 'blo', 'blu')
+    searcher.index(
+        candidates=tf.constant(
+            [
+                [1.0, 2.0, 3.0],
+                [2.0, 3.0, 4.0],
+                [3.0, 4.0, 5.0],
+                [4.0, 5.0, 6.0],
+            ],
+            tf.float32,
+        ),
+    )
+    evaluator = retrieval_evaluator.RetrievalEvaluatorV2(
+        searcher=searcher,
+        id_by_index_id=id_by_index_id,
+    )
+    scores = evaluator(
+        embeddings={
+            '1': types.SoundEmbedding(
+                timestamps=np.array([[0.0, 1.0]]),
+                embedding=np.array([[1.0, 2.0, 3.0]]),
+                context=types.SoundContextParams(
+                    sound_id='1', sample_rate=16000, length=16000 * 5
+                ),
+            ),
+            '2': types.SoundEmbedding(
+                timestamps=np.array([[0.0, 1.0]]),
+                embedding=np.array([[1.0, 2.0, 3.0]]),
+                context=types.SoundContextParams(
+                    sound_id='2', sample_rate=16000, length=16000 * 5
+                ),
+            ),
+        },
+        reference_ids=[
+            retrieval_evaluator.RetrievalReferenceId(
+                sound_id='1', reference_id='blo'
+            ),
+            retrieval_evaluator.RetrievalReferenceId(
+                sound_id='2', reference_id='blu'
+            ),
+        ],
+    )
+    npt.assert_equal(len(scores), 2)
+    for score in scores:
+      if score.metric == 'MRR':
+        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.25)
+      elif score.metric == 'EM':
+        npt.assert_equal(score.value, (0.0 + 0.0) / 2)
+        npt.assert_equal(score.std, 0.0)
+      else:
+        raise ValueError(f'Unexpected metric: {score.metric}')
 
 
 if __name__ == '__main__':
