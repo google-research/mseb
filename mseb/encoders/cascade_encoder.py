@@ -14,10 +14,11 @@
 
 """MSEB Encoder base class."""
 
-from typing import Any, Sequence, final
+from typing import Any, Callable, Sequence, final
 
 from mseb import encoder
 from mseb import types
+from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 import numpy as np
 
 
@@ -139,3 +140,42 @@ class CascadeEncoder(encoder.SoundEncoder):
     ]
 
     return outputs
+
+
+class GeckoTranscriptTruthEncoderV2(CascadeEncoder):
+  """Transcript truth encoder with Gecko model."""
+
+  def __init__(
+      self,
+      model_path: str,
+      normalizer: Callable[[str], str] | None = None,
+      prompt_template: str = 'task: search result | query: {text}',
+      **kwargs: Any,
+  ):
+    """Initializes the transcript truth and Gecko models.
+
+    Args:
+      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
+        the model to be loaded in setup().
+      normalizer: A function that normalizes the text before encoding. This is
+        useful for removing special characters or formatting the text for better
+        encoding results.
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents".
+      **kwargs: Model-specific initialization arguments that will be stored in
+        `self._kwargs` for use in `setup()`.
+    """
+    super().__init__(
+        'not used',
+        text_encoder_cls=text_encoder.GeckoTextEncoder,
+        text_encoder_kwargs={
+            'model_path': model_path,
+            'normalizer': normalizer,
+            'prompt_template': prompt_template,
+        },
+        **kwargs,
+    )
+    self.text_encoder = text_encoder.GeckoTextEncoder(
+        model_path, normalizer, prompt_template
+    )

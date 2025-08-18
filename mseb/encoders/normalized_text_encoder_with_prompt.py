@@ -14,11 +14,14 @@
 
 """Normalized text encoders with prompt."""
 
+import re
 from typing import Any, Callable, Sequence, final
 
 from mseb import encoder
 from mseb import types
 import numpy as np
+import tensorflow as tf
+import tensorflow_hub as tf_hub
 
 
 class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
@@ -68,14 +71,14 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
     if self.prompt_template is None:
       return text
 
-    if hasattr(params, "title") and params.title is not None:
+    if hasattr(params, 'title') and params.title is not None:
       title = (
           params.title
           if self.normalizer is None
           else self.normalizer(params.title)
       )
     else:
-      title = "None"
+      title = 'None'
     if params.context is not None:
       context = (
           params.context
@@ -83,7 +86,7 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
           else self.normalizer(params.context)
       )
     else:
-      context = "None"
+      context = 'None'
     prompt = self.prompt_template.format(
         text=text, title=title, context=context
     )
@@ -109,3 +112,41 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
         )
         for embeddings, text in zip(embeddings_batch, text_batch)
     ]
+
+
+class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
+  """Text encoder with Gecko model."""
+
+  def __init__(
+      self,
+      model_path: str,
+      normalizer: Callable[[str], str] | None = lambda x: re.sub(
+          r'\[\d+\]', '', x.lower()
+      ),
+      prompt_template: str | None = 'title: {title} | text: {text}',
+      **kwargs: Any,
+  ):
+    """Initializes the transcript truth and Gecko models.
+
+    Args:
+      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
+        the model to be loaded in setup().
+      normalizer: A function that normalizes the text before encoding. This is
+        useful for removing special characters or formatting the text for better
+        encoding results.
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents".
+      **kwargs: Model-specific initialization arguments that will be stored in
+        `self._kwargs` for use in `setup()`.
+    """
+    super().__init__(normalizer, prompt_template, **kwargs)
+    self.model_path = model_path
+
+  def setup(self):
+    """Loads the Gecko model."""
+    gecko_model = tf_hub.load(self.model_path)
+    self.text_encode_fn = lambda x: gecko_model.signatures['serving_default'](
+        tf.constant(x)
+    )['encodings'].numpy()
+    self._model_loaded = True
