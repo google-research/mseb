@@ -25,7 +25,7 @@ from mseb import leaderboard
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
-from mseb.encoders import raw_encoder
+from mseb.encoders import encoder_registry
 
 FLAGS = flags.FLAGS
 
@@ -45,23 +45,12 @@ _TASK = flags.DEFINE_string(
 )
 
 
-# TODO(tombagby): Use some generic encoder registry.
-_NAME_TO_ENCODER = {
-    'spectrogram_25_10_mean': raw_encoder.RawEncoder(
-        transform_fn=raw_encoder.spectrogram_transform,
-        pooling='mean',
-        frame_length=(48000 // 1000 * 25),
-        frame_step=(48000 // 1000 * 10),
-    ),
-}
-
-
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   encoder_name = _ENCODER.value
-  encoder = _NAME_TO_ENCODER[encoder_name]
-  runner = runner_lib.DirectRunner(sound_encoder=encoder)
+  encoder = encoder_registry.get_encoder_metadata(encoder_name).load()
+  runner = runner_lib.DirectRunner(sound_encoder=encoder, num_threads=128)
   task_cls: Type[task_lib.MSEBTask] = tasks.get_name_to_task()[_TASK.value]
   task = task_cls()
   results = leaderboard.run_benchmark(
