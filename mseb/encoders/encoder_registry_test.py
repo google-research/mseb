@@ -30,6 +30,17 @@ class EncoderRegistryTest(parameterized.TestCase):
     encoder = meta.load()
     self.assertIsNotNone(encoder)
 
+  def test_get_encoder_metadata(self):
+    meta = encoder_registry.get_encoder_metadata(
+        "raw_spectrogram_25ms_10ms_mean"
+    )
+    self.assertIsInstance(meta, encoder_registry.EncoderMetadata)
+    self.assertEqual(meta.name, "raw_spectrogram_25ms_10ms_mean")
 
-if __name__ == '__main__':
+  def test_get_encoder_metadata_not_found(self):
+    with self.assertRaises(ValueError):
+      encoder_registry.get_encoder_metadata("non_existent_encoder")
+
+
+if __name__ == "__main__":
   absltest.main()

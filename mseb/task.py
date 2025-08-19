@@ -45,13 +45,9 @@ class MSEBTask(abc.ABC):
     """Iterate all of the sounds in the corpus for this task."""
 
 
-def get_task_list() -> list[type[MSEBTask]]:
-  return list(MSEBTask.__subclasses__())
-
-
 def get_name_to_task() -> dict[str, Type[MSEBTask]]:
   name_to_task: dict[str, type[MSEBTask]] = {}
-  tasks = get_task_list()
+  tasks = list(MSEBTask.__subclasses__())
   while tasks:
     cls = tasks.pop()
     if cls.metadata:

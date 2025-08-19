@@ -20,6 +20,8 @@ definitions for specific encoder configurations.
 """
 
 import dataclasses
+import inspect
+import sys
 from typing import Any, Type
 
 from mseb import encoder as encoder_lib
@@ -74,3 +76,39 @@ whisper_base_pooled_max = EncoderMetadata(
     encoder=whisper_encoder.PooledAudioEncoderV2,
     params=dict(model_path="base", pooling="max"),
 )
+
+
+_REGISTRY: dict[str, EncoderMetadata] = {}
+
+
+def _register_encoders():
+  """Finds and registers all EncoderMetadata instances in this module."""
+  current_module = sys.modules[__name__]
+  for name, obj in inspect.getmembers(current_module):
+    if isinstance(obj, EncoderMetadata):
+      if obj.name in _REGISTRY:
+        raise ValueError(f"Duplicate encoder name {obj.name} found in {name}")
+      _REGISTRY[obj.name] = obj
+
+
+def get_encoder_metadata(name: str) -> EncoderMetadata:
+  """Retrieves an EncoderMetadata instance by its name.
+
+  Args:
+    name: The unique name of the encoder metadata instance.
+
+  Returns:
+    The EncoderMetadata instance.
+
+  Raises:
+    ValueError: if the name is not found in the registry.
+  """
+  if not _REGISTRY:
+    _register_encoders()
+  if name not in _REGISTRY:
+    raise ValueError(f"EncoderMetadata with name '{name}' not found.")
+  return _REGISTRY[name]
+
+
+# Automatically register encoders on import
+_register_encoders()
