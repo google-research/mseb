@@ -15,6 +15,7 @@
 """Runners for executing encoders and storing embeddings."""
 
 import abc
+from concurrent import futures
 import os
 import pickle
 from typing import Iterable
@@ -48,9 +49,10 @@ class DirectRunner(EncoderRunner):
 
   embeddings: dict[str, types.SoundEmbedding] = {}
 
-  def __init__(self, batch_size=0, **kwargs):
+  def __init__(self, batch_size=0, num_threads: int = 1, **kwargs):
     super().__init__(**kwargs)
     self._batch_size = batch_size
+    self._num_threads = num_threads
 
   def _batch_sounds(self, sounds: Iterable[types.Sound]):
     """Yields batches of sounds."""
@@ -64,10 +66,21 @@ class DirectRunner(EncoderRunner):
       # TODO(tombagby): What do we do about short batches? Is this well defined?
       yield batch
 
+  def _encode_sound(
+      self, sound: types.Sound
+  ) -> tuple[str, types.SoundEmbedding]:
+    return sound.context.sound_id, self._encoder.encode(sound)
+
   def run(self, sounds: Iterable[types.Sound]) -> types.SoundEmbeddingCache:
     embeddings = {}
     self._encoder.setup()
-    if self._batch_size > 0:
+    if self._num_threads > 1:
+      with futures.ThreadPoolExecutor(
+          max_workers=self._num_threads
+      ) as executor:
+        for sound_id, embedding in executor.map(self._encode_sound, sounds):
+          embeddings[sound_id] = embedding
+    elif self._batch_size > 0:
       for batch in self._batch_sounds(sounds):
         encoded = self._encoder.encode_batch(batch)
         for sound, embedding in zip(batch, encoded):
@@ -75,9 +88,6 @@ class DirectRunner(EncoderRunner):
     else:
       for sound in sounds:
         embeddings[sound.context.sound_id] = self._encoder.encode(sound)
-
-    for sound in sounds:
-      embeddings[sound.context.sound_id] = self._encoder.encode(sound)
 
     return embeddings
 
