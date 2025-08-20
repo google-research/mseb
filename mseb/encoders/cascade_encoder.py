@@ -14,8 +14,9 @@
 
 """MSEB Encoder base class."""
 
-from typing import Any, Callable, Sequence, final
+from typing import Any, Callable, final, Sequence
 
+import jaxtyping
 from mseb import encoder
 from mseb import types
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
@@ -110,7 +111,7 @@ class CascadeEncoder(encoder.SoundEncoder):
         context = sound.context
         transcripts_batch.append(
             types.SoundEmbedding(
-                embedding=np.array([context.text]),
+                embedding=np.array([context.text], dtype=object),
                 timestamps=np.array([[
                     context.waveform_start_second,
                     context.waveform_end_second,
@@ -118,14 +119,13 @@ class CascadeEncoder(encoder.SoundEncoder):
                 context=context,
             )
         )
-    text_batch = [
-        types.Text(
-            id='',
-            text=str(transcripts.embedding[0]),
-            params=types.TextContextParams(),
-        )
-        for transcripts in transcripts_batch
-    ]
+    text_batch = []
+    for transcripts in transcripts_batch:
+      embedding: jaxtyping.Shaped[np.ndarray, '1'] = transcripts.embedding
+      test = str(embedding[0])
+      text_batch.append(
+          types.Text(id='', text=test, params=types.TextContextParams())
+      )
     text_embeddings_batch = self.text_encoder.encode_batch(text_batch, **kwargs)
 
     outputs = [

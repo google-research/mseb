@@ -17,6 +17,7 @@
 import dataclasses
 from typing import Mapping, Optional
 
+import jaxtyping
 import numpy as np
 
 
@@ -45,7 +46,10 @@ class SoundContextParams:
 class Sound:
   """A sound with context."""
 
-  waveform: np.ndarray
+  waveform: (
+      jaxtyping.Float[jaxtyping.Array, "T"]
+      | jaxtyping.Int[jaxtyping.Array, "T"]
+  )
   context: SoundContextParams
 
 
@@ -53,8 +57,11 @@ class Sound:
 class SoundEmbedding:
   """A sound embedding with context."""
 
-  embedding: np.ndarray
-  timestamps: np.ndarray
+  embedding: (
+      jaxtyping.Float[jaxtyping.Array, "N D"]
+      | jaxtyping.Shaped[np.ndarray, "N"]
+  )
+  timestamps: jaxtyping.Float[jaxtyping.Array, "M 2"]
   context: SoundContextParams
 
 
@@ -77,8 +84,8 @@ class Text:
 class TextEmbeddings:
   """A dataclass for text embeddings."""
   id: str
-  embeddings: np.ndarray
-  spans: np.ndarray
+  embeddings: jaxtyping.Float[jaxtyping.Array, "N D"]
+  spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
 
 
 @dataclasses.dataclass(frozen=True)

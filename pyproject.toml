@@ -22,6 +22,7 @@ dependencies = [
     "datasets",
     "flax>=0.8.2",
     "huggingface_hub",
+    "jaxtyping",
     "jiwer",
     "librosa",
     "numpy",

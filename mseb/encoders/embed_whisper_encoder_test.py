@@ -18,6 +18,7 @@ from typing import Callable, Sequence
 from unittest import mock
 
 from absl.testing import absltest
+import jaxtyping
 from mseb import encoder
 from mseb import types
 from mseb.encoders import embed_whisper_encoder
@@ -121,7 +122,10 @@ class MockEmbedWhisperEncoderV2(embed_whisper_encoder.EmbedWhisperEncoderV2):
   """A mock class for EmbedWhisperEncoderV2."""
 
   def __init__(
-      self, transcripts_encode_fn: Callable[[Sequence[str]], np.ndarray]
+      self,
+      transcripts_encode_fn: Callable[
+          [Sequence[str]], jaxtyping.Float[jaxtyping.Array, 'N D']
+      ],
   ):
     super().__init__('tiny.en')
     self.transcripts_encode_fn = transcripts_encode_fn
@@ -151,7 +155,9 @@ class EmbedWhisperEncoderV2Test(absltest.TestCase):
     waveform = waveform.astype(np.float32) / 32767.0
     sample_rate = 48000
 
-    def transcript_encode_fn(prompts: Sequence[str]) -> np.ndarray:
+    def transcript_encode_fn(
+        prompts: Sequence[str],
+    ) -> jaxtyping.Float[jaxtyping.Array, 'N D']:
       embedding_by_prompt = {
           ' How many members does the National Labor Relations Board have?': [
               1,

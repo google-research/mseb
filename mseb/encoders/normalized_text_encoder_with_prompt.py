@@ -15,8 +15,9 @@
 """Normalized text encoders with prompt."""
 
 import re
-from typing import Any, Callable, Sequence, final
+from typing import Any, Callable, final, Sequence
 
+import jaxtyping
 from mseb import encoder
 from mseb import types
 import numpy as np
@@ -58,7 +59,12 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
     self.normalizer = normalizer
     self.prompt_template = prompt_template
     self.text_encode_fn: (
-        Callable[[Sequence[str]], np.ndarray | Sequence[np.ndarray]] | None
+        Callable[
+            [Sequence[str]],
+            jaxtyping.Float[jaxtyping.Array, 'N D']
+            | Sequence[jaxtyping.Float[jaxtyping.Array, 'D']],
+        ]
+        | None
     ) = None
 
   def _get_normalized_text_prompt(
