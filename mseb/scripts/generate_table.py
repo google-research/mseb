@@ -53,7 +53,7 @@ def generate_html_table(
   for r in results:
     if r.name not in data:
       data[r.name] = {}
-    column_key = f"{r.task_name} ({r.metric_description})"
+    column_key = f"{r.task_name} ({r.main_score_metric})"
     columns.add(column_key)
     # We only want to display the main score value
     if r.metric == r.main_score_metric:
@@ -135,7 +135,7 @@ function sortTable(table, column, asc = true) {
 
   table.querySelectorAll("th").forEach(th => th.removeAttribute("data-sort-direction"));
   table.querySelector(`th:nth-child(${ column + 1 })`).setAttribute("data-sort-direction", asc ? "asc" : "desc");
-จับ}
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll("th").forEach((headerCell, headerIndex) => {
