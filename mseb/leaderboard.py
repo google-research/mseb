@@ -18,9 +18,10 @@ This module contains functions for running task/encoder pairs and recording
 and reporting the results.
 """
 
+import collections
 import dataclasses
 import json
-from typing import Any, Iterator, List, TextIO, Iterable
+from typing import Any, Callable, Dict, Iterator, List, TextIO, Iterable
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import types
@@ -140,6 +141,29 @@ def flatten_leaderboard_results(
           )
       )
   return flattened_results
+
+
+def partition_leaderboard_results(
+    results: Iterator[str],
+    naming_fn: Callable[[LeaderboardResult], str],
+) -> Dict[str, List[LeaderboardResult]]:
+  """Partitions leaderboard results based on a naming function.
+
+  Args:
+    results: An iterator of JSON strings, each representing a LeaderboardResult.
+    naming_fn: A function that takes a LeaderboardResult and returns a string
+      key.
+
+  Returns:
+    A dictionary mapping keys from naming_fn to lists of LeaderboardResult
+    objects.
+  """
+  partitions = collections.defaultdict(list)
+  for result_json in results:
+    result = LeaderboardResult.from_json(result_json)
+    key = naming_fn(result)
+    partitions[key].append(result)
+  return partitions
 
 
 def write_dataclasses_to_jsonl(
