@@ -146,9 +146,13 @@ class LongestPrefixIDFSegmenter(SegmenterBase):
 
 
 class CascadedSegmentationEncoder(encoder.Encoder):
-  """TODO(allauzen).
+  """Encodes anaudio sequence into segments using a cascaded approach.
 
-  Represents speech as as segments derived by Whisper model.
+   1. Use an ASR encoder to transcribe the speech into text.
+   2. Use a text-based segmenter to segment the text into segments.
+   3. Select the top-k segments with the highest segment scores.
+   4. Return the start and end timestamps, texts, and scores of the selected
+      segments
   """
 
   def __init__(self,
@@ -165,14 +169,27 @@ class CascadedSegmentationEncoder(encoder.Encoder):
       context: encoder.ContextParams,
       **kwargs: Any
   ) -> Tuple[np.ndarray, np.ndarray]:
-    """TODO(allauzen): update: Encodes speech into segments."""
+    """Encodes an audio sequence into segments.
+
+    Args:
+      waveform: Path to an audio file (str) or a pre-loaded NumPy array
+                representing the waveform. If a NumPy array, it's assumed
+                its sample rate matches `context.sample_rate`.
+      context: Context parameters, including `context.sample_rate`.
+      **kwargs: Keyword arguments to pass to the ASR encoder.
+
+    Returns:
+      A tuple (timestamps, segments):
+       timestamps: Array of start and end times tuple for each segment.
+       segments: Array of text and score for each segment.
+    """
     timestamps, words = self.asr_encoder.encode(
         waveform, context, **kwargs
     )
     segments = list(self.segmenter.segment(words))
     if not segments:
       return np.array([[0.0, 0.0]]), np.array([['', 0.0]])
-    # TODO(allauzen): use a heap instead of sorting.
+    # TODO(allauzen): consider using a heap instead of sorting.
     segments.sort(key=lambda x: x[1], reverse=True)
     return np.array([
         [timestamps[front][0], timestamps[back][1]]
@@ -183,14 +200,23 @@ class CascadedSegmentationEncoder(encoder.Encoder):
 
 
 class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):
-  """TODO(allauzen)."""
+  """Encodes an audio sequence into the top-k segments with the highest IDF scores in the output of an ASR encoder."""
 
   def __init__(self,
                asr_encoder: whisper_encoder.Whisper,
                idf_table: dict[str, float],
                language: str,
                top_k: int = 1):
-    """TODO(allauzen)."""
+    """Initialize the MaxIDFSegmentEncoder.
+
+    Args:
+      asr_encoder: The ASR encoder to use.
+      idf_table: The IDF table to use.
+      language: The language of the speech.
+      top_k: The number of segments to return.
+    """
+    # As workaround for some issues with the Japanase and Korean spacy
+    # tokenizers, we use a different segmenter for these languages.
     if language.startswith('ja'):
       segmenter = LongestPrefixIDFSegmenter(idf_table)
     else:
