@@ -21,6 +21,18 @@ import jaxtyping
 import numpy as np
 
 
+@dataclasses.dataclass(frozen=True)
+class DatasetMetadata:
+  """Structured high-level information about a dataset."""
+  name: str
+  description: str
+  homepage: str
+  version: str
+  license: str
+  mseb_tasks: list[str]
+  citation: Optional[str] = None
+
+
 @dataclasses.dataclass
 class SoundContextParams:
   """Parameters for a sound example."""
