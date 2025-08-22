@@ -153,9 +153,11 @@ class CascadedSegmentationEncoder(encoder.Encoder):
 
   def __init__(self,
                asr_encoder: whisper_encoder.Whisper,
-               segmenter: SegmenterBase):
+               segmenter: SegmenterBase,
+               top_k: int = 1):
     self.asr_encoder = asr_encoder
     self.segmenter = segmenter
+    self.top_k = top_k
 
   def encode(
       self,
@@ -170,11 +172,14 @@ class CascadedSegmentationEncoder(encoder.Encoder):
     segments = list(self.segmenter.segment(words))
     if not segments:
       return np.array([[0.0, 0.0]]), np.array([['', 0.0]])
-    # TODO(allauzen): should we return all segments? And look for the best in a
-    # derived class?
-    term, score, front, back = max(segments, key=lambda x: x[1])
-    return np.array([[timestamps[front][0], timestamps[back][1]]]), np.array(
-        [[term, score]])
+    # TODO(allauzen): use a heap instead of sorting.
+    segments.sort(key=lambda x: x[1], reverse=True)
+    return np.array([
+        [timestamps[front][0], timestamps[back][1]]
+        for _, _, front, back in segments[: self.top_k]
+    ]), np.array([
+        [term, score] for term, score, _, _ in segments[: self.top_k]
+    ])
 
 
 class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):
@@ -183,7 +188,8 @@ class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):
   def __init__(self,
                asr_encoder: whisper_encoder.Whisper,
                idf_table: dict[str, float],
-               language: str):
+               language: str,
+               top_k: int = 1):
     """TODO(allauzen)."""
     if language.startswith('ja'):
       segmenter = LongestPrefixIDFSegmenter(idf_table)
@@ -194,4 +200,4 @@ class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):
               language=('xx' if language.startswith('ko') else language)
           ),
       )
-    super().__init__(asr_encoder, segmenter)
+    super().__init__(asr_encoder, segmenter, top_k)

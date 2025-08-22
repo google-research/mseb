@@ -76,7 +76,7 @@ class SegmentationEncoderTests(parameterized.TestCase):
   )
   def test_encode(self, segmenter):
     seg_encoder = segmentation_encoder.CascadedSegmentationEncoder(
-        self.whisper_encoder, segmenter
+        self.whisper_encoder, segmenter, top_k=2
     )
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
@@ -87,10 +87,13 @@ class SegmentationEncoderTests(parameterized.TestCase):
         text=svq_example['text'].to_numpy()[0])
     timestamps, embeddings = seg_encoder.encode(
         waveform, context, **self.encode_kwargs)
-    npt.assert_equal(timestamps.shape, [1, 2])
-    npt.assert_equal(timestamps, [[3.58, 4.08]])
+    npt.assert_equal(timestamps.shape, [2, 2])
+    npt.assert_array_almost_equal(
+        timestamps, [[3.58, 4.08], [2.76, 3.2]], decimal=1
+    )
     npt.assert_equal(timestamps[0, 1] <= waveform.shape[0] / sample_rate, True)
-    npt.assert_equal(embeddings, [['relations', 4.0]])
+    npt.assert_equal(timestamps[1, 1] <= waveform.shape[0] / sample_rate, True)
+    npt.assert_equal(embeddings, [['relations', 4.0], ['national', 3.0]])
 
 
 class SegmentationEncoderUsingTruthTests(SegmentationEncoderTests):
