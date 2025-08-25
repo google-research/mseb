@@ -108,7 +108,7 @@ class MockTask(task.MSEBTask):
       yield types.Sound(
           waveform=np.zeros(16000),
           context=types.SoundContextParams(
-              sample_rate=16000, length=16000, sound_id=str(i)
+              sample_rate=16000, length=16000, id=str(i)
           ),
       )
 

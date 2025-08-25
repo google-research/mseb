@@ -43,7 +43,7 @@ class MockDataset(dataset.Dataset):
         homepage="http://fake.com",
         version="1.0",
         license="N/A",
-        mseb_task=["testing"]
+        mseb_tasks=["testing"]
     )
 
   def _load_metadata(self) -> pd.DataFrame:
@@ -53,7 +53,7 @@ class MockDataset(dataset.Dataset):
     return types.Sound(
         waveform=np.zeros(16000, dtype=np.float32),
         context=types.SoundContextParams(
-            sound_id=record["sound_id"],
+            id=record["sound_id"],
             sample_rate=16000,
             length=16000,
             text=record["label"]
@@ -74,13 +74,13 @@ class DatasetTest(absltest.TestCase):
   def test_dataset_getitem(self):
     item = self.dataset[1]
     self.assertIsInstance(item, types.Sound)
-    self.assertEqual(item.context.sound_id, "b")
+    self.assertEqual(item.context.id, "b")
     self.assertEqual(item.context.text, "dog")
 
   def test_dataset_iter(self):
     items = list(self.dataset)
     self.assertLen(items, 5)
-    self.assertEqual(items[2].context.sound_id, "c")
+    self.assertEqual(items[2].context.id, "c")
 
   def test_available_labels(self):
     expected_labels = ["sound_id", "label", "value"]
@@ -116,8 +116,8 @@ class DatasetTest(absltest.TestCase):
     self.assertLen(batches[1], 2)
     self.assertLen(batches[2], 1)
     # Check content of the first batch
-    self.assertEqual(batches[0][0].context.sound_id, "a")
-    self.assertEqual(batches[0][1].context.sound_id, "b")
+    self.assertEqual(batches[0][0].context.id, "a")
+    self.assertEqual(batches[0][1].context.id, "b")
 
 
 if __name__ == "__main__":

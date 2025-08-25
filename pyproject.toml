@@ -30,7 +30,6 @@ dependencies = [
     "pandas",
     "pyarrow",
     "pygtrie",
-    "scann",
     "scann[tf]",
     "soundfile",
     "spacy",

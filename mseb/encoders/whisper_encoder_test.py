@@ -187,7 +187,7 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
         sample_rate=sample_rate,
         length=waveform.shape[0],
         language='en',
-        sound_id='test',
+        id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
     result = self.whisper_encoder.encode(sound)
@@ -209,7 +209,7 @@ class SpeechToTextEncoderV2Test(absltest.TestCase):
         sample_rate=48000,
         length=waveform.shape[0],
         language='en',
-        sound_id='test',
+        id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
     result = self.whisper_encoder.encode(sound, word_timestamps=True)
@@ -241,7 +241,7 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
         length=waveform.shape[0],
         language='en',
         text=svq_example['text'].to_numpy()[0],
-        sound_id='test',
+        id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
     result = self.whisper_encoder.encode(sound)
@@ -263,7 +263,7 @@ class PooledAudioEncoderV2Test(absltest.TestCase):
     self.params = types.SoundContextParams(
         sample_rate=48000,
         length=waveform.shape[0],
-        sound_id='test',
+        id='test',
     )
     self.sound = types.Sound(waveform=self.waveform, context=self.params)
     self.model_path = 'base'

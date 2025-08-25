@@ -124,7 +124,7 @@ class CascadeEncoder(encoder.SoundEncoder):
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = transcripts.embedding
       test = str(embedding[0])
       text_batch.append(
-          types.Text(id='', text=test, params=types.TextContextParams())
+          types.Text(text=test, context=types.TextContextParams(id=''))
       )
     text_embeddings_batch = self.text_encoder.encode_batch(text_batch, **kwargs)
 

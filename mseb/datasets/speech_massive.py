@@ -104,7 +104,7 @@ class SpeechMassiveDataset(dataset.Dataset):
     gender_str = record.get("speaker_sex", record.get("speaker_gender"))
 
     context = types.SoundContextParams(
-        sound_id=str(record["id"]),
+        id=str(record["id"]),
         sample_rate=sr,
         length=len(waveform),
         language=self.language,

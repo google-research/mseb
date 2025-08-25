@@ -127,7 +127,7 @@ class SVQTest(absltest.TestCase):
     self.assertLen(dataset, 3)
 
     sound1 = dataset.get_sound_by_id("utt_1")
-    self.assertEqual(sound1.context.sound_id, "utt_1")
+    self.assertEqual(sound1.context.id, "utt_1")
     self.assertEqual(sound1.context.speaker_id, "spk_a")
     self.assertEqual(sound1.context.speaker_age, 38)
     self.assertEqual(sound1.context.language, "en_us")

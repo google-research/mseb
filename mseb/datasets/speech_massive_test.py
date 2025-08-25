@@ -75,7 +75,7 @@ class SpeechMassiveTest(absltest.TestCase):
     self.assertLen(dataset, 3)
 
     sound1 = dataset[0]
-    self.assertEqual(sound1.context.sound_id, "1")
+    self.assertEqual(sound1.context.id, "1")
     self.assertEqual(sound1.context.text, "hello world")
     self.assertEqual(sound1.context.speaker_id, "spk_1")
     self.assertEqual(sound1.context.speaker_age, 35)

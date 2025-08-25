@@ -46,7 +46,7 @@ class RawEncoderTest(absltest.TestCase):
     self.params = types.SoundContextParams(
         sample_rate=self.sample_rate,
         length=len(waveform),
-        sound_id='test',
+        id='test',
     )
     self.sound = types.Sound(waveform=self.waveform, context=self.params)
 
@@ -153,7 +153,7 @@ class RawEncoderTest(absltest.TestCase):
         context=types.SoundContextParams(
             sample_rate=self.sample_rate,
             length=len(short_waveform),
-            sound_id='short',
+            id='short',
         ),
     )
     enc = raw_encoder.RawEncoder(
@@ -178,7 +178,7 @@ class RawEncoderTest(absltest.TestCase):
         context=types.SoundContextParams(
             sample_rate=self.sample_rate,
             length=len(short_waveform),
-            sound_id='short',
+            id='short',
         ),
     )
     batch_sounds = [self.sound, short_sound]

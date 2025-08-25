@@ -176,7 +176,7 @@ class EmbedWhisperEncoderV2Test(absltest.TestCase):
         language='en',
         waveform_start_second=0.0,
         waveform_end_second=waveform.shape[0] / sample_rate,
-        sound_id='test',
+        id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
     result = enc.encode(sound)

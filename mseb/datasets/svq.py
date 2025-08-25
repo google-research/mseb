@@ -157,7 +157,7 @@ class SVQDataset(dataset.Dataset):
 
     speaker_age_val = record.get("speaker_age")
     context = types.SoundContextParams(
-        sound_id=record["utt_id"],
+        id=record["utt_id"],
         sample_rate=sr,
         length=len(waveform),
         language=record.get("locale"),

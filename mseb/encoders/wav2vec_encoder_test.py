@@ -69,9 +69,7 @@ class Wav2VecEncoderTest(absltest.TestCase):
     waveform = svq_example['waveform'].to_numpy()[0]
     self.waveform = waveform.astype(np.float32) / 32767.0
     self.params = types.SoundContextParams(
-        sample_rate=48000,
-        length=len(self.waveform),
-        sound_id='test',
+        sample_rate=48000, length=len(self.waveform), id='test'
     )
     self.sound = types.Sound(waveform=self.waveform, context=self.params)
 

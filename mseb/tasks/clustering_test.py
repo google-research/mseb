@@ -54,7 +54,7 @@ class ClusteringTest(absltest.TestCase):
 
   def test_clustering_task(self):
     encoder = get_test_encoder()
-    runner = runner_lib.DirectRunner(sound_encoder=encoder)
+    runner = runner_lib.DirectRunner(encoder=encoder)
     task = clustering.SVQClustering()
     self.assertEqual(
         task.sub_tasks, ["speaker_gender", "speaker_age", "speaker_id"]

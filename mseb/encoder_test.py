@@ -66,9 +66,7 @@ class SoundEncoderTest(absltest.TestCase):
     mock_encoder = MockSoundEncoder("path/to/model")
     sound = types.Sound(
         waveform=np.array([1.0, 2.0, 3.0, 4.0]),
-        context=types.SoundContextParams(
-            sample_rate=2, length=4, sound_id="test"
-        ),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
     )
 
     mock_encoder.encode(sound)
@@ -76,16 +74,14 @@ class SoundEncoderTest(absltest.TestCase):
 
     sound2 = types.Sound(
         waveform=np.array([5.0, 6.0, 7.0, 8.0]),
-        context=types.SoundContextParams(
-            sample_rate=2, length=4, sound_id="test"
-        ),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
     )
     mock_encoder.encode(sound2)
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_triggers_setup_exactly_once(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
+    params = types.SoundContextParams(sample_rate=2, length=4, id="test")
     batch = [
         types.Sound(waveform=np.array([1.0, 2.0, 3.0, 4.0]), context=params),
         types.Sound(waveform=np.array([5.0, 6.0, 7.0, 8.0]), context=params),
@@ -97,7 +93,7 @@ class SoundEncoderTest(absltest.TestCase):
 
   def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
     mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(sample_rate=2, length=4, sound_id="test")
+    params = types.SoundContextParams(sample_rate=2, length=4, id="test")
     sound_batch = [
         types.Sound(waveform=np.array([1.0, 2.0, 4.0, 8.0]), context=params),
         types.Sound(waveform=np.array([2.0, 5.0, 3.0, 7.0]), context=params),
@@ -114,9 +110,7 @@ class SoundEncoderTest(absltest.TestCase):
     mock_encoder.encode_batch = mock.MagicMock()
     sound = types.Sound(
         waveform=np.array([1.0, 2.0, 3.0, 4.0]),
-        context=types.SoundContextParams(
-            sample_rate=2, length=4, sound_id="test"
-        ),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
     )
 
     mock_encoder.encode(sound)
@@ -126,9 +120,7 @@ class SoundEncoderTest(absltest.TestCase):
     mock_encoder = FaultySetupEncoder("faulty/path")
     sound = types.Sound(
         waveform=np.array([1.0, 2.0, 4.0, 8.0]),
-        context=types.SoundContextParams(
-            sample_rate=2, length=4, sound_id="test"
-        ),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
     )
     with self.assertRaises(RuntimeError):
       mock_encoder.encode(sound)
@@ -169,9 +161,9 @@ class MockTextEncoder(encoder.TextEncoder):
     self._encode_batch = mock.MagicMock(
         return_value=[
             types.TextEmbeddings(
-                id="id",
                 embeddings=np.zeros((10, 8)),
                 spans=np.zeros((10, 2)),
+                context=types.TextContextParams(id="id"),
             )
         ]
     )
@@ -190,9 +182,9 @@ class FaultySetupTextEncoder(encoder.TextEncoder):
   def _encode_batch(self, text_batch, **kwargs):
     return [
         types.TextEmbeddings(
-            id="",
             embeddings=np.array([]),
             spans=np.array([]),
+            context=types.TextContextParams(id="id"),
         )
     ]
 
@@ -205,35 +197,50 @@ class TextEncoderTest(absltest.TestCase):
 
   def test_encode_triggers_setup_exactly_once(self):
     mock_encoder = MockTextEncoder()
-    params = types.TextContextParams()
 
     mock_encoder.encode(
-        types.Text(id="id", text="This is a text.", params=params)
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="id")
+        )
     )
     mock_encoder.setup.assert_called_once()
 
-    mock_encoder.encode_batch(
-        [types.Text(id="id", text="This is another text.", params=params)]
-    )
+    mock_encoder.encode_batch([
+        types.Text(
+            text="This is another text.",
+            context=types.TextContextParams(id="id"),
+        )
+    ])
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_triggers_setup_exactly_once(self):
     mock_encoder = MockTextEncoder()
-    params = types.TextContextParams()
     batch = [
-        types.Text(id="id1", text="This is a text.", params=params),
-        types.Text(id="id2", text="This is another text.", params=params),
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="id1")
+        ),
+        types.Text(
+            text="This is another text.",
+            context=types.TextContextParams(id="id2"),
+        ),
     ]
     mock_encoder.encode_batch(batch)
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
     mock_encoder = MockTextEncoder()
-    params = types.TextContextParams()
     text_batch = [
-        types.Text(id="id1", text="This is a text.", params=params),
-        types.Text(id="id2", text="This is another text.", params=params),
-        types.Text(id="id3", text="This is the third text.", params=params),
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="id1")
+        ),
+        types.Text(
+            text="This is another text.",
+            context=types.TextContextParams(id="id2"),
+        ),
+        types.Text(
+            text="This is the third text.",
+            context=types.TextContextParams(id="id3"),
+        ),
     ]
     mock_encoder.encode_batch(text_batch, runtime_kwarg="hello")
     mock_encoder._encode_batch.assert_called_once_with(
@@ -244,7 +251,7 @@ class TextEncoderTest(absltest.TestCase):
     mock_encoder = MockTextEncoder()
     mock_encoder.encode_batch = mock.MagicMock()
     text = types.Text(
-        id="id", text="This is a text.", params=types.TextContextParams()
+        text="This is a text.", context=types.TextContextParams(id="test")
     )
 
     mock_encoder.encode(text)
@@ -255,7 +262,7 @@ class TextEncoderTest(absltest.TestCase):
     with self.assertRaises(RuntimeError):
       mock_encoder.encode(
           types.Text(
-              id="id", text="This is a text.", params=types.TextContextParams()
+              text="This is a text.", context=types.TextContextParams(id="id")
           )
       )
 
@@ -269,7 +276,9 @@ class TextEncoderTest(absltest.TestCase):
 
       def encode_batch(self, text_batch, **kwargs):
         return types.TextEmbeddings(
-            id="", embeddings=np.array([-1]), spans=np.array([0])
+            embeddings=np.array([-1]),
+            spans=np.array([0]),
+            context=types.TextContextParams(id=""),
         )
 
       def setup(self):
@@ -277,7 +286,9 @@ class TextEncoderTest(absltest.TestCase):
 
       def _encode_batch(self, text_batch, params_batch, **kwargs):
         return types.TextEmbeddings(
-            id="", embeddings=np.array([-1]), spans=np.array([0])
+            embeddings=np.array([-1]),
+            spans=np.array([0]),
+            context=types.TextContextParams(id=""),
         )
 
     bad_encoder = BadTextEncoder()

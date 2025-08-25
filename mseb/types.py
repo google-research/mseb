@@ -36,7 +36,7 @@ class DatasetMetadata:
 @dataclasses.dataclass
 class SoundContextParams:
   """Parameters for a sound example."""
-  sound_id: str  # Identifier for the sound example unique within the dataset.
+  id: str  # Identifier for the sound example unique within the dataset.
   sample_rate: int
   length: int
 
@@ -80,6 +80,7 @@ class SoundEmbedding:
 @dataclasses.dataclass
 class TextContextParams:
   """Parameters for a text example."""
+  id: str  # Identifier for the text example unique within the dataset.
   title: Optional[str] = None
   context: Optional[str] = None
 
@@ -87,17 +88,16 @@ class TextContextParams:
 @dataclasses.dataclass
 class Text:
   """A dataclass for a text."""
-  id: str
   text: str
-  params: TextContextParams
+  context: TextContextParams
 
 
 @dataclasses.dataclass
 class TextEmbeddings:
   """A dataclass for text embeddings."""
-  id: str
   embeddings: jaxtyping.Float[jaxtyping.Array, "N D"]
   spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
+  context: TextContextParams
 
 
 @dataclasses.dataclass(frozen=True)
@@ -213,3 +213,5 @@ class TaskMetadata:
 
 
 SoundEmbeddingCache = Mapping[str, SoundEmbedding]
+TextEmbeddingCache = Mapping[str, TextEmbeddings]
+EmbeddingCache = SoundEmbeddingCache | TextEmbeddingCache

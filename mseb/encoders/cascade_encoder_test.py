@@ -73,7 +73,7 @@ class CascadeEncoderTest(absltest.TestCase):
         text='This is the transcript truth.',
         waveform_start_second=0.0,
         waveform_end_second=self.waveform1.shape[0] / sample_rate,
-        sound_id='test1',
+        id='test1',
     )
     self.sound1 = types.Sound(waveform=self.waveform1, context=self.params1)
     self.waveform2 = svq_example['waveform'].to_numpy()[0][100:]
@@ -85,7 +85,7 @@ class CascadeEncoderTest(absltest.TestCase):
         text='This is another transcript truth.',
         waveform_start_second=0.0,
         waveform_end_second=self.waveform2.shape[0] / sample_rate,
-        sound_id='test2',
+        id='test2',
     )
     self.sound2 = types.Sound(waveform=self.waveform2, context=self.params2)
 

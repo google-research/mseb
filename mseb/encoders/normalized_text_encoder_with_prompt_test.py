@@ -74,24 +74,32 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
     mock_encoder = MockNormalizedTextEncoderWithPrompt(
         text_encode_fn=lambda x: np.zeros((10, 8)),
     )
-    params = types.TextContextParams()
 
     mock_encoder.encode(
-        types.Text(id="id", text="This is a text.", params=params)
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="id")
+        )
     )
     mock_encoder.setup.assert_called_once()
 
-    mock_encoder.encode_batch(
-        [types.Text(id="id", text="This is another text.", params=params)]
-    )
+    mock_encoder.encode_batch([
+        types.Text(
+            text="This is another text.",
+            context=types.TextContextParams(id="id"),
+        )
+    ])
     mock_encoder.setup.assert_called_once()
 
   def test_encode_batch_triggers_setup_exactly_once(self):
     mock_encoder = MockNormalizedTextEncoderWithPrompt()
-    params = types.TextContextParams()
     batch = [
-        types.Text(id="id1", text="This is a text.", params=params),
-        types.Text(id="id2", text="This is another text.", params=params),
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="id1")
+        ),
+        types.Text(
+            text="This is another text.",
+            context=types.TextContextParams(id="id2"),
+        ),
     ]
     mock_encoder.encode_batch(batch)
     mock_encoder.setup.assert_called_once()
@@ -100,7 +108,7 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
     mock_encoder = MockNormalizedTextEncoderWithPrompt()
     mock_encoder.encode_batch = mock.MagicMock()
     text = types.Text(
-        id="id", text="This is a text.", params=types.TextContextParams()
+        text="This is a text.", context=types.TextContextParams(id="id")
     )
 
     mock_encoder.encode(text)
@@ -111,7 +119,7 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
     with self.assertRaises(RuntimeError):
       mock_encoder.encode(
           types.Text(
-              id="id", text="This is a text.", params=types.TextContextParams()
+              text="This is a text.", context=types.TextContextParams(id="id")
           )
       )
 
@@ -139,7 +147,7 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
         MockNormalizedTextEncoderWithPrompt(
             normalizer=lambda x: x.lower()
         )._get_normalized_text_prompt(
-            "This is a text.", types.TextContextParams()
+            "This is a text.", types.TextContextParams(id="id")
         ),
         "this is a text.",
     )
@@ -147,7 +155,7 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
         MockNormalizedTextEncoderWithPrompt(
             prompt_template="task: search result | query: {text}",
         )._get_normalized_text_prompt(
-            "This is a text.", types.TextContextParams()
+            "This is a text.", types.TextContextParams(id="id")
         ),
         "task: search result | query: This is a text.",
     )
@@ -156,7 +164,7 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
             normalizer=lambda x: x.lower(),
             prompt_template="title: {title} | context: {text}",
         )._get_normalized_text_prompt(
-            "This is ANOTHER text.", types.TextContextParams()
+            "This is ANOTHER text.", types.TextContextParams(id="id")
         ),
         "title: None | context: this is another text.",
     )
@@ -165,7 +173,8 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
             normalizer=lambda x: x.lower(),
             prompt_template="title: {title} | context: {text}",
         )._get_normalized_text_prompt(
-            "This is ANOTHER text.", types.TextContextParams(title="Title")
+            "This is ANOTHER text.",
+            types.TextContextParams(id="id", title="Title"),
         ),
         "title: title | context: this is another text.",
     )
@@ -178,12 +187,11 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
     mock_encoder.text_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
     _ = mock_encoder.encode_batch([
         types.Text(
-            id="id1", text="This is a text.", params=types.TextContextParams()
+            text="This is a text.", context=types.TextContextParams(id="id1")
         ),
         types.Text(
-            id="id2",
             text="This is ANOTHER text.",
-            params=types.TextContextParams(title="Abc"),
+            context=types.TextContextParams(id="id2", title="Abc"),
         ),
     ])
     _ = mock_encoder.text_encode_fn.assert_called_once_with([

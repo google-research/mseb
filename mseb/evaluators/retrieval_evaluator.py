@@ -20,7 +20,7 @@ from concurrent import futures
 import dataclasses
 import io
 import os
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, Union
+from typing import Any, Dict, Iterable, List, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
@@ -31,7 +31,6 @@ import tensorflow_recommenders as tfrs
 
 
 ThreadPoolExecutor = futures.ThreadPoolExecutor
-TextEmbeddingsCache = Mapping[str, types.TextEmbeddings]
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -221,7 +220,7 @@ class RetrievalEvaluatorV2:
 
 
 def build_index(
-    embeddings: TextEmbeddingsCache, k: int = 10
+    embeddings: types.TextEmbeddingCache, k: int = 10
 ) -> tuple[tfrs.layers.factorized_top_k.TopK, Sequence[str]]:
   """Builds the ScaNN index from the embeddings.
 

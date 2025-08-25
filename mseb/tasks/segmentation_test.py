@@ -38,7 +38,7 @@ class SegmentationTest(absltest.TestCase):
 
   def test_segmentation_task_svq(self):
     encoder = get_test_encoder()
-    runner = runner_lib.DirectRunner(sound_encoder=encoder)
+    runner = runner_lib.DirectRunner(encoder=encoder)
     task = segmentation.SegmentationTaskSVQ(base_path=self.get_testdata_path())
     embeddings = runner.run(task.sounds())
     scores = task.compute_scores(embeddings)

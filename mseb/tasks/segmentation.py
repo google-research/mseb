@@ -91,7 +91,7 @@ class SegmentationTaskSVQ(SegmentationTask):
           types.SoundContextParams(
               sample_rate=48000,
               length=len(example['waveform']),
-              sound_id=example['utt_id'],
+              id=example['utt_id'],
           ),
       )
 

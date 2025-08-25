@@ -82,7 +82,7 @@ class SVQClustering(ClusteringTask):
           types.SoundContextParams(
               sample_rate=48000,
               length=len(example['waveform']),
-              sound_id=example['utt_id'],
+              id=example['utt_id'],
               speaker_id=example['speaker_id'],
               speaker_age=example['speaker_age'],
               speaker_gender=example['speaker_gender'],

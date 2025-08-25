@@ -154,7 +154,7 @@ class RetrievalEvaluatorV2Test(absltest.TestCase):
     super().setUp()
     sample_rate = 16000
     self.params = types.SoundContextParams(
-        sound_id='test', sample_rate=sample_rate, length=sample_rate * 5
+        id='test', sample_rate=sample_rate, length=sample_rate * 5
     )
     self.testdata_path = path.join(
         pathlib.Path(path.abspath(__file__)).parent.parent,
@@ -185,14 +185,14 @@ class RetrievalEvaluatorV2Test(absltest.TestCase):
                 timestamps=np.array([[0.0, 1.0]]),
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
-                    sound_id='1', sample_rate=16000, length=16000 * 5
+                    id='1', sample_rate=16000, length=16000 * 5
                 ),
             ),
             '2': types.SoundEmbedding(
                 timestamps=np.array([[0.0, 1.0]]),
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
-                    sound_id='2', sample_rate=16000, length=16000 * 5
+                    id='2', sample_rate=16000, length=16000 * 5
                 ),
             ),
         },
@@ -222,9 +222,9 @@ class ScannIndexTest(absltest.TestCase):
   def test_build_scann_index(self):
     embeddings = {
         str(i): types.TextEmbeddings(
-            id=str(i),
             embeddings=np.array([[1, 2, 3]]) + i,
             spans=np.array([[0, 10]]),
+            context=types.TextContextParams(id=str(i)),
         )
         for i in range(16)
     }
@@ -258,9 +258,9 @@ class ScannIndexTest(absltest.TestCase):
   def test_save_and_load_scann_index(self):
     embeddings = {
         str(i): types.TextEmbeddings(
-            id=str(i),
             embeddings=np.array([[1, 2, 3]]) + i,
             spans=np.array([[0, 10]]),
+            context=types.TextContextParams(id=str(i)),
         )
         for i in range(16)
     }

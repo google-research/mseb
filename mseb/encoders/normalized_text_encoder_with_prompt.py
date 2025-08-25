@@ -104,7 +104,7 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
   ) -> Sequence[types.TextEmbeddings]:
     """Encodes a batch of text sources."""
     prompt_batch = [
-        self._get_normalized_text_prompt(text.text, text.params)
+        self._get_normalized_text_prompt(text.text, text.context)
         for text in text_batch
     ]
     assert self.text_encode_fn is not None
@@ -112,9 +112,9 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
 
     return [
         types.TextEmbeddings(
-            id=text.id,
             embeddings=embeddings[np.newaxis],
             spans=np.array([[0, len(text.text)]]),
+            context=text.context,
         )
         for embeddings, text in zip(embeddings_batch, text_batch)
     ]

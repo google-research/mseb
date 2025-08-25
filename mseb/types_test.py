@@ -32,7 +32,7 @@ class SoundContextParamsTest(parameterized.TestCase):
         text="This is a test.",
         speaker_id="speaker_001",
         waveform_start_second=0.5,
-        sound_id="test",
+        id="test",
     )
     self.assertEqual(params.sample_rate, 16000)
     self.assertEqual(params.length, 88000)
@@ -53,7 +53,7 @@ class SoundContextParamsTest(parameterized.TestCase):
       types.SoundContextParams(
           length=80000,
           text="This should fail.",
-          sound_id="fail",
+          id="fail",
       )
 
   def test_context_params_requires_length(self):
@@ -61,14 +61,14 @@ class SoundContextParamsTest(parameterized.TestCase):
       types.SoundContextParams(
           sample_rate=16000,
           text="This should fail.",
-          sound_id="fail",
+          id="fail",
       )
 
   def test_context_params_default_values(self):
     params = types.SoundContextParams(
         sample_rate=22050,
         length=80000,
-        sound_id="test",
+        id="test",
     )
     assert params.sample_rate == 22050
     assert params.language is None
@@ -81,7 +81,7 @@ class SoundContextParamsTest(parameterized.TestCase):
     params = types.SoundContextParams(
         sample_rate=16000,
         length=80000,
-        sound_id="test",
+        id="test",
     )
     assert params.text is None
     params.text = "New text value."
@@ -95,17 +95,20 @@ class SoundContextParamsTest(parameterized.TestCase):
 class TextContextParamsTest(parameterized.TestCase):
 
   def test_context_params_successful_instantiation(self):
-    params = types.TextContextParams(title="This is a title.")
+    params = types.TextContextParams(id="id", title="This is a title.")
+    self.assertEqual(params.id, "id")
     self.assertEqual(params.title, "This is a title.")
     self.assertIsNone(params.context)
 
   def test_context_params_default_values(self):
-    params = types.TextContextParams()
+    params = types.TextContextParams(id="id")
+    self.assertEqual(params.id, "id")
     self.assertIsNone(params.title)
     self.assertIsNone(params.context)
 
   def test_context_params_mutability(self):
-    params = types.TextContextParams(title="This is a title.")
+    params = types.TextContextParams(id="id", title="This is a title.")
+    self.assertEqual(params.id, "id")
     self.assertEqual(params.title, "This is a title.")
     self.assertIsNone(params.context)
     params.context = "This is a context."
@@ -117,27 +120,26 @@ class TextTest(parameterized.TestCase):
 
   def test_text_successful_instantiation(self):
     text = types.Text(
-        id="id",
         text="This is a test.",
-        params=types.TextContextParams(),
+        context=types.TextContextParams(id="text_id"),
     )
-    self.assertEqual(text.id, "id")
     self.assertEqual(text.text, "This is a test.")
-    self.assertIsNone(text.params.title)
-    self.assertIsNone(text.params.context)
+    self.assertEqual(text.context.id, "text_id")
+    self.assertIsNone(text.context.title)
+    self.assertIsNone(text.context.context)
 
 
 class TextEmbeddingsTest(parameterized.TestCase):
 
   def test_text_embeddings_successful_instantiation(self):
     embeddings = types.TextEmbeddings(
-        id="id",
         embeddings=np.array([1, 2, 3]),
         spans=np.array([[0, 1], [2, 3]]),
+        context=types.TextContextParams(id="id"),
     )
-    self.assertEqual(embeddings.id, "id")
     npt.assert_array_equal(embeddings.embeddings, np.array([1, 2, 3]))
     npt.assert_array_equal(embeddings.spans, np.array([[0, 1], [2, 3]]))
+    self.assertEqual(embeddings.context.id, "id")
 
 
 class TaskMetadataTest(parameterized.TestCase):
