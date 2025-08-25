@@ -16,14 +16,22 @@
 
 from __future__ import annotations
 
+from concurrent import futures
 import dataclasses
-from typing import Any, Dict, Iterable, List, Sequence, Union
+import io
+import os
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
 from mseb import types
 import numpy as np
+import tensorflow as tf
 import tensorflow_recommenders as tfrs
+
+
+ThreadPoolExecutor = futures.ThreadPoolExecutor
+TextEmbeddingsCache = Mapping[str, types.TextEmbeddings]
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -210,3 +218,82 @@ class RetrievalEvaluatorV2:
         *evaluator.compute_weighted_average_and_std_v2(values_by_metric['em'])
     )
     return [mrr_score, em_score]
+
+
+def build_index(
+    embeddings: TextEmbeddingsCache, k: int = 10
+) -> tuple[tfrs.layers.factorized_top_k.TopK, Sequence[str]]:
+  """Builds the ScaNN index from the embeddings.
+
+  Args:
+    embeddings: The embeddings to build the index from.
+    k: The number of neighbors to return.
+
+  Returns:
+    A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
+    mapping from index id (int) to id (str).
+  """
+  id_by_index_id: Sequence[str] = sorted(embeddings.keys())
+
+  scann = tfrs.layers.factorized_top_k.ScaNN(
+      k=k,
+      distance_measure='dot_product',
+      num_leaves=min(2000, len(id_by_index_id)),
+      num_leaves_to_search=min(100, len(id_by_index_id)),
+      training_iterations=1,
+      dimensions_per_block=1,
+  )
+  candidates = tf.constant(
+      [embeddings[did].embeddings[0] for did in id_by_index_id], tf.float32
+  )
+  scann.index(candidates=candidates)
+  _ = scann(tf.constant(tf.zeros((1, candidates.shape[1]), dtype=tf.float32)))
+  return scann, id_by_index_id
+
+
+def save_index(
+    searcher: tfrs.layers.factorized_top_k.TopK,
+    id_by_index_id: Sequence[str],
+    scann_base_dir: str,
+    id_by_index_id_filepath: str = 'ids.txt',
+):
+  """Saves the ScaNN index and its metadata to a directory.
+
+  Args:
+    searcher: The ScaNN index.
+    id_by_index_id: The mapping from index id (int) to id (str).
+    scann_base_dir: The base directory for the ScaNN model.
+    id_by_index_id_filepath: The filepath for the id by index id mapping
+      relative to scann_base_dir.
+  """
+  os.makedirs(scann_base_dir, exist_ok=True)
+  with io.open(os.path.join(scann_base_dir, id_by_index_id_filepath), 'w') as f:
+    f.write('\n'.join(id_by_index_id))
+  tf.saved_model.save(
+      searcher,
+      scann_base_dir,
+      options=tf.saved_model.SaveOptions(namespace_whitelist=['Scann']),
+  )
+
+
+def load_index(
+    scann_base_dir: str,
+    id_by_index_id_filepath: str = 'ids.txt',
+) -> tuple[tfrs.layers.factorized_top_k.TopK, Sequence[str]]:
+  """Loads the ScaNN index and its metadata from a directory.
+
+  Args:
+    scann_base_dir: The base directory for the ScaNN model.
+    id_by_index_id_filepath: The filepath for the id by index id mapping
+      relative to scann_base_dir.
+
+  Returns:
+    A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
+    mapping from index id (int) to id (str).
+  """
+  with io.open(os.path.join(scann_base_dir, id_by_index_id_filepath), 'r') as f:
+    id_by_index_id: Sequence[str] = f.read().splitlines()
+  searcher: tfrs.layers.factorized_top_k.TopK = tf.saved_model.load(
+      scann_base_dir
+  )
+  return searcher, id_by_index_id

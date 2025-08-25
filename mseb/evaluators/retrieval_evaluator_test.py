@@ -217,5 +217,68 @@ class RetrievalEvaluatorV2Test(absltest.TestCase):
         raise ValueError(f'Unexpected metric: {score.metric}')
 
 
+class ScannIndexTest(absltest.TestCase):
+
+  def test_build_scann_index(self):
+    embeddings = {
+        str(i): types.TextEmbeddings(
+            id=str(i),
+            embeddings=np.array([[1, 2, 3]]) + i,
+            spans=np.array([[0, 10]]),
+        )
+        for i in range(16)
+    }
+    searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings, k=2)
+    self.assertSequenceEqual(
+        id_by_index_id,
+        [
+            '0',
+            '1',
+            '10',
+            '11',
+            '12',
+            '13',
+            '14',
+            '15',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+        ],
+    )
+    results = searcher(tf.constant([[4.0, 5.0, 6.0]], dtype=tf.float32))
+    self.assertLen(results, 2)
+    npt.assert_array_equal(results[0], [[257.0, 242.0]])
+    npt.assert_array_equal(results[1], [[7, 6]])
+
+  def test_save_and_load_scann_index(self):
+    embeddings = {
+        str(i): types.TextEmbeddings(
+            id=str(i),
+            embeddings=np.array([[1, 2, 3]]) + i,
+            spans=np.array([[0, 10]]),
+        )
+        for i in range(16)
+    }
+    searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
+    results = searcher(tf.constant([[4.0, 5.0, 6.0]], dtype=tf.float32))
+    scann_base_dir = self.create_tempdir().full_path
+    retrieval_evaluator.save_index(searcher, id_by_index_id, scann_base_dir)
+    searcher_loaded, id_by_index_id_loaded = retrieval_evaluator.load_index(
+        scann_base_dir
+    )
+    results_loaded = searcher_loaded(
+        tf.constant([[4.0, 5.0, 6.0]], dtype=tf.float32)
+    )
+    self.assertEqual(len(results_loaded), len(results))
+    for i in range(len(results)):
+      npt.assert_array_equal(results[i], results_loaded[i])
+    self.assertSequenceEqual(id_by_index_id_loaded, id_by_index_id)
+
+
 if __name__ == '__main__':
   absltest.main()

@@ -30,10 +30,12 @@ dependencies = [
     "pandas",
     "pyarrow",
     "pygtrie",
+    "scann",
+    "scann[tf]",
     "soundfile",
     "spacy",
     "transformers",
-    "tensorflow",
+    "tensorflow==2.15",
     "tensorflow_hub",
     "tensorflow-recommenders",
 ]
