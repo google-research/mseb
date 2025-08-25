@@ -19,7 +19,7 @@ import sys
 from unittest import mock
 
 from absl.testing import absltest
-from mseb.datasets import svq
+from mseb.datasets import simple_voice_questions as svq
 import numpy as np
 import pandas as pd
 
@@ -27,7 +27,7 @@ import pandas as pd
 sys.modules["array_record"] = mock.MagicMock()
 
 
-class SVQTest(absltest.TestCase):
+class SimpleVoiceQuestionsTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -110,8 +110,10 @@ class SVQTest(absltest.TestCase):
       f.write(b"\0" * (64 * 1024))
 
   @mock.patch("mseb.utils.download_from_hf")
-  @mock.patch("mseb.datasets.svq._read_wav_bytes")
-  @mock.patch("mseb.datasets.svq.array_record.ArrayRecordReader")
+  @mock.patch("mseb.datasets.simple_voice_questions._read_wav_bytes")
+  @mock.patch(
+      "mseb.datasets.simple_voice_questions.array_record.ArrayRecordReader"
+  )
   def test_corpus_and_task_loading(
       self,
       mock_array_record_reader,
@@ -124,7 +126,9 @@ class SVQTest(absltest.TestCase):
 
     mock_read_wav.return_value = (np.zeros(16000, dtype=np.float32), 16000)
     # Initialize the dataset (no split needed here)
-    dataset = svq.SVQDataset(base_path=self.testdata_dir.full_path)
+    dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=self.testdata_dir.full_path
+    )
 
     self.assertLen(dataset, 3)
 
@@ -146,20 +150,23 @@ class SVQTest(absltest.TestCase):
 
   def test_get_task_data_for_text_index(self):
     testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent,
-        "testdata",
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
     )
-    # Add a .git marker to prevent SVQDataset from trying to download the data
-    # from Huggingface.
+    # Add a .git marker to prevent SimpleVoiceQuestionsDataset from trying to
+    # download the data from Huggingface.
     base_path = self.create_tempdir().full_path
     shutil.rmtree(base_path)
     shutil.copytree(testdata_path, base_path)
-    os.chmod(base_path, 0o755)
+    os.chmod(os.path.join(base_path, "svq_passage_retrieval_in_lang"), 0o755)
     pathlib.Path.touch(
-        pathlib.Path(os.path.join(base_path, ".git")),
+        pathlib.Path(
+            os.path.join(base_path, "svq_passage_retrieval_in_lang", ".git")
+        ),
     )
 
-    dataset = svq.SVQDataset(base_path=base_path)
+    dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=os.path.join(base_path, "svq_passage_retrieval_in_lang")
+    )
     examples = list(
         dataset.get_task_data("passage_retrieval_in_lang_index").itertuples()
     )

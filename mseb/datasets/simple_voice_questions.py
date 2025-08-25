@@ -87,7 +87,7 @@ class _UttLookup:
     return self.readers[path].read([idx])[0]
 
 
-class SVQDataset(dataset.Dataset):
+class SimpleVoiceQuestionsDataset(dataset.Dataset):
   """Simple Voice Questions (SVQ) dataset.
 
   This class loads the entire corpus of utterances and provides a method
@@ -100,9 +100,10 @@ class SVQDataset(dataset.Dataset):
                target_sr: int | None = None):
     if split != "all":
       raise ValueError(
-          "The 'split' argument is not used for SVQDataset initialization. "
-          "Initialize the dataset without a split to load the main corpus, "
-          "then use the `get_task_data('task_name')` method."
+          "The 'split' argument is not used for"
+          " SimpleVoiceQuestionsDatasetinitialization. Initialize the dataset"
+          " without a split to load the main corpus, then use the"
+          " `get_task_data('task_name')` method."
       )
     super().__init__(base_path=base_path, split=split, target_sr=target_sr)
     self._utt_lookup = _UttLookup(self.base_path, self._metadata)

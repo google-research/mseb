@@ -17,6 +17,7 @@
 import abc
 from typing import Iterable, Type
 
+from mseb import runner as runner_lib
 from mseb import types
 
 
@@ -25,12 +26,22 @@ class MSEBTask(abc.ABC):
 
   metadata: types.TaskMetadata = None
 
-  def setup(self):
+  def __init__(self, cache_dir: str | None = None):
+    self.cache_dir = cache_dir
+
+  def setup(
+      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+  ):
     """Called once to set up the task.
 
     This method is called before the `run` method and can be used to
     initialize any resources needed for the task, such as loading data,
     creating directories, or setting up connections to external services.
+
+    Args:
+      runner_cls: An optional EncoderRunner class that can be used to
+        get embeddings for setting up the task.
+      **kwargs: Additional arguments to pass to the runner.
     """
     pass
 

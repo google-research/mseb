@@ -12,30 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run evaluation of an encoder on a task.
+"""Run task setup.
+
+This script is used to setup a task, such as creating embeddings cache or the
+index for retrieval tasks.
 
 Usage:
-run_task --task SVQClustering --encoder spectrogram_25_10_mean
+run_task_setup --task SVQEnUsPassageInLangRetrievalGecko
 """
 
 from typing import Type
 from absl import app
 from absl import flags
-from mseb import leaderboard
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
-from mseb.encoders import encoder_registry
 
 FLAGS = flags.FLAGS
 
-
-_ENCODER = flags.DEFINE_string(
-    'encoder',
-    None,
-    'Name of the encoder.',
-    required=True,
-)
 
 _TASK = flags.DEFINE_string(
     'task',
@@ -54,16 +48,9 @@ _CACHE_DIR = flags.DEFINE_string(
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
-  encoder_name = _ENCODER.value
-  encoder = encoder_registry.get_encoder_metadata(encoder_name).load()
-  runner = runner_lib.DirectRunner(sound_encoder=encoder, num_threads=128)
   task_cls: Type[task_lib.MSEBTask] = tasks.get_name_to_task()[_TASK.value]
   task = task_cls(cache_dir=_CACHE_DIR.value)
-  results = leaderboard.run_benchmark(
-      encoder_name=encoder_name, runner=runner, task=task
-  )
-  for result in results:
-    print(result.to_json())
+  task.setup(runner_lib.BeamRunner, num_threads=128, output_path=task.cache_dir)
 
 
 if __name__ == '__main__':

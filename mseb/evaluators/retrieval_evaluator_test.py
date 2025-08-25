@@ -112,7 +112,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
 
   def test_evaluate_with_cache(self):
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
-    cache_path = path.join(self.testdata_path, 'scann_artefacts')
+    cache_path = path.join(self.testdata_path, 'svq_passage_retrieval_in_lang')
     searcher = tf.saved_model.load(cache_path)
     _ = searcher(tf.constant([[1.0, 2.0, 3.0]], dtype=tf.float32))
     evaluator = retrieval_evaluator.RetrievalEvaluator(
