@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+import pathlib
+import shutil
 import sys
 from unittest import mock
 
@@ -142,6 +144,45 @@ class SVQTest(absltest.TestCase):
     self.assertEqual(task_record["task"], "qa_cross_lang")
     self.assertIn("On 8 April 2018", task_record["passage_text"])
 
+  def test_get_task_data_for_text_index(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent,
+        "testdata",
+    )
+    # Add a .git marker to prevent SVQDataset from trying to download the data
+    # from Huggingface.
+    base_path = self.create_tempdir().full_path
+    shutil.rmtree(base_path)
+    shutil.copytree(testdata_path, base_path)
+    os.chmod(base_path, 0o755)
+    pathlib.Path.touch(
+        pathlib.Path(os.path.join(base_path, ".git")),
+    )
+
+    dataset = svq.SVQDataset(base_path=base_path)
+    examples = list(
+        dataset.get_task_data("passage_retrieval_in_lang_index").itertuples()
+    )
+    self.assertLen(examples, 3)
+    example = examples[0]
+    self.assertEqual(example.id, "english-5046980532842052129-41")
+    self.assertEqual(example.title, "American football")
+    self.assertTrue(example.context.startswith("Football games last for a"))
+
+    example = examples[1]
+    self.assertEqual(example.id, "english-688112198501873749-3")
+    self.assertEqual(
+        example.title, "Cannabis classification in the United Kingdom"
+    )
+    self.assertTrue(example.context.startswith("Early in January 2006 Charles"))
+
+    example = examples[2]
+    self.assertEqual(example.id, "english-1064747448949054415-7")
+    self.assertEqual(
+        example.title, "Little Albert experiment"
+    )
+    self.assertTrue(example.context.startswith("Albert was about one year old"))
+
+
 if __name__ == "__main__":
   absltest.main()
-
