@@ -19,7 +19,7 @@ from __future__ import annotations
 from concurrent import futures
 import dataclasses
 import os
-from typing import Any, Dict, Iterable, List, Sequence, Union
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
@@ -159,6 +159,9 @@ class RetrievalReferenceId:
   reference_id: str
 
 
+RetrievalPredictionsCache = Mapping[str, Sequence[str]]
+
+
 class RetrievalEvaluatorV2:
   """Evaluator for retrieval tasks."""
 
@@ -185,7 +188,7 @@ class RetrievalEvaluatorV2:
       A list of Score objects containing the final, aggregated scores. The
       scores include mean reciprocal rank (MRR) and exact match (EM).
     """
-    values_by_metric = {'mrr': [], 'em': []}
+    predictions = {}
     for reference_id in reference_ids:
       embedding = embeddings[reference_id.sound_id].embedding
       if embedding.ndim != 2 or embedding.shape[0] != 1:
@@ -198,15 +201,29 @@ class RetrievalEvaluatorV2:
           [self.id_by_index_id[int(x.numpy())] for x in ids]
           for ids in ranked_index_ids
       ]
+      predictions[reference_id.sound_id] = ranked_doc_ids[0]
+    return self.evaluate_predictions(predictions, reference_ids)
+
+  def evaluate_predictions(
+      self,
+      predictions: RetrievalPredictionsCache,
+      reference_ids: Iterable[RetrievalReferenceId],
+  ) -> list[types.Score]:
+    """Returns quality metrics of the predictions."""
+    values_by_metric = {'mrr': [], 'em': []}
+    for reference_id in reference_ids:
+      ranked_doc_ids: Sequence[str] = predictions[reference_id.sound_id]
       values_by_metric['mrr'].append(
           types.WeightedValue(
               value=compute_reciprocal_rank(
-                  reference_id.reference_id, ranked_doc_ids[0]
+                  reference_id.reference_id, ranked_doc_ids
               )
           )
       )
       values_by_metric['em'].append(
-          types.WeightedValue(value=float(reference_id == ranked_doc_ids[0][0]))
+          types.WeightedValue(
+              value=float(reference_id.reference_id == ranked_doc_ids[0])
+          )
       )
 
     mrr_score = mrr(

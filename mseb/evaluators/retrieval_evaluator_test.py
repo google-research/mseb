@@ -161,6 +161,36 @@ class RetrievalEvaluatorV2Test(absltest.TestCase):
         'testdata',
     )
 
+  def test_evaluate_predictions(self):
+    evaluator = retrieval_evaluator.RetrievalEvaluatorV2(
+        searcher=tfrs.layers.factorized_top_k.BruteForce(),  # Not used.
+        id_by_index_id=(),  # Not used.
+    )
+    scores = evaluator.evaluate_predictions(
+        predictions={
+            '1': ['bli', 'bla', 'blo'],
+            '2': ['bli', 'bla', 'blu'],
+        },
+        reference_ids=[
+            retrieval_evaluator.RetrievalReferenceId(
+                sound_id='1', reference_id='bla'
+            ),
+            retrieval_evaluator.RetrievalReferenceId(
+                sound_id='2', reference_id='bli'
+            ),
+        ],
+    )
+    self.assertLen(scores, 2)
+    for score in scores:
+      if score.metric == 'MRR':
+        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 4)
+      elif score.metric == 'EM':
+        npt.assert_equal(score.value, (0.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 2)
+      else:
+        raise ValueError(f'Unexpected metric: {score.metric}')
+
   def test_call(self):
     searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
@@ -209,10 +239,10 @@ class RetrievalEvaluatorV2Test(absltest.TestCase):
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
-        npt.assert_equal(score.std, 0.25)
+        npt.assert_equal(score.std, 1 / 4)
       elif score.metric == 'EM':
-        npt.assert_equal(score.value, (0.0 + 0.0) / 2)
-        npt.assert_equal(score.std, 0.0)
+        npt.assert_equal(score.value, (0.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 2)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 
