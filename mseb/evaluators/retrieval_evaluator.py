@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from concurrent import futures
 import dataclasses
-import io
 import os
 from typing import Any, Dict, Iterable, List, Sequence, Union
 
@@ -265,8 +264,10 @@ def save_index(
     id_by_index_id_filepath: The filepath for the id by index id mapping
       relative to scann_base_dir.
   """
-  os.makedirs(scann_base_dir, exist_ok=True)
-  with io.open(os.path.join(scann_base_dir, id_by_index_id_filepath), 'w') as f:
+  tf.io.gfile.makedirs(scann_base_dir)
+  with tf.io.gfile.GFile(
+      os.path.join(scann_base_dir, id_by_index_id_filepath), 'w'
+  ) as f:
     f.write('\n'.join(id_by_index_id))
   tf.saved_model.save(
       searcher,
@@ -290,7 +291,9 @@ def load_index(
     A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
     mapping from index id (int) to id (str).
   """
-  with io.open(os.path.join(scann_base_dir, id_by_index_id_filepath), 'r') as f:
+  with tf.io.gfile.GFile(
+      os.path.join(scann_base_dir, id_by_index_id_filepath), 'r'
+  ) as f:
     id_by_index_id: Sequence[str] = f.read().splitlines()
   searcher: tfrs.layers.factorized_top_k.TopK = tf.saved_model.load(
       scann_base_dir
