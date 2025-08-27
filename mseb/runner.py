@@ -18,7 +18,7 @@ import abc
 from concurrent import futures
 import os
 import pickle
-from typing import Iterable, overload
+from typing import Iterable, Sequence, overload
 
 import apache_beam as beam
 from mseb import encoder as encoder_lib
@@ -87,21 +87,27 @@ class DirectRunner(EncoderRunner):
       yield batch
 
   @overload
-  def _encode_element(
-      self, element: types.Sound
-  ) -> tuple[str, types.SoundEmbedding]:
+  def _encode_batch(
+      self, batch: Sequence[types.Sound]
+  ) -> Sequence[tuple[str, types.SoundEmbedding]]:
     ...
 
   @overload
-  def _encode_element(
-      self, element: types.Text
-  ) -> tuple[str, types.TextEmbeddings]:
+  def _encode_batch(
+      self, batch: Sequence[types.Text]
+  ) -> Sequence[tuple[str, types.TextEmbeddings]]:
     ...
 
-  def _encode_element(
-      self, element: types.Sound | types.Text
-  ) -> tuple[str, types.SoundEmbedding] | tuple[str, types.TextEmbeddings]:
-    return element.context.id, self._encoder.encode(element)
+  def _encode_batch(
+      self, batch: Sequence[types.Sound | types.Text]
+  ) -> Sequence[
+      tuple[str, types.SoundEmbedding] | tuple[str, types.TextEmbeddings]
+  ]:
+    encoded = self._encoder.encode(batch)
+    return [
+        (element.context.id, embedding)
+        for element, embedding in zip(batch, encoded)
+    ]
 
   def run(
       self, elements: Iterable[types.Sound] | Iterable[types.Text]
@@ -112,10 +118,11 @@ class DirectRunner(EncoderRunner):
       with futures.ThreadPoolExecutor(
           max_workers=self._num_threads
       ) as executor:
-        for element_id, embedding in executor.map(
-            self._encode_element, elements
+        for element_id_and_embedding_batch in executor.map(
+            self._encode_batch, self._batch_elements(elements)
         ):
-          embeddings[element_id] = embedding
+          for element_id, embedding in element_id_and_embedding_batch:
+            embeddings[element_id] = embedding
     elif self._batch_size > 0:
       for batch in self._batch_elements(elements):
         encoded = self._encoder.encode_batch(batch)
