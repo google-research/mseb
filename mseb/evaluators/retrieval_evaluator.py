@@ -169,9 +169,11 @@ class RetrievalEvaluatorV2:
       self,
       searcher: tfrs.layers.factorized_top_k.TopK,
       id_by_index_id: Sequence[str],
+      top_k: int = 10,
   ):
     self.searcher = searcher
     self.id_by_index_id = id_by_index_id
+    self.top_k = top_k
 
   def __call__(
       self,
@@ -212,7 +214,9 @@ class RetrievalEvaluatorV2:
     """Returns quality metrics of the predictions."""
     values_by_metric = {'mrr': [], 'em': []}
     for reference_id in reference_ids:
-      ranked_doc_ids: Sequence[str] = predictions[reference_id.sound_id]
+      ranked_doc_ids: Sequence[str] = (
+          predictions[reference_id.sound_id][: self.top_k]
+      )
       values_by_metric['mrr'].append(
           types.WeightedValue(
               value=compute_reciprocal_rank(
