@@ -148,6 +148,27 @@ class EncodeDoFn(beam.DoFn):
     yield self._encoder.encode(element)
 
 
+def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
+  """Loads embeddings from TFRecord files into a dict."""
+  embeddings = {}
+  output_files = tf.io.gfile.glob(output_prefix + '*')
+  for filename in output_files:
+    # But don't know how to read back from TFRecord except via tf.data.
+    dataset = tf.data.TFRecordDataset(filename)
+    for record in dataset:
+      embedding: Embeddings = pickle.loads(record.numpy())
+      embeddings[embedding.context.id] = embedding
+  return embeddings
+
+
+def save_embeddings(output_prefix: str, embeddings: types.EmbeddingCache):
+  """Saves embeddings from a dict into to TFRecord files."""
+  with tf.io.TFRecordWriter(output_prefix + '.tfrecord') as writer:
+    for embedding in embeddings.values():
+      record_bytes = pickle.dumps(embedding)
+      writer.write(record_bytes)  # pytype: disable=attribute-error
+
+
 class BeamRunner(EncoderRunner):
   """Runner that encodes using beam, then loads results into in-memory dict."""
 
@@ -165,24 +186,12 @@ class BeamRunner(EncoderRunner):
     self._output_path = output_path
     self._runner = runner
 
-  def _load_embeddings(self, output_prefix: str) -> types.EmbeddingCache:
-    """Loads embeddings from TFRecord files into a dict."""
-    embeddings = {}
-    output_files = tf.io.gfile.glob(output_prefix + '*')
-    for filename in output_files:
-      # But don't know how to read back from TFRecord except via tf.data.
-      dataset = tf.data.TFRecordDataset(filename)
-      for record in dataset:
-        embedding: Embeddings = pickle.loads(record.numpy())
-        embeddings[embedding.context.id] = embedding
-    return embeddings
-
   def run(
       self, elements: Iterable[types.Sound] | Iterable[types.Text]
   ) -> types.EmbeddingCache:
     output_prefix = os.path.join(self._output_path, 'embeddings')
     try:
-      return self._load_embeddings(output_prefix)
+      return load_embeddings(output_prefix)
     except FileNotFoundError:
       pass
 
@@ -196,4 +205,4 @@ class BeamRunner(EncoderRunner):
           | 'WriteTFRecord' >> beam.io.tfrecordio.WriteToTFRecord(output_prefix)
       )
 
-    return self._load_embeddings(output_prefix)
+    return load_embeddings(output_prefix)
