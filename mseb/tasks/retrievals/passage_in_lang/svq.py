@@ -25,30 +25,7 @@ from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 
 
-class SVQRetrieval(retrieval.RetrievalTask):
-  """SVQ retrieval."""
-
-  metadata = types.TaskMetadata(
-      name='SVQRetrieval',
-      description='Retrieval task.',
-      reference='TODO',
-      type='Retrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQPassageInLangRetrieval(SVQRetrieval):
+class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   """SVQ passage in-lang retrieval."""
 
   def __init__(
@@ -88,7 +65,6 @@ class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
   """SVQ passage in-lang retrieval for en-US."""
 
   def sounds(self) -> Iterable[types.Sound]:
-    assert 'en-US' in self.metadata.eval_langs
     # TODO(heigold): Race condition or download all data for each locale?
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data(
@@ -100,7 +76,6 @@ class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    assert 'en-US' in self.metadata.eval_langs
     # TODO(heigold): Race condition or download all data for each locale?
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data(sub_task).itertuples():
@@ -111,6 +86,26 @@ class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
 
 
 class SVQEnUsPassageInLangRetrievalGecko(SVQEnUsPassageInLangRetrieval):
+  """SVQ passage in-lang retrieval for en-US using Gecko."""
+
+  metadata = types.TaskMetadata(
+      name='SVQEnUsPassageInLangRetrievalGecko',
+      description='Passage in-lang retrieval task.',
+      reference='TODO',
+      type='PassageInLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['en-US'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
 
   def __init__(self, cache_dir: str | None = None):
     super().__init__(

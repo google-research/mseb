@@ -16,4 +16,4 @@
 
 from mseb.task import get_name_to_task
 from .clustering import ClusteringTask
-from .retrieval import RetrievalTask
+from .retrievals.passage_in_lang.svq import *
