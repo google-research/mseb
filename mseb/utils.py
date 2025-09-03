@@ -21,11 +21,12 @@ from typing import Optional
 import librosa
 import numpy as np
 import soundfile
+import tensorflow as tf
 
 
 def download_from_hf(repo_id: str, target_dir: str, repo_type: str = "dataset"):
   """Clones a repository from Hugging Face if not already present."""
-  if os.path.exists(os.path.join(target_dir, ".git")):
+  if tf.io.gfile.exists(os.path.join(target_dir, ".git")):
     print(f"Repo '{repo_id}' already found at {target_dir}. Skipping.")
     return
 

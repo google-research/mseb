@@ -26,6 +26,7 @@ from mseb import utils
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
+import tensorflow as tf
 
 
 def _read_wav_bytes(
@@ -78,7 +79,7 @@ class _UttLookup:
 
     if path not in self.readers:
       array_record_path = os.path.join(self.base_path, f"{path}.array_record")
-      if not os.path.exists(array_record_path):
+      if not tf.io.gfile.exists(array_record_path):
         raise FileNotFoundError(
             f"Array record file not found: {array_record_path}"
         )
@@ -138,7 +139,7 @@ class SimpleVoiceQuestionsDataset(dataset.Dataset):
     """Loads the master index of all unique utterances."""
     self._download_and_prepare()
     utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
-    if not os.path.exists(utt_index_path):
+    if not tf.io.gfile.exists(utt_index_path):
       raise FileNotFoundError(f"Master index not found: {utt_index_path}")
     return pd.read_json(utt_index_path, lines=True)
 
@@ -185,7 +186,7 @@ class SimpleVoiceQuestionsDataset(dataset.Dataset):
     """
     task_filename = f"{task_name}.jsonl"
     task_path = os.path.join(self.base_path, task_filename)
-    if not os.path.exists(task_path):
+    if not tf.io.gfile.exists(task_path):
       raise FileNotFoundError(
           f"Task file not found: {task_path}. "
           f"Ensure the task name '{task_name}' is valid."
