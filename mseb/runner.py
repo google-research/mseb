@@ -15,10 +15,11 @@
 """Runners for executing encoders and storing embeddings."""
 
 import abc
+from collections.abc import Iterable, Iterator, Sequence
 from concurrent import futures
 import os
 import pickle
-from typing import Iterable, Sequence, overload
+from typing import overload
 
 import apache_beam as beam
 from mseb import encoder as encoder_lib
@@ -103,7 +104,7 @@ class DirectRunner(EncoderRunner):
   ) -> Sequence[
       tuple[str, types.SoundEmbedding] | tuple[str, types.TextEmbeddings]
   ]:
-    encoded = self._encoder.encode(batch)
+    encoded = self._encoder.encode_batch(batch)
     return [
         (element.context.id, embedding)
         for element, embedding in zip(batch, encoded)
@@ -138,14 +139,35 @@ class DirectRunner(EncoderRunner):
 class EncodeDoFn(beam.DoFn):
   """A DoFn that wraps an Encoder."""
 
-  def __init__(self, encoder: Encoder):
+  def __init__(self, encoder: Encoder, batch_size: int = 0):
     self._encoder = encoder
+    self._batch_size = batch_size
+    self._batch = []
 
   def setup(self):
     self._encoder.setup()
 
+  def start_bundle(self) -> None:
+    """Resets the batch."""
+    self._batch = []
+
   def process(self, element: types.Sound | types.Text):
-    yield self._encoder.encode(element)
+    self._batch.append(element)
+    if len(self._batch) == self._batch_size:
+      embeds = self._encoder.encode_batch(self._batch)
+      for embed in embeds:
+        beam.metrics.Metrics.counter('EncodeDoFn', 'num_embeddings').inc()
+        yield embed
+      self._batch = []
+
+  def finish_bundle(self) -> Iterator[beam.utils.windowed_value.WindowedValue]:
+    """Writes the remaining batch."""
+    if self._batch:
+      embeds = self._encoder.encode_batch(self._batch)
+      for embed in embeds:
+        beam.metrics.Metrics.counter('EncodeDoFn', 'num_embeddings').inc()
+        yield beam.transforms.window.GlobalWindows.windowed_value(embed)
+    self._batch = []
 
 
 def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
@@ -173,18 +195,24 @@ class BeamRunner(EncoderRunner):
   """Runner that encodes using beam, then loads results into in-memory dict."""
 
   def __init__(
-      self, output_path: str, runner: beam.runners.PipelineRunner, **kwargs
+      self,
+      output_path: str,
+      runner: beam.runners.PipelineRunner,
+      batch_size: int = 1,
+      **kwargs
   ):
     """Initializes the BeamRunner.
 
     Args:
       output_path: The root directory to write temporary output files to.
       runner: The beam pipeline runner to use.
+      batch_size: The batch size to use for encoding.
       **kwargs: Additional keyword arguments for the base class.
     """
     super().__init__(**kwargs)
     self._output_path = output_path
     self._runner = runner
+    self._batch_size = batch_size
 
   def run(
       self, elements: Iterable[types.Sound] | Iterable[types.Text]

@@ -50,7 +50,9 @@ def main(argv):
     raise app.UsageError('Too many command-line arguments.')
   task_cls: Type[task_lib.MSEBTask] = tasks.get_name_to_task()[_TASK.value]
   task = task_cls(cache_dir=_CACHE_DIR.value)
-  task.setup(runner_lib.BeamRunner, num_threads=128, output_path=task.cache_dir)
+  task.setup(
+      runner_lib.DirectRunner, num_workers=16, output_path=task.cache_dir
+  )
 
 
 if __name__ == '__main__':
