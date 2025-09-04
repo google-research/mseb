@@ -12,40 +12,73 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Registry for SoundEncoders.
+"""Registry for Encoders.
 
 This module defines the EncoderMetadata dataclass, which holds the information
-needed to instantiate and load SoundEncoder models. It also includes
-definitions for specific encoder configurations.
+needed to instantiate and load Encoder models. It also includes definitions for
+specific encoder configurations.
 """
 
 import dataclasses
 import inspect
 import sys
-from typing import Any, Type
+from typing import Any, Callable, Type
 
+from absl import flags
 from mseb import encoder as encoder_lib
+from mseb.encoders import cascade_encoder
+from mseb.encoders import embed_whisper_encoder
+from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
 from mseb.encoders import whisper_encoder
 
 
+Encoder = encoder_lib.SoundEncoder | encoder_lib.TextEncoder
+
+
 @dataclasses.dataclass(frozen=True)
 class EncoderMetadata:
-  """Metadata for a SoundEncoder instantiated with specific parameters."""
+  """Metadata for an Encoder instantiated with specific parameters."""
 
   name: str  # The name of the encoder for creation and leaderboard entry.
-  encoder: Type[encoder_lib.SoundEncoder]  # The encoder class.
-  params: dict[str, Any]  # Additional encoder parameters.
+  encoder: Type[Encoder]  # The encoder class.
+  # Lazy evaluation of the encoder parameters so we can use flags.
+  params: Callable[[], dict[str, Any]]  # Additional encoder parameters.
 
-  def load(self) -> encoder_lib.SoundEncoder:
+  def load(self) -> Encoder:
     """Loads the encoder."""
-    return self.encoder(**self.params)  # pytype: disable=not-instantiable
+    return self.encoder(**self.params())  # pytype: disable=not-instantiable
 
+
+gecko_text = EncoderMetadata(
+    name="gecko_text",
+    encoder=text_encoder.GeckoTextEncoder,
+    params=lambda: dict(
+        model_path="@gecko/gecko-1b-i18n-tpu/2"
+    ),
+)
+
+gecko_transcript_truth = EncoderMetadata(
+    name="gecko_transcript_truth",
+    encoder=cascade_encoder.GeckoTranscriptTruthEncoderV2,
+    params=lambda: dict(
+        model_path="@gecko/gecko-1b-i18n-tpu/2"
+    ),
+)
+
+gecko_whisper = EncoderMetadata(
+    name="gecko_whisper",
+    encoder=embed_whisper_encoder.GeckoWhisperEncoderV2,
+    params=lambda: dict(
+        model_path="large-v3",
+        gecko_model_path="@gecko/gecko-1b-i18n-tpu/2"
+    ),
+)
 
 raw_encoder_25ms_10ms = EncoderMetadata(
     name="raw_spectrogram_25ms_10ms_mean",
     encoder=raw_encoder.RawEncoder,
-    params={
+    params=lambda: {
         "frame_length": 25,
         "frame_step": 10,
         "transform_fn": raw_encoder.spectrogram_transform,
@@ -56,26 +89,27 @@ raw_encoder_25ms_10ms = EncoderMetadata(
 whisper_base_speech_to_text = EncoderMetadata(
     name="whisper_base_speech_to_text",
     encoder=whisper_encoder.SpeechToTextEncoderV2,
-    params=dict(model_path="base"),
+    params=lambda: dict(model_path="base"),
 )
 
 whisper_base_pooled_last = EncoderMetadata(
     name="whisper_base_pooled_last",
     encoder=whisper_encoder.PooledAudioEncoderV2,
-    params=dict(model_path="base", pooling="last"),
+    params=lambda: dict(model_path="base", pooling="last"),
 )
 
 whisper_base_pooled_mean = EncoderMetadata(
     name="whisper_base_pooled_mean",
     encoder=whisper_encoder.PooledAudioEncoderV2,
-    params=dict(model_path="base", pooling="mean"),
+    params=lambda: dict(model_path="base", pooling="mean"),
 )
 
 whisper_base_pooled_max = EncoderMetadata(
     name="whisper_base_pooled_max",
     encoder=whisper_encoder.PooledAudioEncoderV2,
-    params=dict(model_path="base", pooling="max"),
+    params=lambda: dict(model_path="base", pooling="max"),
 )
+
 
 
 _REGISTRY: dict[str, EncoderMetadata] = {}
