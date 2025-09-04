@@ -45,13 +45,29 @@ _CACHE_DIR = flags.DEFINE_string(
 )
 
 
+_BATCH_SIZE = flags.DEFINE_integer(
+    'batch_size',
+    0,
+    'Batch size for the encoder.',
+)
+
+_NUM_THREADS = flags.DEFINE_integer(
+    'num_threads',
+    1,
+    'Number of threads for the encoder.',
+)
+
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
   task = task_cls(cache_dir=_CACHE_DIR.value)
   task.setup(
-      runner_lib.DirectRunner, num_workers=16, output_path=task.cache_dir
+      runner_lib.DirectRunner,
+      batch_size=_BATCH_SIZE.value,
+      num_workers=_NUM_THREADS.value,
+      output_path=task.cache_dir,
   )
 
 
