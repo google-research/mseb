@@ -16,6 +16,7 @@ from typing import Sequence, Tuple, Union
 
 from absl.testing import absltest
 from mseb import encoder
+from mseb import types
 from mseb.evaluators import reranking_evaluator
 import numpy as np
 import numpy.testing as npt
@@ -89,6 +90,104 @@ class RerankingEvaluatorTest(absltest.TestCase):
     npt.assert_equal(combined_scores['qer_std'], 1 / 2)
     npt.assert_equal(combined_scores['wer'], 8 / 5)
     npt.assert_equal(combined_scores['wer_std'], (6 / 25) ** 0.5)
+
+
+class RerankingEvaluatorV2Test(absltest.TestCase):
+
+  def test_evaluate_predictions(self):
+    evaluator = reranking_evaluator.RerankingEvaluatorV2(
+        candidate_embeddings_by_text={
+            'b l i': types.TextEmbeddings(
+                embeddings=np.array([[3.0, 4.0]], dtype=np.float32),
+                spans=np.array([[0, -1]]),
+                context=types.TextContextParams(id='b l i'),
+            ),
+            'b l a': types.TextEmbeddings(
+                embeddings=np.array([[5.0, 6.0]], dtype=np.float32),
+                spans=np.array([[0, -1]]),
+                context=types.TextContextParams(id='b l a'),
+            ),
+            'x y z': types.TextEmbeddings(
+                embeddings=np.array([[1.0, 2.0]], dtype=np.float32),
+                spans=np.array([[0, -1]]),
+                context=types.TextContextParams(id='x y z'),
+            ),
+        },
+    )
+    scores = evaluator.evaluate_predictions(
+        predictions={
+            'test': ['b l a', 'b l i', 'x y z'],
+        },
+        candidates_batch=[
+            reranking_evaluator.RerankingCandidates(
+                sound_id='test',
+                texts=['b l i', 'b l a', 'x y z'],
+            ),
+        ],
+        is_english=True,
+    )
+    npt.assert_equal(len(scores), 3)
+    self.assertIn('WER', scores[0].metric)
+    npt.assert_equal(scores[0].value, 1 / 3)
+    npt.assert_equal(scores[0].std, 0)
+    self.assertIn('CER', scores[1].metric)
+    npt.assert_equal(scores[1].value, 1)
+    npt.assert_equal(scores[1].std, 0)
+    self.assertIn('MRR', scores[2].metric)
+    npt.assert_equal(scores[2].value, 1 / 2)
+    npt.assert_equal(scores[2].std, 0)
+
+  def test_call(self):
+    evaluator = reranking_evaluator.RerankingEvaluatorV2(
+        candidate_embeddings_by_text={
+            'b l i': types.TextEmbeddings(
+                embeddings=np.array([[3.0, 4.0]], dtype=np.float32),
+                spans=np.array([[0, -1]]),
+                context=types.TextContextParams(id='b l i'),
+            ),
+            'b l a': types.TextEmbeddings(
+                embeddings=np.array([[5.0, 6.0]], dtype=np.float32),
+                spans=np.array([[0, -1]]),
+                context=types.TextContextParams(id='b l a'),
+            ),
+            'x y z': types.TextEmbeddings(
+                embeddings=np.array([[1.0, 2.0]], dtype=np.float32),
+                spans=np.array([[0, -1]]),
+                context=types.TextContextParams(id='x y z'),
+            ),
+        },
+        candidate_top_k=2,
+    )
+    scores = evaluator(
+        embeddings={
+            'test': types.SoundEmbedding(
+                embedding=np.array([[2.5, 3.0]]),
+                timestamps=np.array([[0.0, 1.0]]),
+                context=types.SoundContextParams(
+                    id='test',
+                    sample_rate=16000,
+                    length=100,
+                    language='en',
+                ),
+            ),
+        },
+        candidates_batch=[
+            reranking_evaluator.RerankingCandidates(
+                sound_id='test',
+                texts=['b l i', 'b l a', 'x y z'],
+            ),
+        ],
+    )
+    npt.assert_equal(len(scores), 3)
+    self.assertIn('WER', scores[0].metric)
+    npt.assert_equal(scores[0].value, 1 / 3)
+    npt.assert_equal(scores[0].std, 0)
+    self.assertIn('CER', scores[1].metric)
+    npt.assert_equal(scores[1].value, 1)
+    npt.assert_equal(scores[1].std, 0)
+    self.assertIn('MRR', scores[2].metric)
+    npt.assert_equal(scores[2].value, 1 / 2)
+    npt.assert_equal(scores[2].std, 0)
 
 
 if __name__ == '__main__':
