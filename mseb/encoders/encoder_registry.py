@@ -75,6 +75,13 @@ gecko_whisper = EncoderMetadata(
     ),
 )
 
+# For testing only.
+mock_text = EncoderMetadata(
+    name="mock_text",
+    encoder=text_encoder.MockTextEncoder,
+    params=lambda: dict(model_path="not_used"),
+)
+
 raw_encoder_25ms_10ms = EncoderMetadata(
     name="raw_spectrogram_25ms_10ms_mean",
     encoder=raw_encoder.RawEncoder,

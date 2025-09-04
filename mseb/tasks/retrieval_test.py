@@ -19,7 +19,6 @@ from typing import Iterable
 from absl.testing import absltest
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder_lib
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 import numpy as np
@@ -113,12 +112,6 @@ class RetrievalTest(absltest.TestCase):
 
   def test_retrieval_task_setup(self):
 
-    class MockTextEncoder(text_encoder_lib.NormalizedTextEncoderWithPrompt):
-
-      def setup(self):
-        self.text_encode_fn = lambda prompts: np.zeros((len(prompts), 3))
-        self._model_loaded = True
-
     class MockRetrievalTask(retrieval.RetrievalTask):
 
       def documents(self) -> Iterable[types.Text]:
@@ -145,9 +138,7 @@ class RetrievalTest(absltest.TestCase):
         return ['not_used']
 
     task = MockRetrievalTask(
-        cache_dir=self.create_tempdir().full_path,
-        text_encoder_cls=MockTextEncoder,
-        text_encoder_kwargs={},
+        cache_dir=self.create_tempdir().full_path, text_encoder_name='mock_text'
     )
     task.setup(runner_cls=runner_lib.DirectRunner)
     self.assertIsNotNone(task._evaluator)

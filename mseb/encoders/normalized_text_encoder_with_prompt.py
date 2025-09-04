@@ -156,3 +156,11 @@ class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
         tf.constant(x)
     )['encodings'].numpy()
     self._model_loaded = True
+
+
+# For testing only.
+class MockTextEncoder(NormalizedTextEncoderWithPrompt):
+
+  def setup(self):
+    self.text_encode_fn = lambda prompts: np.zeros((len(prompts), 3))
+    self._model_loaded = True

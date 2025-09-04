@@ -18,12 +18,12 @@ import abc
 import logging
 import os
 import tempfile
-from typing import Any, Iterable, Type
+from typing import Iterable, Type
 
-from mseb import encoder as encoder_lib
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
+from mseb.encoders import encoder_registry
 from mseb.evaluators import retrieval_evaluator
 
 
@@ -36,15 +36,13 @@ class RetrievalTask(task.MSEBTask):
   def __init__(
       self,
       cache_dir: str | None = None,
-      text_encoder_cls: type[encoder_lib.TextEncoder] | None = None,
-      text_encoder_kwargs: dict[str, Any] | None = None,
+      text_encoder_name: str | None = None,
       id_by_index_id_filepath: str = 'ids.txt',
   ):
     super().__init__(
         cache_dir=cache_dir or os.path.join(tempfile.gettempdir(), 'mseb_cache')
     )
-    self.text_encoder_cls = text_encoder_cls
-    self.text_encoder_kwargs = text_encoder_kwargs
+    self.text_encoder_name = text_encoder_name
     self.id_by_index_id_filepath = id_by_index_id_filepath
     self._evaluator = None
 
@@ -53,12 +51,12 @@ class RetrievalTask(task.MSEBTask):
   ):
     """Create the index."""
     if runner_cls is not None:
-      if self.text_encoder_cls is None:
-        raise ValueError('Text encoder class is not set.')
-      if self.text_encoder_kwargs is None:
-        raise ValueError('Text encoder kwargs are not set.')
-      encoder = self.text_encoder_cls(**self.text_encoder_kwargs)
-      runner = runner_cls(encoder=encoder, **kwargs)
+      if self.text_encoder_name is None:
+        raise ValueError('Text encoder name is not set.')
+      text_encoder = encoder_registry.get_encoder_metadata(
+          self.text_encoder_name
+      ).load()
+      runner = runner_cls(encoder=text_encoder, **kwargs)
       embeddings = runner.run(self.documents())
       logger.info('Building ScaNN index...')
       searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)

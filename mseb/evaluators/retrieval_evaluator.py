@@ -190,6 +190,8 @@ class RetrievalEvaluatorV2:
       A list of Score objects containing the final, aggregated scores. The
       scores include mean reciprocal rank (MRR) and exact match (EM).
     """
+    # Make a copy to iterate multiple times.
+    reference_ids = tuple(reference_ids)
     predictions = {}
     for reference_id in reference_ids:
       embedding = embeddings[reference_id.sound_id].embedding

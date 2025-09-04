@@ -15,12 +15,10 @@
 """SVQ passage in-lang retrieval tasks."""
 
 import os
-from typing import Any, Iterable
+from typing import Iterable
 
-from mseb import encoder as encoder_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder_lib
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 
@@ -31,14 +29,9 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def __init__(
       self,
       cache_dir: str | None = None,
-      text_encoder_cls: type[encoder_lib.TextEncoder] | None = None,
-      text_encoder_kwargs: dict[str, Any] | None = None,
+      text_encoder_name: str | None = None,
   ):
-    super().__init__(
-        cache_dir=cache_dir,
-        text_encoder_cls=text_encoder_cls,
-        text_encoder_kwargs=text_encoder_kwargs,
-    )
+    super().__init__(cache_dir=cache_dir, text_encoder_name=text_encoder_name)
     self.cache_dir = os.path.join(
         self.cache_dir, 'svq_passage_retrieval_in_lang'
     )
@@ -71,7 +64,10 @@ class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
         'passage_retrieval_in_lang'
     ).itertuples():
       if example.locale == 'en_us':
-        yield svq_dataset.get_sound_by_id(example.utt_id)
+        sound = svq_dataset.get_sound_by_id(example.utt_id)
+        # Add the ground truth query for headroom analysis.
+        sound.context.text = example.text
+        yield sound
 
   def examples(
       self, sub_task: str
@@ -108,10 +104,6 @@ class SVQEnUsPassageInLangRetrievalGecko(SVQEnUsPassageInLangRetrieval):
   )
 
   def __init__(self, cache_dir: str | None = None):
-    super().__init__(
-        cache_dir=cache_dir,
-        text_encoder_cls=text_encoder_lib.GeckoTextEncoder,
-        text_encoder_kwargs={'model_path': '@gecko/gecko-1b-i18n-tpu/2'},
-    )
+    super().__init__(cache_dir=cache_dir, text_encoder_name='gecko_text')
 
 
