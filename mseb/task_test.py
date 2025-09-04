@@ -123,6 +123,14 @@ class MSEBTaskTest(absltest.TestCase):
     tasks = task.get_name_to_task()
     self.assertIn("mock_task", tasks)
 
+  def test_get_task_by_name(self):
+    task_cls = task.get_task_by_name("mock_task")
+    self.assertEqual(task_cls, MockTask)
+
+  def test_get_task_by_name_not_found(self):
+    with self.assertRaises(ValueError):
+      task.get_task_by_name("not_found")
+
 
 if __name__ == "__main__":
   absltest.main()

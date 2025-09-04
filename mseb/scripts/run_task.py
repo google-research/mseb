@@ -57,7 +57,7 @@ def main(argv):
   encoder_name = _ENCODER.value
   encoder = encoder_registry.get_encoder_metadata(encoder_name).load()
   runner = runner_lib.DirectRunner(sound_encoder=encoder, num_threads=128)
-  task_cls: Type[task_lib.MSEBTask] = tasks.get_name_to_task()[_TASK.value]
+  task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
   task = task_cls(cache_dir=_CACHE_DIR.value)
   results = leaderboard.run_benchmark(
       encoder_name=encoder_name, runner=runner, task=task

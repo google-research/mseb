@@ -15,5 +15,6 @@
 """MSEB Tasks."""
 
 from mseb.task import get_name_to_task
+from mseb.task import get_task_by_name
 from .clustering import ClusteringTask
 from .retrievals.passage_in_lang.svq import *

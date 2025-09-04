@@ -15,10 +15,14 @@
 """MSEB Task Class."""
 
 import abc
+import logging
 from typing import Iterable, Type
 
 from mseb import runner as runner_lib
 from mseb import types
+
+
+logger = logging.getLogger(__name__)
 
 
 class MSEBTask(abc.ABC):
@@ -66,3 +70,13 @@ def get_name_to_task() -> dict[str, Type[MSEBTask]]:
     else:
       tasks.extend(cls.__subclasses__())
   return name_to_task
+
+
+def get_task_by_name(task_name: str) -> Type[MSEBTask]:
+  """Returns the MSEBTask class for the given task name."""
+  task_cls = get_name_to_task().get(task_name)
+  if task_cls is None:
+    raise ValueError(
+        f'Task {task_name} not found. Registered tasks: {get_name_to_task()}'
+    )
+  return task_cls
