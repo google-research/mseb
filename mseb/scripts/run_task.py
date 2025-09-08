@@ -74,7 +74,7 @@ def main(argv):
       num_threads=_NUM_THREADS.value,
   )
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
-  task = task_cls(cache_dir=_CACHE_DIR.value)
+  task = task_cls()
   task.setup()
   results = leaderboard.run_benchmark(
       encoder_name=encoder_name, runner=runner, task=task
