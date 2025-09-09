@@ -21,6 +21,7 @@ import os
 import pickle
 from typing import overload
 
+from absl import logging
 import apache_beam as beam
 from mseb import encoder as encoder_lib
 from mseb import types
@@ -173,7 +174,10 @@ class EncodeDoFn(beam.DoFn):
 def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
   """Loads embeddings from TFRecord files into a dict."""
   embeddings = {}
-  output_files = tf.io.gfile.glob(output_prefix + '*')
+  file_glob = output_prefix + '*'
+  output_files = tf.io.gfile.glob(file_glob)
+  if not output_files:
+    raise FileNotFoundError(f'No files found matching {file_glob}')
   for filename in output_files:
     # But don't know how to read back from TFRecord except via tf.data.
     dataset = tf.data.TFRecordDataset(filename)
@@ -219,18 +223,22 @@ class BeamRunner(EncoderRunner):
   ) -> types.EmbeddingCache:
     output_prefix = os.path.join(self._output_path, 'embeddings')
     try:
+      logging.info('Loading embeddings from %s', output_prefix)
       return load_embeddings(output_prefix)
     except FileNotFoundError:
+      logging.info('No embeddings found at %s', output_prefix)
       pass
 
-    with beam.Pipeline(runner=self._runner) as root:
-      _ = (
-          root
-          | 'ReadExamples' >> beam.Create(list(elements))
-          | 'Encode' >> beam.ParDo(EncodeDoFn(self._encoder))
-          | 'Serialize' >> beam.Map(pickle.dumps)
-          # Using TFRecord because it's available as standard beam io.
-          | 'WriteTFRecord' >> beam.io.tfrecordio.WriteToTFRecord(output_prefix)
-      )
-
+    pipeline = beam.Pipeline(runner=self._runner)
+    _ = (
+        pipeline
+        | 'ReadExamples' >> beam.Create(list(elements))
+        | 'Encode' >> beam.ParDo(EncodeDoFn(self._encoder, self._batch_size))
+        | 'Serialize' >> beam.Map(pickle.dumps)
+        # Using TFRecord because it's available as standard beam io.
+        | 'WriteTFRecord' >> beam.io.tfrecordio.WriteToTFRecord(output_prefix)
+    )
+    logging.info('Running pipeline')
+    pipeline.run().wait_until_finish()
+    logging.info('Loading embeddings from %s', output_prefix)
     return load_embeddings(output_prefix)
