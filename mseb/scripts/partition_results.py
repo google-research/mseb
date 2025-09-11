@@ -20,15 +20,15 @@ name, and writes them to a directory structure of the form:
   <output_dir>/<encoder_name>/<task_name>.jsonl
 """
 
-import glob
 import json
 import os
 from typing import Sequence
 
 from absl import app
 from absl import flags
-
 from mseb import leaderboard
+import tensorflow as tf
+
 
 _INPUT_GLOB = flags.DEFINE_string(
     'input_glob', None, 'Glob pattern for input JSONL files.', required=True
@@ -45,14 +45,14 @@ def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  input_files = glob.glob(_INPUT_GLOB.value)
+  input_files = tf.io.gfile.glob(_INPUT_GLOB.value)
   if not input_files:
     raise FileNotFoundError(f'No files found matching {_INPUT_GLOB.value}')
 
   def result_iterator():
     decoder = json.JSONDecoder()
     for file_path in input_files:
-      with open(file_path, 'r') as f:
+      with tf.io.gfile.GFile(file_path, 'r') as f:
         content = f.read().strip()
         pos = 0
         while pos < len(content):
@@ -69,8 +69,8 @@ def main(argv: Sequence[str]) -> None:
 
   for partition_name, results in partitions.items():
     output_path = os.path.join(_OUTPUT_DIR.value, f'{partition_name}.jsonl')
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w') as f:
+    tf.io.gfile.makedirs(os.path.dirname(output_path))
+    with tf.io.gfile.GFile(output_path, 'w') as f:
       leaderboard.write_dataclasses_to_jsonl(results, f)
 
 if __name__ == '__main__':
