@@ -12,10 +12,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""MSEB Tasks."""
-
-from mseb.task import get_name_to_task
-from mseb.task import get_task_by_name
-from .clustering import ClusteringTask
-from .rerankings.query.svq import *
-from .retrievals.passage_in_lang.svq import *
