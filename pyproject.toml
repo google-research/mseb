@@ -33,6 +33,7 @@ dependencies = [
     "scann[tf]",
     "soundfile",
     "spacy",
+    "tqdm",
     "transformers",
     "tensorflow==2.15",
     "tensorflow_hub",

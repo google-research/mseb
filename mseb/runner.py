@@ -26,7 +26,10 @@ import apache_beam as beam
 from mseb import encoder as encoder_lib
 from mseb import types
 import tensorflow as tf
+import tqdm
 
+
+tqdm = tqdm.tqdm
 
 Encoder = encoder_lib.SoundEncoder | encoder_lib.TextEncoder
 Embeddings = types.SoundEmbedding | types.TextEmbeddings
@@ -69,10 +72,17 @@ class DirectRunner(EncoderRunner):
       dict[str, types.SoundEmbedding] | dict[str, types.TextEmbeddings]
   ) = {}
 
-  def __init__(self, batch_size=0, num_threads: int = 1, **kwargs):
+  def __init__(
+      self,
+      batch_size=0,
+      num_threads: int = 1,
+      output_path: str | None = None,
+      **kwargs
+  ):
     super().__init__(**kwargs)
     self._batch_size = batch_size
     self._num_threads = num_threads
+    self._output_path = output_path
 
   def _batch_elements(
       self, elements: Iterable[types.Sound] | Iterable[types.Text]
@@ -114,25 +124,43 @@ class DirectRunner(EncoderRunner):
   def run(
       self, elements: Iterable[types.Sound] | Iterable[types.Text]
   ) -> types.EmbeddingCache:
+    output_prefix = (
+        os.path.join(self._output_path, 'embeddings')
+        if self._output_path
+        else None
+    )
+    if output_prefix is not None:
+      try:
+        return load_embeddings(output_prefix)
+      except FileNotFoundError:
+        pass
+
     embeddings = {}
     self._encoder.setup()
     if self._num_threads > 1:
       with futures.ThreadPoolExecutor(
           max_workers=self._num_threads
       ) as executor:
-        for element_id_and_embedding_batch in executor.map(
-            self._encode_batch, self._batch_elements(elements)
+        for element_id_and_embedding_batch in tqdm(
+            executor.map(self._encode_batch, self._batch_elements(elements)),
+            desc='Encoding batches of elements',
         ):
           for element_id, embedding in element_id_and_embedding_batch:
             embeddings[element_id] = embedding
     elif self._batch_size > 0:
-      for batch in self._batch_elements(elements):
+      for batch in tqdm(
+          self._batch_elements(elements),
+          desc='Encoding batches of elements',
+      ):
         encoded = self._encoder.encode_batch(batch)
         for element, embedding in zip(batch, encoded):
           embeddings[element.context.id] = embedding
     else:
-      for element in elements:
+      for element in tqdm(elements, desc='Encoding elements'):
         embeddings[element.context.id] = self._encoder.encode(element)
+
+    if output_prefix is not None:
+      save_embeddings(output_prefix, embeddings)
 
     return embeddings
 
@@ -173,6 +201,7 @@ class EncodeDoFn(beam.DoFn):
 
 def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
   """Loads embeddings from TFRecord files into a dict."""
+  logging.info('Loading embeddings from %s', output_prefix + '*')
   embeddings = {}
   file_glob = output_prefix + '*'
   output_files = tf.io.gfile.glob(file_glob)
@@ -184,12 +213,16 @@ def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
     for record in dataset:
       embedding: Embeddings = pickle.loads(record.numpy())
       embeddings[embedding.context.id] = embedding
+  logging.info(
+      'Loaded %d embeddings from %s', len(embeddings), output_prefix + '*'
+  )
   return embeddings
 
 
 def save_embeddings(output_prefix: str, embeddings: types.EmbeddingCache):
   """Saves embeddings from a dict into to TFRecord files."""
-  with tf.io.TFRecordWriter(output_prefix + '.tfrecord') as writer:
+  logging.info('Saving embeddings to %s', f'{output_prefix}.tfrecord')
+  with tf.io.TFRecordWriter(f'{output_prefix}.tfrecord') as writer:
     for embedding in embeddings.values():
       record_bytes = pickle.dumps(embedding)
       writer.write(record_bytes)  # pytype: disable=attribute-error
