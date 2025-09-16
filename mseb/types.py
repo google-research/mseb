@@ -215,3 +215,5 @@ class TaskMetadata:
 SoundEmbeddingCache = Mapping[str, SoundEmbedding]
 TextEmbeddingCache = Mapping[str, TextEmbeddings]
 EmbeddingCache = SoundEmbeddingCache | TextEmbeddingCache
+
+MultiModalInput = Sound | Text
