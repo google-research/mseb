@@ -15,17 +15,19 @@
 import os
 import pathlib
 from absl.testing import absltest
+from mseb import encoder as encoder_lib
 from mseb import runner as runner_lib
 from mseb.encoders import raw_encoder
 from mseb.tasks import segmentation
 
 
 def get_test_encoder():
-  return raw_encoder.RawEncoder(
+  encoder = raw_encoder.RawEncoder(
       transform_fn=raw_encoder.spectrogram_transform,
       frame_length=(48000 // 1000 * 25),
       frame_step=(48000 // 1000 * 10),
   )
+  return encoder_lib.SoundEncoderAsMultiModalEncoder(encoder)
 
 
 class SegmentationTest(absltest.TestCase):

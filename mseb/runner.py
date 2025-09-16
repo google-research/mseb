@@ -31,7 +31,7 @@ import tqdm
 
 tqdm = tqdm.tqdm
 
-Encoder = encoder_lib.SoundEncoder | encoder_lib.TextEncoder
+Encoder = encoder_lib.MultiModalEncoder
 Embeddings = types.SoundEmbedding | types.TextEmbeddings
 
 
@@ -74,7 +74,7 @@ class DirectRunner(EncoderRunner):
 
   def __init__(
       self,
-      batch_size=0,
+      batch_size=1,
       num_threads: int = 1,
       output_path: str | None = None,
       **kwargs
@@ -115,7 +115,7 @@ class DirectRunner(EncoderRunner):
   ) -> Sequence[
       tuple[str, types.SoundEmbedding] | tuple[str, types.TextEmbeddings]
   ]:
-    encoded = self._encoder.encode_batch(batch)
+    encoded = self._encoder.encode(batch)
     return [
         (element.context.id, embedding)
         for element, embedding in zip(batch, encoded)
@@ -147,17 +147,14 @@ class DirectRunner(EncoderRunner):
         ):
           for element_id, embedding in element_id_and_embedding_batch:
             embeddings[element_id] = embedding
-    elif self._batch_size > 0:
+    else:
       for batch in tqdm(
           self._batch_elements(elements),
           desc='Encoding batches of elements',
       ):
-        encoded = self._encoder.encode_batch(batch)
+        encoded = self._encoder.encode(batch)
         for element, embedding in zip(batch, encoded):
           embeddings[element.context.id] = embedding
-    else:
-      for element in tqdm(elements, desc='Encoding elements'):
-        embeddings[element.context.id] = self._encoder.encode(element)
 
     if output_prefix is not None:
       save_embeddings(output_prefix, embeddings)
@@ -183,7 +180,7 @@ class EncodeDoFn(beam.DoFn):
   def process(self, element: types.Sound | types.Text):
     self._batch.append(element)
     if len(self._batch) == self._batch_size:
-      embeds = self._encoder.encode_batch(self._batch)
+      embeds = self._encoder.encode(self._batch)
       for embed in embeds:
         beam.metrics.Metrics.counter('EncodeDoFn', 'num_embeddings').inc()
         yield embed
@@ -192,7 +189,7 @@ class EncodeDoFn(beam.DoFn):
   def finish_bundle(self) -> Iterator[beam.utils.windowed_value.WindowedValue]:
     """Writes the remaining batch."""
     if self._batch:
-      embeds = self._encoder.encode_batch(self._batch)
+      embeds = self._encoder.encode(self._batch)
       for embed in embeds:
         beam.metrics.Metrics.counter('EncodeDoFn', 'num_embeddings').inc()
         yield beam.transforms.window.GlobalWindows.windowed_value(embed)

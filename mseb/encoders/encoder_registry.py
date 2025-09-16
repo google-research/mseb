@@ -33,7 +33,7 @@ from mseb.encoders import raw_encoder
 from mseb.encoders import whisper_encoder
 
 
-Encoder = encoder_lib.SoundEncoder | encoder_lib.TextEncoder
+Encoder = encoder_lib.MultiModalEncoder
 
 
 @dataclasses.dataclass(frozen=True)
@@ -41,13 +41,22 @@ class EncoderMetadata:
   """Metadata for an Encoder instantiated with specific parameters."""
 
   name: str  # The name of the encoder for creation and leaderboard entry.
-  encoder: Type[Encoder]  # The encoder class.
+  encoder: Type[
+      encoder_lib.TextEncoder
+      | encoder_lib.SoundEncoder
+      | encoder_lib.MultiModalEncoder
+  ]  # The encoder class, remove SoundEncoder and TextEncoder once all migrated.
   # Lazy evaluation of the encoder parameters so we can use flags.
   params: Callable[[], dict[str, Any]]  # Additional encoder parameters.
 
   def load(self) -> Encoder:
     """Loads the encoder."""
-    return self.encoder(**self.params())  # pytype: disable=not-instantiable
+    encoder = self.encoder(**self.params())  # pytype: disable=not-instantiable
+    if isinstance(encoder, encoder_lib.TextEncoder):
+      encoder = encoder_lib.TextEncoderAsMultiModalEncoder(encoder)
+    elif isinstance(encoder, encoder_lib.SoundEncoder):
+      encoder = encoder_lib.SoundEncoderAsMultiModalEncoder(encoder)
+    return encoder
 
 
 gecko_text = EncoderMetadata(
