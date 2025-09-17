@@ -213,24 +213,22 @@ def log_mel_transform(x: np.ndarray,
   return log_mels
 
 
-class RawEncoder(encoder.SoundEncoder):
+class RawEncoder(encoder.MultiModalEncoder):
   """Encodes raw audio into frames using a specified transform.
 
-  This class implements the SoundEncoder interface to create feature frames
+  This class implements the MultiModalEncoder interface to create feature frames
   from a raw waveform. It is configured by passing parameters like
   `frame_length`, `frame_step`, `transform_fn`, and `pooling`
   as keyword arguments during initialization.
   """
 
-  def __init__(self, model_path: str = "raw_feature_encoder", **kwargs: Any):
+  def __init__(self, **kwargs: Any):
     """Initializes the RawEncoder with its configuration.
 
     Note: This method is lightweight. All configuration is stored in
     `self._kwargs` and processed later in the `setup()` method.
 
     Args:
-      model_path: A descriptive name for the encoder configuration. Not used
-        for loading a model file but required by the base class.
       **kwargs: Configuration arguments. Expected keys include:
         - `frame_length` (int): The number of samples in each frame.
         - `frame_step` (int): The number of samples to advance between frames.
@@ -241,7 +239,8 @@ class RawEncoder(encoder.SoundEncoder):
         - `transform_fn_kwargs` (Optional[dict]): Keyword arguments to
           pass to the `transform_fn`.
     """
-    super().__init__(model_path, **kwargs)
+    super().__init__()
+    self._kwargs = kwargs
 
     # Declare all attributes that will be set in setup()
     # This tells the type checker that these attributes will exist.
@@ -252,7 +251,7 @@ class RawEncoder(encoder.SoundEncoder):
     self.transform_fn_kwargs: dict[str, Any] = {}
     self.pool_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None
 
-  def setup(self):
+  def _setup(self):
     """Sets up the encoder by validating configuration and preparing functions.
 
     This method extracts configuration from `self._kwargs`, validates that
@@ -284,76 +283,65 @@ class RawEncoder(encoder.SoundEncoder):
           "'last', 'mean', 'max', or None."
       )
 
-    self._model_loaded = True
+  def _check_input_types(
+      self, batch: Sequence[types.MultiModalInput]
+  ) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError("RawEncoder only supports a batch of all Sound inputs.")
 
   def _encode(
       self,
-      sound: types.Sound,
-      **kwargs: Any,
-  ) -> types.SoundEmbedding:
-    """Encodes a single sound source."""
-    waveform = np.asarray(sound.waveform, dtype=np.float32)
-    params = sound.context
-    assert len(waveform) == params.length, (
-        f"Input waveform length {len(waveform)} does not match "
-        f"params.length {params.length}."
-    )
-    num_frames = (
-        (len(waveform) - self.frame_length + self.frame_step) // self.frame_step
-    )
-    if num_frames <= 0:
-      return types.SoundEmbedding(
-          embedding=np.array([]), timestamps=np.array([]), context=params
-      )
-
-    frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)
-    timestamps_list = []
-    for i in range(num_frames):
-      start = i * self.frame_step
-      end = start + self.frame_length
-      frames[i] = waveform[start:end]
-      timestamps_list.append(
-          [start / params.sample_rate, end / params.sample_rate]
-      )
-
-    final_transform_kwargs = self.transform_fn_kwargs.copy()
-    final_transform_kwargs.update(kwargs)
-
-    embeddings = self.transform_fn(frames, **final_transform_kwargs)
-    waveform_embeddings = self.pool_fn(embeddings)
-
-    # Adjust timestamps if pooling was applied
-    if self.pooling is not None:
-      # A single timestamp for the entire utterance
-      embedding_timestamps = np.array([[0, len(waveform)]], dtype=np.float32)
-    else:
-      embedding_timestamps = np.array(timestamps_list, dtype=np.float32)
-
-    return types.SoundEmbedding(
-        embedding=waveform_embeddings,
-        timestamps=embedding_timestamps,
-        context=sound.context,
-    )
-
-  def _encode_batch(
-      self,
-      sound_batch: Sequence[types.Sound],
-      **kwargs: Any,
+      batch: Sequence[types.MultiModalInput],
   ) -> Sequence[types.SoundEmbedding]:
-    """Encodes a batch of sound sources.
-
-    Args:
-      sound_batch: A sequence of sound sources to encode.
-      **kwargs: Runtime arguments that are passed to the transform function.
-        These will override any `transform_fn_kwargs` set at init.
-
-    Returns:
-      A list of tuples, one for each input, each tuple containing:
-        - embeddings (np.ndarray): A 2D array of transformed features.
-        - timestamps (np.ndarray): A 2D array of [start, end] sample
-          indices for each embedding frame.
-    """
+    """Encodes a batch of sound sources."""
     outputs = []
-    for sound in sound_batch:
-      outputs.append(self._encode(sound, **kwargs))
+    for sound in batch:
+      assert isinstance(sound, types.Sound)
+      waveform = np.asarray(sound.waveform, dtype=np.float32)
+      params = sound.context
+      assert len(waveform) == params.length, (
+          f"Input waveform length {len(waveform)} does not match "
+          f"params.length {params.length}."
+      )
+      num_frames = (
+          (len(waveform) - self.frame_length + self.frame_step)
+          // self.frame_step
+      )
+      if num_frames <= 0:
+        outputs.append(
+            types.SoundEmbedding(
+                embedding=np.array([]),
+                timestamps=np.array([]),
+                context=params,
+            )
+        )
+        continue
+
+      frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)
+      timestamps_list = []
+      for i in range(num_frames):
+        start = i * self.frame_step
+        end = start + self.frame_length
+        frames[i] = waveform[start:end]
+        timestamps_list.append(
+            [start / params.sample_rate, end / params.sample_rate]
+        )
+
+      embeddings = self.transform_fn(frames, **self.transform_fn_kwargs)
+      waveform_embeddings = self.pool_fn(embeddings)
+
+      # Adjust timestamps if pooling was applied
+      if self.pooling is not None:
+        # A single timestamp for the entire utterance
+        embedding_timestamps = np.array([[0, len(waveform)]], dtype=np.float32)
+      else:
+        embedding_timestamps = np.array(timestamps_list, dtype=np.float32)
+
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=waveform_embeddings,
+              timestamps=embedding_timestamps,
+              context=sound.context,
+          )
+      )
     return outputs

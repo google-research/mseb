@@ -17,7 +17,6 @@ import pathlib
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
-from mseb import encoder as encoder_lib
 from mseb import runner as runner_lib
 from mseb import svq_data
 from mseb.encoders import raw_encoder
@@ -31,13 +30,12 @@ if not FLAGS.is_parsed():
 
 
 def get_test_encoder():
-  encoder = raw_encoder.RawEncoder(
+  return raw_encoder.RawEncoder(
       transform_fn=raw_encoder.spectrogram_transform,
       pooling="mean",
       frame_length=(48000 // 1000 * 25),
       frame_step=(48000 // 1000 * 10),
   )
-  return encoder_lib.SoundEncoderAsMultiModalEncoder(encoder)
 
 
 class ClusteringTest(absltest.TestCase):
