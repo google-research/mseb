@@ -64,6 +64,11 @@ class Sound:
   )
   context: SoundContextParams
 
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the waveform in bytes."""
+    return self.waveform.size * self.waveform.dtype.itemsize
+
 
 @dataclasses.dataclass
 class SoundEmbedding:
@@ -75,6 +80,11 @@ class SoundEmbedding:
   )
   timestamps: jaxtyping.Float[jaxtyping.Array, "M 2"]
   context: SoundContextParams
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the embedding in bytes."""
+    return self.embedding.size * self.embedding.dtype.itemsize
 
 
 @dataclasses.dataclass
@@ -91,6 +101,11 @@ class Text:
   text: str
   context: TextContextParams
 
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the text in bytes."""
+    return len(self.text.encode("utf-8"))
+
 
 @dataclasses.dataclass
 class TextEmbeddings:
@@ -98,6 +113,11 @@ class TextEmbeddings:
   embeddings: jaxtyping.Float[jaxtyping.Array, "N D"]
   spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
   context: TextContextParams
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the embedding in bytes."""
+    return self.embeddings.size * self.embeddings.dtype.itemsize
 
 
 @dataclasses.dataclass(frozen=True)
