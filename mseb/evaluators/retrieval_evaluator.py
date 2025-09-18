@@ -16,10 +16,11 @@
 
 from __future__ import annotations
 
-from concurrent import futures
 import dataclasses
+import itertools
+import logging
 import os
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, Union
+from typing import Any, Dict, List, Mapping, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
@@ -29,7 +30,7 @@ import tensorflow as tf
 import tensorflow_recommenders as tfrs
 
 
-ThreadPoolExecutor = futures.ThreadPoolExecutor
+logger = logging.getLogger(__name__)
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -160,6 +161,7 @@ class RetrievalReferenceId:
 
 
 RetrievalPredictionsCache = Mapping[str, Sequence[str]]
+RetrievalPredictionsWithScoresCache = Mapping[str, Sequence[tuple[str, float]]]
 
 
 class RetrievalEvaluatorV2:
@@ -178,7 +180,7 @@ class RetrievalEvaluatorV2:
   def __call__(
       self,
       embeddings: types.SoundEmbeddingCache,
-      reference_ids: Iterable[RetrievalReferenceId],
+      reference_ids: Sequence[RetrievalReferenceId],
   ) -> list[types.Score]:
     """Evaluates quality of the encoder for input sequence and return metrics.
 
@@ -190,8 +192,16 @@ class RetrievalEvaluatorV2:
       A list of Score objects containing the final, aggregated scores. The
       scores include mean reciprocal rank (MRR) and exact match (EM).
     """
-    # Make a copy to iterate multiple times.
-    reference_ids = tuple(reference_ids)
+    return self.evaluate_predictions(
+        self.compute_predictions(embeddings, reference_ids), reference_ids
+    )
+
+  def compute_predictions(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      reference_ids: Sequence[RetrievalReferenceId],
+  ) -> RetrievalPredictionsCache:
+    """Computes the predictions for the given embeddings."""
     predictions = {}
     for reference_id in reference_ids:
       embedding = embeddings[reference_id.sound_id].embedding
@@ -206,12 +216,136 @@ class RetrievalEvaluatorV2:
           for ids in ranked_index_ids
       ]
       predictions[reference_id.sound_id] = ranked_doc_ids[0]
-    return self.evaluate_predictions(predictions, reference_ids)
+    return predictions
 
   def evaluate_predictions(
       self,
       predictions: RetrievalPredictionsCache,
-      reference_ids: Iterable[RetrievalReferenceId],
+      reference_ids: Sequence[RetrievalReferenceId],
+  ) -> list[types.Score]:
+    """Returns quality metrics of the predictions."""
+    values_by_metric = {'mrr': [], 'em': []}
+    for reference_id in reference_ids:
+      ranked_doc_ids: Sequence[str] = (
+          predictions[reference_id.sound_id][: self.top_k]
+      )
+      values_by_metric['mrr'].append(
+          types.WeightedValue(
+              value=compute_reciprocal_rank(
+                  reference_id.reference_id, ranked_doc_ids
+              )
+          )
+      )
+      values_by_metric['em'].append(
+          types.WeightedValue(
+              value=float(reference_id.reference_id == ranked_doc_ids[0])
+          )
+      )
+
+    mrr_score = mrr(
+        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['mrr'])
+    )
+    em_score = em(
+        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['em'])
+    )
+    return [mrr_score, em_score]
+
+
+class RetrievalEvaluatorPartitioned:
+  """Evaluator for retrieval tasks with partitioned index."""
+
+  def __init__(
+      self,
+      index_dir: str,
+      top_k: int = 10,
+  ):
+    self.index_dir = index_dir
+    self.top_k = top_k
+
+  def __call__(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      reference_ids: Sequence[RetrievalReferenceId],
+  ) -> list[types.Score]:
+    """Evaluates quality of the encoder for input sequence and return metrics.
+
+    Args:
+      embeddings: The embeddings to evaluate.
+      reference_ids: The reference ids used for metric computation.
+
+    Returns:
+      A list of Score objects containing the final, aggregated scores. The
+      scores include mean reciprocal rank (MRR) and exact match (EM).
+    """
+    return self.evaluate_predictions(
+        self.compute_predictions(embeddings, reference_ids), reference_ids
+    )
+
+  def _predictions_sorted_by_score(
+      self, predictions_with_scores: RetrievalPredictionsWithScoresCache
+  ) -> RetrievalPredictionsCache:
+    """Sorts and deduplicates predictions based on their scores.
+
+    Args:
+      predictions_with_scores: A mapping from sound_id to a sequence of tuples,
+        where each tuple contains a predicted document ID and its corresponding
+        score.
+
+    Returns:
+      A mapping from sound_id to a sequence of deduplicated and sorted
+      predicted document IDs, truncated to `self.top_k`.
+    """
+    sorted_predictions = {
+        k: [p for p, _ in sorted(v, key=lambda x: x[1], reverse=True)]
+        for k, v in predictions_with_scores.items()
+    }
+    deduplicated_predictions = {}
+    for k, v in sorted_predictions.items():
+      v = [vv for vv, _ in itertools.groupby(v)]
+      assert len(v) == len(set(v))
+      deduplicated_predictions[k] = v[: self.top_k]
+    return deduplicated_predictions
+
+  def compute_predictions(
+      self, embeddings: types.SoundEmbeddingCache,
+      reference_ids: Sequence[RetrievalReferenceId],
+  ) -> RetrievalPredictionsCache:
+    """Computes the predictions for the given embeddings and reference ids."""
+    predictions_with_scores = {}
+    num_partitions = len(
+        tf.io.gfile.glob(os.path.join(self.index_dir, '[0-9]*'))
+    )
+    for partition_id in range(num_partitions):
+      logger.info('Processing partition %d/%d', partition_id, num_partitions)
+      searcher, id_by_index_id = load_index(
+          scann_base_dir=os.path.join(self.index_dir, str(partition_id))
+      )
+      for reference_id in reference_ids:
+        embedding = embeddings[reference_id.sound_id].embedding
+        if embedding.ndim != 2 or embedding.shape[0] != 1:
+          raise ValueError(
+              'Embedding must be a 2D array of shape (1, embedding_dim),'
+              f' but got a {embedding.shape} array.'
+          )
+        ranked_doc_scores, ranked_index_ids = searcher(
+            embedding.astype(np.float32)
+        )
+        ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
+            [id_by_index_id[int(x.numpy())] for x in ids]
+            for ids in ranked_index_ids
+        ]
+        if reference_id.sound_id not in predictions_with_scores:
+          predictions_with_scores[reference_id.sound_id] = []
+        for p, s in zip(ranked_doc_ids[0], ranked_doc_scores[0]):
+          predictions_with_scores[reference_id.sound_id].append((p, s))
+
+    predictions = self._predictions_sorted_by_score(predictions_with_scores)
+    return predictions
+
+  def evaluate_predictions(
+      self,
+      predictions: RetrievalPredictionsCache,
+      reference_ids: Sequence[RetrievalReferenceId],
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
     values_by_metric = {'mrr': [], 'em': []}
@@ -254,6 +388,7 @@ def build_index(
     A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
     mapping from index id (int) to id (str).
   """
+  logger.info('Building ScaNN index...')
   id_by_index_id: Sequence[str] = sorted(embeddings.keys())
 
   scann = tfrs.layers.factorized_top_k.ScaNN(
@@ -269,6 +404,7 @@ def build_index(
   )
   scann.index(candidates=candidates)
   _ = scann(tf.constant(tf.zeros((1, candidates.shape[1]), dtype=tf.float32)))
+  logger.info('Built ScaNN index with %d documents.', len(id_by_index_id))
   return scann, id_by_index_id
 
 
@@ -287,6 +423,7 @@ def save_index(
     id_by_index_id_filepath: The filepath for the id by index id mapping
       relative to scann_base_dir.
   """
+  logger.info('Saving ScaNN index to %s', scann_base_dir)
   tf.io.gfile.makedirs(scann_base_dir)
   with tf.io.gfile.GFile(
       os.path.join(scann_base_dir, id_by_index_id_filepath), 'w'
@@ -314,6 +451,7 @@ def load_index(
     A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
     mapping from index id (int) to id (str).
   """
+  logger.info('Loading ScaNN index from %s', scann_base_dir)
   with tf.io.gfile.GFile(
       os.path.join(scann_base_dir, id_by_index_id_filepath), 'r'
   ) as f:
