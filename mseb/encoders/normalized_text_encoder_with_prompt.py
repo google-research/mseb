@@ -62,7 +62,11 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
         Callable[
             [Sequence[str]],
             jaxtyping.Float[jaxtyping.Array, 'N D']
-            | Sequence[jaxtyping.Float[jaxtyping.Array, 'D']],
+            | jaxtyping.Shaped[np.ndarray, 'N']
+            | Sequence[
+                jaxtyping.Float[jaxtyping.Array, 'D']
+                | jaxtyping.Shaped[np.ndarray, '']
+            ],
         ]
         | None
     ) = None
@@ -112,7 +116,7 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
 
     return [
         types.TextEmbeddings(
-            embeddings=embeddings[np.newaxis],
+            embeddings=np.expand_dims(embeddings, axis=0),
             spans=np.array([[0, len(text.text)]]),
             context=text.context,
         )

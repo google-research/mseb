@@ -22,9 +22,11 @@ import re
 import string
 from typing import Any, Dict, List, Mapping, Sequence, Union
 
+import jaxtyping
 from mseb import encoder
 from mseb import evaluator
 from mseb import types
+import numpy as np
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 
@@ -197,14 +199,34 @@ class ReasoningEvaluatorV2:
       spans_batch: Sequence[ReasoningSpans],
   ) -> ReasoningPredictionsCache:
     """Computes the predictions for the given embeddings."""
+    sound_embedding = next(iter(embeddings.values()))
+    if np.issubdtype(sound_embedding.embedding.dtype, np.floating):
+      return self.compute_predictions_float_embedding(embeddings, spans_batch)
+    else:
+      return self.compute_predictions_string_embedding(embeddings, spans_batch)
+
+  def compute_predictions_float_embedding(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      spans_batch: Sequence[ReasoningSpans],
+  ) -> ReasoningPredictionsCache:
+    """Computes the best matching span.
+
+    If the score of the best span exceeds the no_answer_threshold, the text of
+    the best span is returned. Otherwise, 'No Answer' is returned.
+
+    Args:
+      embeddings: The sound embeddings.
+      spans_batch: The reference spans for each sound.
+
+    Returns:
+      A mapping from sound_id to the predicted answer string.
+    """
     predictions = {}
     for spans in spans_batch:
-      embedding = embeddings[spans.sound_id].embedding
-      if embedding.ndim != 2 or embedding.shape[0] != 1:
-        raise ValueError(
-            'Embedding must be a 2D array of shape (1, embedding_dim),'
-            f' but got a {embedding.shape} array.'
-        )
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings[
+          spans.sound_id
+      ].embedding
       searcher = tfrs.layers.factorized_top_k.BruteForce(k=1)
       span_embeddings = [
           self.span_embeddings_by_text[text].embeddings[0]
@@ -222,6 +244,20 @@ class ReasoningEvaluatorV2:
           else top_span_text
       )
       predictions[spans.sound_id] = prediction
+    return predictions
+
+  def compute_predictions_string_embedding(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      spans_batch: Sequence[ReasoningSpans],
+  ) -> ReasoningPredictionsCache:
+    """Copies the predictions for the given string embeddings."""
+    predictions = {}
+    for spans in spans_batch:
+      embedding: jaxtyping.Shaped[np.ndarray, '1'] = embeddings[
+          spans.sound_id
+      ].embedding
+      predictions[spans.sound_id] = str(embedding[0])
     return predictions
 
   def evaluate_predictions(

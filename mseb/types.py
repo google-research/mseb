@@ -110,7 +110,10 @@ class SoundEmbedding:
 @dataclasses.dataclass
 class TextEmbeddings:
   """A dataclass for text embeddings."""
-  embeddings: jaxtyping.Float[jaxtyping.Array, "N D"]
+  embeddings: (
+      jaxtyping.Float[jaxtyping.Array, "N D"]
+      | jaxtyping.Shaped[np.ndarray, "N"]
+  )
   spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
   context: TextContextParams
 
