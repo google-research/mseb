@@ -17,12 +17,27 @@
 from __future__ import annotations
 
 import collections
+import dataclasses
 import re
 import string
-from typing import Any, Dict, List, Sequence, Union
+from typing import Any, Dict, List, Mapping, Sequence, Union
 
 from mseb import encoder
 from mseb import evaluator
+from mseb import types
+import tensorflow as tf
+import tensorflow_recommenders as tfrs
+
+
+def f1(value: float = 0.0, std: float | None = None):
+  return types.Score(
+      metric='F1',
+      description='F1 score',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
 
 
 def _normalize_answer(text: str, punc_chars: str, punc_repl: str) -> str:
@@ -46,12 +61,12 @@ def _normalize_answer(text: str, punc_chars: str, punc_repl: str) -> str:
   return text
 
 
-def normalize_squad(answer):
+def normalize_squad(answer: str) -> str:
   """Normalization used in official SQuAD evaluation script."""
   return _normalize_answer(answer, punc_chars=string.punctuation, punc_repl='')
 
 
-def f1_score(target, prediction):
+def compute_f1_score(target: str, prediction: str) -> float:
   """Token-based F1 score used XTREME-UP."""
   prediction_tokens = prediction.split()
   target_tokens = target.split()
@@ -62,8 +77,8 @@ def f1_score(target, prediction):
     return 0
   precision = 1.0 * num_same / len(prediction_tokens)
   recall = 1.0 * num_same / len(target_tokens)
-  f1 = (2 * precision * recall) / (precision + recall)
-  return f1
+  f1_score = (2 * precision * recall) / (precision + recall)
+  return f1_score
 
 
 class ReasoningEvaluator(evaluator.Evaluator):
@@ -125,7 +140,7 @@ class ReasoningEvaluator(evaluator.Evaluator):
       output = normalize_squad(output)
       reference = normalize_squad(reference)
       metrics_batch.append({
-          'f1': f1_score(output, reference),
+          'f1': compute_f1_score(output, reference),
       })
     return metrics_batch
 
@@ -134,3 +149,99 @@ class ReasoningEvaluator(evaluator.Evaluator):
     return evaluator.compute_weighted_average_and_std(
         scores, (('f1', 'f1'),)
     )
+
+
+@dataclasses.dataclass
+class ReasoningSpans:
+  sound_id: str
+  reference_answer: str
+  texts: Sequence[str]
+
+
+ReasoningPredictionsCache = Mapping[str, str]
+
+
+class ReasoningEvaluatorV2:
+  """Evaluator for reasoning tasks."""
+
+  def __init__(
+      self,
+      span_embeddings_by_text: types.TextEmbeddingCache,
+      no_answer_threshold: float,
+  ):
+    self.span_embeddings_by_text = span_embeddings_by_text
+    self.no_answer_threshold = no_answer_threshold
+
+  def __call__(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      spans_batch: Sequence[ReasoningSpans],
+  ) -> list[types.Score]:
+    """Evaluates reasoning quality for a batch of examples.
+
+    Args:
+      embeddings: The embeddings to evaluate.
+      spans_batch: The reference spans to evaluate.
+
+    Returns:
+      A list of Score objects containing the final, aggregated scores. The
+      scores include F1 score.
+    """
+    return self.evaluate_predictions(
+        self.compute_predictions(embeddings, spans_batch), spans_batch
+    )
+
+  def compute_predictions(
+      self,
+      embeddings: types.SoundEmbeddingCache,
+      spans_batch: Sequence[ReasoningSpans],
+  ) -> ReasoningPredictionsCache:
+    """Computes the predictions for the given embeddings."""
+    predictions = {}
+    for spans in spans_batch:
+      embedding = embeddings[spans.sound_id].embedding
+      if embedding.ndim != 2 or embedding.shape[0] != 1:
+        raise ValueError(
+            'Embedding must be a 2D array of shape (1, embedding_dim),'
+            f' but got a {embedding.shape} array.'
+        )
+      searcher = tfrs.layers.factorized_top_k.BruteForce(k=1)
+      span_embeddings = [
+          self.span_embeddings_by_text[text].embeddings[0]
+          for text in spans.texts
+      ]
+      searcher.index(candidates=tf.constant(span_embeddings, dtype=tf.float32))
+      top_span_score, top_span_id = searcher(
+          tf.constant(embedding, dtype=tf.float32)
+      )
+      top_span_score = float(top_span_score[0].numpy())
+      top_span_text = spans.texts[int(top_span_id[0].numpy())]
+      prediction = (
+          'No Answer'
+          if top_span_score < self.no_answer_threshold
+          else top_span_text
+      )
+      predictions[spans.sound_id] = prediction
+    return predictions
+
+  def evaluate_predictions(
+      self,
+      predictions: ReasoningPredictionsCache,
+      spans_batch: Sequence[ReasoningSpans],
+  ) -> list[types.Score]:
+    """Returns quality metrics of the predictions."""
+    values_by_metric: dict[str, list[types.WeightedValue]] = {'f1': []}
+    for spans in spans_batch:
+      values_by_metric['f1'].append(
+          types.WeightedValue(
+              value=compute_f1_score(
+                  spans.reference_answer, predictions[spans.sound_id]
+              ),
+              weight=1.0,
+          )
+      )
+
+    f1_score = f1(
+        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['f1'])
+    )
+    return [f1_score]
