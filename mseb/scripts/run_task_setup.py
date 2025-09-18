@@ -67,7 +67,6 @@ def main(argv):
       runner_lib.DirectRunner,
       batch_size=_BATCH_SIZE.value,
       num_workers=_NUM_THREADS.value,
-      output_path=task.cache_dir,
   )
 
 

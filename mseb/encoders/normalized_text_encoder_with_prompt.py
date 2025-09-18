@@ -155,6 +155,7 @@ class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
 
   def setup(self):
     """Loads the Gecko model."""
+    assert not self._model_loaded
     gecko_model = tf_hub.load(self.model_path)
     self.text_encode_fn = lambda x: gecko_model.signatures['serving_default'](
         tf.constant(x)

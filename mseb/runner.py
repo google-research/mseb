@@ -23,12 +23,15 @@ from typing import overload
 
 from absl import logging
 import apache_beam as beam
+from apache_beam.utils import shared
 from mseb import encoder as encoder_lib
 from mseb import types
 import tensorflow as tf
 import tqdm
 
 
+
+cpu_resource_hints = dict()
 tqdm = tqdm.tqdm
 
 Encoder = encoder_lib.MultiModalEncoder
@@ -167,11 +170,12 @@ class EncodeDoFn(beam.DoFn):
 
   def __init__(self, encoder: Encoder, batch_size: int = 0):
     self._encoder = encoder
+    self._shared_handle = shared.Shared()
     self._batch_size = batch_size
     self._batch = []
 
   def setup(self):
-    self._encoder.setup()
+    self._encoder: Encoder = self._shared_handle.acquire(lambda: self._encoder)
 
   def start_bundle(self) -> None:
     """Resets the batch."""
@@ -234,6 +238,7 @@ class BeamRunner(EncoderRunner):
       output_path: str,
       runner: beam.runners.PipelineRunner,
       batch_size: int = 1,
+      accelerator: str | None = None,
       **kwargs
   ):
     """Initializes the BeamRunner.
@@ -242,12 +247,14 @@ class BeamRunner(EncoderRunner):
       output_path: The root directory to write temporary output files to.
       runner: The beam pipeline runner to use.
       batch_size: The batch size to use for encoding.
+      accelerator: The accelerator to use for encoding.
       **kwargs: Additional keyword arguments for the base class.
     """
     super().__init__(**kwargs)
     self._output_path = output_path
     self._runner = runner
     self._batch_size = batch_size
+    self._accelerator = accelerator
 
   def run(
       self, elements: Iterable[types.Sound] | Iterable[types.Text]
@@ -260,11 +267,16 @@ class BeamRunner(EncoderRunner):
       logging.info('No embeddings found at %s', output_prefix)
       pass
 
+    resource_hints = cpu_resource_hints
+
     pipeline = beam.Pipeline(runner=self._runner)
     _ = (
         pipeline
         | 'ReadExamples' >> beam.Create(list(elements))
-        | 'Encode' >> beam.ParDo(EncodeDoFn(self._encoder, self._batch_size))
+        | 'Encode'
+        >> beam.ParDo(
+            EncodeDoFn(self._encoder, batch_size=self._batch_size)
+        ).with_resource_hints(**resource_hints)
         | 'Serialize' >> beam.Map(pickle.dumps)
         # Using TFRecord because it's available as standard beam io.
         | 'WriteTFRecord' >> beam.io.tfrecordio.WriteToTFRecord(output_prefix)

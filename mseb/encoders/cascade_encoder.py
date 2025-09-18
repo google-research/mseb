@@ -179,9 +179,6 @@ class GeckoTranscriptTruthEncoder(CascadeEncoder):
         },
         **kwargs,
     )
-    self.text_encoder = text_encoder.GeckoTextEncoder(
-        model_path, normalizer, prompt_template
-    )
 
 
 class GeckoWhisperEncoder(CascadeEncoder):

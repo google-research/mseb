@@ -198,7 +198,7 @@ class SpeechToTextEncoder(Whisper):
     assert self.model is not None
     recognition_result = self.model.transcribe(
         waveform.astype(np.float32),
-        language=params.language,
+        language=params.language.split('_')[0] if params.language else None,
         temperature=temperature,
         word_timestamps=word_timestamps,
     )

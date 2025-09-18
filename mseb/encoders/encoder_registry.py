@@ -31,6 +31,17 @@ from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
 from mseb.encoders import whisper_encoder
 
+_GECKO_MODEL_PATH = flags.DEFINE_string(
+    "gecko_model_path",
+    "@gecko/gecko-1b-i18n-tpu/2",
+    "Path to Gecko model.",
+)
+
+_WHISPER_MODEL_PATH = flags.DEFINE_string(
+    "whisper_model_path",
+    "large-v3",
+    "Path to Whisper model.",
+)
 
 Encoder = encoder_lib.MultiModalEncoder
 
@@ -62,7 +73,7 @@ gecko_text = EncoderMetadata(
     name="gecko_text",
     encoder=text_encoder.GeckoTextEncoder,
     params=lambda: dict(
-        model_path="@gecko/gecko-1b-i18n-tpu/2"
+        model_path=_GECKO_MODEL_PATH.value
     ),
 )
 
@@ -70,7 +81,7 @@ gecko_transcript_truth = EncoderMetadata(
     name="gecko_transcript_truth",
     encoder=cascade_encoder.GeckoTranscriptTruthEncoder,
     params=lambda: dict(
-        model_path="@gecko/gecko-1b-i18n-tpu/2"
+        model_path=_GECKO_MODEL_PATH.value
     ),
 )
 
@@ -78,8 +89,8 @@ gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
     encoder=cascade_encoder.GeckoWhisperEncoder,
     params=lambda: dict(
-        model_path="large-v3",
-        gecko_model_path="@gecko/gecko-1b-i18n-tpu/2"
+        model_path=_WHISPER_MODEL_PATH.value,
+        gecko_model_path=_GECKO_MODEL_PATH.value,
     ),
 )
 
