@@ -17,7 +17,6 @@
 from typing import Any, Callable, Sequence, Tuple, Union
 
 from mseb import encoder
-from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
 import tensorflow as tf
@@ -87,57 +86,3 @@ class GeckoWhisperEncoder(EmbedWhisperEncoder):
         ](tf.constant(x))['encodings'].numpy(),
         prompt_template=prompt_template,
     )
-
-
-class EmbedWhisperEncoderV2(encoder.SoundEncoder):
-  """A base class for encoding speech with a text embedder."""
-
-  def __init__(self, model_path: str, prompt_template: str = '{text}'):
-    """Initializes the Whisper and text embedder.
-
-    Args:
-      model_path: An instance of Whisper model.
-      prompt_template: Prompt template to be used for the text embedder.
-    """
-    super().__init__(model_path)
-    self.whisper_encoder = whisper_encoder.SpeechToTextEncoderV2(model_path)
-    self.transcripts_encode_fn = None
-    self.prompt_template = prompt_template
-
-  def setup(self):
-    """Loads the Whisper model."""
-    super().setup()
-    self.whisper_encoder.setup()
-    self._model_loaded = True
-
-  def _encode_batch(
-      self,
-      sound_batch: Sequence[types.Sound],
-      **kwargs: Any,
-  ) -> Sequence[types.SoundEmbedding]:
-    """Encodes the transcript truth and Gecko embeddings.
-
-    Args:
-      sound_batch: A sequence of types.Sound objects to encode.
-      **kwargs: Any additional parameters required for encoding.
-
-    Returns:
-      A list of types.SoundEmbedding objects, one for each input.
-    """
-    whisper_results = self.whisper_encoder.encode_batch(sound_batch, **kwargs)
-    prompts = [
-        self.prompt_template.format(text=result.embedding[0])
-        for result in whisper_results
-    ]
-    assert self.transcripts_encode_fn is not None
-    embeddings = self.transcripts_encode_fn(prompts)
-    outputs = []
-    for result, embedding in zip(whisper_results, embeddings):
-      outputs.append(
-          types.SoundEmbedding(
-              embedding=embedding[np.newaxis],
-              timestamps=result.timestamps,
-              context=result.context,
-          )
-      )
-    return outputs
