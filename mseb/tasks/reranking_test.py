@@ -37,6 +37,10 @@ class RerankingTest(absltest.TestCase):
 
     class MockRerankingTask(reranking.RerankingTask):
 
+      @property
+      def embeddings_dir(self) -> str:
+        return os.path.join(super().embeddings_dir, 'svq_en_us_query_reranking')
+
       def sounds(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
@@ -112,7 +116,9 @@ class RerankingTest(absltest.TestCase):
     }
     cache_dir = self.create_tempdir().full_path
     runner_lib.save_embeddings(
-        output_prefix=os.path.join(cache_dir, 'embeddings'),
+        output_prefix=os.path.join(
+            cache_dir, 'rerankings', 'svq_en_us_query_reranking', 'embeddings'
+        ),
         embeddings=candidate_embeddings,
     )
 

@@ -28,24 +28,29 @@ class SVQQueryReranking(reranking.RerankingTask):
 
   def __init__(
       self,
+      locale: str,
       cache_dir: str | None = None,
       text_encoder_name: str | None = None,
   ):
     super().__init__(cache_dir=cache_dir, text_encoder_name=text_encoder_name)
-    self.cache_dir = os.path.join(self.cache_dir, 'svq_query_reranking')
+    self.locale = locale
+
+  @property
+  def embeddings_dir(self) -> str:
+    return os.path.join(
+        super().embeddings_dir,
+        f'svq_{self.locale}_query_reranking',
+        self.text_encoder_name,
+    )
 
   @property
   def sub_tasks(self) -> list[str]:
     return ['query_reranking']
 
-
-class SVQEnUsQueryReranking(SVQQueryReranking):
-  """SVQ query reranking for en-US."""
-
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data('query_reranking').itertuples():
-      if example.locale == 'en_us':
+      if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
         # Add the ground truth query for headroom analysis.
         sound.context.text = example.text
@@ -56,7 +61,7 @@ class SVQEnUsQueryReranking(SVQQueryReranking):
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data(sub_task).itertuples():
-      if example.locale == 'en_us':
+      if example.locale == self.locale:
         yield reranking_evaluator.RerankingCandidates(
             sound_id=example.utt_id, texts=example.candidates
         )
@@ -64,7 +69,7 @@ class SVQEnUsQueryReranking(SVQQueryReranking):
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data('query_reranking').itertuples():
-      if example.locale == 'en_us':
+      if example.locale == self.locale:
         yield [
             types.Text(
                 text=candidate,
@@ -74,7 +79,7 @@ class SVQEnUsQueryReranking(SVQQueryReranking):
         ]
 
 
-class SVQEnUsQueryRerankingGecko(SVQEnUsQueryReranking):
+class SVQEnUsQueryRerankingGecko(SVQQueryReranking):
   """SVQ query reranking for en-US using Gecko."""
 
   metadata = types.TaskMetadata(
@@ -101,6 +106,8 @@ class SVQEnUsQueryRerankingGecko(SVQEnUsQueryReranking):
   )
 
   def __init__(self, cache_dir: str | None = None):
-    super().__init__(cache_dir=cache_dir, text_encoder_name='gecko_text')
+    super().__init__(
+        locale='en_us', cache_dir=cache_dir, text_encoder_name='gecko_text'
+    )
 
 

@@ -37,6 +37,10 @@ class RetrievalTest(absltest.TestCase):
 
     class MockRetrievalTask(retrieval.RetrievalTask):
 
+      @property
+      def index_dir(self) -> str:
+        return os.path.join(super().index_dir, 'svq_passage_retrieval_in_lang')
+
       def sounds(self) -> Iterable[types.Sound]:
         return [
             types.Sound(
@@ -97,11 +101,7 @@ class RetrievalTest(absltest.TestCase):
         ),
     }
 
-    task = MockRetrievalTask(
-        cache_dir=os.path.join(
-            self.testdata_path, 'svq_passage_retrieval_in_lang'
-        )
-    )
+    task = MockRetrievalTask(cache_dir=self.testdata_path)
     task.setup()
     self.assertEqual(task.sub_tasks, ['test'])
     scores = task.compute_scores(embeddings=embeddings)

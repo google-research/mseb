@@ -33,15 +33,11 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.cache_dir = self.create_tempdir().full_path
     shutil.rmtree(self.cache_dir)
     shutil.copytree(testdata_path, self.cache_dir)
-    os.chmod(os.path.join(self.cache_dir, "svq_query_reranking"), 0o755)
-    pathlib.Path.touch(
-        pathlib.Path(
-            os.path.join(self.cache_dir, "svq_query_reranking", ".git")
-        ),
-    )
+    os.chmod(self.cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(self.cache_dir, ".git")))
 
   def test_svq_query_reranking_candidate_lists(self):
-    task = svq.SVQEnUsQueryReranking(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsQueryRerankingGecko(cache_dir=self.cache_dir)
     self.assertEqual(task.sub_tasks, ["query_reranking"])
     candidate_lists = list(task.candidate_lists())
     self.assertLen(candidate_lists, 2)
@@ -64,7 +60,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     )
 
   def test_svq_query_reranking_sounds(self):
-    task = svq.SVQEnUsQueryReranking(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsQueryRerankingGecko(cache_dir=self.cache_dir)
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -79,7 +75,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_query_reranking_examples(self):
-    task = svq.SVQEnUsQueryReranking(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsQueryRerankingGecko(cache_dir=self.cache_dir)
     examples = list(task.examples("query_reranking"))
     self.assertLen(examples, 2)
     example = examples[0]

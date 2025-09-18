@@ -19,7 +19,7 @@ import itertools
 import logging
 import os
 import tempfile
-from typing import Iterable, Type
+from typing import Any, Iterable, Type
 
 from mseb import runner as runner_lib
 from mseb import task
@@ -57,6 +57,11 @@ class RetrievalTask(task.MSEBTask):
     self.num_partitions = num_partitions
     self._evaluator = None
 
+  @property
+  def index_dir(self) -> str:
+    """The directory where the index is stored."""
+    return os.path.join(self.cache_dir, 'retrievals')
+
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
@@ -78,19 +83,20 @@ class RetrievalTask(task.MSEBTask):
       text_encoder = encoder_registry.get_encoder_metadata(
           self.text_encoder_name
       ).load()
+      kwargs: dict[str, Any] = {'output_path': self.index_dir, **kwargs}
       runner = runner_cls(encoder=text_encoder, **kwargs)
       embeddings = runner.run(self.documents())
       searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
       retrieval_evaluator.save_index(
           searcher,
           id_by_index_id,
-          self.cache_dir,
+          self.index_dir,
           self.id_by_index_id_filepath,
       )
     else:
       try:
         searcher, id_by_index_id = retrieval_evaluator.load_index(
-            self.cache_dir, self.id_by_index_id_filepath
+            self.index_dir, self.id_by_index_id_filepath
         )
       except FileNotFoundError:
         raise ValueError(
@@ -115,17 +121,12 @@ class RetrievalTask(task.MSEBTask):
         logger.info(
             'Setting up partition %d/%d', partition_id, self.num_partitions
         )
-        runner = runner_cls(
-            encoder=text_encoder,
-            **{
-                k: (
-                    os.path.join(v, str(partition_id))
-                    if k == 'output_path'
-                    else v
-                )
-                for k, v in kwargs.items()
-            }
-        )
+        index_dir = kwargs.pop('output_path', self.index_dir)
+        kwargs: dict[str, Any] = {
+            'output_path': os.path.join(index_dir, str(partition_id)),
+            **kwargs,
+        }
+        runner = runner_cls(encoder=text_encoder, **kwargs)
         embeddings = runner.run(
             itertools.islice(
                 self.documents(), partition_id, None, self.num_partitions
@@ -135,12 +136,12 @@ class RetrievalTask(task.MSEBTask):
         retrieval_evaluator.save_index(
             searcher,
             id_by_index_id,
-            os.path.join(self.cache_dir, str(partition_id)),
+            os.path.join(self.index_dir, str(partition_id)),
             self.id_by_index_id_filepath,
         )
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
-        index_dir=self.cache_dir
+        index_dir=self.index_dir
     )
 
   def compute_scores(

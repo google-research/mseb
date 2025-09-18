@@ -37,6 +37,12 @@ class ReasoningTest(absltest.TestCase):
 
     class MockReasoningTask(reasoning.ReasoningTask):
 
+      @property
+      def embeddings_dir(self) -> str:
+        return os.path.join(
+            super().embeddings_dir, 'svq_en_us_span_reasoning_in_lang'
+        )
+
       def sounds(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
@@ -115,7 +121,12 @@ class ReasoningTest(absltest.TestCase):
     }
     cache_dir = self.create_tempdir().full_path
     runner_lib.save_embeddings(
-        output_prefix=os.path.join(cache_dir, 'embeddings'),
+        output_prefix=os.path.join(
+            cache_dir,
+            'reasonings',
+            'svq_en_us_span_reasoning_in_lang',
+            'embeddings',
+        ),
         embeddings=span_embeddings,
     )
 

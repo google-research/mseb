@@ -28,12 +28,19 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
 
   def __init__(
       self,
+      locale: str,
       cache_dir: str | None = None,
       text_encoder_name: str | None = None,
   ):
     super().__init__(cache_dir=cache_dir, text_encoder_name=text_encoder_name)
-    self.cache_dir = os.path.join(
-        self.cache_dir, 'svq_passage_retrieval_in_lang'
+    self.locale = locale
+
+  @property
+  def index_dir(self) -> str:
+    return os.path.join(
+        super().index_dir,
+        'svq_passage_retrieval_in_lang',
+        self.text_encoder_name,
     )
 
   @property
@@ -53,17 +60,12 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
           ),
       )
 
-
-class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  """SVQ passage in-lang retrieval for en-US."""
-
   def sounds(self) -> Iterable[types.Sound]:
-    # TODO(heigold): Race condition or download all data for each locale?
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data(
         'passage_retrieval_in_lang'
     ).itertuples():
-      if example.locale == 'en_us':
+      if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
         # Add the ground truth query for headroom analysis.
         sound.context.text = example.text
@@ -72,16 +74,15 @@ class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    # TODO(heigold): Race condition or download all data for each locale?
     svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
     for example in svq_dataset.get_task_data(sub_task).itertuples():
-      if example.locale == 'en_us':
+      if example.locale == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
             sound_id=example.utt_id, reference_id=example.passage_id
         )
 
 
-class SVQEnUsPassageInLangRetrievalGecko(SVQEnUsPassageInLangRetrieval):
+class SVQEnUsPassageInLangRetrievalGecko(SVQPassageInLangRetrieval):
   """SVQ passage in-lang retrieval for en-US using Gecko."""
 
   metadata = types.TaskMetadata(
@@ -104,6 +105,8 @@ class SVQEnUsPassageInLangRetrievalGecko(SVQEnUsPassageInLangRetrieval):
   )
 
   def __init__(self, cache_dir: str | None = None):
-    super().__init__(cache_dir=cache_dir, text_encoder_name='gecko_text')
+    super().__init__(
+        locale='en_us', cache_dir=cache_dir, text_encoder_name='gecko_text'
+    )
 
 

@@ -33,19 +33,11 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
     self.cache_dir = self.create_tempdir().full_path
     shutil.rmtree(self.cache_dir)
     shutil.copytree(testdata_path, self.cache_dir)
-    os.chmod(
-        os.path.join(self.cache_dir, "svq_passage_retrieval_in_lang"), 0o755
-    )
-    pathlib.Path.touch(
-        pathlib.Path(
-            os.path.join(
-                self.cache_dir, "svq_passage_retrieval_in_lang", ".git"
-            )
-        ),
-    )
+    os.chmod(self.cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(self.cache_dir, ".git")))
 
   def test_svq_passage_in_lang_retrieval_documents(self):
-    task = svq.SVQEnUsPassageInLangRetrieval(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsPassageInLangRetrievalGecko(cache_dir=self.cache_dir)
     self.assertEqual(task.sub_tasks, ["passage_retrieval_in_lang"])
     documents = list(task.documents())
     self.assertLen(documents, 3)
@@ -55,7 +47,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
     self.assertTrue(document.text.startswith("Albert was about one year"))
 
   def test_svq_en_us_passage_in_lang_retrieval_sounds(self):
-    task = svq.SVQEnUsPassageInLangRetrieval(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsPassageInLangRetrievalGecko(cache_dir=self.cache_dir)
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -70,7 +62,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_en_us_passage_in_lang_retrieval_examples(self):
-    task = svq.SVQEnUsPassageInLangRetrieval(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsPassageInLangRetrievalGecko(cache_dir=self.cache_dir)
     examples = list(task.examples("passage_retrieval_in_lang"))
     self.assertLen(examples, 2)
     example = examples[0]

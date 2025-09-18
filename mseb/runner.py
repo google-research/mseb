@@ -219,6 +219,7 @@ def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
 def save_embeddings(output_prefix: str, embeddings: types.EmbeddingCache):
   """Saves embeddings from a dict into to TFRecord files."""
   logging.info('Saving embeddings to %s', f'{output_prefix}.tfrecord')
+  tf.io.gfile.makedirs(os.path.dirname(output_prefix))
   with tf.io.TFRecordWriter(f'{output_prefix}.tfrecord') as writer:
     for embedding in embeddings.values():
       record_bytes = pickle.dumps(embedding)

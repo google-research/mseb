@@ -113,7 +113,9 @@ class RetrievalEvaluatorTest(absltest.TestCase):
 
   def test_evaluate_with_cache(self):
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
-    cache_path = path.join(self.testdata_path, 'svq_passage_retrieval_in_lang')
+    cache_path = path.join(
+        self.testdata_path, 'retrievals', 'svq_passage_retrieval_in_lang'
+    )
     searcher = tf.saved_model.load(cache_path)
     _ = searcher(tf.constant([[1.0, 2.0, 3.0]], dtype=tf.float32))
     evaluator = retrieval_evaluator.RetrievalEvaluator(
@@ -296,7 +298,9 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     self.index_dir = self.create_tempdir().full_path
     for partition_id in range(num_partitions):
       shutil.copytree(
-          path.join(testdata_path, 'svq_passage_retrieval_in_lang'),
+          path.join(
+              testdata_path, 'retrievals', 'svq_passage_retrieval_in_lang'
+          ),
           path.join(self.index_dir, str(partition_id)),
       )
 

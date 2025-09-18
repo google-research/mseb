@@ -33,15 +33,11 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     self.cache_dir = self.create_tempdir().full_path
     shutil.rmtree(self.cache_dir)
     shutil.copytree(testdata_path, self.cache_dir)
-    os.chmod(os.path.join(self.cache_dir, "svq_span_reasoning_in_lang"), 0o755)
-    pathlib.Path.touch(
-        pathlib.Path(
-            os.path.join(self.cache_dir, "svq_span_reasoning_in_lang", ".git")
-        ),
-    )
+    os.chmod(self.cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(self.cache_dir, ".git")))
 
   def test_svq_span_in_lang_reasoning_span_lists(self):
-    task = svq.SVQEnUsSpanInLangReasoning(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsSpanInLangReasoningGecko(cache_dir=self.cache_dir)
     self.assertEqual(task.sub_tasks, ["span_reasoning_in_lang"])
     span_lists = list(task.span_lists())
     self.assertLen(span_lists, 2)
@@ -64,7 +60,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     )
 
   def test_svq_span_in_lang_reasoning_sounds(self):
-    task = svq.SVQEnUsSpanInLangReasoning(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsSpanInLangReasoningGecko(cache_dir=self.cache_dir)
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -79,7 +75,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_span_in_lang_reasoning_examples(self):
-    task = svq.SVQEnUsSpanInLangReasoning(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsSpanInLangReasoningGecko(cache_dir=self.cache_dir)
     examples = list(task.examples("span_reasoning_in_lang"))
     self.assertLen(examples, 2)
     example = examples[0]

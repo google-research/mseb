@@ -157,16 +157,10 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
     base_path = self.create_tempdir().full_path
     shutil.rmtree(base_path)
     shutil.copytree(testdata_path, base_path)
-    os.chmod(os.path.join(base_path, "svq_passage_retrieval_in_lang"), 0o755)
-    pathlib.Path.touch(
-        pathlib.Path(
-            os.path.join(base_path, "svq_passage_retrieval_in_lang", ".git")
-        ),
-    )
+    os.chmod(base_path, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(base_path, ".git")))
 
-    dataset = svq.SimpleVoiceQuestionsDataset(
-        base_path=os.path.join(base_path, "svq_passage_retrieval_in_lang")
-    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=base_path)
     examples = list(
         dataset.get_task_data("passage_retrieval_in_lang_index").itertuples()
     )

@@ -48,8 +48,13 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
         num_partitions=num_partitions,
     )
     self.locale = locale
-    self.cache_dir = os.path.join(
-        self.cache_dir, f'svq_{self.language}_document_retrieval_in_lang'
+
+  @property
+  def index_dir(self) -> str:
+    return os.path.join(
+        super().index_dir,
+        f'svq_{self.language}_document_retrieval_in_lang',
+        self.text_encoder_name,
     )
 
   @property

@@ -18,7 +18,7 @@ import abc
 import logging
 import os
 import tempfile
-from typing import Iterable, Sequence, Type
+from typing import Any, Iterable, Sequence, Type
 
 from mseb import runner as runner_lib
 from mseb import task
@@ -44,6 +44,11 @@ class RerankingTask(task.MSEBTask):
     self.text_encoder_name = text_encoder_name
     self._evaluator = None
 
+  @property
+  def embeddings_dir(self) -> str:
+    """The directory where the candidate embeddings cache is stored."""
+    return os.path.join(self.cache_dir, 'rerankings')
+
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
@@ -54,6 +59,7 @@ class RerankingTask(task.MSEBTask):
       text_encoder = encoder_registry.get_encoder_metadata(
           self.text_encoder_name
       ).load()
+      kwargs: dict[str, Any] = {'output_path': self.embeddings_dir, **kwargs}
       runner = runner_cls(encoder=text_encoder, **kwargs)
       unique_candidates = {}
       for candidate_list in self.candidate_lists():
@@ -63,10 +69,10 @@ class RerankingTask(task.MSEBTask):
     else:
       try:
         logger.info(
-            'Loading candidate embeddings cache from %s', self.cache_dir
+            'Loading candidate embeddings cache from %s', self.embeddings_dir
         )
         embeddings = runner_lib.load_embeddings(
-            os.path.join(self.cache_dir, 'embeddings')
+            os.path.join(self.embeddings_dir, 'embeddings')
         )
       except FileNotFoundError:
         raise ValueError(

@@ -34,17 +34,8 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
     self.cache_dir = self.create_tempdir().full_path
     shutil.rmtree(self.cache_dir)
     shutil.copytree(testdata_path, self.cache_dir)
-    os.chmod(
-        os.path.join(self.cache_dir, "svq_en_document_retrieval_in_lang"),
-        0o755,
-    )
-    pathlib.Path.touch(
-        pathlib.Path(
-            os.path.join(
-                self.cache_dir, "svq_en_document_retrieval_in_lang", ".git"
-            )
-        ),
-    )
+    os.chmod(self.cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(self.cache_dir, ".git")))
 
   def test_svq_document_in_lang_retrieval_documents(self):
     with tfds.testing.mock_data(num_examples=1):
