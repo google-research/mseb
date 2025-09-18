@@ -20,10 +20,9 @@ import collections
 import dataclasses
 import re
 import string
-from typing import Any, Dict, List, Mapping, Sequence, Union
+from typing import Mapping, Sequence
 
 import jaxtyping
-from mseb import encoder
 from mseb import evaluator
 from mseb import types
 import numpy as np
@@ -83,76 +82,6 @@ def compute_f1_score(target: str, prediction: str) -> float:
   return f1_score
 
 
-class ReasoningEvaluator(evaluator.Evaluator):
-  """Evaluator for question answering tasks."""
-
-  def __init__(
-      self,
-      sound_encoder: encoder.Encoder,
-      encode_kwargs: dict[str, Any],
-  ):
-    """Initializes the evaluator with the encoder."""
-    super().__init__(sound_encoder, encode_kwargs=encode_kwargs)
-
-  def __call__(
-      self,
-      sequence: Union[str, Sequence[float]],
-      context: encoder.ContextParams,
-      reference: str = '',
-  ) -> dict[str, float]:
-    """Evaluates a single question-answering example.
-
-    Args:
-      sequence: Unused.
-      context: A JSON string containing the 'question', 'title', and 'context'
-        for a single example is passed via the context.text field.
-      reference: A string representing the reference answer for the example.
-
-    Returns:
-      A dictionary containing the F1 score for the example.
-    """
-    return self.evaluate_batch(
-        sequences=[sequence],
-        contexts=[context],
-        references=[reference],
-    )[0]
-
-  def evaluate_batch(
-      self,
-      sequences: Sequence[Union[str, Sequence[float]]],
-      contexts: Sequence[encoder.ContextParams],
-      references: Sequence[str] = (),
-  ) -> Sequence[dict[str, float]]:
-    """Evaluates a batch of question-answering examples.
-
-    Args:
-      sequences: Unused.
-      contexts: A sequence of encoder.ContextParams.
-      references: A sequence of strings representing the reference answers for
-        each example in `sequences`.
-
-    Returns:
-      A sequence of dictionaries, where each dictionary contains the F1 score
-      for the corresponding example.
-    """
-    metrics_batch = []
-    outputs = self.sound_encoder.encode_batch(sequences, contexts)
-    for reference, output in zip(references, outputs):
-      output = output[0].tolist()
-      output = normalize_squad(output)
-      reference = normalize_squad(reference)
-      metrics_batch.append({
-          'f1': compute_f1_score(output, reference),
-      })
-    return metrics_batch
-
-  def combine_scores(self, scores: List[Dict[str, float]]) -> Dict[str, float]:
-    """Combines the scores of the examples."""
-    return evaluator.compute_weighted_average_and_std(
-        scores, (('f1', 'f1'),)
-    )
-
-
 @dataclasses.dataclass
 class ReasoningSpans:
   sound_id: str
@@ -163,7 +92,7 @@ class ReasoningSpans:
 ReasoningPredictionsCache = Mapping[str, str]
 
 
-class ReasoningEvaluatorV2:
+class ReasoningEvaluator:
   """Evaluator for reasoning tasks."""
 
   def __init__(
@@ -278,6 +207,6 @@ class ReasoningEvaluatorV2:
       )
 
     f1_score = f1(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['f1'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['f1'])
     )
     return [f1_score]

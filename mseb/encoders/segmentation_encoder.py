@@ -17,7 +17,9 @@
 from collections.abc import Sequence
 from typing import Any, Iterator, Tuple
 
+import jaxtyping
 from mseb import encoder
+from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
 import pygtrie
@@ -145,7 +147,7 @@ class LongestPrefixIDFSegmenter(SegmenterBase):
       ]
 
 
-class CascadedSegmentationEncoder(encoder.Encoder):
+class CascadedSegmentationEncoder(encoder.SoundEncoder):
   """Encodes anaudio sequence into segments using a cascaded approach.
 
    1. Use an ASR encoder to transcribe the speech into text.
@@ -159,44 +161,63 @@ class CascadedSegmentationEncoder(encoder.Encoder):
                asr_encoder: whisper_encoder.Whisper,
                segmenter: SegmenterBase,
                top_k: int = 1):
+    super().__init__('not_used')
     self.asr_encoder = asr_encoder
     self.segmenter = segmenter
     self.top_k = top_k
 
-  def encode(
+  def setup(self):
+    self.asr_encoder.setup()
+    self._model_loaded = True
+
+  def _encode_batch(
       self,
-      waveform: np.ndarray,
-      context: encoder.ContextParams,
+      sound_batch: Sequence[types.Sound],
       **kwargs: Any
-  ) -> Tuple[np.ndarray, np.ndarray]:
-    """Encodes an audio sequence into segments.
+  ) -> Sequence[types.SoundEmbedding]:
+    """Encodes a batch of sound sources into segments.
 
     Args:
-      waveform: Path to an audio file (str) or a pre-loaded NumPy array
-                representing the waveform. If a NumPy array, it's assumed
-                its sample rate matches `context.sample_rate`.
-      context: Context parameters, including `context.sample_rate`.
+     sound_batch: A sequence of sound sources to encode.
       **kwargs: Keyword arguments to pass to the ASR encoder.
 
     Returns:
-      A tuple (timestamps, segments):
+      A list of types.SoundEmbedding objects, one for each input:
        timestamps: Array of start and end times tuple for each segment.
        segments: Array of text and score for each segment.
     """
-    timestamps, words = self.asr_encoder.encode(
-        waveform, context, **kwargs
-    )
-    segments = list(self.segmenter.segment(words))
-    if not segments:
-      return np.array([[0.0, 0.0]]), np.array([['', 0.0]])
-    # TODO(allauzen): consider using a heap instead of sorting.
-    segments.sort(key=lambda x: x[1], reverse=True)
-    return np.array([
-        [timestamps[front][0], timestamps[back][1]]
-        for _, _, front, back in segments[: self.top_k]
-    ]), np.array([
-        [term, score] for term, score, _, _ in segments[: self.top_k]
-    ])
+    sound_embeddings = self.asr_encoder.encode_batch(sound_batch, **kwargs)
+    outputs = []
+    for sound_embedding in sound_embeddings:
+      words: jaxtyping.Shaped[np.ndarray, 'N'] = sound_embedding.embedding
+      segments = list(self.segmenter.segment([str(x) for x in words]))
+      if not segments:
+        outputs.append(
+            types.SoundEmbedding(
+                embedding=np.array([['', 0.0]], dtype=object),
+                timestamps=np.array([0.0, 0.0], dtype=float),
+                context=sound_embedding.context,
+            )
+        )
+        continue
+      # TODO(allauzen): consider using a heap instead of sorting.
+      segments.sort(key=lambda x: x[1], reverse=True)
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=np.array([
+                  [term, score] for term, score, _, _ in segments[: self.top_k]
+              ]),
+              timestamps=np.array([
+                  [
+                      sound_embedding.timestamps[front][0],
+                      sound_embedding.timestamps[back][1],
+                  ]
+                  for _, _, front, back in segments[: self.top_k]
+              ]),
+              context=sound_embedding.context,
+          )
+      )
+    return outputs
 
 
 class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):

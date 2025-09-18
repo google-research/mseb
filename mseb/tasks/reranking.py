@@ -80,7 +80,7 @@ class RerankingTask(task.MSEBTask):
             ' create the cache by running run_task_setup?'
         ) from FileNotFoundError
 
-    self._evaluator = reranking_evaluator.RerankingEvaluatorV2(
+    self._evaluator = reranking_evaluator.RerankingEvaluator(
         candidate_embeddings_by_text=embeddings
     )
 

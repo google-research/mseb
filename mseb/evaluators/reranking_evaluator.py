@@ -17,14 +17,12 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Dict, List, Mapping, Sequence, Union
+from typing import Dict, Mapping, Sequence
 
 import jiwer
-from mseb import encoder
 from mseb import evaluator
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
-import numpy as np
 from sklearn import metrics
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
@@ -133,79 +131,6 @@ def compute_correct(truth: str, hypothesis: str, *, is_english: bool) -> float:
   return correct
 
 
-class RerankingEvaluator(evaluator.Evaluator):
-  """Evaluator for reranking tasks."""
-
-  def __call__(
-      self,
-      sequence: Union[str, Sequence[float]],
-      context: encoder.ContextParams,
-      candidate_texts: Sequence[str] = tuple(),
-      candidate_embeddings: np.ndarray = np.empty((0, 0)),
-      document_top_k: int = 10,
-  ) -> dict[str, float]:
-    """Evaluates quality of the encoder for input sequence and return metrics.
-
-    Args:
-      sequence: Input sound sequence to encode. String-type sequences are
-        interpreted as sound file paths.
-      context: Encoder input context parameters.
-      candidate_texts: Candidate texts to rank.
-      candidate_embeddings: Candidate embeddings to rank.
-      document_top_k: Number of documents to retrieve.
-
-    Returns:
-      Dictionary of metrics, including reciprocal rank, query error, and word
-      error.
-    """
-    _, query_embeddings = self.sound_encoder.encode(
-        sequence=sequence, context=context, **self.encode_kwargs
-    )
-    searcher = tfrs.layers.factorized_top_k.BruteForce(k=document_top_k)
-    searcher.index(
-        candidates=tf.constant(candidate_embeddings, dtype=tf.float32)
-    )
-    _, ranked_candidate_ids = searcher(
-        tf.constant(query_embeddings, dtype=tf.float32)
-    )
-    ranked_candidate_texts = [  # pylint: disable=g-complex-comprehension
-        [candidate_texts[int(x.numpy())] for x in ids]
-        for ids in ranked_candidate_ids
-    ]
-
-    assert context.language is not None
-    is_english = context.language.lower() == 'en'
-
-    word_errors, word_errors_weight = compute_word_errors(
-        truth=candidate_texts[0],
-        hypothesis=ranked_candidate_texts[0][0],
-        is_english=is_english,
-    )
-
-    return {
-        'reciprocal_rank': compute_reciprocal_rank(
-            candidate_texts[0], ranked_candidate_texts[0]
-        ),
-        'word_errors': word_errors,
-        'word_errors_weight': word_errors_weight,
-        'correct': compute_correct(
-            truth=candidate_texts[0],
-            hypothesis=ranked_candidate_texts[0][0],
-            is_english=is_english,
-        ),
-    }
-
-  def combine_scores(self, scores: List[Dict[str, float]]) -> Dict[str, float]:
-    return evaluator.compute_weighted_average_and_std(
-        scores,
-        (
-            ('reciprocal_rank', 'mrr'),
-            ('word_errors', 'wer'),
-            ('correct', 'qer'),
-        ),
-    )
-
-
 @dataclasses.dataclass
 class RerankingCandidates:
   sound_id: str
@@ -215,7 +140,7 @@ class RerankingCandidates:
 RerankingPredictionsCache = Mapping[str, tuple[Sequence[str], Sequence[float]]]
 
 
-class RerankingEvaluatorV2:
+class RerankingEvaluator:
   """Evaluator for reranking tasks."""
 
   def __init__(
@@ -348,15 +273,15 @@ class RerankingEvaluatorV2:
       )
 
     map_score = map(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['map'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['map'])
     )
     mrr_score = mrr(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['mrr'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['mrr'])
     )
     wer_score = wer(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['wer'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['wer'])
     )
     cer_score = cer(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['cer'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['cer'])
     )
     return [map_score, wer_score, cer_score, mrr_score]

@@ -82,7 +82,7 @@ class ReasoningTask(task.MSEBTask):
             ' create the cache by running run_task_setup?'
         ) from FileNotFoundError
 
-    self._evaluator = reasoning_evaluator.ReasoningEvaluatorV2(
+    self._evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_text=embeddings,
         no_answer_threshold=self.no_answer_threshold,
     )

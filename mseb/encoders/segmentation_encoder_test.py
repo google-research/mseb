@@ -18,13 +18,12 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from mseb import encoder
+from mseb import types
 from mseb.encoders import segmentation_encoder
 from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
-import whisper
 
 
 IDF_TABLE = {
@@ -52,8 +51,9 @@ class SegmentationEncoderTests(parameterized.TestCase):
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
     self.svq_samples = pq.ParquetFile(
         os.path.join(testdata_path, 'en_us.parquet'))
-    self.model = whisper.load_model('base', device='cpu')
-    self.whisper_encoder = whisper_encoder.SpeechToTextEncoder(self.model)
+    self.whisper_encoder = whisper_encoder.SpeechToTextEncoder(
+        model_path='base', device='cpu'
+    )
     self.encode_kwargs = {'word_timestamps': True}
 
   @parameterized.named_parameters(
@@ -82,18 +82,30 @@ class SegmentationEncoderTests(parameterized.TestCase):
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
     sample_rate = 48000
-    context = encoder.ContextParams(
-        language='en', sample_rate=sample_rate,
-        text=svq_example['text'].to_numpy()[0])
-    timestamps, embeddings = seg_encoder.encode(
-        waveform, context, **self.encode_kwargs)
-    npt.assert_equal(timestamps.shape, [2, 2])
-    npt.assert_array_almost_equal(
-        timestamps, [[3.58, 4.08], [2.76, 3.2]], decimal=1
+    context = types.SoundContextParams(
+        id='0',
+        length=waveform.shape[0],
+        language='en',
+        sample_rate=sample_rate,
+        text=svq_example['text'].to_numpy()[0],
     )
-    npt.assert_equal(timestamps[0, 1] <= waveform.shape[0] / sample_rate, True)
-    npt.assert_equal(timestamps[1, 1] <= waveform.shape[0] / sample_rate, True)
-    npt.assert_equal(embeddings, [['relations', 4.0], ['national', 3.0]])
+    sound_embedding = seg_encoder.encode(
+        types.Sound(waveform=waveform, context=context), **self.encode_kwargs)
+    npt.assert_equal(sound_embedding.timestamps.shape, [2, 2])
+    npt.assert_array_almost_equal(
+        sound_embedding.timestamps, [[3.58, 4.08], [2.76, 3.2]], decimal=1
+    )
+    npt.assert_equal(
+        sound_embedding.timestamps[0, 1] <= waveform.shape[0] / sample_rate,
+        True,
+    )
+    npt.assert_equal(
+        sound_embedding.timestamps[1, 1] <= waveform.shape[0] / sample_rate,
+        True,
+    )
+    npt.assert_equal(
+        sound_embedding.embedding, [['relations', 4.0], ['national', 3.0]]
+    )
 
 
 class SegmentationEncoderUsingTruthTests(SegmentationEncoderTests):
@@ -101,7 +113,7 @@ class SegmentationEncoderUsingTruthTests(SegmentationEncoderTests):
   def setUp(self):
     super().setUp()
     self.whisper_encoder = whisper_encoder.ForcedAlignmentEncoder(
-        self.model, 'en'
+        model_path='base', device='cpu', language='en'
     )
     self.encode_kwargs = {}
 

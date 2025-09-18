@@ -14,73 +14,17 @@
 
 """Tests for ReasoningEvaluator class."""
 
-from typing import Any, Sequence, Tuple, Union
-
 from absl.testing import absltest
-from mseb import encoder
 from mseb import types
 from mseb.evaluators import reasoning_evaluator
 import numpy as np
 import numpy.testing as npt
 
 
-class MockReasoningEncoder(encoder.Encoder):
-
-  def encode_batch(
-      self,
-      sequences: Sequence[Union[str, Sequence[float]]],
-      contexts: Sequence[encoder.ContextParams],
-      **kwargs: Any,
-  ) -> Sequence[Tuple[np.ndarray, np.ndarray]]:
-    return [(np.array('Paris'), np.array([])) for _ in contexts]
-
-
 class ReasoningEvaluatorTest(absltest.TestCase):
 
-  def test_one_example(self):
-    prompt = """
-        Find the answer given the question, title and context. {question_tuple}
-    """
-    evaluator = reasoning_evaluator.ReasoningEvaluator(
-        sound_encoder=MockReasoningEncoder(),
-        encode_kwargs={},
-    )
-    input_data = """
-        question: What is the capital of France?
-        title: France
-        context: Paris is the capital of France.
-    """
-    output1 = evaluator(
-        sequence=[],
-        context=encoder.ContextParams(
-            prompt=prompt.format(question_tuple=input_data)
-        ),
-        reference='Paris',
-    )
-    self.assertEqual(output1['f1'], 1.0)
-
-    input_data = """
-        question: How tall is Michael Jordan?
-        title: Michael Jordan
-        context: Michael Jordan is 6 feet 9 inches tall.
-    """
-    output2 = evaluator(
-        sequence=[],
-        context=encoder.ContextParams(
-            prompt=prompt.format(question_tuple=input_data)
-        ),
-        reference='6 feet 9 inches',
-    )
-    self.assertEqual(output2['f1'], 0.0)
-    combined_scores = evaluator.combine_scores([output1, output2])
-    self.assertEqual(combined_scores['f1'], 0.5)
-    self.assertEqual(combined_scores['f1_std'], 0.5)
-
-
-class ReasoningEvaluatorV2Test(absltest.TestCase):
-
   def test_compute_predictions_float_embedding(self):
-    evaluator = reasoning_evaluator.ReasoningEvaluatorV2(
+    evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_text={
             'b l i': types.TextEmbeddings(
                 embeddings=np.array([[3.0, 4.0]], dtype=np.float32),
@@ -126,7 +70,7 @@ class ReasoningEvaluatorV2Test(absltest.TestCase):
     self.assertEqual(predictions['test'], 'b l a')
 
   def test_compute_predictions_string_embedding(self):
-    evaluator = reasoning_evaluator.ReasoningEvaluatorV2(
+    evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_text={
             'b l i': types.TextEmbeddings(
                 embeddings=np.array([[3.0, 4.0]], dtype=np.float32),
@@ -172,7 +116,7 @@ class ReasoningEvaluatorV2Test(absltest.TestCase):
     self.assertEqual(predictions['test'], 'b l a')
 
   def test_evaluate_predictions(self):
-    evaluator = reasoning_evaluator.ReasoningEvaluatorV2(
+    evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_text={
             'b l i': types.TextEmbeddings(
                 embeddings=np.array([[3.0, 4.0]], dtype=np.float32),
@@ -208,7 +152,7 @@ class ReasoningEvaluatorV2Test(absltest.TestCase):
     npt.assert_equal(scores[0].std, 0)
 
   def test_call(self):
-    evaluator = reasoning_evaluator.ReasoningEvaluatorV2(
+    evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_text={
             'b l i': types.TextEmbeddings(
                 embeddings=np.array([[3.0, 4.0]], dtype=np.float32),

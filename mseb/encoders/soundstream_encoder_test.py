@@ -16,7 +16,7 @@ import os
 import pathlib
 
 from absl.testing import absltest
-from mseb import encoder
+from mseb import types
 from mseb.encoders import soundstream_encoder
 import numpy as np
 import numpy.testing as npt
@@ -34,27 +34,39 @@ class SounStreamEncoderTest(absltest.TestCase):
     svq_example = svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
     self.waveform = waveform.astype(np.float32) / 32767.0
-    self.context = encoder.ContextParams(sample_rate=48000)
+    self.context = types.SoundContextParams(
+        id='0',
+        length=waveform.shape[0],
+        language='en',
+        sample_rate=48000,
+        text=svq_example['text'].to_numpy()[0],
+    )
 
   def test_soundstream_encoder_without_quantization(self):
     enc = soundstream_encoder.SoundStreamEncoder()
-    timestamps, embeddings = enc.encode(self.waveform, self.context)
-    npt.assert_equal(timestamps.shape, [375, 2])
-    npt.assert_equal(embeddings.shape, [375, 64])
+    sound_embedding = enc.encode(
+        types.Sound(waveform=self.waveform, context=self.context)
+    )
+    npt.assert_equal(sound_embedding.timestamps.shape, [375, 2])
+    npt.assert_equal(sound_embedding.embedding.shape, [375, 64])
 
   def test_soundstream_encoder_quantization_9200bps(self):
     enc = soundstream_encoder.SoundStreamEncoder(
         bits_per_second=9200, quantize=True)
-    timestamps, embeddings = enc.encode(self.waveform, self.context)
-    npt.assert_equal(timestamps.shape, [375, 2])
-    npt.assert_equal(embeddings.shape, [375, 46])
+    sound_embedding = enc.encode(
+        types.Sound(waveform=self.waveform, context=self.context)
+    )
+    npt.assert_equal(sound_embedding.timestamps.shape, [375, 2])
+    npt.assert_equal(sound_embedding.embedding.shape, [375, 46])
 
   def test_soundstream_encoder_quantization_4600bps(self):
     enc = soundstream_encoder.SoundStreamEncoder(
         bits_per_second=4600, quantize=True)
-    timestamps, embeddings = enc.encode(self.waveform, self.context)
-    npt.assert_equal(timestamps.shape, [375, 2])
-    npt.assert_equal(embeddings.shape, [375, 23])
+    sound_embedding = enc.encode(
+        types.Sound(waveform=self.waveform, context=self.context)
+    )
+    npt.assert_equal(sound_embedding.timestamps.shape, [375, 2])
+    npt.assert_equal(sound_embedding.embedding.shape, [375, 23])
 
 
 if __name__ == '__main__':

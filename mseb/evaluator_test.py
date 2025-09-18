@@ -18,7 +18,6 @@ from absl.testing import absltest
 from mseb import evaluator
 from mseb import types
 import numpy as np
-import numpy.testing as npt
 
 
 class MockEvaluator(evaluator.SoundEmbeddingEvaluator):
@@ -103,61 +102,6 @@ class SoundEmbeddingEvaluatorTest(absltest.TestCase):
           embedding_timestamps=embedding_timestamps,
           params=params,
       )
-
-
-class EvaluatorTest(absltest.TestCase):
-
-  def test_compute_weighted_average_and_std(self):
-    metrics = evaluator.compute_weighted_average_and_std(
-        scores=[
-            {
-                "height_example": 1.0,
-                "width_example": 3.0,
-                "width_example_weight": 1.0,
-            },
-            {
-                "height_example": 5.0,
-                "width_example": 2.0,
-                "width_example_weight": 2.0,
-            },
-            {
-                "height_example": 3.0,
-                "width_example": 1.0,
-                "width_example_weight": 3.0,
-            },
-        ],
-        statistic_metric_pairs=[
-            ("height_example", "height"),
-            ("width_example", "width"),
-        ],
-    )
-    npt.assert_equal(len(metrics), 4)
-    npt.assert_equal(metrics["height"], 3.0)
-    npt.assert_equal(metrics["height_std"]**2, 8 / 3)
-    npt.assert_equal(metrics["width"], 5 / 3)
-    npt.assert_almost_equal(metrics["width_std"]**2, 5 / 9)
-
-  def test_compute_weighted_average_and_std_v2(self):
-    mean, std = evaluator.compute_weighted_average_and_std_v2(
-        values=[
-            types.WeightedValue(value=1.0),
-            types.WeightedValue(value=5.0),
-            types.WeightedValue(value=3.0),
-        ],
-    )
-    npt.assert_almost_equal(mean, 3.0)
-    npt.assert_almost_equal(std**2, 8 / 3)
-
-  def test_compute_weighted_average_and_std_v2_with_weights(self):
-    mean, std = evaluator.compute_weighted_average_and_std_v2(
-        values=[
-            types.WeightedValue(value=3.0),
-            types.WeightedValue(value=2.0, weight=2.0),
-            types.WeightedValue(value=1.0, weight=3.0),
-        ],
-    )
-    npt.assert_almost_equal(mean, 5 / 3)
-    npt.assert_almost_equal(std**2, 5 / 9)
 
 
 if __name__ == "__main__":

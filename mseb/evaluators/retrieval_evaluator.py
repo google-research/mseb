@@ -20,9 +20,8 @@ import dataclasses
 import itertools
 import logging
 import os
-from typing import Any, Dict, List, Mapping, Sequence, Union
+from typing import Mapping, Sequence
 
-from mseb import encoder
 from mseb import evaluator
 from mseb import types
 import numpy as np
@@ -69,91 +68,6 @@ def compute_reciprocal_rank(
   return reciprocal_rank
 
 
-class RetrievalEvaluator(evaluator.Evaluator):
-  """Evaluator for retrieval tasks."""
-
-  def __init__(
-      self,
-      sound_encoder: encoder.Encoder,
-      encode_kwargs: dict[str, Any],
-      searcher: tfrs.layers.factorized_top_k.TopK,
-      id_by_index_id: Sequence[str],
-  ):
-    """Initializes the evaluator with the encoder and retrieval parameters."""
-    super().__init__(sound_encoder, encode_kwargs)
-    self.searcher = searcher
-    self.id_by_index_id = id_by_index_id
-
-  def __call__(
-      self,
-      sequence: Union[str, Sequence[float]],
-      context: encoder.ContextParams,
-      reference_id: str = '',
-  ) -> dict[str, float]:
-    """Evaluates quality of the encoder for input sequence and return metrics.
-
-    Args:
-      sequence: Input sound sequence to encode. String-type sequences are
-        interpreted as sound file paths.
-      context: Encoder input context parameters.
-      reference_id: Reference document id.
-
-    Returns:
-      Dictionary of metrics, including mean reciprocal rank (MRR) and exact
-      match (EM).
-    """
-    return self.evaluate_batch(
-        sequences=[sequence],
-        contexts=[context],
-        reference_ids=[reference_id],
-    )[0]
-
-  def evaluate_batch(
-      self,
-      sequences: Sequence[Union[str, Sequence[float]]],
-      contexts: Sequence[encoder.ContextParams],
-      reference_ids: Sequence[str] = (),
-  ) -> Sequence[dict[str, float]]:
-    """Evaluates quality of the encoder for input sequences and return metrics.
-
-    Args:
-      sequences: Input sound sequences to encode. String-type sequences are
-        interpreted as sound file paths.
-      contexts: Encoder input context parameters, one per sequence.
-      reference_ids: Reference document ids, one per sequence.
-
-    Returns:
-      List of dictionaries of metrics, including mean reciprocal rank (MRR) and
-      exact
-      match (EM).
-    """
-    timestamps_and_embeddings = self.sound_encoder.encode_batch(
-        sequences=sequences, contexts=contexts, **self.encode_kwargs
-    )
-    metrics_batch = []
-    for reference_id, (_, embeddings) in zip(
-        reference_ids, timestamps_and_embeddings
-    ):
-      _, ranked_index_ids = self.searcher(embeddings)
-      ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
-          [self.id_by_index_id[int(x.numpy())] for x in ids]
-          for ids in ranked_index_ids
-      ]
-      metrics_batch.append({
-          'reciprocal_rank': compute_reciprocal_rank(
-              reference_id, ranked_doc_ids[0]
-          ),
-          'correct': float(reference_id == ranked_doc_ids[0][0]),
-      })
-    return metrics_batch
-
-  def combine_scores(self, scores: List[Dict[str, float]]) -> Dict[str, float]:
-    """Combines the scores of the examples."""
-    return evaluator.compute_weighted_average_and_std(
-        scores, (('reciprocal_rank', 'mrr'), ('correct', 'em'))
-    )
-
-
 @dataclasses.dataclass
 class RetrievalReferenceId:
   sound_id: str
@@ -164,7 +78,7 @@ RetrievalPredictionsCache = Mapping[str, Sequence[str]]
 RetrievalPredictionsWithScoresCache = Mapping[str, Sequence[tuple[str, float]]]
 
 
-class RetrievalEvaluatorV2:
+class RetrievalEvaluator:
   """Evaluator for retrieval tasks."""
 
   def __init__(
@@ -243,10 +157,10 @@ class RetrievalEvaluatorV2:
       )
 
     mrr_score = mrr(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['mrr'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['mrr'])
     )
     em_score = em(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['em'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['em'])
     )
     return [mrr_score, em_score]
 
@@ -367,10 +281,10 @@ class RetrievalEvaluatorPartitioned:
       )
 
     mrr_score = mrr(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['mrr'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['mrr'])
     )
     em_score = em(
-        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['em'])
+        *evaluator.compute_weighted_average_and_std(values_by_metric['em'])
     )
     return [mrr_score, em_score]
 

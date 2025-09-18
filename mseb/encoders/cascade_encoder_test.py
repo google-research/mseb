@@ -142,7 +142,7 @@ class CascadeEncoderTest(absltest.TestCase):
         model_path='dummy_model_path',
         text_encoder_cls=MockTextEncoder,
         text_encoder_kwargs={},
-        sound_encoder_cls=whisper_encoder.SpeechToTextEncoderV2,
+        sound_encoder_cls=whisper_encoder.SpeechToTextEncoder,
         sound_encoder_kwargs={'model_path': 'base'},
     )
     result1 = enc.encode(self.sound1)

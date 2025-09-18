@@ -68,7 +68,7 @@ gecko_text = EncoderMetadata(
 
 gecko_transcript_truth = EncoderMetadata(
     name="gecko_transcript_truth",
-    encoder=cascade_encoder.GeckoTranscriptTruthEncoderV2,
+    encoder=cascade_encoder.GeckoTranscriptTruthEncoder,
     params=lambda: dict(
         model_path="@gecko/gecko-1b-i18n-tpu/2"
     ),
@@ -76,7 +76,7 @@ gecko_transcript_truth = EncoderMetadata(
 
 gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
-    encoder=cascade_encoder.GeckoWhisperEncoderV2,
+    encoder=cascade_encoder.GeckoWhisperEncoder,
     params=lambda: dict(
         model_path="large-v3",
         gecko_model_path="@gecko/gecko-1b-i18n-tpu/2"
@@ -103,25 +103,25 @@ raw_encoder_25ms_10ms = EncoderMetadata(
 
 whisper_base_speech_to_text = EncoderMetadata(
     name="whisper_base_speech_to_text",
-    encoder=whisper_encoder.SpeechToTextEncoderV2,
+    encoder=whisper_encoder.SpeechToTextEncoder,
     params=lambda: dict(model_path="base"),
 )
 
 whisper_base_pooled_last = EncoderMetadata(
     name="whisper_base_pooled_last",
-    encoder=whisper_encoder.PooledAudioEncoderV2,
+    encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path="base", pooling="last"),
 )
 
 whisper_base_pooled_mean = EncoderMetadata(
     name="whisper_base_pooled_mean",
-    encoder=whisper_encoder.PooledAudioEncoderV2,
+    encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path="base", pooling="mean"),
 )
 
 whisper_base_pooled_max = EncoderMetadata(
     name="whisper_base_pooled_max",
-    encoder=whisper_encoder.PooledAudioEncoderV2,
+    encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path="base", pooling="max"),
 )
 

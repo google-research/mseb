@@ -104,7 +104,7 @@ class RetrievalTask(task.MSEBTask):
             ' running run_task_setup?'
         ) from FileNotFoundError
 
-    self._evaluator = retrieval_evaluator.RetrievalEvaluatorV2(
+    self._evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=searcher, id_by_index_id=id_by_index_id
     )
 

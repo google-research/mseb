@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, Protocol, Tuple, runtime_checkable
 
-from mseb import encoder
+from mseb import types
 import numpy as np
 
 
@@ -41,7 +41,7 @@ class Decoder(Protocol):
       timestamps: np.ndarray,
       embeddings: np.ndarray,
       **kwargs: Any,
-  ) -> Tuple[Optional[np.ndarray], Optional[encoder.ContextParams]]:
+  ) -> Tuple[Optional[np.ndarray], Optional[types.SoundContextParams]]:
     """Decodes timestamps and embeddings to the waveform and/or its context.
 
     Args:

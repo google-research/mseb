@@ -145,7 +145,7 @@ class CascadeEncoder(encoder.SoundEncoder):
     return outputs
 
 
-class GeckoTranscriptTruthEncoderV2(CascadeEncoder):
+class GeckoTranscriptTruthEncoder(CascadeEncoder):
   """Transcript truth encoder with Gecko model."""
 
   def __init__(
@@ -184,7 +184,7 @@ class GeckoTranscriptTruthEncoderV2(CascadeEncoder):
     )
 
 
-class GeckoWhisperEncoderV2(CascadeEncoder):
+class GeckoWhisperEncoder(CascadeEncoder):
   """Cascaded Whisper and Gecko encoder."""
 
   def __init__(
@@ -213,7 +213,7 @@ class GeckoWhisperEncoderV2(CascadeEncoder):
     """
     super().__init__(
         'not_used',
-        sound_encoder_cls=whisper_encoder.SpeechToTextEncoderV2,
+        sound_encoder_cls=whisper_encoder.SpeechToTextEncoder,
         sound_encoder_kwargs={
             'model_path': model_path,
         },

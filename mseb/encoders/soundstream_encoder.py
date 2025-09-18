@@ -14,10 +14,11 @@
 
 """SoundStream Encoder."""
 
-from typing import Any, List, Optional, Sequence, Union, Tuple
+from typing import Any, List, Optional, Sequence, Union
 
 import librosa
 from mseb import encoder
+from mseb import types
 import numpy as np
 import requests
 import tensorflow as tf
@@ -111,24 +112,24 @@ def pad_first_axis_to_target_multiple_length(arr: np.ndarray,
     return padded_arr
 
 
-class SoundStreamEncoder(encoder.Encoder):
+class SoundStreamEncoder(encoder.SoundEncoder):
   """Encodes audio using SoundStream  model from lyra github repository."""
 
   SOUNDSTREAM_SAMPLING_RATE: int = 16000
   SOUNDSTREAM_NBPQ: int = 4
 
   def __init__(self,
+               model_path: str = 'soundstream_encoder.tflite',
                bits_per_second: Optional[int] = None,
                quantize: bool = False,
-               encoder_model_filename: str = 'soundstream_encoder.tflite',
                quantizer_model_filename: Optional[str] = 'quantizer.tflite'):
     """Initializes the SoundStreamEncoder.
 
     Args:
+      model_path: Filename of the SoundStream encoder TFLite model.
       bits_per_second: Target bitrate for quantization.
                        Required if quantize is True.
       quantize: Whether to apply quantization to the embeddings.
-      encoder_model_filename: Filename of the SoundStream encoder TFLite model.
       quantizer_model_filename: Filename of the quantizer TFLite model.
                                 Required if quantize is True.
     Raises:
@@ -141,48 +142,64 @@ class SoundStreamEncoder(encoder.Encoder):
                   but I'm adding it as it's a common pattern and good to
                   document if present in your full code).
     """
+    super().__init__(model_path)
+    self.encoder_model_filename = model_path
+    self.encoder_interpreter = None
+
+    self.bits_per_second = bits_per_second
+    self.quantize = quantize
+    self.quantizer_model_filename = quantizer_model_filename
+    self.quantizer_runner = None
+    self.num_desired_quantizers = 0
+    self.sample_size: int = -1
+    self._encoder_input_tensor_idx: int = -1
+    self._encoder_output_tensor_idx: int = -1
+
+  def setup(self):
     try:
-      encoder_bytes = fetch_lyra_component_bytes(encoder_model_filename)
+      encoder_bytes = fetch_lyra_component_bytes(self.encoder_model_filename)
       self.encoder_interpreter = tf.lite.Interpreter(
           model_content=encoder_bytes)
       self.encoder_interpreter.allocate_tensors()
     except FetchError as e:
       raise RuntimeError(
           'Failed to initialize SoundStream encoder: '
-          f'Could not fetch {encoder_model_filename}'
+          f'Could not fetch {self.encoder_model_filename}'
       ) from e
     except Exception as e:
       raise RuntimeError(
           'Failed to initialize SoundStream TFLite encoder '
-          f'from {encoder_model_filename}'
+          f'from {self.encoder_model_filename}'
       ) from e
     encoder_input_details = self.encoder_interpreter.get_input_details()
     encoder_output_details = self.encoder_interpreter.get_output_details()
 
     if not encoder_input_details:
       raise RuntimeError(
-          f'No input details found for encoder model {encoder_model_filename}')
+          'No input details found for encoder model'
+          f' {self.encoder_model_filename}'
+      )
     if not encoder_output_details:
       raise RuntimeError(
-          f'No output details found for encoder model {encoder_model_filename}')
+          'No output details found for encoder model'
+          f' {self.encoder_model_filename}'
+      )
 
-    self.sample_size: int = int(encoder_input_details[0]['shape'][1])
-    self._encoder_input_tensor_idx: int = encoder_input_details[0]['index']
-    self._encoder_output_tensor_idx: int = encoder_output_details[0]['index']
-
-    self.quantize = quantize
-    self.quantizer_runner = None
-    self.num_desired_quantizers = 0
+    self.sample_size = int(encoder_input_details[0]['shape'][1])
+    self._encoder_input_tensor_idx = encoder_input_details[0]['index']
+    self._encoder_output_tensor_idx = encoder_output_details[0]['index']
 
     if self.quantize:
-      if bits_per_second is None:
+      if self.bits_per_second is None:
         raise ValueError(
             'bits_per_second must be provided if quantize is True.')
-      if quantizer_model_filename is None:
+      if self.quantizer_model_filename is None:
         raise ValueError(
             'quantizer_model_filename must be provided if quantize is True.')
       try:
-        quantizer_bytes = fetch_lyra_component_bytes(quantizer_model_filename)
+        quantizer_bytes = fetch_lyra_component_bytes(
+            self.quantizer_model_filename
+        )
         quantizer_interpreter = tf.lite.Interpreter(
             model_content=quantizer_bytes)
         quantizer_interpreter.allocate_tensors()
@@ -191,11 +208,11 @@ class SoundStreamEncoder(encoder.Encoder):
       except FetchError as e:
         raise RuntimeError(
             'Failed to initialize quantizer: Could not fetch '
-            f'{quantizer_model_filename}') from e
+            f'{self.quantizer_model_filename}') from e
       except Exception as e:
         raise RuntimeError(
             'Failed to initialize TFLite quantizer from '
-            f'{quantizer_model_filename} or get signature') from e
+            f'{self.quantizer_model_filename} or get signature') from e
 
       quantizer_output_sig_details = self.quantizer_runner.get_output_details()
       if 'output_0' not in quantizer_output_sig_details:
@@ -211,7 +228,7 @@ class SoundStreamEncoder(encoder.Encoder):
       if frame_rate == 0:
         raise ValueError(
             'Frame rate cannot be zero for bitrate calculation.')
-      bits_per_frame: float = bits_per_second / frame_rate
+      bits_per_frame: float = self.bits_per_second / frame_rate
       self.num_desired_quantizers = int(np.floor(
           bits_per_frame / self.SOUNDSTREAM_NBPQ))
       self.num_desired_quantizers = np.minimum(
@@ -225,6 +242,8 @@ class SoundStreamEncoder(encoder.Encoder):
         raise ValueError('Calculated num_desired_quantizers is non-positive.')
       self._num_quantizers_tf_tensor_input = tf.constant(
           [self.num_desired_quantizers], dtype=tf.int32)
+
+    self._model_loaded = True
 
   def _load_and_preprocess_audio(self,
                                  sequence: Union[str, Sequence[float]],
@@ -265,70 +284,74 @@ class SoundStreamEncoder(encoder.Encoder):
         waveform, length_base=self.sample_size, pad_value=0.0
     )
 
-  def encode(self,
-             sequence: Union[str, Sequence[float]],
-             context: encoder.ContextParams,
-             ) -> Tuple[np.ndarray, np.ndarray]:
+  def _encode_batch(
+      self, sound_batch: Sequence[types.Sound]
+  ) -> Sequence[types.SoundEmbedding]:
     """Encodes an audio sequence into embeddings.
 
     Args:
-      sequence: Path to an audio file (str) or a pre-loaded NumPy array
-                representing the waveform. If a NumPy array, it's assumed
-                its sample rate matches `context.sample_rate`.
-      context: Context parameters, including `context.sample_rate`.
+      sound_batch: A sequence of sound sources to encode.
 
     Returns:
-      A tuple (timestamps, embeddings).
-      timestamps: Start and end times for each embedding frame.
-      embeddings: The resulting (potentially quantized)embeddings.
+      A sequence of types.SoundEmbedding objects, one for each input:
+        timestamps: Start and end times for each embedding frame.
+        embeddings: The resulting (potentially quantized)embeddings.
     """
-    waveform = self._load_and_preprocess_audio(
-        sequence,
-        context.sample_rate,
-        self.SOUNDSTREAM_SAMPLING_RATE
-    )
+    outputs = []
+    for sound in sound_batch:
+      waveform = self._load_and_preprocess_audio(
+          sound.waveform,
+          sound.context.sample_rate,
+          self.SOUNDSTREAM_SAMPLING_RATE
+      )
 
-    timestamps_list: List[List[float]] = []
-    embeddings_list: List[np.ndarray] = []
+      timestamps_list: List[List[float]] = []
+      embeddings_list: List[np.ndarray] = []
 
-    num_frames = len(waveform) // self.sample_size
-    for i in range(num_frames):
-      start_sample = i * self.sample_size
-      end_sample = start_sample + self.sample_size
-      timestamps_list.append([
-          start_sample / self.SOUNDSTREAM_SAMPLING_RATE,
-          end_sample / self.SOUNDSTREAM_SAMPLING_RATE
-      ])
-      audio_segment = waveform[start_sample:end_sample]
-      encoder_input_data = np.expand_dims(
-          audio_segment, axis=0).astype(np.float32)
+      num_frames = len(waveform) // self.sample_size
+      for i in range(num_frames):
+        start_sample = i * self.sample_size
+        end_sample = start_sample + self.sample_size
+        timestamps_list.append([
+            start_sample / self.SOUNDSTREAM_SAMPLING_RATE,
+            end_sample / self.SOUNDSTREAM_SAMPLING_RATE
+        ])
+        audio_segment = waveform[start_sample:end_sample]
+        encoder_input_data = np.expand_dims(
+            audio_segment, axis=0).astype(np.float32)
 
-      self.encoder_interpreter.set_tensor(
-          self._encoder_input_tensor_idx, encoder_input_data)
-      self.encoder_interpreter.invoke()
-      raw_embedding = self.encoder_interpreter.get_tensor(
-          self._encoder_output_tensor_idx)
+        assert self.encoder_interpreter is not None
+        self.encoder_interpreter.set_tensor(
+            self._encoder_input_tensor_idx, encoder_input_data)
+        self.encoder_interpreter.invoke()
+        raw_embedding = self.encoder_interpreter.get_tensor(
+            self._encoder_output_tensor_idx)
 
-      if self.quantize and self.quantizer_runner:
-        features_for_quantizer = tf.constant(raw_embedding, dtype=tf.float32)
-        quantizer_output_dict = self.quantizer_runner(
-            input_frames=features_for_quantizer,
-            num_quantizers=self._num_quantizers_tf_tensor_input
-        )
-        quantized_codes_tensor = quantizer_output_dict['output_0']
+        if self.quantize and self.quantizer_runner:
+          features_for_quantizer = tf.constant(raw_embedding, dtype=tf.float32)
+          quantizer_output_dict = self.quantizer_runner(
+              input_frames=features_for_quantizer,
+              num_quantizers=self._num_quantizers_tf_tensor_input
+          )
+          quantized_codes_tensor = quantizer_output_dict['output_0']
 
-        if hasattr(quantized_codes_tensor, 'numpy'):
-          quantized_codes = quantized_codes_tensor.numpy()
+          if hasattr(quantized_codes_tensor, 'numpy'):
+            quantized_codes = quantized_codes_tensor.numpy()
+          else:
+            quantized_codes = quantized_codes_tensor
+          selected_quantized_embedding = quantized_codes[
+              :self.num_desired_quantizers, 0, 0]
+          embeddings_list.append(selected_quantized_embedding)
         else:
-          quantized_codes = quantized_codes_tensor
-        selected_quantized_embedding = quantized_codes[
-            :self.num_desired_quantizers, 0, 0]
-        embeddings_list.append(selected_quantized_embedding)
-      else:
-        embedding_vector = raw_embedding[0, 0, :]
-        embeddings_list.append(embedding_vector)
-    if not embeddings_list:
-      return np.array([]), np.array([])
-    timestamps = np.array(timestamps_list, dtype=np.float32)
-    embeddings = np.array(embeddings_list, dtype=np.float32)
-    return timestamps, embeddings
+          embedding_vector = raw_embedding[0, 0, :]
+          embeddings_list.append(embedding_vector)
+      if not embeddings_list:
+        continue
+      timestamps = np.array(timestamps_list, dtype=np.float32)
+      embeddings = np.array(embeddings_list, dtype=np.float32)
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=embeddings, timestamps=timestamps, context=sound.context
+          )
+      )
+    return outputs
