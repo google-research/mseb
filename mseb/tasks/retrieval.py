@@ -15,6 +15,7 @@
 """Retrieval super task."""
 
 import abc
+import itertools
 import logging
 import os
 import tempfile
@@ -38,18 +39,39 @@ class RetrievalTask(task.MSEBTask):
       cache_dir: str | None = None,
       text_encoder_name: str | None = None,
       id_by_index_id_filepath: str = 'ids.txt',
+      num_partitions: int = 1,
   ):
+    """Initializes the retrieval task.
+
+    Args:
+      cache_dir: The cache directory to store the document embeddings / index.
+      text_encoder_name: The name of the text encoder to build the index.
+      id_by_index_id_filepath: The filepath to save the id by index id mapping.
+      num_partitions: The number of index partitions to use.
+    """
     super().__init__(
         cache_dir=cache_dir or os.path.join(tempfile.gettempdir(), 'mseb_cache')
     )
     self.text_encoder_name = text_encoder_name
     self.id_by_index_id_filepath = id_by_index_id_filepath
+    self.num_partitions = num_partitions
     self._evaluator = None
 
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
     """Create the index."""
+    if self.num_partitions > 1:
+      self.setup_partitioned(runner_cls, **kwargs)
+    else:
+      self.setup_unpartitioned(runner_cls, **kwargs)
+
+  def setup_unpartitioned(
+      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+  ):
+    assert self.num_partitions == 1, (
+        'setup_unpartitioned requires num_partitions == 1.'
+    )
     if runner_cls is not None:
       if self.text_encoder_name is None:
         raise ValueError('Text encoder name is not set.')
@@ -58,10 +80,7 @@ class RetrievalTask(task.MSEBTask):
       ).load()
       runner = runner_cls(encoder=text_encoder, **kwargs)
       embeddings = runner.run(self.documents())
-      logger.info('Building ScaNN index...')
       searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
-      logger.info('Built ScaNN index with %d documents.', len(id_by_index_id))
-      logger.info('Saving ScaNN index to %s', self.cache_dir)
       retrieval_evaluator.save_index(
           searcher,
           id_by_index_id,
@@ -70,7 +89,6 @@ class RetrievalTask(task.MSEBTask):
       )
     else:
       try:
-        logger.info('Loading ScaNN index from %s', self.cache_dir)
         searcher, id_by_index_id = retrieval_evaluator.load_index(
             self.cache_dir, self.id_by_index_id_filepath
         )
@@ -84,6 +102,47 @@ class RetrievalTask(task.MSEBTask):
         searcher=searcher, id_by_index_id=id_by_index_id
     )
 
+  def setup_partitioned(
+      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+  ):
+    if runner_cls is not None:
+      if self.text_encoder_name is None:
+        raise ValueError('Text encoder name is not set.')
+      text_encoder = encoder_registry.get_encoder_metadata(
+          self.text_encoder_name
+      ).load()
+      for partition_id in range(self.num_partitions):
+        logger.info(
+            'Setting up partition %d/%d', partition_id, self.num_partitions
+        )
+        runner = runner_cls(
+            encoder=text_encoder,
+            **{
+                k: (
+                    os.path.join(v, str(partition_id))
+                    if k == 'output_path'
+                    else v
+                )
+                for k, v in kwargs.items()
+            }
+        )
+        embeddings = runner.run(
+            itertools.islice(
+                self.documents(), partition_id, None, self.num_partitions
+            )
+        )
+        searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
+        retrieval_evaluator.save_index(
+            searcher,
+            id_by_index_id,
+            os.path.join(self.cache_dir, str(partition_id)),
+            self.id_by_index_id_filepath,
+        )
+
+    self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
+        index_dir=self.cache_dir
+    )
+
   def compute_scores(
       self, embeddings: types.SoundEmbeddingCache
   ) -> dict[str, list[types.Score]]:
@@ -91,7 +150,9 @@ class RetrievalTask(task.MSEBTask):
       raise ValueError('Evaluator is not initialized. Did you call setup?')
     scores = {}
     for sub_task in self.sub_tasks:
-      scores[sub_task] = self._evaluator(embeddings, self.examples(sub_task))
+      scores[sub_task] = self._evaluator(
+          embeddings, tuple(self.examples(sub_task))
+      )
     return scores
 
   @abc.abstractmethod

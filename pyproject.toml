@@ -36,6 +36,7 @@ dependencies = [
     "tqdm",
     "transformers",
     "tensorflow==2.15",
+    "tensorflow-datasets",
     "tensorflow_hub",
     "tensorflow-recommenders",
 ]
