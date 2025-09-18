@@ -116,7 +116,7 @@ class RerankingEvaluatorV2Test(absltest.TestCase):
     )
     scores = evaluator.evaluate_predictions(
         predictions={
-            'test': ['b l a', 'b l i', 'x y z'],
+            'test': (['b l a', 'b l i', 'x y z'], [1.0, 0.5, 0.0])
         },
         candidates_batch=[
             reranking_evaluator.RerankingCandidates(
@@ -126,16 +126,19 @@ class RerankingEvaluatorV2Test(absltest.TestCase):
         ],
         is_english=True,
     )
-    npt.assert_equal(len(scores), 3)
-    self.assertIn('WER', scores[0].metric)
-    npt.assert_equal(scores[0].value, 1 / 3)
+    npt.assert_equal(len(scores), 4)
+    self.assertIn('MAP', scores[0].metric)
+    npt.assert_equal(scores[0].value, 1)
     npt.assert_equal(scores[0].std, 0)
-    self.assertIn('CER', scores[1].metric)
-    npt.assert_equal(scores[1].value, 1)
+    self.assertIn('WER', scores[1].metric)
+    npt.assert_equal(scores[1].value, 1 / 3)
     npt.assert_equal(scores[1].std, 0)
-    self.assertIn('MRR', scores[2].metric)
-    npt.assert_equal(scores[2].value, 1 / 2)
+    self.assertIn('CER', scores[2].metric)
+    npt.assert_equal(scores[2].value, 1)
     npt.assert_equal(scores[2].std, 0)
+    self.assertIn('MRR', scores[3].metric)
+    npt.assert_equal(scores[3].value, 1 / 2)
+    npt.assert_equal(scores[3].std, 0)
 
   def test_call(self):
     evaluator = reranking_evaluator.RerankingEvaluatorV2(
@@ -156,7 +159,7 @@ class RerankingEvaluatorV2Test(absltest.TestCase):
                 context=types.TextContextParams(id='x y z'),
             ),
         },
-        candidate_top_k=2,
+        mrr_at_k=2,
     )
     scores = evaluator(
         embeddings={
@@ -178,16 +181,19 @@ class RerankingEvaluatorV2Test(absltest.TestCase):
             ),
         ],
     )
-    npt.assert_equal(len(scores), 3)
-    self.assertIn('WER', scores[0].metric)
-    npt.assert_equal(scores[0].value, 1 / 3)
+    npt.assert_equal(len(scores), 4)
+    self.assertIn('MAP', scores[0].metric)
+    npt.assert_equal(scores[0].value, 1)
     npt.assert_equal(scores[0].std, 0)
-    self.assertIn('CER', scores[1].metric)
-    npt.assert_equal(scores[1].value, 1)
+    self.assertIn('WER', scores[1].metric)
+    npt.assert_equal(scores[1].value, 1 / 3)
     npt.assert_equal(scores[1].std, 0)
-    self.assertIn('MRR', scores[2].metric)
-    npt.assert_equal(scores[2].value, 1 / 2)
+    self.assertIn('CER', scores[2].metric)
+    npt.assert_equal(scores[2].value, 1)
     npt.assert_equal(scores[2].std, 0)
+    self.assertIn('MRR', scores[3].metric)
+    npt.assert_equal(scores[3].value, 1 / 2)
+    npt.assert_equal(scores[3].std, 0)
 
 
 if __name__ == '__main__':

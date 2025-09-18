@@ -25,10 +25,25 @@ from mseb import evaluator
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
 import numpy as np
+from sklearn import metrics
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 from whisper.normalizers import basic
 from whisper.normalizers import english
+
+
+average_precision_score = metrics.average_precision_score
+
+
+def map(value: float = 0.0, std: float | None = None):  # pylint: disable=redefined-builtin
+  return types.Score(
+      metric='MAP',
+      description='Mean Average Precision',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -197,7 +212,7 @@ class RerankingCandidates:
   texts: Sequence[str]
 
 
-RerankingPredictionsCache = Mapping[str, Sequence[str]]
+RerankingPredictionsCache = Mapping[str, tuple[Sequence[str], Sequence[float]]]
 
 
 class RerankingEvaluatorV2:
@@ -206,10 +221,17 @@ class RerankingEvaluatorV2:
   def __init__(
       self,
       candidate_embeddings_by_text: types.TextEmbeddingCache,
-      candidate_top_k: int = 10,
+      mrr_at_k: int = 10,
   ):
+    """Initializes the reranking evaluator.
+
+    Args:
+      candidate_embeddings_by_text: A dictionary mapping candidate texts to
+        their embeddings.
+      mrr_at_k: Computes MRR @ `mrr_at_k`..
+    """
     self.candidate_embeddings_by_text = candidate_embeddings_by_text
-    self.candidate_top_k = candidate_top_k
+    self.mrr_at_k = mrr_at_k
 
   def __call__(
       self,
@@ -224,8 +246,8 @@ class RerankingEvaluatorV2:
 
     Returns:
       A list of Score objects containing the final, aggregated scores. The
-      scores include mean reciprocal rank (MRR), word error rate (WER) and
-      candidate error rate (CER).
+      scores include mean average precision (MAP), mean reciprocal rank (MRR),
+      word error rate (WER) and candidate error rate (CER).
     """
     predictions = {}
     is_english = []
@@ -238,7 +260,7 @@ class RerankingEvaluatorV2:
             f' but got a {embedding.shape} array.'
         )
       searcher = tfrs.layers.factorized_top_k.BruteForce(
-          k=min(self.candidate_top_k, len(candidates.texts))
+          k=len(candidates.texts)
       )
       candidate_embeddings = [
           self.candidate_embeddings_by_text[text].embeddings[0]
@@ -247,14 +269,17 @@ class RerankingEvaluatorV2:
       searcher.index(
           candidates=tf.constant(candidate_embeddings, dtype=tf.float32)
       )
-      _, ranked_candidate_ids = searcher(
+      ranked_candidate_scores, ranked_candidate_ids = searcher(
           tf.constant(embedding, dtype=tf.float32)
       )
       ranked_candidate_texts = [  # pylint: disable=g-complex-comprehension
           [candidates.texts[int(x.numpy())] for x in ids]
           for ids in ranked_candidate_ids
       ]
-      predictions[candidates.sound_id] = ranked_candidate_texts[0]
+      predictions[candidates.sound_id] = (
+          ranked_candidate_texts[0],
+          ranked_candidate_scores[0],
+      )
       if context.language is None:
         raise ValueError('Language is required for reranking evaluation.')
       is_english.append(context.language.lower() == 'en')
@@ -276,13 +301,14 @@ class RerankingEvaluatorV2:
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
     values_by_metric: dict[str, list[types.WeightedValue]] = {
+        'map': [],
         'mrr': [],
         'wer': [],
         'cer': [],
     }
     for candidates in candidates_batch:
-      ranked_candidate_texts = predictions[candidates.sound_id][
-          : self.candidate_top_k
+      ranked_candidate_texts, ranked_candidate_scores = predictions[
+          candidates.sound_id
       ]
 
       word_errors, word_errors_weight = compute_word_errors(
@@ -308,11 +334,22 @@ class RerankingEvaluatorV2:
       values_by_metric['mrr'].append(
           types.WeightedValue(
               value=compute_reciprocal_rank(
-                  candidates.texts[0], ranked_candidate_texts
+                  candidates.texts[0], ranked_candidate_texts[:self.mrr_at_k]
+              ),
+          )
+      )
+      values_by_metric['map'].append(
+          types.WeightedValue(
+              value=average_precision_score(
+                  y_true=[True] + [False] * (len(ranked_candidate_scores) - 1),
+                  y_score=ranked_candidate_scores,
               ),
           )
       )
 
+    map_score = map(
+        *evaluator.compute_weighted_average_and_std_v2(values_by_metric['map'])
+    )
     mrr_score = mrr(
         *evaluator.compute_weighted_average_and_std_v2(values_by_metric['mrr'])
     )
@@ -322,4 +359,4 @@ class RerankingEvaluatorV2:
     cer_score = cer(
         *evaluator.compute_weighted_average_and_std_v2(values_by_metric['cer'])
     )
-    return [wer_score, cer_score, mrr_score]
+    return [map_score, wer_score, cer_score, mrr_score]

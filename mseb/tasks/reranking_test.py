@@ -128,9 +128,10 @@ class RerankingTest(absltest.TestCase):
     scores = task.compute_scores(embeddings=embeddings)
     self.assertLen(scores, 1)
     self.assertIn('test', scores)
-    self.assertEqual(scores['test'][0].metric, 'WER')
-    self.assertEqual(scores['test'][1].metric, 'CER')
-    self.assertEqual(scores['test'][2].metric, 'MRR')
+    self.assertEqual(scores['test'][0].metric, 'MAP')
+    self.assertEqual(scores['test'][1].metric, 'WER')
+    self.assertEqual(scores['test'][2].metric, 'CER')
+    self.assertEqual(scores['test'][3].metric, 'MRR')
 
   def test_reranking_task_setup(self):
 
@@ -169,7 +170,7 @@ class RerankingTest(absltest.TestCase):
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.candidate_embeddings_by_text)
     self.assertLen(task._evaluator.candidate_embeddings_by_text, 3)
-    self.assertEqual(task._evaluator.candidate_top_k, 10)
+    self.assertEqual(task._evaluator.mrr_at_k, 10)
 
 
 if __name__ == '__main__':
