@@ -21,7 +21,6 @@ from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
 import tensorflow as tf
-import tensorflow_hub as tf_hub
 import whisper
 
 
@@ -142,34 +141,3 @@ class EmbedWhisperEncoderV2(encoder.SoundEncoder):
           )
       )
     return outputs
-
-
-class GeckoWhisperEncoderV2(EmbedWhisperEncoderV2):
-  """Cascaded Whisper and Gecko encoder."""
-
-  def __init__(
-      self,
-      model_path: str,
-      gecko_model_path: str,
-      prompt_template: str = 'task: search result | query: {text}',
-  ):
-    """Initializes the Whisper and text embedder.
-
-    Args:
-      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
-        the Whisper model to be loaded in setup().
-      gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
-        pointing to the Gecko model to be loaded in setup().
-      prompt_template: Prompt template to be used for Gecko.
-    """
-    super().__init__(model_path, prompt_template)
-    self.gecko_model_path = gecko_model_path
-
-  def setup(self):
-    """Loads the Whisper model."""
-    self.whisper_encoder.setup()
-    gecko_model = tf_hub.load(self.gecko_model_path)
-    self.transcripts_encode_fn = lambda x: gecko_model.signatures[
-        'serving_default'
-    ](tf.constant(x))['encodings'].numpy()
-    self._model_loaded = True

@@ -59,8 +59,15 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
-        # Add the ground truth query for headroom analysis.
-        sound.context.text = example.text
+        sound.context.text = types.Text(
+            # Add the ground truth query for headroom analysis.
+            text=example.text,
+            context=types.TextContextParams(
+                id=sound.context.id,
+                title=example.page_title,
+                context=example.passage_text,
+            ),
+        )
         yield sound
 
   def examples(

@@ -34,6 +34,26 @@ class DatasetMetadata:
 
 
 @dataclasses.dataclass
+class TextContextParams:
+  """Parameters for a text example."""
+  id: str  # Identifier for the text example unique within the dataset.
+  title: Optional[str] = None
+  context: Optional[str] = None
+
+
+@dataclasses.dataclass
+class Text:
+  """A dataclass for a text."""
+  text: str
+  context: TextContextParams
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the text in bytes."""
+    return len(self.text.encode("utf-8"))
+
+
+@dataclasses.dataclass
 class SoundContextParams:
   """Parameters for a sound example."""
   id: str  # Identifier for the sound example unique within the dataset.
@@ -44,7 +64,7 @@ class SoundContextParams:
   speaker_id: Optional[str] = None
   speaker_age: Optional[int] = None
   speaker_gender: Optional[int] = None
-  text: Optional[str] = None
+  text: Optional[str | Text] = None
   # The starting second of the relevant waveform segment.
   # Defaults to 0, representing the beginning of the waveform array.
   waveform_start_second: float = 0.0
@@ -85,26 +105,6 @@ class SoundEmbedding:
   def size_bytes(self) -> int:
     """Returns the size of the embedding in bytes."""
     return self.embedding.size * self.embedding.dtype.itemsize
-
-
-@dataclasses.dataclass
-class TextContextParams:
-  """Parameters for a text example."""
-  id: str  # Identifier for the text example unique within the dataset.
-  title: Optional[str] = None
-  context: Optional[str] = None
-
-
-@dataclasses.dataclass
-class Text:
-  """A dataclass for a text."""
-  text: str
-  context: TextContextParams
-
-  @property
-  def size_bytes(self) -> int:
-    """Returns the size of the text in bytes."""
-    return len(self.text.encode("utf-8"))
 
 
 @dataclasses.dataclass

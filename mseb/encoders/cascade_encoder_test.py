@@ -21,6 +21,7 @@ from absl.testing import absltest
 from mseb import types
 from mseb.encoders import cascade_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
+from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
@@ -64,7 +65,7 @@ class CascadeEncoderTest(absltest.TestCase):
 
     sample_rate = 48000
     svq_example = self.svq_samples.read_row_group(0)
-    self.waveform1 = svq_example['waveform'].to_numpy()[0][:100]
+    self.waveform1 = svq_example['waveform'].to_numpy()[0]
     self.waveform1 = self.waveform1.astype(np.float32) / 32767.0
     self.params1 = types.SoundContextParams(
         sample_rate=sample_rate,
@@ -76,7 +77,7 @@ class CascadeEncoderTest(absltest.TestCase):
         id='test1',
     )
     self.sound1 = types.Sound(waveform=self.waveform1, context=self.params1)
-    self.waveform2 = svq_example['waveform'].to_numpy()[0][100:]
+    self.waveform2 = svq_example['waveform'].to_numpy()[0]
     self.waveform2 = self.waveform2.astype(np.float32) / 32767.0
     self.params2 = types.SoundContextParams(
         sample_rate=sample_rate,
@@ -109,7 +110,7 @@ class CascadeEncoderTest(absltest.TestCase):
     )
     npt.assert_equal(result.embedding, np.zeros((1, 8)))
 
-  def test_gecko_transcript_truth_encoder_encode_batch(self):
+  def test_text_transcript_truth_encoder_encode_batch(self):
     enc = cascade_encoder.CascadeEncoder(
         model_path='dummy_model_path',
         text_encoder_cls=MockTextEncoder,
@@ -122,6 +123,36 @@ class CascadeEncoderTest(absltest.TestCase):
     enc.text_encoder.text_encode_fn.assert_called_with(  # pytype: disable=attribute-error
         ['This is the transcript truth.', 'This is another transcript truth.']
     )
+    npt.assert_equal(len(results_batch), 2)
+    self.assertEqual(
+        results_batch[0].embedding.tolist(), result1.embedding.tolist()
+    )
+    self.assertEqual(
+        results_batch[0].timestamps.tolist(), result1.timestamps.tolist()
+    )
+    self.assertEqual(
+        results_batch[1].embedding.tolist(), result2.embedding.tolist()
+    )
+    self.assertEqual(
+        results_batch[1].timestamps.tolist(), result2.timestamps.tolist()
+    )
+
+  def test_text_whisper_encoder_encode_batch(self):
+    enc = cascade_encoder.CascadeEncoder(
+        model_path='dummy_model_path',
+        text_encoder_cls=MockTextEncoder,
+        text_encoder_kwargs={},
+        sound_encoder_cls=whisper_encoder.SpeechToTextEncoderV2,
+        sound_encoder_kwargs={'model_path': 'base'},
+    )
+    result1 = enc.encode(self.sound1)
+    result2 = enc.encode(self.sound2)
+    results_batch = enc.encode_batch([self.sound1, self.sound2])
+    enc.text_encoder.setup.assert_called_once()  # pytype: disable=attribute-error
+    enc.text_encoder.text_encode_fn.assert_called_with([  # pytype: disable=attribute-error
+        ' How many members does the National Labor Relations Board have?',
+        ' How many members does the National Labor Relations Board have?',
+    ])
     npt.assert_equal(len(results_batch), 2)
     self.assertEqual(
         results_batch[0].embedding.tolist(), result1.embedding.tolist()

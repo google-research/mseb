@@ -82,7 +82,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     self.assertEqual(example.sound_id, "utt_11697423627206642872")
     self.assertLen(example.texts, 5)
     self.assertEqual(
-        example.reference_answer, "At what temperature does steel melt?"
+        example.reference_answer, "above 900 \\u00b0F"
     )
     example = examples[1]
     self.assertEqual(example.sound_id, "utt_15041124811443622614")

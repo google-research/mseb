@@ -20,6 +20,7 @@ import jaxtyping
 from mseb import encoder
 from mseb import types
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
+from mseb.encoders import whisper_encoder
 import numpy as np
 
 
@@ -122,10 +123,12 @@ class CascadeEncoder(encoder.SoundEncoder):
     text_batch = []
     for transcripts in transcripts_batch:
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = transcripts.embedding
-      test = str(embedding[0])
-      text_batch.append(
-          types.Text(text=test, context=types.TextContextParams(id=''))
-      )
+      text = str(embedding[0])
+      if isinstance(transcripts.context.text, types.Text):
+        context = transcripts.context.text.context
+      else:
+        context = types.TextContextParams(id=transcripts.context.id)
+      text_batch.append(types.Text(text=text, context=context))
     text_embeddings_batch = self.text_encoder.encode_batch(text_batch, **kwargs)
 
     outputs = [
@@ -178,4 +181,46 @@ class GeckoTranscriptTruthEncoderV2(CascadeEncoder):
     )
     self.text_encoder = text_encoder.GeckoTextEncoder(
         model_path, normalizer, prompt_template
+    )
+
+
+class GeckoWhisperEncoderV2(CascadeEncoder):
+  """Cascaded Whisper and Gecko encoder."""
+
+  def __init__(
+      self,
+      model_path: str,
+      gecko_model_path: str,
+      normalizer: Callable[[str], str] | None = None,
+      prompt_template: str = 'task: search result | query: {text}',
+      **kwargs: Any,
+  ):
+    """Initializes the Whisper and Gecko models.
+
+    Args:
+      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
+        the Whisper model to be loaded in setup().
+      gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
+        pointing to the Gecko model to be loaded in setup().
+      normalizer: A function that normalizes the text before encoding. This is
+        useful for removing special characters or formatting the text for better
+        encoding results.
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents".
+      **kwargs: Model-specific initialization arguments that will be stored in
+        `self._kwargs` for use in `setup()`.
+    """
+    super().__init__(
+        'not_used',
+        sound_encoder_cls=whisper_encoder.SpeechToTextEncoderV2,
+        sound_encoder_kwargs={
+            'model_path': model_path,
+        },
+        text_encoder_cls=text_encoder.GeckoTextEncoder,
+        text_encoder_kwargs={
+            'model_path': gecko_model_path,
+            'normalizer': normalizer,
+            'prompt_template': prompt_template,
+        },
     )

@@ -27,7 +27,6 @@ from typing import Any, Callable, Type
 from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import cascade_encoder
-from mseb.encoders import embed_whisper_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
 from mseb.encoders import whisper_encoder
@@ -77,7 +76,7 @@ gecko_transcript_truth = EncoderMetadata(
 
 gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
-    encoder=embed_whisper_encoder.GeckoWhisperEncoderV2,
+    encoder=cascade_encoder.GeckoWhisperEncoderV2,
     params=lambda: dict(
         model_path="large-v3",
         gecko_model_path="@gecko/gecko-1b-i18n-tpu/2"

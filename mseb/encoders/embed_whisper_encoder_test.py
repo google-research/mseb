@@ -14,13 +14,11 @@
 
 import os
 import pathlib
-from typing import Callable, Sequence
+from typing import Sequence
 from unittest import mock
 
 from absl.testing import absltest
-import jaxtyping
 from mseb import encoder
-from mseb import types
 from mseb.encoders import embed_whisper_encoder
 import numpy as np
 import numpy.testing as npt
@@ -116,76 +114,6 @@ class EmbedWhisperEncoderTest(absltest.TestCase):
     npt.assert_equal(timestamps[0, 0] >= 0.0, True)
     npt.assert_equal(timestamps[0, 1] <= waveform.shape[0] / sample_rate, True)
     npt.assert_equal(embeddings, [[1.0, 2.0]])
-
-
-class MockEmbedWhisperEncoderV2(embed_whisper_encoder.EmbedWhisperEncoderV2):
-  """A mock class for EmbedWhisperEncoderV2."""
-
-  def __init__(
-      self,
-      transcripts_encode_fn: Callable[
-          [Sequence[str]], jaxtyping.Float[jaxtyping.Array, 'N D']
-      ],
-  ):
-    super().__init__('tiny.en')
-    self.transcripts_encode_fn = transcripts_encode_fn
-
-  def setup(self):
-    """Mock setup method."""
-    super().setup()
-    assert self.transcripts_encode_fn is not None
-    self._model_loaded = True
-
-
-class EmbedWhisperEncoderV2Test(absltest.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    self.enter_context(whisper_cache_context(self.__class__.__name__))
-    testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
-    )
-    self.svq_samples = pq.ParquetFile(
-        os.path.join(testdata_path, 'en_us.parquet')
-    )
-
-  def test_embed_whisper_encoder(self):
-    svq_example = self.svq_samples.read_row_group(0)
-    waveform = svq_example['waveform'].to_numpy()[0]
-    waveform = waveform.astype(np.float32) / 32767.0
-    sample_rate = 48000
-
-    def transcript_encode_fn(
-        prompts: Sequence[str],
-    ) -> jaxtyping.Float[jaxtyping.Array, 'N D']:
-      embedding_by_prompt = {
-          ' How many members does the National Labor Relations Board have?': [
-              1,
-              2,
-          ],
-      }
-      return np.array(
-          [embedding_by_prompt[prompt] for prompt in prompts], np.float32
-      )
-
-    enc = MockEmbedWhisperEncoderV2(transcripts_encode_fn=transcript_encode_fn)
-
-    params = types.SoundContextParams(
-        sample_rate=sample_rate,
-        length=waveform.shape[0],
-        language='en',
-        waveform_start_second=0.0,
-        waveform_end_second=waveform.shape[0] / sample_rate,
-        id='test',
-    )
-    sound = types.Sound(waveform=waveform, context=params)
-    result = enc.encode(sound)
-    npt.assert_equal(result.timestamps.shape, [1, 2])
-    npt.assert_equal(result.timestamps[0, 0] >= 0.0, True)
-    npt.assert_equal(
-        result.timestamps[0, 1] <= waveform.shape[0] / sample_rate, True
-    )
-    npt.assert_equal(result.embedding, [[1.0, 2.0]])
 
 
 if __name__ == '__main__':
