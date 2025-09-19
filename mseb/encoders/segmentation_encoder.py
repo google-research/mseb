@@ -147,7 +147,7 @@ class LongestPrefixIDFSegmenter(SegmenterBase):
       ]
 
 
-class CascadedSegmentationEncoder(encoder.SoundEncoder):
+class CascadedSegmentationEncoder(encoder.MultiModalEncoder):
   """Encodes anaudio sequence into segments using a cascaded approach.
 
    1. Use an ASR encoder to transcribe the speech into text.
@@ -157,36 +157,49 @@ class CascadedSegmentationEncoder(encoder.SoundEncoder):
       segments
   """
 
-  def __init__(self,
-               asr_encoder: whisper_encoder.Whisper,
-               segmenter: SegmenterBase,
-               top_k: int = 1):
-    super().__init__('not_used')
+  def __init__(
+      self,
+      asr_encoder: whisper_encoder.Whisper,
+      segmenter: SegmenterBase,
+      top_k: int = 1,
+      asr_kwargs: dict[str, Any] | None = None,
+  ):
+    super().__init__()
     self.asr_encoder = asr_encoder
     self.segmenter = segmenter
     self.top_k = top_k
+    self.asr_kwargs = asr_kwargs or {}
 
-  def setup(self):
+  def _setup(self):
     self.asr_encoder.setup()
-    self._model_loaded = True
 
-  def _encode_batch(
-      self,
-      sound_batch: Sequence[types.Sound],
-      **kwargs: Any
+  def _check_input_types(self, batch: Sequence[types.MultiModalInput]) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError(
+          'CascadedSegmentationEncoder only supports a batch of all Sound '
+          'inputs.'
+      )
+
+  def _encode(
+      self, batch: Sequence[types.MultiModalInput]
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources into segments.
 
     Args:
-     sound_batch: A sequence of sound sources to encode.
-      **kwargs: Keyword arguments to pass to the ASR encoder.
+      batch: A sequence of sound sources to encode.
 
     Returns:
       A list of types.SoundEmbedding objects, one for each input:
        timestamps: Array of start and end times tuple for each segment.
        segments: Array of text and score for each segment.
     """
-    sound_embeddings = self.asr_encoder.encode_batch(sound_batch, **kwargs)
+    sound_batch: list[types.Sound] = []
+    for example in batch:
+      assert isinstance(example, types.Sound)
+      sound_batch.append(example)
+    sound_embeddings = self.asr_encoder.encode_batch(
+        sound_batch, **self.asr_kwargs
+    )
     outputs = []
     for sound_embedding in sound_embeddings:
       words: jaxtyping.Shaped[np.ndarray, 'N'] = sound_embedding.embedding
@@ -223,11 +236,13 @@ class CascadedSegmentationEncoder(encoder.SoundEncoder):
 class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):
   """Encodes an audio sequence into the top-k segments with the highest IDF scores in the output of an ASR encoder."""
 
-  def __init__(self,
-               asr_encoder: whisper_encoder.Whisper,
-               idf_table: dict[str, float],
-               language: str,
-               top_k: int = 1):
+  def __init__(
+      self,
+      asr_encoder: whisper_encoder.Whisper,
+      idf_table: dict[str, float],
+      language: str,
+      top_k: int = 1,
+  ):
     """Initialize the MaxIDFSegmentEncoder.
 
     Args:
