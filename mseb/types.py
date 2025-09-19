@@ -33,6 +33,19 @@ class DatasetMetadata:
   citation: Optional[str] = None
 
 
+@dataclasses.dataclass(frozen=True)
+class EncodingStats:
+  """Information about how an embedding was encoded."""
+  input_size_bytes: int  # Size of the input in bytes.
+  embedding_size_bytes: int  # Size of the embedding in bytes.
+  flops: Optional[int] = None  # Number of floating point operations.
+
+  @property
+  def compression_ratio(self) -> float:
+    """Ratio of output embedding size to features input size."""
+    return self.embedding_size_bytes / self.input_size_bytes
+
+
 @dataclasses.dataclass
 class TextContextParams:
   """Parameters for a text example."""
@@ -100,6 +113,7 @@ class SoundEmbedding:
   )
   timestamps: jaxtyping.Float[jaxtyping.Array, "M 2"]
   context: SoundContextParams
+  encoding_stats: Optional[EncodingStats] = None
 
   @property
   def size_bytes(self) -> int:
@@ -116,6 +130,7 @@ class TextEmbeddings:
   )
   spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
   context: TextContextParams
+  encoding_stats: Optional[EncodingStats] = None
 
   @property
   def size_bytes(self) -> int:
@@ -126,6 +141,7 @@ class TextEmbeddings:
 @dataclasses.dataclass(frozen=True)
 class Score:
   """A dataclass for a single evaluation metric."""
+
   metric: str
   description: str
   value: float
@@ -142,8 +158,9 @@ class Score:
       raise TypeError("Score 'description' must be a string.")
     if not isinstance(self.value, float):
       raise TypeError("Score 'value' must be a float.")
-    if (not isinstance(self.min, (int, float)) or
-        not isinstance(self.max, (int, float))):
+    if not isinstance(self.min, (int, float)) or not isinstance(
+        self.max, (int, float)
+    ):
       raise TypeError("Score 'min' and 'max' must be numbers.")
     if self.min > self.max:
       raise ValueError(

@@ -33,7 +33,11 @@ class RunnerTest(absltest.TestCase):
             context=types.TextContextParams(
                 id='utt_14868079180393484423',
             ),
-        ),
+            encoding_stats=types.EncodingStats(
+                input_size_bytes=1000,
+                embedding_size_bytes=100,
+            ),
+        )
     }
 
     runner_lib.save_embeddings(

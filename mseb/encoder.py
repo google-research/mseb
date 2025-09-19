@@ -77,7 +77,13 @@ class MultiModalEncoder(abc.ABC):
   ) -> Sequence[types.SoundEmbedding | types.TextEmbeddings]:
     """Encodes a batch of multi-modal examples."""
     self._check_input_types(batch)
-    return self._encode(batch)
+    embeddings = self._encode(batch)
+    for features, embedding in zip(batch, embeddings):
+      embedding.stats = types.EncodingStats(
+          input_size_bytes=features.size_bytes,
+          embedding_size_bytes=embedding.size_bytes,
+      )
+    return embeddings
 
 
 class SoundEncoder(abc.ABC):

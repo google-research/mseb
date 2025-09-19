@@ -21,10 +21,11 @@ and reporting the results.
 import collections
 import dataclasses
 import json
-from typing import Any, Callable, Dict, Iterator, List, TextIO, Iterable
+from typing import Any, Callable, Dict, Iterable, Iterator, List, TextIO
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import types
+import numpy as np
 
 
 @dataclasses.dataclass
@@ -64,6 +65,20 @@ class LeaderboardResult:
     )
 
 
+def get_encoding_scores(embeddings: types.EmbeddingCache) -> list[types.Score]:
+  """Get scores for encoding statistics."""
+  stats = [x.encoding_stats for x in embeddings.values() if x.encoding_stats]
+  return [
+      types.Score(
+          metric='mean_encoding_size_bytes',
+          description='Mean encoding size in bytes.',
+          value=np.mean([x.embedding_size_bytes for x in stats]),
+          min=0,
+          max=np.inf,
+      ),
+  ]
+
+
 def run_benchmark(
     encoder_name: str,  # Maybe this can come from Encoder metadata?
     runner: runner_lib.EncoderRunner,
@@ -72,12 +87,13 @@ def run_benchmark(
   """Run a task evaluation."""
   embeddings = runner.run(task.sounds())
   scores = task.compute_scores(embeddings)
+  encoding_scores = get_encoding_scores(embeddings)
   return [
       LeaderboardResult(
           name=encoder_name,
           sub_task_name=sub_task_name,
           task_metadata=task.metadata,
-          scores=scores,
+          scores=scores + encoding_scores,
       )
       for sub_task_name, scores in scores.items()
   ]
