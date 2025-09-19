@@ -38,7 +38,7 @@ def normalize_embeddings(x: np.ndarray) -> np.ndarray:
   return normalized_vectors
 
 
-class Wav2VecEncoder(encoder.SoundEncoder):
+class Wav2VecEncoder(encoder.MultiModalEncoder):
   """A class to embed audio into pooled embedding of Wav2Vec model."""
 
   def __init__(
@@ -65,7 +65,9 @@ class Wav2VecEncoder(encoder.SoundEncoder):
     Raises:
       RuntimeError: If model loading fails.
     """
-    super().__init__(model_path, **kwargs)
+    super().__init__()
+    self.model_path = model_path
+    self._kwargs = kwargs
 
     if device:
       if device == 'cuda' and not torch.cuda.is_available():
@@ -95,7 +97,16 @@ class Wav2VecEncoder(encoder.SoundEncoder):
       )
     self.pooling = pooling
 
-  def setup(self):
+  def _check_input_types(
+      self, batch: Sequence[types.MultiModalInput]
+  ) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError(
+          'Wav2VecEncoder only supports a batch of all Sound '
+          'inputs.'
+      )
+
+  def _setup(self):
     """Loads the Wav2Vec2 model.
 
     Raises:
@@ -147,77 +158,14 @@ class Wav2VecEncoder(encoder.SoundEncoder):
           'Check your GPU setup.'
       ) from e
 
-    self._model_loaded = True
-
   def _encode(
       self,
-      sound: types.Sound,
-      **kwargs: Any,
-  ) -> types.SoundEmbedding:
-    """Encodes speech by Wav2Vec encoder activations and optionally pools them.
-
-    Args:
-      sound: A types.Sound object to encode.
-      **kwargs: Any additional parameters required for encoding.
-
-    Returns:
-      A types.SoundEmbedding object containing the embeddings, timestamps, and
-      context.
-
-    Raises:
-      ValueError: If required context parameters are not set or input sequence
-                  is invalid.
-      FileNotFoundError: If the audio file path is not found.
-    """
-    transform_fn_kwargs = kwargs.get('transform_fn_kwargs', {})
-    waveform = np.asarray(sound.waveform, dtype=np.float32)
-    params = sound.context
-
-    assert self.processor is not None
-    # TODO(mseb): In the new design, we need to assume encoder does not do any
-    # preprocessing and only get sequence of floats.
-
-    if params.sample_rate is None:
-      raise ValueError(
-          'Sample rate must be set in context when sequence is '
-          'a raw array or via librosa.load.'
-      )
-    waveform = librosa.resample(
-        waveform,
-        orig_sr=params.sample_rate,
-        target_sr=self.processor.feature_extractor.sampling_rate,
-    )
-
-    input_values = self.processor(
-        waveform,
-        sampling_rate=self.processor.feature_extractor.sampling_rate,
-        return_tensors='pt',
-    ).input_values
-    input_values = input_values.to(self.device)
-
-    assert self.model is not None
-    with torch.no_grad():
-      outputs = self.model(input_values)
-      embeddings = outputs.last_hidden_state.squeeze(0)
-      embeddings = embeddings.to('cpu').numpy()
-
-    embeddings = self.transform_fn(embeddings, **transform_fn_kwargs)
-    embedding = self.pool_fn(embeddings)
-    timestamps = np.array([[0, params.length / params.sample_rate]])
-    return types.SoundEmbedding(
-        embedding=embedding, timestamps=timestamps, context=params
-    )
-
-  def _encode_batch(
-      self,
-      sound_batch: Sequence[types.Sound],
-      **kwargs: Any,
+      batch: Sequence[types.MultiModalInput],
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes speech by Wav2Vec encoder activations and optionally pools them.
 
     Args:
-      sound_batch: A sequence of types.Sound objects to encode.
-      **kwargs: Any additional parameters required for encoding.
+      batch: A sequence of types.Sound objects to encode.
 
     Returns:
       A list of tuples, one for each input, each tuple containing:
@@ -232,7 +180,51 @@ class Wav2VecEncoder(encoder.SoundEncoder):
                   is invalid.
       FileNotFoundError: If the audio file path is not found.
     """
+    sound_batch: list[types.Sound] = []
+    for example in batch:
+      assert isinstance(example, types.Sound)
+      sound_batch.append(example)
+
+    transform_fn_kwargs = self._kwargs.get('transform_fn_kwargs', {})
     outputs = []
     for sound in sound_batch:
-      outputs.append(self._encode(sound, **kwargs))
+      waveform = np.asarray(sound.waveform, dtype=np.float32)
+      params = sound.context
+
+      assert self.processor is not None
+      # TODO(mseb): In the new design, we need to assume encoder does not do any
+      # preprocessing and only get sequence of floats.
+
+      if params.sample_rate is None:
+        raise ValueError(
+            'Sample rate must be set in context when sequence is '
+            'a raw array or via librosa.load.'
+        )
+      waveform = librosa.resample(
+          waveform,
+          orig_sr=params.sample_rate,
+          target_sr=self.processor.feature_extractor.sampling_rate,
+      )
+
+      input_values = self.processor(
+          waveform,
+          sampling_rate=self.processor.feature_extractor.sampling_rate,
+          return_tensors='pt',
+      ).input_values
+      input_values = input_values.to(self.device)
+
+      assert self.model is not None
+      with torch.no_grad():
+        model_outputs = self.model(input_values)
+        embeddings = model_outputs.last_hidden_state.squeeze(0)
+        embeddings = embeddings.to('cpu').numpy()
+
+      embeddings = self.transform_fn(embeddings, **transform_fn_kwargs)
+      embedding = self.pool_fn(embeddings)
+      timestamps = np.array([[0, params.length / params.sample_rate]])
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=embedding, timestamps=timestamps, context=params
+          )
+      )
     return outputs
