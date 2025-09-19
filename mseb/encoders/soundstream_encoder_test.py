@@ -44,27 +44,39 @@ class SounStreamEncoderTest(absltest.TestCase):
 
   def test_soundstream_encoder_without_quantization(self):
     enc = soundstream_encoder.SoundStreamEncoder()
-    sound_embedding = enc.encode(
-        types.Sound(waveform=self.waveform, context=self.context)
+    enc.setup()
+    sound_embeddings = enc.encode(
+        [types.Sound(waveform=self.waveform, context=self.context)]
     )
+    self.assertLen(sound_embeddings, 1)
+    sound_embedding = sound_embeddings[0]
+    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     npt.assert_equal(sound_embedding.timestamps.shape, [375, 2])
     npt.assert_equal(sound_embedding.embedding.shape, [375, 64])
 
   def test_soundstream_encoder_quantization_9200bps(self):
     enc = soundstream_encoder.SoundStreamEncoder(
         bits_per_second=9200, quantize=True)
-    sound_embedding = enc.encode(
-        types.Sound(waveform=self.waveform, context=self.context)
+    enc.setup()
+    sound_embeddings = enc.encode(
+        [types.Sound(waveform=self.waveform, context=self.context)]
     )
+    self.assertLen(sound_embeddings, 1)
+    sound_embedding = sound_embeddings[0]
+    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     npt.assert_equal(sound_embedding.timestamps.shape, [375, 2])
     npt.assert_equal(sound_embedding.embedding.shape, [375, 46])
 
   def test_soundstream_encoder_quantization_4600bps(self):
     enc = soundstream_encoder.SoundStreamEncoder(
         bits_per_second=4600, quantize=True)
-    sound_embedding = enc.encode(
-        types.Sound(waveform=self.waveform, context=self.context)
+    enc.setup()
+    sound_embeddings = enc.encode(
+        [types.Sound(waveform=self.waveform, context=self.context)]
     )
+    self.assertLen(sound_embeddings, 1)
+    sound_embedding = sound_embeddings[0]
+    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     npt.assert_equal(sound_embedding.timestamps.shape, [375, 2])
     npt.assert_equal(sound_embedding.embedding.shape, [375, 23])
 

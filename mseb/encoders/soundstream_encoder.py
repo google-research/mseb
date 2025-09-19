@@ -112,7 +112,7 @@ def pad_first_axis_to_target_multiple_length(arr: np.ndarray,
     return padded_arr
 
 
-class SoundStreamEncoder(encoder.SoundEncoder):
+class SoundStreamEncoder(encoder.MultiModalEncoder):
   """Encodes audio using SoundStream  model from lyra github repository."""
 
   SOUNDSTREAM_SAMPLING_RATE: int = 16000
@@ -142,7 +142,7 @@ class SoundStreamEncoder(encoder.SoundEncoder):
                   but I'm adding it as it's a common pattern and good to
                   document if present in your full code).
     """
-    super().__init__(model_path)
+    super().__init__()
     self.encoder_model_filename = model_path
     self.encoder_interpreter = None
 
@@ -155,7 +155,16 @@ class SoundStreamEncoder(encoder.SoundEncoder):
     self._encoder_input_tensor_idx: int = -1
     self._encoder_output_tensor_idx: int = -1
 
-  def setup(self):
+  def _check_input_types(
+      self, batch: Sequence[types.MultiModalInput]
+  ) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError(
+          'SoundStreamEncoder only supports a batch of all Sound '
+          'inputs.'
+      )
+
+  def _setup(self):
     try:
       encoder_bytes = fetch_lyra_component_bytes(self.encoder_model_filename)
       self.encoder_interpreter = tf.lite.Interpreter(
@@ -243,8 +252,6 @@ class SoundStreamEncoder(encoder.SoundEncoder):
       self._num_quantizers_tf_tensor_input = tf.constant(
           [self.num_desired_quantizers], dtype=tf.int32)
 
-    self._model_loaded = True
-
   def _load_and_preprocess_audio(self,
                                  sequence: Union[str, Sequence[float]],
                                  source_sample_rate: int,
@@ -284,19 +291,23 @@ class SoundStreamEncoder(encoder.SoundEncoder):
         waveform, length_base=self.sample_size, pad_value=0.0
     )
 
-  def _encode_batch(
-      self, sound_batch: Sequence[types.Sound]
+  def _encode(
+      self, batch: Sequence[types.MultiModalInput]
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes an audio sequence into embeddings.
 
     Args:
-      sound_batch: A sequence of sound sources to encode.
+      batch: A sequence of sound sources to encode.
 
     Returns:
       A sequence of types.SoundEmbedding objects, one for each input:
         timestamps: Start and end times for each embedding frame.
         embeddings: The resulting (potentially quantized)embeddings.
     """
+    sound_batch: list[types.Sound] = []
+    for example in batch:
+      assert isinstance(example, types.Sound)
+      sound_batch.append(example)
     outputs = []
     for sound in sound_batch:
       waveform = self._load_and_preprocess_audio(
