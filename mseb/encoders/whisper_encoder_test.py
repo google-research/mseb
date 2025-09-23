@@ -183,6 +183,9 @@ class PooledAudioEncoderTest(absltest.TestCase):
     self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [375, 512])
+    assert enc.get_encode_flops(self.sound) is not None
+    assert result.encoding_stats is not None
+    assert result.encoding_stats.flops is not None
 
   def test_encode_last_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='last')

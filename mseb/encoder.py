@@ -79,11 +79,17 @@ class MultiModalEncoder(abc.ABC):
     self._check_input_types(batch)
     embeddings = self._encode(batch)
     for features, embedding in zip(batch, embeddings):
-      embedding.stats = types.EncodingStats(
+      embedding.encoding_stats = types.EncodingStats(
           input_size_bytes=features.size_bytes,
           embedding_size_bytes=embedding.size_bytes,
+          flops=self.get_encode_flops(features),
       )
     return embeddings
+
+  def get_encode_flops(self, data: types.MultiModalInput) -> int | None:
+    """Returns total flops used to encode or None if not yet implemented."""
+    del data
+    return None
 
 
 class SoundEncoder(abc.ABC):

@@ -18,6 +18,7 @@ import abc
 from typing import Callable, Optional, Sequence
 
 from absl import logging
+from fvcore import nn
 import librosa
 from mseb import encoder
 from mseb import types
@@ -44,9 +45,7 @@ class Whisper(encoder.MultiModalEncoder):
     """Loads the Whisper model."""
     self.model = whisper.load_model(self.model_path, device=self.device)
 
-  def _check_input_types(
-      self, batch: Sequence[types.MultiModalInput]
-  ) -> None:
+  def _check_input_types(self, batch: Sequence[types.MultiModalInput]) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError('Whisper only supports a batch of all Sound inputs.')
 
@@ -84,9 +83,8 @@ class Whisper(encoder.MultiModalEncoder):
     sequence_data = sequence
 
     return librosa.resample(
-        sequence_data,
-        orig_sr=sample_rate,
-        target_sr=whisper.audio.SAMPLE_RATE)
+        sequence_data, orig_sr=sample_rate, target_sr=whisper.audio.SAMPLE_RATE
+    )
 
   @abc.abstractmethod
   def _encode_sound(
@@ -142,9 +140,7 @@ class Whisper(encoder.MultiModalEncoder):
     outputs = []
     for sound in sound_batch:
       sequence_data = self.preprocess(sound.waveform, sound.context.sample_rate)
-      outputs.append(
-          self._encode_sound(sequence_data, sound.context)
-      )
+      outputs.append(self._encode_sound(sequence_data, sound.context))
     return outputs
 
 
@@ -188,8 +184,8 @@ class SpeechToTextEncoder(Whisper):
 
     Args:
       waveform: A one-dimensional NumPy array of floating-point numbers,
-                representing the audio waveform. This array must be sampled at
-                the same rate as whisper.audio.SAMPLE_RATE
+        representing the audio waveform. This array must be sampled at the same
+        rate as whisper.audio.SAMPLE_RATE
       params: A `SoundContextParams` object containing metadata and context
         about the sound, such as its sample rate.
 
@@ -233,10 +229,12 @@ class SpeechToTextEncoder(Whisper):
 class ForcedAlignmentEncoder(Whisper):
   """Embeds by forced-alignment of speech and text by Whisper model."""
 
-  def __init__(self,
-               model_path: str,
-               device: str | None = None,
-               language: Optional[str] = None):
+  def __init__(
+      self,
+      model_path: str,
+      device: str | None = None,
+      language: Optional[str] = None,
+  ):
     """Initializes the Whisper encoder.
 
     Args:
@@ -254,7 +252,8 @@ class ForcedAlignmentEncoder(Whisper):
         self.model.is_multilingual,
         num_languages=self.model.num_languages,
         language=self.language,
-        task='transcript')
+        task='transcript',
+    )
 
   def _encode_sound(
       self,
@@ -265,8 +264,8 @@ class ForcedAlignmentEncoder(Whisper):
 
     Args:
       waveform: A one-dimensional NumPy array of floating-point numbers,
-                representing the audio waveform. This array must be sampled
-                at whisper.audio.SAMPLE_RATE.
+        representing the audio waveform. This array must be sampled at
+        whisper.audio.SAMPLE_RATE.
       params: A `SoundContextParams` object containing metadata and context
         about the sound, such as its sample rate.
 
@@ -289,9 +288,7 @@ class ForcedAlignmentEncoder(Whisper):
     num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
     mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
     if not params.text:
-      logging.warning(
-          'Context text is empty. No alignment will be performed.'
-      )
+      logging.warning('Context text is empty. No alignment will be performed.')
       return types.SoundEmbedding(
           embedding=np.empty((0), dtype=object),
           timestamps=np.empty((0, 2), dtype=float),
@@ -308,7 +305,8 @@ class ForcedAlignmentEncoder(Whisper):
           context=params,
       )
     alignment = whisper.timing.find_alignment(
-        self.model, self.tokenizer, tokens, mel, num_frames)
+        self.model, self.tokenizer, tokens, mel, num_frames
+    )
     n_words = len(alignment)
     timestamps = np.empty((n_words, 2), dtype=float)
     words = np.empty((n_words), dtype=object)
@@ -324,19 +322,22 @@ class ForcedAlignmentEncoder(Whisper):
 class PooledAudioEncoder(Whisper):
   """Embeds by pooling Whisper audio encoder activations."""
 
-  def __init__(self,
-               model_path: str,
-               device: str | None = None,
-               pooling: str | None = None):
+  def __init__(
+      self,
+      model_path: str,
+      device: str | None = None,
+      pooling: str | None = None,
+  ):
     """Initializes the Whisper encoder.
 
     Args:
       model_path: The path to the Whisper model.
-      device: The device to use for the Whisper model.
+      device: The device to use for the Whisper model;
       pooling: The type of pooling to apply to the encoder activations.
-               Supported options: 'last', 'mean', 'max'. Defaults to None.
+        Supported options: 'last', 'mean', 'max'. Defaults to None.
     """
     super().__init__(model_path, device=device)
+    self._flops_cache = None
     self.pool_fn: Callable[[np.ndarray], np.ndarray]
     if pooling is None:
       self.pool_fn = lambda x: x
@@ -347,8 +348,10 @@ class PooledAudioEncoder(Whisper):
     elif pooling == 'max':
       self.pool_fn = lambda x: np.max(x, axis=0, keepdims=True)
     else:
-      raise ValueError(f'Unsupported pooling type: {pooling}. '
-                       'Expected one of last, mean, max.')
+      raise ValueError(
+          f'Unsupported pooling type: {pooling}. '
+          'Expected one of last, mean, max.'
+      )
     # In whisper.audio: N_SAMPLES_PER_TOKEN = 2 * HOP_LENGTH
     self.encoder_stride = 2
 
@@ -361,11 +364,11 @@ class PooledAudioEncoder(Whisper):
 
     Args:
       waveform: A one-dimensional NumPy array of floating-point numbers,
-                representing the audio waveform. This array must be sampled
-                at whisper.audio.SAMPLE_RATE.
+        representing the audio waveform. This array must be sampled at
+        whisper.audio.SAMPLE_RATE.
       params: Encoder input context parameters. This parameter is part of the
-               abstract _encode interface defined in the parent class Whisper,
-               but it is not directly utilized by this encoder.
+        abstract _encode interface defined in the parent class Whisper, but it
+        is not directly utilized by this encoder.
 
     Returns:
       A tuple (embedding, timestamp).
@@ -378,13 +381,9 @@ class PooledAudioEncoder(Whisper):
                  Shape will be (1, 2).
     """
     assert self.model is not None
-    mel = whisper.audio.log_mel_spectrogram(
-        waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
-    )
-    num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
-    mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
+    mel, num_frames = self.get_mel_inputs(waveform)
     with torch.no_grad():
-      embeddings = self.model.embed_audio(mel[None, :, :].to(self.model.device))
+      embeddings = self.model.embed_audio(mel)
     embeddings = embeddings.to('cpu').detach().numpy().squeeze(0)
     num_embeddings = num_frames // self.encoder_stride
     audio_duration_seconds = len(waveform) / whisper.audio.SAMPLE_RATE
@@ -394,3 +393,23 @@ class PooledAudioEncoder(Whisper):
         timestamps=timestamp,
         context=params,
     )
+
+  def get_mel_inputs(self, waveform: np.ndarray):
+    assert self.model is not None
+    mel = whisper.audio.log_mel_spectrogram(
+        waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
+    )
+    num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
+    mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
+    mel = mel[None, :, :].to(self.model.device)
+    return mel, num_frames
+
+  def get_encode_flops(self, data: types.MultiModalInput):
+    if self._flops_cache is not None:
+      return self._flops_cache
+    assert isinstance(data, types.Sound)
+    waveform = self.preprocess(data.waveform, data.context.sample_rate)
+    mel, _ = self.get_mel_inputs(waveform)
+    flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel)
+    self._flops_cache = flop_analyzer.total()
+    return self._flops_cache

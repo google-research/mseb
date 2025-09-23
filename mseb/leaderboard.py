@@ -76,6 +76,13 @@ def get_encoding_scores(embeddings: types.EmbeddingCache) -> list[types.Score]:
           min=0,
           max=np.inf,
       ),
+      types.Score(
+          metric='flops',
+          description='Flops used to encode.',
+          value=stats[0].flops,  # TODO(tombagby): Correct aggregation?
+          min=0,
+          max=np.inf,
+      ),
   ]
 
 
