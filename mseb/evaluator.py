@@ -17,8 +17,9 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
+import jaxtyping
 from mseb import types
 import numpy as np
 
@@ -139,3 +140,32 @@ def compute_weighted_average_and_std(
       ** 0.5
   )
   return mean, std
+
+
+DistanceFn = Callable[
+    [
+        jaxtyping.Float[jaxtyping.Array, 'N D'],
+        jaxtyping.Float[jaxtyping.Array, 'D'],
+    ],
+    jaxtyping.Float[jaxtyping.Array, 'N'],
+]
+
+dot_product = np.dot
+
+PredictFn = Callable[
+    [jaxtyping.Float[jaxtyping.Array, 'N']],
+    jaxtyping.Int[jaxtyping.Array, 'k'],
+]
+
+
+def top_k(
+    scores: jaxtyping.Float[jaxtyping.Array, 'N'], k: int
+) -> tuple[
+    jaxtyping.Float[jaxtyping.Array, 'k'], jaxtyping.Int[jaxtyping.Array, 'k']
+]:
+  """Returns top k values and their indices of scores."""
+  k = min(k, len(scores))
+  ids_k = np.argpartition(scores, -k)[-k:]
+  ids = np.argsort(scores[ids_k])[::-1]
+  ids_k = ids_k[ids]
+  return scores[ids_k], ids_k

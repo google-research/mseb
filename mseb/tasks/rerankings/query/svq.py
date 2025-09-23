@@ -63,7 +63,9 @@ class SVQQueryReranking(reranking.RerankingTask):
     for example in svq_dataset.get_task_data(sub_task).itertuples():
       if example.locale == self.locale:
         yield reranking_evaluator.RerankingCandidates(
-            sound_id=example.utt_id, texts=example.candidates
+            sound_id=example.utt_id,
+            texts=example.candidates,
+            language=example.locale,
         )
 
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:

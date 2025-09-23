@@ -129,6 +129,18 @@ class EvaluatorTest(absltest.TestCase):
     npt.assert_almost_equal(mean, 5 / 3)
     npt.assert_almost_equal(std**2, 5 / 9)
 
+  def test_top_k(self):
+    scores = np.array([2, 8, 5, 0])
+    top_k_scores, top_k_ids = evaluator.top_k(scores, k=3)
+    npt.assert_almost_equal(top_k_scores, np.array([8, 5, 2]))
+    npt.assert_equal(top_k_ids, np.array([1, 2, 0]))
+
+  def test_top_k_not_enough_scores(self):
+    scores = np.array([2, 8, 5, 0])
+    top_k_scores, top_k_ids = evaluator.top_k(scores, k=10)
+    npt.assert_almost_equal(top_k_scores, np.array([8, 5, 2, 0]))
+    npt.assert_equal(top_k_ids, np.array([1, 2, 0, 3]))
+
 
 if __name__ == "__main__":
   absltest.main()

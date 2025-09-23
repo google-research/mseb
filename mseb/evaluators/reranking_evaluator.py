@@ -17,15 +17,16 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 from typing import Dict, Mapping, Sequence
 
+import jaxtyping
 import jiwer
 from mseb import evaluator
 from mseb import metrics
 from mseb import types
+import numpy as np
 from sklearn import metrics as sklearn_metrics
-import tensorflow as tf
-import tensorflow_recommenders as tfrs
 from whisper.normalizers import basic
 from whisper.normalizers import english
 
@@ -129,9 +130,10 @@ def compute_correct(truth: str, hypothesis: str, *, is_english: bool) -> float:
 class RerankingCandidates:
   sound_id: str
   texts: Sequence[str]
+  language: str  # For text normalization.
 
 
-RerankingPredictionsCache = Mapping[str, tuple[Sequence[str], Sequence[float]]]
+RerankingPredictionsCache = Mapping[str, tuple[Sequence[float], Sequence[str]]]
 
 
 class RerankingEvaluator:
@@ -139,86 +141,68 @@ class RerankingEvaluator:
 
   def __init__(
       self,
-      candidate_embeddings_by_text: types.TextEmbeddingCache,
+      candidate_embeddings_by_sound_id: Mapping[
+          str, Sequence[types.TextEmbeddings]
+      ],
+      distance_fn: evaluator.DistanceFn = evaluator.dot_product,
+      predict_fn: evaluator.PredictFn = functools.partial(
+          evaluator.top_k, k=10
+      ),
       mrr_at_k: int = 10,
   ):
     """Initializes the reranking evaluator.
 
     Args:
-      candidate_embeddings_by_text: A dictionary mapping candidate texts to
-        their embeddings.
+      candidate_embeddings_by_sound_id: A dictionary mapping sound_id to a
+        sequence of candidate embeddings.
+      distance_fn: The distance function to use for computing the scores.
+      predict_fn: The function to use for computing the predictions.
       mrr_at_k: Computes MRR @ `mrr_at_k`..
     """
-    self.candidate_embeddings_by_text = candidate_embeddings_by_text
+    self.candidate_embeddings_by_sound_id = candidate_embeddings_by_sound_id
+    self.distance_fn = distance_fn
+    self.predict_fn = predict_fn
     self.mrr_at_k = mrr_at_k
 
-  def __call__(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      candidates_batch: Sequence[RerankingCandidates],
-  ) -> list[types.Score]:
+  def compute_predictions(
+      self, embeddings_by_sound_id: types.SoundEmbeddingCache
+  ) -> RerankingPredictionsCache:
     """Evaluates reranking quality for a single example.
 
     Args:
-      embeddings: The embeddings to evaluate.
-      candidates_batch: The candidate texts sorted by relevance to evaluate.
+      embeddings_by_sound_id: The embeddings to evaluate.
 
     Returns:
-      A list of Score objects containing the final, aggregated scores. The
-      scores include mean average precision (MAP), mean reciprocal rank (MRR),
-      word error rate (WER) and candidate error rate (CER).
+      A dictionary mapping sound_id to a tuple of (ranked_candidate_scores,
+      ranked_candidate_texts).
     """
     predictions = {}
-    is_english = []
-    for candidates in candidates_batch:
-      embedding = embeddings[candidates.sound_id].embedding
-      context = embeddings[candidates.sound_id].context
-      if embedding.ndim != 2 or embedding.shape[0] != 1:
-        raise ValueError(
-            'Embedding must be a 2D array of shape (1, embedding_dim),'
-            f' but got a {embedding.shape} array.'
-        )
-      searcher = tfrs.layers.factorized_top_k.BruteForce(
-          k=len(candidates.texts)
-      )
-      candidate_embeddings = [
-          self.candidate_embeddings_by_text[text].embeddings[0]
-          for text in candidates.texts
+    for sound_id, embeddings in embeddings_by_sound_id.items():
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
+      candidate_embeddings = self.candidate_embeddings_by_sound_id[sound_id]
+      embeddings = []
+      for embeds in candidate_embeddings:
+        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embeddings
+        embeddings.append(embed[0])
+      scores = self.distance_fn(np.array(embeddings), embedding[0])
+      ranked_candidate_scores, ranked_candidate_ids = self.predict_fn(scores)
+      texts = [text.context.id for text in candidate_embeddings]
+      ranked_candidate_texts: Sequence[str] = [
+          texts[x] for x in ranked_candidate_ids
       ]
-      searcher.index(
-          candidates=tf.constant(candidate_embeddings, dtype=tf.float32)
-      )
-      ranked_candidate_scores, ranked_candidate_ids = searcher(
-          tf.constant(embedding, dtype=tf.float32)
-      )
-      ranked_candidate_texts = [  # pylint: disable=g-complex-comprehension
-          [candidates.texts[int(x.numpy())] for x in ids]
-          for ids in ranked_candidate_ids
-      ]
-      predictions[candidates.sound_id] = (
-          ranked_candidate_texts[0],
-          ranked_candidate_scores[0],
-      )
-      if context.language is None:
-        raise ValueError('Language is required for reranking evaluation.')
-      is_english.append(context.language.lower() == 'en')
-    if sum(is_english) == len(is_english):
-      is_english = True
-    elif sum(is_english) == 0:
-      is_english = False
-    else:
-      raise ValueError(
-          'Language must be consistent for all examples in a batch.'
-      )
-    return self.evaluate_predictions(predictions, candidates_batch, is_english)
+      predictions[sound_id] = (ranked_candidate_scores, ranked_candidate_texts)
+    return predictions
 
-  def evaluate_predictions(
+  def compute_metrics(
       self,
       predictions: RerankingPredictionsCache,
       candidates_batch: Sequence[RerankingCandidates],
-      is_english: bool,  # For text normalization.
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
+
+    def is_english(language: str) -> bool:
+      return language.split('_')[0].lower() == 'en'
+
     values_by_metric: dict[str, list[types.WeightedValue]] = {
         'map': [],
         'mrr': [],
@@ -226,14 +210,14 @@ class RerankingEvaluator:
         'cer': [],
     }
     for candidates in candidates_batch:
-      ranked_candidate_texts, ranked_candidate_scores = predictions[
+      ranked_candidate_scores, ranked_candidate_texts = predictions[
           candidates.sound_id
       ]
 
       word_errors, word_errors_weight = compute_word_errors(
           truth=candidates.texts[0],
           hypothesis=ranked_candidate_texts[0],
-          is_english=is_english,
+          is_english=is_english(candidates.language),
       )
       values_by_metric['wer'].append(
           types.WeightedValue(
@@ -246,14 +230,14 @@ class RerankingEvaluator:
               value=compute_correct(
                   truth=candidates.texts[0],
                   hypothesis=ranked_candidate_texts[0],
-                  is_english=is_english,
+                  is_english=is_english(candidates.language),
               )
           )
       )
       values_by_metric['mrr'].append(
           types.WeightedValue(
               value=metrics.compute_reciprocal_rank(
-                  candidates.texts[0], ranked_candidate_texts[:self.mrr_at_k]
+                  candidates.texts[0], ranked_candidate_texts[: self.mrr_at_k]
               ),
           )
       )

@@ -49,11 +49,14 @@ class RerankingTest(absltest.TestCase):
       ) -> Iterable[reranking_evaluator.RerankingCandidates]:
         return [
             reranking_evaluator.RerankingCandidates(
-                sound_id='utt_11697423627206642872', texts=['ref_1A', 'ref_1B']
+                sound_id='utt_11697423627206642872',
+                texts=['ref_1A', 'ref_1B'],
+                language='en',
             ),
             reranking_evaluator.RerankingCandidates(
                 sound_id='utt_15041124811443622614',
                 texts=['ref_2A', 'ref_2B', 'ref_2C'],
+                language='en',
             ),
         ]
 
@@ -141,14 +144,28 @@ class RerankingTest(absltest.TestCase):
         return [
             [
                 types.Text(
-                    text=f'dummy text {i}',
-                    context=types.TextContextParams(
-                        id=str(i),
-                    ),
-                )
-                for i in range(3)
-            ]
-            for _ in range(2)
+                    text='ref_1A',
+                    context=types.TextContextParams(id='ref_1A'),
+                ),
+                types.Text(
+                    text='ref_1B',
+                    context=types.TextContextParams(id='ref_1B'),
+                ),
+            ],
+            [
+                types.Text(
+                    text='ref_2A',
+                    context=types.TextContextParams(id='ref_2A'),
+                ),
+                types.Text(
+                    text='ref_2B',
+                    context=types.TextContextParams(id='ref_2B'),
+                ),
+                types.Text(
+                    text='ref_2C',
+                    context=types.TextContextParams(id='ref_2C'),
+                ),
+            ],
         ]
 
       def sounds(self) -> Iterable[types.Sound]:
@@ -157,19 +174,31 @@ class RerankingTest(absltest.TestCase):
       def examples(
           self, sub_task: str
       ) -> Iterable[reranking_evaluator.RerankingCandidates]:
-        raise NotImplementedError()
+        assert sub_task == 'test'
+        return [
+            reranking_evaluator.RerankingCandidates(
+                sound_id='utt_11697423627206642872',
+                texts=['ref_1A', 'ref_1B'],
+                language='en',
+            ),
+            reranking_evaluator.RerankingCandidates(
+                sound_id='utt_15041124811443622614',
+                texts=['ref_2A', 'ref_2B', 'ref_2C'],
+                language='en',
+            ),
+        ]
 
       @property
       def sub_tasks(self) -> list[str]:
-        return ['not_used']
+        return ['test']
 
     task = MockRerankingTask(
         cache_dir=self.create_tempdir().full_path, text_encoder_name='mock_text'
     )
     task.setup(runner_cls=runner_lib.DirectRunner)
     self.assertIsNotNone(task._evaluator)
-    self.assertIsNotNone(task._evaluator.candidate_embeddings_by_text)
-    self.assertLen(task._evaluator.candidate_embeddings_by_text, 3)
+    self.assertIsNotNone(task._evaluator.candidate_embeddings_by_sound_id)
+    self.assertLen(task._evaluator.candidate_embeddings_by_sound_id, 2)
     self.assertEqual(task._evaluator.mrr_at_k, 10)
 
 

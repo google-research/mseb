@@ -65,13 +65,13 @@ class RerankingTask(task.MSEBTask):
       for candidate_list in self.candidate_lists():
         for candidate in candidate_list:
           unique_candidates[candidate.text] = candidate
-      embeddings = runner.run(unique_candidates.values())
+      embeddings_by_text = runner.run(unique_candidates.values())
     else:
       try:
         logger.info(
             'Loading candidate embeddings cache from %s', self.embeddings_dir
         )
-        embeddings = runner_lib.load_embeddings(
+        embeddings_by_text = runner_lib.load_embeddings(
             os.path.join(self.embeddings_dir, 'embeddings')
         )
       except FileNotFoundError:
@@ -80,8 +80,15 @@ class RerankingTask(task.MSEBTask):
             ' create the cache by running run_task_setup?'
         ) from FileNotFoundError
 
+    embeddings_by_sound_id = {}
+    for sub_task in self.sub_tasks:
+      for candidates in self.examples(sub_task):
+        embeddings_by_sound_id[candidates.sound_id] = [
+            embeddings_by_text[text] for text in candidates.texts
+        ]
+
     self._evaluator = reranking_evaluator.RerankingEvaluator(
-        candidate_embeddings_by_text=embeddings
+        candidate_embeddings_by_sound_id=embeddings_by_sound_id
     )
 
   def compute_scores(
@@ -91,8 +98,9 @@ class RerankingTask(task.MSEBTask):
       raise ValueError('Evaluator is not initialized. Did you call setup?')
     scores = {}
     for sub_task in self.sub_tasks:
-      scores[sub_task] = self._evaluator(
-          embeddings, tuple(self.examples(sub_task))
+      scores[sub_task] = self._evaluator.compute_metrics(
+          self._evaluator.compute_predictions(embeddings),
+          tuple(self.examples(sub_task)),
       )
     return scores
 

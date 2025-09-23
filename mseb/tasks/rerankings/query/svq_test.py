@@ -81,9 +81,11 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     example = examples[0]
     self.assertEqual(example.sound_id, "utt_11697423627206642872")
     self.assertLen(example.texts, 5)
+    self.assertEqual(example.language, "en_us")
     example = examples[1]
     self.assertEqual(example.sound_id, "utt_15041124811443622614")
     self.assertLen(example.texts, 5)
+    self.assertEqual(example.language, "en_us")
 
 
 if __name__ == "__main__":
