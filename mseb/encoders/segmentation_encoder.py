@@ -15,7 +15,7 @@
 """Segmentation encoder."""
 
 from collections.abc import Sequence
-from typing import Any, Iterator, Tuple
+from typing import Iterator, Tuple
 
 import jaxtyping
 from mseb import encoder
@@ -161,14 +161,12 @@ class CascadedSegmentationEncoder(encoder.MultiModalEncoder):
       self,
       asr_encoder: whisper_encoder.Whisper,
       segmenter: SegmenterBase,
-      top_k: int = 1,
-      asr_kwargs: dict[str, Any] | None = None,
+      top_k: int = 1
   ):
     super().__init__()
     self.asr_encoder = asr_encoder
     self.segmenter = segmenter
     self.top_k = top_k
-    self.asr_kwargs = asr_kwargs or {}
 
   def _setup(self):
     self.asr_encoder.setup()
@@ -197,11 +195,10 @@ class CascadedSegmentationEncoder(encoder.MultiModalEncoder):
     for example in batch:
       assert isinstance(example, types.Sound)
       sound_batch.append(example)
-    sound_embeddings = self.asr_encoder.encode_batch(
-        sound_batch, **self.asr_kwargs
-    )
+    sound_embeddings = self.asr_encoder.encode(sound_batch)
     outputs = []
     for sound_embedding in sound_embeddings:
+      assert isinstance(sound_embedding, types.SoundEmbedding)
       words: jaxtyping.Shaped[np.ndarray, 'N'] = sound_embedding.embedding
       segments = list(self.segmenter.segment([str(x) for x in words]))
       if not segments:

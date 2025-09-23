@@ -40,7 +40,7 @@ class CascadeEncoder(encoder.SoundEncoder):
       model_path: str,
       text_encoder_cls: type[encoder.TextEncoder],
       text_encoder_kwargs: dict[str, Any],
-      sound_encoder_cls: type[encoder.SoundEncoder] | None = None,
+      sound_encoder_cls: type[encoder.MultiModalEncoder] | None = None,
       sound_encoder_kwargs: dict[str, Any] | None = None,
       **kwargs: Any,
   ):
@@ -64,7 +64,7 @@ class CascadeEncoder(encoder.SoundEncoder):
     )
     if sound_encoder_cls is not None:
       sound_encoder_kwargs = sound_encoder_kwargs or {}
-      self.sound_encoder: encoder.SoundEncoder = sound_encoder_cls(
+      self.sound_encoder: encoder.MultiModalEncoder = sound_encoder_cls(
           **sound_encoder_kwargs
       )
     else:
@@ -105,7 +105,7 @@ class CascadeEncoder(encoder.SoundEncoder):
               embeddings were extracted.
     """
     if self.sound_encoder is not None:
-      transcripts_batch = self.sound_encoder.encode_batch(sound_batch, **kwargs)
+      transcripts_batch = self.sound_encoder.encode(sound_batch)
     else:
       transcripts_batch = []
       for sound in sound_batch:
@@ -121,7 +121,14 @@ class CascadeEncoder(encoder.SoundEncoder):
             )
         )
     text_batch = []
+    sound_embeddings_batch = []
     for transcripts in transcripts_batch:
+      if not isinstance(transcripts, types.SoundEmbedding):
+        raise TypeError(
+            'CascadeEncoder expects sound_encoder to return SoundEmbedding, '
+            f'but got {type(transcripts)}.'
+        )
+      sound_embeddings_batch.append(transcripts)
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = transcripts.embedding
       text = str(embedding[0])
       if isinstance(transcripts.context.text, types.Text):
@@ -134,11 +141,11 @@ class CascadeEncoder(encoder.SoundEncoder):
     outputs = [
         types.SoundEmbedding(
             embedding=text_embeddings.embeddings,
-            timestamps=transcripts.timestamps,
-            context=transcripts.context,
+            timestamps=sound_embedding.timestamps,
+            context=sound_embedding.context,
         )
-        for text_embeddings, transcripts in zip(
-            text_embeddings_batch, transcripts_batch
+        for text_embeddings, sound_embedding in zip(
+            text_embeddings_batch, sound_embeddings_batch
         )
     ]
 

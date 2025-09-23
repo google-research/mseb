@@ -52,9 +52,9 @@ class SegmentationEncoderTests(parameterized.TestCase):
     self.svq_samples = pq.ParquetFile(
         os.path.join(testdata_path, 'en_us.parquet'))
     self.whisper_encoder = whisper_encoder.SpeechToTextEncoder(
-        model_path='base', device='cpu'
+        model_path='base', device='cpu', word_timestamps=True
     )
-    self.encode_kwargs = {'word_timestamps': True}
+    self.whisper_encoder.setup()
 
   @parameterized.named_parameters(
       dict(
@@ -76,7 +76,7 @@ class SegmentationEncoderTests(parameterized.TestCase):
   )
   def test_encode(self, segmenter):
     seg_encoder = segmentation_encoder.CascadedSegmentationEncoder(
-        self.whisper_encoder, segmenter, top_k=2, asr_kwargs=self.encode_kwargs
+        self.whisper_encoder, segmenter, top_k=2
     )
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
@@ -118,7 +118,7 @@ class SegmentationEncoderUsingTruthTests(SegmentationEncoderTests):
     self.whisper_encoder = whisper_encoder.ForcedAlignmentEncoder(
         model_path='base', device='cpu', language='en'
     )
-    self.encode_kwargs = {}
+    self.whisper_encoder.setup()
 
 if __name__ == '__main__':
   absltest.main()

@@ -15,7 +15,7 @@
 """Whisper Encoders."""
 
 import abc
-from typing import Any, Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 from absl import logging
 import librosa
@@ -26,19 +26,29 @@ import torch
 import whisper
 
 
-class Whisper(encoder.SoundEncoder):
+class Whisper(encoder.MultiModalEncoder):
   """A base class for encoding speech with Whisper model."""
 
-  def __init__(self, model_path: str, device: str | None = None):
-    super().__init__(model_path)
+  def __init__(
+      self,
+      model_path: str,
+      device: str | None = None,
+  ):
+    super().__init__()
+    self.model_path = model_path
     default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
     self.device = device if device else default_device
     self.model = None
 
-  def setup(self):
+  def _setup(self):
     """Loads the Whisper model."""
     self.model = whisper.load_model(self.model_path, device=self.device)
-    self._model_loaded = True
+
+  def _check_input_types(
+      self, batch: Sequence[types.MultiModalInput]
+  ) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError('Whisper only supports a batch of all Sound inputs.')
 
   def preprocess(
       self, sequence: Sequence[float], sample_rate: Optional[int] = None
@@ -79,11 +89,10 @@ class Whisper(encoder.SoundEncoder):
         target_sr=whisper.audio.SAMPLE_RATE)
 
   @abc.abstractmethod
-  def _encode(
+  def _encode_sound(
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
-      **kwargs: Any,
   ) -> types.SoundEmbedding:
     """Encodes speech using Whisper model.
 
@@ -96,34 +105,20 @@ class Whisper(encoder.SoundEncoder):
         rate as whisper.audio.SAMPLE_RATE
       params: A `SoundContextParams` object containing metadata and context
         about the sound, such as its sample rate.
-      **kwargs: Any additional, model-specific runtime parameters required for
-        this specific encoding call.
 
     Returns:
-      A tuple (embeddings, timestamps).
-      embeddings: A numpy.ndarray representing an embedding for each
-                  corresponding timestamp/segment. Its shape will depend on
-                  the type of embedding and the number of segments (e.g.,
-                  [n_segments, embedding_dimension]).
-      timestamps: A numpy.ndarray of shape [n_segments, 2], where n_segments
-                  is the number of identified segments. Each inner element is
-                  [segment_start_time_seconds, segment_end_time_seconds].
-                  If a single embedding represents the entire audio sequence,
-                  timestamps will contain one element corresponding
-                  to the start and end times of the whole input audio.
+      A SoundEmbedding object.
     """
     ...
 
-  def _encode_batch(
+  def _encode(
       self,
-      sound_batch: Sequence[types.Sound],
-      **kwargs: Any,
+      batch: Sequence[types.MultiModalInput],
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources into embeddings and timestamps.
 
     Args:
-      sound_batch: A sequence of types.Sound objects to encode.
-      **kwargs: Any additional parameters required for encoding.
+      batch: A sequence of types.Sound objects to encode.
 
     Returns:
       A list of tuples, one for each input, each tuple containing:
@@ -140,22 +135,37 @@ class Whisper(encoder.SoundEncoder):
               the start and end of the entire audio segment from which the
               embeddings were extracted.
     """
+    sound_batch: list[types.Sound] = []
+    for example in batch:
+      assert isinstance(example, types.Sound)
+      sound_batch.append(example)
     outputs = []
     for sound in sound_batch:
       sequence_data = self.preprocess(sound.waveform, sound.context.sample_rate)
-      outputs.append(self._encode(sequence_data, sound.context, **kwargs))
+      outputs.append(
+          self._encode_sound(sequence_data, sound.context)
+      )
     return outputs
 
 
 class SpeechToTextEncoder(Whisper):
   """Represents speech with its transcription derived by Whisper model."""
 
-  def _encode(
+  def __init__(
+      self,
+      model_path: str,
+      device: str | None = None,
+      temperature: float = 0.0,
+      word_timestamps: bool = False,
+  ):
+    super().__init__(model_path, device=device)
+    self.temperature = temperature
+    self.word_timestamps = word_timestamps
+
+  def _encode_sound(
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
-      word_timestamps: Optional[bool] = False,
-      temperature: Optional[float] = 0.0,
   ) -> types.SoundEmbedding:
     """Encodes speech to text using the Whisper model.
 
@@ -182,9 +192,6 @@ class SpeechToTextEncoder(Whisper):
                 the same rate as whisper.audio.SAMPLE_RATE
       params: A `SoundContextParams` object containing metadata and context
         about the sound, such as its sample rate.
-      word_timestamps: Whether to output word-level timing and text. If `False`,
-                       segment-level timing and text are returned.
-      temperature: The sampling temperature for transcription.
 
     Returns:
       A tuple (embeddings, timestamps).
@@ -199,10 +206,10 @@ class SpeechToTextEncoder(Whisper):
     recognition_result = self.model.transcribe(
         waveform.astype(np.float32),
         language=params.language.split('_')[0] if params.language else None,
-        temperature=temperature,
-        word_timestamps=word_timestamps,
+        temperature=self.temperature,
+        word_timestamps=self.word_timestamps,
     )
-    if word_timestamps:
+    if self.word_timestamps:
       timestamps_list = []
       embeddings_list = []
       for segment in recognition_result['segments']:
@@ -240,16 +247,16 @@ class ForcedAlignmentEncoder(Whisper):
     super().__init__(model_path, device=device)
     self.language = language
 
-  def setup(self):
+  def _setup(self):
     """Loads the Whisper model and the tokenizer."""
-    super().setup()
+    super()._setup()
     self.tokenizer = whisper.tokenizer.get_tokenizer(
         self.model.is_multilingual,
         num_languages=self.model.num_languages,
         language=self.language,
         task='transcript')
 
-  def _encode(
+  def _encode_sound(
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
@@ -345,7 +352,7 @@ class PooledAudioEncoder(Whisper):
     # In whisper.audio: N_SAMPLES_PER_TOKEN = 2 * HOP_LENGTH
     self.encoder_stride = 2
 
-  def _encode(
+  def _encode_sound(
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,

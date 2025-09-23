@@ -43,20 +43,24 @@ class SpeechToTextEncoderTest(absltest.TestCase):
     self.svq_samples = pq.ParquetFile(
         os.path.join(testdata_path, 'en_us.parquet')
     )
-    self.whisper_encoder = whisper_encoder.SpeechToTextEncoder(
-        model_path='base', device='cpu'
-    )
-    self.whisper_encoder.setup()
 
   def test_preprocess(self):
+    whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
+        model_path='base', device='cpu'
+    )
+    whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
     sample_rate = 48000
-    preprocessed = self.whisper_encoder.preprocess(waveform, sample_rate)
+    preprocessed = whisper_encoder_instance.preprocess(waveform, sample_rate)
     npt.assert_allclose(preprocessed.shape[0], waveform.shape[0] / 3)
 
   def test_encode_sentence_level(self):
+    whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
+        model_path='base', device='cpu'
+    )
+    whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
@@ -68,7 +72,10 @@ class SpeechToTextEncoderTest(absltest.TestCase):
         id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
-    result = self.whisper_encoder.encode(sound)
+    results = whisper_encoder_instance.encode([sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps.shape, [1, 2])
     npt.assert_equal(result.timestamps[0, 0] >= 0.0, True)
     npt.assert_equal(
@@ -80,6 +87,10 @@ class SpeechToTextEncoderTest(absltest.TestCase):
     )
 
   def test_encode_word_level(self):
+    whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
+        model_path='base', device='cpu', word_timestamps=True
+    )
+    whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
@@ -90,7 +101,10 @@ class SpeechToTextEncoderTest(absltest.TestCase):
         id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
-    result = self.whisper_encoder.encode(sound, word_timestamps=True)
+    results = whisper_encoder_instance.encode([sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
 
 
@@ -105,12 +119,12 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
     self.svq_samples = pq.ParquetFile(
         os.path.join(testdata_path, 'en_us.parquet')
     )
-    self.whisper_encoder = whisper_encoder.ForcedAlignmentEncoder(
-        model_path='base', device='cpu', language='en'
-    )
-    self.whisper_encoder.setup()
 
   def test_encode_speech_transcript_truth(self):
+    whisper_encoder_instance = whisper_encoder.ForcedAlignmentEncoder(
+        model_path='base', device='cpu', language='en'
+    )
+    whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
     waveform = waveform.astype(np.float32) / 32767.0
@@ -122,7 +136,10 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
         id='test',
     )
     sound = types.Sound(waveform=waveform, context=params)
-    result = self.whisper_encoder.encode(sound)
+    results = whisper_encoder_instance.encode([sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
 
 
@@ -159,25 +176,41 @@ class PooledAudioEncoderTest(absltest.TestCase):
 
   def test_encode_no_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model_path)
-    result = enc.encode(self.sound)
+    enc.setup()
+    results = enc.encode([self.sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [375, 512])
 
   def test_encode_last_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='last')
-    result = enc.encode(self.sound)
+    enc.setup()
+    results = enc.encode([self.sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
   def test_encode_mean_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='mean')
-    result = enc.encode(self.sound)
+    enc.setup()
+    results = enc.encode([self.sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
   def test_encode_max_pooling(self):
     enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='max')
-    result = enc.encode(self.sound)
+    enc.setup()
+    results = enc.encode([self.sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
