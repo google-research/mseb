@@ -148,7 +148,6 @@ class Score:
   min: int | float
   max: int | float
   std: float | None = None
-  weight: float = 1.0
 
   def __post_init__(self):
     """Validates the score data."""
@@ -171,10 +170,6 @@ class Score:
     ):
       raise ValueError(
           f"Score 'std' ({self.std}) must be a non-negative float."
-      )
-    if not isinstance(self.weight, float) or self.weight < 0:
-      raise ValueError(
-          f"Score 'weight' ({self.weight}) must be a non-negative float."
       )
 
 

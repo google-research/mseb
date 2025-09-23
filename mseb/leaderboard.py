@@ -114,7 +114,6 @@ class FlattenedLeaderboardResult:
   metric_min: int | float
   metric_max: int | float
   metric_std: float | None
-  metric_weight: float
 
 
 def flatten_leaderboard_results(
@@ -153,7 +152,6 @@ def flatten_leaderboard_results(
               metric_min=score.min,
               metric_max=score.max,
               metric_std=score.std,
-              metric_weight=score.weight,
           )
       )
   return flattened_results
