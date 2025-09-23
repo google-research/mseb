@@ -76,7 +76,7 @@ class SegmentationEncoderTests(parameterized.TestCase):
   )
   def test_encode(self, segmenter):
     seg_encoder = segmentation_encoder.CascadedSegmentationEncoder(
-        self.whisper_encoder, segmenter, top_k=2
+        self.whisper_encoder, segmenter, top_k=2, asr_kwargs=self.encode_kwargs
     )
     svq_example = self.svq_samples.read_row_group(0)
     waveform = svq_example['waveform'].to_numpy()[0]
@@ -89,8 +89,11 @@ class SegmentationEncoderTests(parameterized.TestCase):
         sample_rate=sample_rate,
         text=svq_example['text'].to_numpy()[0],
     )
-    sound_embedding = seg_encoder.encode(
-        types.Sound(waveform=waveform, context=context), **self.encode_kwargs)
+    sound_embeddings = seg_encoder.encode(
+        [types.Sound(waveform=waveform, context=context)]
+    )
+    sound_embedding = sound_embeddings[0]
+    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     npt.assert_equal(sound_embedding.timestamps.shape, [2, 2])
     npt.assert_array_almost_equal(
         sound_embedding.timestamps, [[3.58, 4.08], [2.76, 3.2]], decimal=1
