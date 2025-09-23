@@ -106,11 +106,20 @@ class Sound:
 @dataclasses.dataclass
 class SoundEmbedding:
   """A sound embedding with context."""
-
+  # N embeddings, where the embeddings are either all float vectors or strings.
   embedding: (
       jaxtyping.Float[jaxtyping.Array, "N D"]
       | jaxtyping.Shaped[np.ndarray, "N"]
   )
+  # Each row is a timestamp, i.e., a [start, end] pair indicating a segment
+  # where start and end are in seconds.
+  # There are two common cases for the relation between embeddings (n) and
+  # timestamps (m):
+  #    - Frame-Aligned (m == n): The i-th timestamp corresponds directly to the
+  #      i-th embedding vector.
+  #    - Utterance-Level (m == 1): A single timestamp pair represents the start
+  #      and end of the entire audio segment from which the embeddings were
+  #      extracted.
   timestamps: jaxtyping.Float[jaxtyping.Array, "M 2"]
   context: SoundContextParams
   encoding_stats: Optional[EncodingStats] = None
@@ -124,10 +133,19 @@ class SoundEmbedding:
 @dataclasses.dataclass
 class TextEmbeddings:
   """A dataclass for text embeddings."""
+  # N embeddings, where the embeddings are either all float vectors or strings.
   embeddings: (
       jaxtyping.Float[jaxtyping.Array, "N D"]
       | jaxtyping.Shaped[np.ndarray, "N"]
   )
+  # Each row is a span, i.e., a tuple of the start (inclusive) and end
+  # (exclusive) index of the span in the text (in characters).
+  # There are two common cases for the relation between embeddings (n) and
+  # spans (m):
+  #    - Character-Aligned (m == n): The i-th span corresponds directly to the
+  #      i-th embedding vector.
+  #    - Text-Level (m == 1): A single span pair represents the start and end of
+  #      the entire text segment from which the embeddings were extracted.
   spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
   context: TextContextParams
   encoding_stats: Optional[EncodingStats] = None
