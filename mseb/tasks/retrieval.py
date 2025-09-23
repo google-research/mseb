@@ -151,8 +151,9 @@ class RetrievalTask(task.MSEBTask):
       raise ValueError('Evaluator is not initialized. Did you call setup?')
     scores = {}
     for sub_task in self.sub_tasks:
-      scores[sub_task] = self._evaluator(
-          embeddings, tuple(self.examples(sub_task))
+      scores[sub_task] = self._evaluator.compute_metrics(
+          self._evaluator.compute_predictions(embeddings),
+          tuple(self.examples(sub_task)),
       )
     return scores
 

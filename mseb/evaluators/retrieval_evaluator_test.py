@@ -46,7 +46,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         id_by_index_id=id_by_index_id,
     )
     predictions = evaluator.compute_predictions(
-        embeddings={
+        embeddings_by_sound_id={
             '1': types.SoundEmbedding(
                 timestamps=np.array([[0.0, 1.0]]),
                 embedding=np.array([[1.0, 2.0, 3.0]]),
@@ -62,28 +62,20 @@ class RetrievalEvaluatorTest(absltest.TestCase):
                 ),
             ),
         },
-        reference_ids=[
-            retrieval_evaluator.RetrievalReferenceId(
-                sound_id='1', reference_id='blo'
-            ),
-            retrieval_evaluator.RetrievalReferenceId(
-                sound_id='2', reference_id='blu'
-            ),
-        ],
     )
     self.assertLen(predictions, 2)
-    self.assertSequenceEqual(predictions['1'], ['blu', 'blo'])
-    self.assertSequenceEqual(predictions['2'], ['blu', 'blo'])
+    self.assertSequenceEqual(predictions['1'], [(32.0, 'blu'), (26.0, 'blo')])
+    self.assertSequenceEqual(predictions['2'], [(32.0, 'blu'), (26.0, 'blo')])
 
-  def test_evaluate_predictions(self):
+  def test_compute_metrics(self):
     evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=tfrs.layers.factorized_top_k.BruteForce(),  # Not used.
         id_by_index_id=(),  # Not used.
     )
-    scores = evaluator.evaluate_predictions(
+    scores = evaluator.compute_metrics(
         predictions={
-            '1': ['bli', 'bla', 'blo'],
-            '2': ['bli', 'bla', 'blu'],
+            '1': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')],
+            '2': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blu')],
         },
         reference_ids=[
             retrieval_evaluator.RetrievalReferenceId(
@@ -95,61 +87,6 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         ],
     )
     self.assertLen(scores, 2)
-    for score in scores:
-      if score.metric == 'MRR':
-        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
-        npt.assert_equal(score.std, 1 / 4)
-      elif score.metric == 'EM':
-        npt.assert_equal(score.value, (0.0 + 1.0) / 2)
-        npt.assert_equal(score.std, 1 / 2)
-      else:
-        raise ValueError(f'Unexpected metric: {score.metric}')
-
-  def test_call(self):
-    searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
-    id_by_index_id = ('bli', 'bla', 'blo', 'blu')
-    searcher.index(
-        candidates=tf.constant(
-            [
-                [1.0, 2.0, 3.0],
-                [2.0, 3.0, 4.0],
-                [3.0, 4.0, 5.0],
-                [4.0, 5.0, 6.0],
-            ],
-            tf.float32,
-        ),
-    )
-    evaluator = retrieval_evaluator.RetrievalEvaluator(
-        searcher=searcher,
-        id_by_index_id=id_by_index_id,
-    )
-    scores = evaluator(
-        embeddings={
-            '1': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
-                embedding=np.array([[1.0, 2.0, 3.0]]),
-                context=types.SoundContextParams(
-                    id='1', sample_rate=16000, length=16000 * 5
-                ),
-            ),
-            '2': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
-                embedding=np.array([[1.0, 2.0, 3.0]]),
-                context=types.SoundContextParams(
-                    id='2', sample_rate=16000, length=16000 * 5
-                ),
-            ),
-        },
-        reference_ids=[
-            retrieval_evaluator.RetrievalReferenceId(
-                sound_id='1', reference_id='blo'
-            ),
-            retrieval_evaluator.RetrievalReferenceId(
-                sound_id='2', reference_id='blu'
-            ),
-        ],
-    )
-    npt.assert_equal(len(scores), 2)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -178,14 +115,14 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
           path.join(self.index_dir, str(partition_id)),
       )
 
-  def test_evaluate_predictions(self):
+  def test_compute_metrics(self):
     evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
         index_dir='not_used'
     )
-    scores = evaluator.evaluate_predictions(
+    scores = evaluator.compute_metrics(
         predictions={
-            '1': ['bli', 'bla', 'blo'],
-            '2': ['bli', 'bla', 'blu'],
+            '1': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')],
+            '2': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blu')],
         },
         reference_ids=[
             retrieval_evaluator.RetrievalReferenceId(
@@ -207,27 +144,12 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 
-  def test_predictions_sorted_by_score(self):
-    evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
-        index_dir='not_used', top_k=2
-    )
-    predictions_with_scores = {
-        '1': [('bli', 1.0), ('bla', 0.5), ('blo', 0.25)],
-        '2': [('bli', 0.5), ('bla', 0.25), ('blu', 1.0), ('blu', 1.0)],
-    }
-    predictions = evaluator._predictions_sorted_by_score(
-        predictions_with_scores
-    )
-    self.assertLen(predictions, 2)
-    self.assertSequenceEqual(predictions['1'], ['bli', 'bla'])
-    self.assertSequenceEqual(predictions['2'], ['blu', 'bli'])
-
   def test_compute_predictions(self):
     evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
         index_dir=self.index_dir
     )
     predictions = evaluator.compute_predictions(
-        embeddings={
+        embeddings_by_sound_id={
             '1': types.SoundEmbedding(
                 timestamps=np.array([[0.0, 1.0]]),
                 embedding=np.array([[1.0, 2.0, 3.0]]),
@@ -243,62 +165,58 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
                 ),
             ),
         },
-        reference_ids=[
-            retrieval_evaluator.RetrievalReferenceId(
-                sound_id='1', reference_id='blo'
-            ),
-            retrieval_evaluator.RetrievalReferenceId(
-                sound_id='2', reference_id='blu'
-            ),
-        ],
     )
     self.assertLen(predictions, 2)
-    self.assertSequenceEqual(predictions['1'], ['blu', 'blo'])
-    self.assertSequenceEqual(predictions['2'], ['blu', 'blo'])
-
-  def test_call(self):
-    evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
-        index_dir=self.index_dir
+    self.assertSequenceEqual(
+        predictions['1'],
+        [(32.0, 'blu'), (26.0, 'blo'), (32.0, 'blu'), (26.0, 'blo')],
     )
-    scores = evaluator(
-        embeddings={
-            '1': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
-                embedding=np.array([[1.0, 2.0, 3.0]]),
-                context=types.SoundContextParams(
-                    id='1', sample_rate=16000, length=16000 * 5
-                ),
-            ),
-            '2': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
-                embedding=np.array([[1.0, 2.0, 3.0]]),
-                context=types.SoundContextParams(
-                    id='2', sample_rate=16000, length=16000 * 5
-                ),
-            ),
+    self.assertSequenceEqual(
+        predictions['2'],
+        [(32.0, 'blu'), (26.0, 'blo'), (32.0, 'blu'), (26.0, 'blo')],
+    )
+
+
+class RetrievalEvaluatorUtilTest(absltest.TestCase):
+
+  def test_get_ranked_doc_ids(self):
+    predictions_1 = [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')]
+    ranked_doc_ids_1 = retrieval_evaluator._get_ranked_doc_ids(
+        predictions_1, top_k=2
+    )
+    self.assertSequenceEqual(ranked_doc_ids_1, ['bli', 'bla'])
+
+    predictions_2 = [(0.5, 'bli'), (0.25, 'bla'), (1.0, 'blu')]
+    ranked_doc_ids_2 = retrieval_evaluator._get_ranked_doc_ids(
+        predictions_2, top_k=2
+    )
+    self.assertSequenceEqual(ranked_doc_ids_2, ['blu', 'bli'])
+
+  def test_compute_metrics(self):
+    scores = retrieval_evaluator._compute_metrics(
+        predictions={
+            '1': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')],
+            '2': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blu')],
         },
         reference_ids=[
             retrieval_evaluator.RetrievalReferenceId(
-                sound_id='1', reference_id='blo'
+                sound_id='1', reference_id='bla'
             ),
             retrieval_evaluator.RetrievalReferenceId(
-                sound_id='2', reference_id='blu'
+                sound_id='2', reference_id='bli'
             ),
         ],
     )
-    npt.assert_equal(len(scores), 2)
+    self.assertLen(scores, 2)
     for score in scores:
       if score.metric == 'MRR':
-        npt.assert_equal(score.value, (0.5 + 1.0) / 2)  # 2/3
-        npt.assert_equal(score.std, 1 / 4)  # 1/3
+        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 4)
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
-
-
-class ScannIndexTest(absltest.TestCase):
 
   def test_build_scann_index(self):
     embeddings = {

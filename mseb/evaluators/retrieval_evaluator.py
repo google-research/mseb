@@ -22,7 +22,9 @@ import logging
 import os
 from typing import Mapping, Sequence
 
-from mseb import evaluator
+import jaxtyping
+from mseb import evaluator as evaluator_lib
+from mseb import metrics as metrics_lib
 from mseb import types
 import numpy as np
 import tensorflow as tf
@@ -54,28 +56,79 @@ def em(value: float = 0.0, std: float | None = None):
   )
 
 
-def compute_reciprocal_rank(
-    reference: str, predicted_neighbors: Sequence[str]
-) -> float:
-  """Computes the reciprocal rank for mean reciprocal rank (MRR)."""
-  rank = 0
-  for i, neighbor in enumerate(predicted_neighbors):
-    if reference == neighbor:
-      # Matched the referebce at this position in the ranking.
-      rank = i + 1
-      break
-  reciprocal_rank = 1 / rank if rank > 0 else 0
-  return reciprocal_rank
-
-
 @dataclasses.dataclass
 class RetrievalReferenceId:
   sound_id: str
   reference_id: str
 
 
-RetrievalPredictionsCache = Mapping[str, Sequence[str]]
-RetrievalPredictionsWithScoresCache = Mapping[str, Sequence[tuple[str, float]]]
+RetrievalPredictionsCache = Mapping[str, Sequence[tuple[float, str]]]
+
+
+def _get_ranked_doc_ids(
+    score_and_doc_ids: Sequence[tuple[float, str]], top_k: int
+) -> Sequence[str]:
+  """Sorts and deduplicates predictions and returns the topk ranked doc ids.
+
+  Args:
+    score_and_doc_ids: A sequence of tuples, where each tuple contains a
+      predicted document ID and its corresponding score.
+    top_k: The number of top doc ids to keep.
+
+  Returns:
+    A sequence of predicted document IDs, sorted in descending order of score
+    and truncated to `top_k`.
+  """
+  ranked_score_and_doc_ids = sorted(
+      score_and_doc_ids, key=lambda x: x[0], reverse=True
+  )
+  ranked_doc_ids = [doc_id for _, doc_id in ranked_score_and_doc_ids]
+  ranked_doc_ids = [doc_id for doc_id, _ in itertools.groupby(ranked_doc_ids)]
+  assert len(ranked_doc_ids) == len(set(ranked_doc_ids))
+  return ranked_doc_ids[:top_k]
+
+
+def _compute_metrics(
+    predictions: RetrievalPredictionsCache,
+    reference_ids: Sequence[RetrievalReferenceId],
+    top_k: int = 10,
+) -> list[types.Score]:
+  """Computes the quality metrics for the given predictions.
+
+  Args:
+    predictions: A cache of predictions for each sound id.
+    reference_ids: The reference ids used for metric computation.
+    top_k: The number of top predictions to consider.
+
+  Returns:
+    A list of Score objects containing the final, aggregated scores, including
+    mean reciprocal rank (MRR) and exact match (EM).
+  """
+  values_by_metric = {'mrr': [], 'em': []}
+  for reference_id in reference_ids:
+    ranked_doc_ids = _get_ranked_doc_ids(
+        predictions[reference_id.sound_id], top_k
+    )
+    values_by_metric['mrr'].append(
+        types.WeightedValue(
+            value=metrics_lib.compute_reciprocal_rank(
+                reference_id.reference_id, ranked_doc_ids
+            )
+        )
+    )
+    values_by_metric['em'].append(
+        types.WeightedValue(
+            value=float(reference_id.reference_id == ranked_doc_ids[0])
+        )
+    )
+
+  mrr_score = mrr(
+      *evaluator_lib.compute_weighted_average_and_std(values_by_metric['mrr'])
+  )
+  em_score = em(
+      *evaluator_lib.compute_weighted_average_and_std(values_by_metric['em'])
+  )
+  return [mrr_score, em_score]
 
 
 class RetrievalEvaluator:
@@ -91,78 +144,53 @@ class RetrievalEvaluator:
     self.id_by_index_id = id_by_index_id
     self.top_k = top_k
 
-  def __call__(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      reference_ids: Sequence[RetrievalReferenceId],
-  ) -> list[types.Score]:
-    """Evaluates quality of the encoder for input sequence and return metrics.
+  def compute_predictions(
+      self, embeddings_by_sound_id: types.SoundEmbeddingCache
+  ) -> RetrievalPredictionsCache:
+    """Computes the predictions for the given embeddings.
 
     Args:
-      embeddings: The embeddings to evaluate.
-      reference_ids: The reference ids used for metric computation.
+      embeddings_by_sound_id: The embeddings to evaluate.
 
     Returns:
-      A list of Score objects containing the final, aggregated scores. The
-      scores include mean reciprocal rank (MRR) and exact match (EM).
+      A mapping from sound_id to a sequence of predicted document IDs, truncated
+      to `self.top_k`.
     """
-    return self.evaluate_predictions(
-        self.compute_predictions(embeddings, reference_ids), reference_ids
-    )
-
-  def compute_predictions(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      reference_ids: Sequence[RetrievalReferenceId],
-  ) -> RetrievalPredictionsCache:
-    """Computes the predictions for the given embeddings."""
     predictions = {}
-    for reference_id in reference_ids:
-      embedding = embeddings[reference_id.sound_id].embedding
-      if embedding.ndim != 2 or embedding.shape[0] != 1:
-        raise ValueError(
-            'Embedding must be a 2D array of shape (1, embedding_dim),'
-            f' but got a {embedding.shape} array.'
-        )
-      _, ranked_index_ids = self.searcher(embedding.astype(np.float32))
+    for sound_id, embeddings in embeddings_by_sound_id.items():
+      embedding: jaxtyping.Float[jaxtyping.Array, 'N D'] = embeddings.embedding
+      ranked_doc_scores, ranked_index_ids = self.searcher(
+          embedding.astype(np.float32)
+      )
+      ranked_doc_scores = [  # pylint: disable=g-complex-comprehension
+          [float(score.numpy()) for score in scores]
+          for scores in ranked_doc_scores
+      ]
       ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
           [self.id_by_index_id[int(x.numpy())] for x in ids]
           for ids in ranked_index_ids
       ]
-      predictions[reference_id.sound_id] = ranked_doc_ids[0]
+      predictions[sound_id] = tuple(
+          zip(ranked_doc_scores[0], ranked_doc_ids[0])
+      )
     return predictions
 
-  def evaluate_predictions(
+  def compute_metrics(
       self,
       predictions: RetrievalPredictionsCache,
       reference_ids: Sequence[RetrievalReferenceId],
   ) -> list[types.Score]:
-    """Returns quality metrics of the predictions."""
-    values_by_metric = {'mrr': [], 'em': []}
-    for reference_id in reference_ids:
-      ranked_doc_ids: Sequence[str] = (
-          predictions[reference_id.sound_id][: self.top_k]
-      )
-      values_by_metric['mrr'].append(
-          types.WeightedValue(
-              value=compute_reciprocal_rank(
-                  reference_id.reference_id, ranked_doc_ids
-              )
-          )
-      )
-      values_by_metric['em'].append(
-          types.WeightedValue(
-              value=float(reference_id.reference_id == ranked_doc_ids[0])
-          )
-      )
+    """Computes the quality metrics for the given predictions.
 
-    mrr_score = mrr(
-        *evaluator.compute_weighted_average_and_std(values_by_metric['mrr'])
-    )
-    em_score = em(
-        *evaluator.compute_weighted_average_and_std(values_by_metric['em'])
-    )
-    return [mrr_score, em_score]
+    Args:
+      predictions: A cache of predictions for each sound id.
+      reference_ids: The reference ids used for metric computation.
+
+    Returns:
+      A list of Score objects containing the final, aggregated scores, including
+      mean reciprocal rank (MRR) and exact match (EM).
+    """
+    return _compute_metrics(predictions, reference_ids, self.top_k)
 
 
 class RetrievalEvaluatorPartitioned:
@@ -176,56 +204,11 @@ class RetrievalEvaluatorPartitioned:
     self.index_dir = index_dir
     self.top_k = top_k
 
-  def __call__(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      reference_ids: Sequence[RetrievalReferenceId],
-  ) -> list[types.Score]:
-    """Evaluates quality of the encoder for input sequence and return metrics.
-
-    Args:
-      embeddings: The embeddings to evaluate.
-      reference_ids: The reference ids used for metric computation.
-
-    Returns:
-      A list of Score objects containing the final, aggregated scores. The
-      scores include mean reciprocal rank (MRR) and exact match (EM).
-    """
-    return self.evaluate_predictions(
-        self.compute_predictions(embeddings, reference_ids), reference_ids
-    )
-
-  def _predictions_sorted_by_score(
-      self, predictions_with_scores: RetrievalPredictionsWithScoresCache
-  ) -> RetrievalPredictionsCache:
-    """Sorts and deduplicates predictions based on their scores.
-
-    Args:
-      predictions_with_scores: A mapping from sound_id to a sequence of tuples,
-        where each tuple contains a predicted document ID and its corresponding
-        score.
-
-    Returns:
-      A mapping from sound_id to a sequence of deduplicated and sorted
-      predicted document IDs, truncated to `self.top_k`.
-    """
-    sorted_predictions = {
-        k: [p for p, _ in sorted(v, key=lambda x: x[1], reverse=True)]
-        for k, v in predictions_with_scores.items()
-    }
-    deduplicated_predictions = {}
-    for k, v in sorted_predictions.items():
-      v = [vv for vv, _ in itertools.groupby(v)]
-      assert len(v) == len(set(v))
-      deduplicated_predictions[k] = v[: self.top_k]
-    return deduplicated_predictions
-
   def compute_predictions(
-      self, embeddings: types.SoundEmbeddingCache,
-      reference_ids: Sequence[RetrievalReferenceId],
+      self, embeddings_by_sound_id: types.SoundEmbeddingCache,
   ) -> RetrievalPredictionsCache:
     """Computes the predictions for the given embeddings and reference ids."""
-    predictions_with_scores = {}
+    predictions = {}
     num_partitions = len(
         tf.io.gfile.glob(os.path.join(self.index_dir, '[0-9]*'))
     )
@@ -234,59 +217,32 @@ class RetrievalEvaluatorPartitioned:
       searcher, id_by_index_id = load_index(
           scann_base_dir=os.path.join(self.index_dir, str(partition_id))
       )
-      for reference_id in reference_ids:
-        embedding = embeddings[reference_id.sound_id].embedding
-        if embedding.ndim != 2 or embedding.shape[0] != 1:
-          raise ValueError(
-              'Embedding must be a 2D array of shape (1, embedding_dim),'
-              f' but got a {embedding.shape} array.'
-          )
-        ranked_doc_scores, ranked_index_ids = searcher(
-            embedding.astype(np.float32)
-        )
-        ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
-            [id_by_index_id[int(x.numpy())] for x in ids]
-            for ids in ranked_index_ids
-        ]
-        if reference_id.sound_id not in predictions_with_scores:
-          predictions_with_scores[reference_id.sound_id] = []
-        for p, s in zip(ranked_doc_ids[0], ranked_doc_scores[0]):
-          predictions_with_scores[reference_id.sound_id].append((p, s))
+      evaluator = RetrievalEvaluator(
+          searcher=searcher,
+          id_by_index_id=id_by_index_id,
+          top_k=self.top_k,
+      )
+      predictions_for_partition = evaluator.compute_predictions(
+          embeddings_by_sound_id
+      )
+      for (
+          sound_id,
+          predictions_for_sound_id,
+      ) in predictions_for_partition.items():
+        if sound_id not in predictions:
+          predictions[sound_id] = list(predictions_for_sound_id)
+        else:
+          predictions[sound_id].extend(predictions_for_sound_id)
 
-    predictions = self._predictions_sorted_by_score(predictions_with_scores)
     return predictions
 
-  def evaluate_predictions(
+  def compute_metrics(
       self,
       predictions: RetrievalPredictionsCache,
       reference_ids: Sequence[RetrievalReferenceId],
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
-    values_by_metric = {'mrr': [], 'em': []}
-    for reference_id in reference_ids:
-      ranked_doc_ids: Sequence[str] = (
-          predictions[reference_id.sound_id][: self.top_k]
-      )
-      values_by_metric['mrr'].append(
-          types.WeightedValue(
-              value=compute_reciprocal_rank(
-                  reference_id.reference_id, ranked_doc_ids
-              )
-          )
-      )
-      values_by_metric['em'].append(
-          types.WeightedValue(
-              value=float(reference_id.reference_id == ranked_doc_ids[0])
-          )
-      )
-
-    mrr_score = mrr(
-        *evaluator.compute_weighted_average_and_std(values_by_metric['mrr'])
-    )
-    em_score = em(
-        *evaluator.compute_weighted_average_and_std(values_by_metric['em'])
-    )
-    return [mrr_score, em_score]
+    return _compute_metrics(predictions, reference_ids, self.top_k)
 
 
 def build_index(

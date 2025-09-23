@@ -18,6 +18,7 @@ from absl.testing import absltest
 from mseb import evaluator
 from mseb import types
 import numpy as np
+import numpy.testing as npt
 
 
 class MockEvaluator(evaluator.SoundEmbeddingEvaluator):
@@ -102,6 +103,31 @@ class SoundEmbeddingEvaluatorTest(absltest.TestCase):
           embedding_timestamps=embedding_timestamps,
           params=params,
       )
+
+
+class EvaluatorTest(absltest.TestCase):
+
+  def test_compute_weighted_average_and_std(self):
+    mean, std = evaluator.compute_weighted_average_and_std(
+        values=[
+            types.WeightedValue(value=1.0),
+            types.WeightedValue(value=5.0),
+            types.WeightedValue(value=3.0),
+        ],
+    )
+    npt.assert_almost_equal(mean, 3.0)
+    npt.assert_almost_equal(std**2, 8 / 3)
+
+  def test_compute_weighted_average_and_std_with_weights(self):
+    mean, std = evaluator.compute_weighted_average_and_std(
+        values=[
+            types.WeightedValue(value=3.0),
+            types.WeightedValue(value=2.0, weight=2.0),
+            types.WeightedValue(value=1.0, weight=3.0),
+        ],
+    )
+    npt.assert_almost_equal(mean, 5 / 3)
+    npt.assert_almost_equal(std**2, 5 / 9)
 
 
 if __name__ == "__main__":

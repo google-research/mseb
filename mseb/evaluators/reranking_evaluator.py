@@ -21,16 +21,13 @@ from typing import Dict, Mapping, Sequence
 
 import jiwer
 from mseb import evaluator
+from mseb import metrics
 from mseb import types
-from mseb.evaluators import retrieval_evaluator
-from sklearn import metrics
+from sklearn import metrics as sklearn_metrics
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 from whisper.normalizers import basic
 from whisper.normalizers import english
-
-
-average_precision_score = metrics.average_precision_score
 
 
 def map(value: float = 0.0, std: float | None = None):  # pylint: disable=redefined-builtin
@@ -75,9 +72,6 @@ def cer(value: float = 0.0, std: float | None = None):
       max=float('inf'),
       std=std,
   )
-
-
-compute_reciprocal_rank = retrieval_evaluator.compute_reciprocal_rank
 
 
 def _compute_levenshtein_stats(truth: str, hypothesis: str) -> Dict[str, float]:
@@ -258,14 +252,14 @@ class RerankingEvaluator:
       )
       values_by_metric['mrr'].append(
           types.WeightedValue(
-              value=compute_reciprocal_rank(
+              value=metrics.compute_reciprocal_rank(
                   candidates.texts[0], ranked_candidate_texts[:self.mrr_at_k]
               ),
           )
       )
       values_by_metric['map'].append(
           types.WeightedValue(
-              value=average_precision_score(
+              value=sklearn_metrics.average_precision_score(
                   y_true=[True] + [False] * (len(ranked_candidate_scores) - 1),
                   y_score=ranked_candidate_scores,
               ),
