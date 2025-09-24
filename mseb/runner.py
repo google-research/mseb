@@ -19,7 +19,6 @@ from collections.abc import Iterable, Iterator, Sequence
 from concurrent import futures
 import os
 import pickle
-from typing import overload
 
 from absl import logging
 import apache_beam as beam
@@ -35,15 +34,15 @@ cpu_resource_hints = dict()
 tqdm = tqdm.tqdm
 
 Encoder = encoder_lib.MultiModalEncoder
-Embeddings = types.SoundEmbedding | types.TextEmbeddings
 
 
 class EncoderRunner(abc.ABC):
-  """Interface for running a SoundEncoder to get a cache of embeddings.
+  """Interface for running a MultiModalEncoder to get a cache of embeddings.
 
   Usage:
 
-  runner = ... # Create a runner, encode task sounds, and run on the embeddings.
+  # Create a runner, encode task multimodal inputs, and run on the embeddings.
+  runner = ...
   cache = runner.run(task.sounds())
   task.compute_scores(cache)
   """
@@ -51,29 +50,17 @@ class EncoderRunner(abc.ABC):
   def __init__(self, encoder: Encoder):
     self._encoder = encoder
 
-  @overload
-  @abc.abstractmethod
-  def run(self, elements: Iterable[types.Sound]) -> types.SoundEmbeddingCache:
-    ...
-
-  @overload
-  @abc.abstractmethod
-  def run(self, elements: Iterable[types.Text]) -> types.TextEmbeddingCache:
-    ...
-
   @abc.abstractmethod
   def run(
-      self, elements: Iterable[types.Sound] | Iterable[types.Text]
-  ) -> types.EmbeddingCache:
-    """Encode the given sounds/texts and return a cache of the embeddings."""
+      self, elements: Iterable[types.MultiModalObject]
+  ) -> types.MultiModalEmbeddingCache:
+    """Encode the given multimodal objects and return a cache of embeddings."""
 
 
 class DirectRunner(EncoderRunner):
   """Simple runner that encodes locally, stores results in a dict in-memory."""
 
-  embeddings: (
-      dict[str, types.SoundEmbedding] | dict[str, types.TextEmbeddings]
-  ) = {}
+  embeddings: dict[str, types.MultiModalEmbedding] = {}
 
   def __init__(
       self,
@@ -88,7 +75,7 @@ class DirectRunner(EncoderRunner):
     self._output_path = output_path
 
   def _batch_elements(
-      self, elements: Iterable[types.Sound] | Iterable[types.Text]
+      self, elements: Iterable[types.MultiModalObject]
   ):
     """Yields batches of elements (sounds or texts)."""
     batch = []
@@ -101,23 +88,9 @@ class DirectRunner(EncoderRunner):
       # TODO(tombagby): What do we do about short batches? Is this well defined?
       yield batch
 
-  @overload
   def _encode_batch(
-      self, batch: Sequence[types.Sound]
-  ) -> Sequence[tuple[str, types.SoundEmbedding]]:
-    ...
-
-  @overload
-  def _encode_batch(
-      self, batch: Sequence[types.Text]
-  ) -> Sequence[tuple[str, types.TextEmbeddings]]:
-    ...
-
-  def _encode_batch(
-      self, batch: Sequence[types.Sound | types.Text]
-  ) -> Sequence[
-      tuple[str, types.SoundEmbedding] | tuple[str, types.TextEmbeddings]
-  ]:
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[tuple[str, types.MultiModalEmbedding]]:
     encoded = self._encoder.encode(batch)
     return [
         (element.context.id, embedding)
@@ -125,8 +98,8 @@ class DirectRunner(EncoderRunner):
     ]
 
   def run(
-      self, elements: Iterable[types.Sound] | Iterable[types.Text]
-  ) -> types.EmbeddingCache:
+      self, elements: Iterable[types.MultiModalObject]
+  ) -> types.MultiModalEmbeddingCache:
     output_prefix = (
         os.path.join(self._output_path, 'embeddings')
         if self._output_path
@@ -181,7 +154,7 @@ class EncodeDoFn(beam.DoFn):
     """Resets the batch."""
     self._batch = []
 
-  def process(self, element: types.Sound | types.Text):
+  def process(self, element: types.MultiModalObject):
     self._batch.append(element)
     if len(self._batch) == self._batch_size:
       embeds = self._encoder.encode(self._batch)
@@ -200,7 +173,7 @@ class EncodeDoFn(beam.DoFn):
     self._batch = []
 
 
-def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
+def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
   """Loads embeddings from TFRecord files into a dict."""
   logging.info('Loading embeddings from %s', output_prefix + '*')
   embeddings = {}
@@ -212,7 +185,7 @@ def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
     # But don't know how to read back from TFRecord except via tf.data.
     dataset = tf.data.TFRecordDataset(filename)
     for record in dataset:
-      embedding: Embeddings = pickle.loads(record.numpy())
+      embedding: types.MultiModalEmbedding = pickle.loads(record.numpy())
       embeddings[embedding.context.id] = embedding
   logging.info(
       'Loaded %d embeddings from %s', len(embeddings), output_prefix + '*'
@@ -220,7 +193,9 @@ def load_embeddings(output_prefix: str) -> types.EmbeddingCache:
   return embeddings
 
 
-def save_embeddings(output_prefix: str, embeddings: types.EmbeddingCache):
+def save_embeddings(
+    output_prefix: str, embeddings: types.MultiModalEmbeddingCache
+):
   """Saves embeddings from a dict into to TFRecord files."""
   logging.info('Saving embeddings to %s', f'{output_prefix}.tfrecord')
   tf.io.gfile.makedirs(os.path.dirname(output_prefix))
@@ -257,8 +232,8 @@ class BeamRunner(EncoderRunner):
     self._accelerator = accelerator
 
   def run(
-      self, elements: Iterable[types.Sound] | Iterable[types.Text]
-  ) -> types.EmbeddingCache:
+      self, elements: Iterable[types.MultiModalObject]
+  ) -> types.MultiModalEmbeddingCache:
     output_prefix = os.path.join(self._output_path, 'embeddings')
     try:
       logging.info('Loading embeddings from %s', output_prefix)

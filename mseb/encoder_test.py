@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import Any, Sequence
+from typing import Sequence
 from unittest import mock
 
 from absl.testing import absltest
@@ -25,166 +25,82 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-class MockSoundEncoder(encoder.SoundEncoder):
-  """A concrete implementation of SoundEncoder for testing purposes."""
+class MockMultiModalEncoder(encoder.MultiModalEncoder):
+  """A concrete implementation of MultiModalEncoder for testing purposes."""
 
-  def setup(self):
+  def _check_input_types(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> None:
     pass
 
-  def _encode_batch(self, waveform_batch, params_batch, **kwargs):
+  def _setup(self):
     pass
 
-  def __init__(self, model_path: str, **kwargs: Any):
-    super().__init__(model_path, **kwargs)
-    self.setup = mock.MagicMock(side_effect=self._setup_impl)
-    self._encode_batch = mock.MagicMock(
-        return_value=[(np.zeros((10, 8)), np.zeros((10, 2)))]
+  def _encode(
+      self, sound_batch: Sequence[types.Sound]
+  ) -> Sequence[types.SoundEmbedding]:
+    return []
+
+  def __init__(self):
+    super().__init__()
+    self._setup = mock.MagicMock(side_effect=lambda: None)
+    self._encode = mock.MagicMock(
+        return_value=[
+            types.SoundEmbedding(
+                embedding=np.zeros((10, 8)),
+                timestamps=np.zeros((10, 2)),
+                context=types.SoundContextParams(
+                    id="test", sample_rate=16000, length=10
+                ),
+            )
+        ]
     )
 
-  def _setup_impl(self):
-    """The actual implementation for the mocked setup method."""
-    self._model_loaded = True
 
-
-class FaultySetupEncoder(encoder.SoundEncoder):
-  """An encoder that "forgets" to set the _model_loaded flag in setup."""
-
-  def setup(self):
-    logger.info("Faulty setup was called, but did not set the flag.")
-
-  def _encode_batch(self, waveform_batch, params_batch, **kwargs):
-    return [(np.array([]), np.array([]))]
-
-
-class SoundEncoderTest(absltest.TestCase):
+class MultiModalEncoderTest(absltest.TestCase):
 
   def test_initialization_is_lazy_and_does_not_call_setup(self):
-    mock_encoder = MockSoundEncoder("path/to/model")
-    mock_encoder.setup.assert_not_called()
+    mock_encoder = MockMultiModalEncoder()
+    mock_encoder._setup.assert_not_called()
 
-  def test_encode_triggers_setup_exactly_once(self):
-    mock_encoder = MockSoundEncoder("path/to/model")
+  def test_setup_is_called_only_once(self):
+    mock_encoder = MockMultiModalEncoder()
+    mock_encoder.setup()
+    mock_encoder._setup.assert_called_once()
+    mock_encoder.setup()
+    mock_encoder._setup.assert_called_once()
+
+  def test_encode_does_not_trigger_setup(self):
+    mock_encoder = MockMultiModalEncoder()
     sound = types.Sound(
         waveform=np.array([1.0, 2.0, 3.0, 4.0]),
         context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
     )
 
-    mock_encoder.encode(sound)
-    mock_encoder.setup.assert_called_once()
-
-    sound2 = types.Sound(
-        waveform=np.array([5.0, 6.0, 7.0, 8.0]),
-        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
-    )
-    mock_encoder.encode(sound2)
-    mock_encoder.setup.assert_called_once()
-
-  def test_encode_batch_triggers_setup_exactly_once(self):
-    mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(sample_rate=2, length=4, id="test")
-    batch = [
-        types.Sound(waveform=np.array([1.0, 2.0, 3.0, 4.0]), context=params),
-        types.Sound(waveform=np.array([5.0, 6.0, 7.0, 8.0]), context=params),
-    ]
-    mock_encoder.encode_batch(batch)
-    mock_encoder.setup.assert_called_once()
-    mock_encoder.encode_batch(batch)
-    mock_encoder.setup.assert_called_once()
-
-  def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
-    mock_encoder = MockSoundEncoder("path/to/model")
-    params = types.SoundContextParams(sample_rate=2, length=4, id="test")
-    sound_batch = [
-        types.Sound(waveform=np.array([1.0, 2.0, 4.0, 8.0]), context=params),
-        types.Sound(waveform=np.array([2.0, 5.0, 3.0, 7.0]), context=params),
-        types.Sound(waveform=np.array([3.0, 7.0, 8.0, 9.0]), context=params),
-    ]
-    mock_encoder.encode_batch(sound_batch, runtime_kwarg="hello")
-    mock_encoder._encode_batch.assert_called_once()
-    args, kwargs = mock_encoder._encode_batch.call_args
-    self.assertEqual(args[0], sound_batch)
-    self.assertEqual(kwargs, {"runtime_kwarg": "hello"})
-
-  def test_default_encode_calls_encode_batch_with_single_item(self):
-    mock_encoder = MockSoundEncoder("path/to/model")
-    mock_encoder.encode_batch = mock.MagicMock()
-    sound = types.Sound(
-        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
-        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
-    )
-
-    mock_encoder.encode(sound)
-    mock_encoder.encode_batch.assert_called_once_with([sound], **{})
-
-  def test_faulty_setup_raises_runtime_error(self):
-    mock_encoder = FaultySetupEncoder("faulty/path")
-    sound = types.Sound(
-        waveform=np.array([1.0, 2.0, 4.0, 8.0]),
-        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
-    )
-    with self.assertRaises(RuntimeError):
-      mock_encoder.encode(sound)
-
-  def test_init_kwargs_are_stored_for_later_use(self):
-    mock_encoder = MockSoundEncoder(
-        "path/to/model", special_param=123, other_param="abc")
-    self.assertIn("special_param", mock_encoder._kwargs)
-    self.assertEqual(mock_encoder._kwargs["special_param"], 123)
+    mock_encoder.encode([sound])
+    mock_encoder._setup.assert_not_called()
 
   def test_final_decorator_prevents_override_in_static_analysis(self):
-    class BadSoundEncoder(encoder.SoundEncoder):
-      def encode_batch(self, waveform_batch, params_batch, **kwargs):
-        return [(np.array([-1]), np.array([-1]))]
+    class BadMultiModalEncoder(encoder.MultiModalEncoder):
 
-      def setup(self):
-        self._model_loaded = True
+      def encode(
+          self, sound_batch: Sequence[types.Sound]
+      ) -> Sequence[types.SoundEmbedding]:
+        return []
 
-      def _encode_batch(self, waveform_batch, params_batch, **kwargs):
-        return [(np.array([0]), np.array([0]))]
+      def _check_input_types(self):
+        pass
 
-    bad_encoder = BadSoundEncoder("path")
+      def _setup(self):
+        pass
+
+      def _encode(
+          self, sound_batch: Sequence[types.Sound]
+      ) -> Sequence[types.SoundEmbedding]:
+        return []
+
+    bad_encoder = BadMultiModalEncoder()
     self.assertIsNotNone(bad_encoder)
-
-
-class TextEncoderTest(absltest.TestCase):
-
-  class MockTextEncoder(encoder.TextEncoder):
-    """A concrete implementation of TextEncoder for testing purposes."""
-
-    def _setup(self):
-      pass
-
-    def _encode(
-        self, text_batch: Sequence[types.Text]
-    ) -> Sequence[types.TextEmbeddings]:
-      return []
-
-  def test_check_input_types_does_not_raise_error_for_text_inputs(self):
-    mock_encoder = TextEncoderTest.MockTextEncoder()
-    mock_encoder._check_input_types([
-        types.Text(
-            text="This is a text.", context=types.TextContextParams(id="id1")
-        ),
-        types.Text(
-            text="This is another text.",
-            context=types.TextContextParams(id="id2"),
-        ),
-    ])
-
-  def test_check_input_types_raises_error_for_non_text_inputs(self):
-    mock_encoder = TextEncoderTest.MockTextEncoder()
-    with self.assertRaises(ValueError):
-      mock_encoder._check_input_types([
-          types.Text(
-              text="This is a text.", context=types.TextContextParams(id="text")
-          ),
-          types.Sound(
-              waveform=np.array([1.0, 2.0, 3.0, 4.0]),
-              context=types.SoundContextParams(
-                  sample_rate=2, length=4, id="sound"
-              ),
-          ),
-      ])
 
 
 if __name__ == "__main__":

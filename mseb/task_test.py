@@ -50,14 +50,17 @@ MOCK_TASK_METADATA = types.TaskMetadata(
 )
 
 
-class MockSoundEncoder(encoder.SoundEncoder):
+class MockSoundEncoder(encoder.MultiModalEncoder):
   """A minimal, concrete encoder for instantiating tasks in tests."""
 
-  def _encode_batch(self, sound, **kwargs):
+  def _check_input_types(self, batch):
     pass
 
-  def setup(self):
-    self._model_loaded = True
+  def _encode(self, sound_batch):
+    pass
+
+  def _setup(self):
+    pass
 
 
 class MockSoundEmbeddingEvaluator(evaluator.SoundEmbeddingEvaluator):
@@ -96,7 +99,7 @@ class MockTask(task.MSEBTask):
 
   def __init__(
       self,
-      sound_encoder: encoder.SoundEncoder,
+      sound_encoder: encoder.MultiModalEncoder,
       evaluator_kwargs: dict[str, Any] | None = None,
       dataset_size: int = 5,
   ):
@@ -117,7 +120,7 @@ class MSEBTaskTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.mock_encoder = MockSoundEncoder("mock/path")
+    self.mock_encoder = MockSoundEncoder()
 
   def test_list_tasks(self):
     tasks = task.get_name_to_task()

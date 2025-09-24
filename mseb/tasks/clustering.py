@@ -30,11 +30,17 @@ class ClusteringTask(task.MSEBTask):
     self._evaluator = clustering_evaluator.ClusteringEvaluator()
 
   def compute_scores(
-      self, embeddings: types.SoundEmbeddingCache
+      self, embeddings: types.MultiModalEmbeddingCache
   ) -> dict[str, list[types.Score]]:
+    sound_embeddings = {}
+    for k, v in embeddings.items():
+      assert isinstance(v, types.SoundEmbedding)
+      sound_embeddings[k] = v
     scores = {}
     for sub_task in self.sub_tasks:
-      scores[sub_task] = self._evaluator(embeddings, self.examples(sub_task))
+      scores[sub_task] = self._evaluator(
+          sound_embeddings, self.examples(sub_task)
+      )
     return scores
 
   @abc.abstractmethod

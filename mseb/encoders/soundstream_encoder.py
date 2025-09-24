@@ -156,7 +156,7 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
     self._encoder_output_tensor_idx: int = -1
 
   def _check_input_types(
-      self, batch: Sequence[types.MultiModalInput]
+      self, batch: Sequence[types.MultiModalObject]
   ) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError(
@@ -292,7 +292,7 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
     )
 
   def _encode(
-      self, batch: Sequence[types.MultiModalInput]
+      self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes an audio sequence into embeddings.
 

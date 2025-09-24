@@ -140,14 +140,20 @@ class RetrievalTask(task.MSEBTask):
     )
 
   def compute_scores(
-      self, embeddings: types.SoundEmbeddingCache
+      self, embeddings: types.MultiModalEmbeddingCache
   ) -> dict[str, list[types.Score]]:
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
     scores = {}
+
+    sound_embeddings = {}
+    for k, v in embeddings.items():
+      assert isinstance(v, types.SoundEmbedding)
+      sound_embeddings[k] = v
+
     for sub_task in self.sub_tasks:
       scores[sub_task] = self._evaluator.compute_metrics(
-          self._evaluator.compute_predictions(embeddings),
+          self._evaluator.compute_predictions(sound_embeddings),
           tuple(self.examples(sub_task)),
       )
     return scores

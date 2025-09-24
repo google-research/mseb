@@ -98,7 +98,7 @@ class Wav2VecEncoder(encoder.MultiModalEncoder):
     self.pooling = pooling
 
   def _check_input_types(
-      self, batch: Sequence[types.MultiModalInput]
+      self, batch: Sequence[types.MultiModalObject]
   ) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError(
@@ -160,7 +160,7 @@ class Wav2VecEncoder(encoder.MultiModalEncoder):
 
   def _encode(
       self,
-      batch: Sequence[types.MultiModalInput],
+      batch: Sequence[types.MultiModalObject],
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes speech by Wav2Vec encoder activations and optionally pools them.
 

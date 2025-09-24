@@ -45,7 +45,7 @@ class Whisper(encoder.MultiModalEncoder):
     """Loads the Whisper model."""
     self.model = whisper.load_model(self.model_path, device=self.device)
 
-  def _check_input_types(self, batch: Sequence[types.MultiModalInput]) -> None:
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError('Whisper only supports a batch of all Sound inputs.')
 
@@ -111,7 +111,7 @@ class Whisper(encoder.MultiModalEncoder):
 
   def _encode(
       self,
-      batch: Sequence[types.MultiModalInput],
+      batch: Sequence[types.MultiModalObject],
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources into embeddings and timestamps.
 
@@ -404,7 +404,7 @@ class PooledAudioEncoder(Whisper):
     mel = mel[None, :, :].to(self.model.device)
     return mel, num_frames
 
-  def get_encode_flops(self, data: types.MultiModalInput):
+  def get_encode_flops(self, data: types.MultiModalObject):
     if self._flops_cache is not None:
       return self._flops_cache
     assert isinstance(data, types.Sound)

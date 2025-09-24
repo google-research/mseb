@@ -284,14 +284,14 @@ class RawEncoder(encoder.MultiModalEncoder):
       )
 
   def _check_input_types(
-      self, batch: Sequence[types.MultiModalInput]
+      self, batch: Sequence[types.MultiModalObject]
   ) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError("RawEncoder only supports a batch of all Sound inputs.")
 
   def _encode(
       self,
-      batch: Sequence[types.MultiModalInput],
+      batch: Sequence[types.MultiModalObject],
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources."""
     outputs = []

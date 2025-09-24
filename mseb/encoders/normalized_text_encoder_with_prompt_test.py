@@ -51,6 +51,33 @@ class MockNormalizedTextEncoderWithPrompt(
 
 class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
 
+  def test_check_input_types_does_not_raise_error_for_text_inputs(self):
+    mock_encoder = MockNormalizedTextEncoderWithPrompt()
+    mock_encoder._check_input_types([
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="id1")
+        ),
+        types.Text(
+            text="This is another text.",
+            context=types.TextContextParams(id="id2"),
+        ),
+    ])
+
+  def test_check_input_types_raises_error_for_non_text_inputs(self):
+    mock_encoder = MockNormalizedTextEncoderWithPrompt()
+    with self.assertRaises(ValueError):
+      mock_encoder._check_input_types([
+          types.Text(
+              text="This is a text.", context=types.TextContextParams(id="text")
+          ),
+          types.Sound(
+              waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+              context=types.SoundContextParams(
+                  sample_rate=2, length=4, id="sound"
+              ),
+          ),
+      ])
+
   def test_get_normalized_text_prompt_with_normalizer(self):
     self.assertEqual(
         MockNormalizedTextEncoderWithPrompt(

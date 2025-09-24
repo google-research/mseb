@@ -65,7 +65,9 @@ class LeaderboardResult:
     )
 
 
-def get_encoding_scores(embeddings: types.EmbeddingCache) -> list[types.Score]:
+def get_encoding_scores(
+    embeddings: types.MultiModalEmbeddingCache,
+) -> list[types.Score]:
   """Get scores for encoding statistics."""
   stats = [x.encoding_stats for x in embeddings.values() if x.encoding_stats]
   return [

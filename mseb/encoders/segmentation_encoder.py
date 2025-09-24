@@ -171,7 +171,7 @@ class CascadedSegmentationEncoder(encoder.MultiModalEncoder):
   def _setup(self):
     self.asr_encoder.setup()
 
-  def _check_input_types(self, batch: Sequence[types.MultiModalInput]) -> None:
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError(
           'CascadedSegmentationEncoder only supports a batch of all Sound '
@@ -179,7 +179,7 @@ class CascadedSegmentationEncoder(encoder.MultiModalEncoder):
       )
 
   def _encode(
-      self, batch: Sequence[types.MultiModalInput]
+      self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources into segments.
 

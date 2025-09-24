@@ -25,7 +25,7 @@ import tensorflow as tf
 import tensorflow_hub as tf_hub
 
 
-class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
+class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
   """Defines the interface for encoding normalized text prompt into embeddings.
 
   This abstract class provides a standardized structure for text encoders
@@ -67,6 +67,14 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
         ]
         | None
     ) = None
+
+  @final
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    if not all(isinstance(x, types.Text) for x in batch):
+      raise ValueError(
+          'NormalizedTextEncoderWithPrompt only supports a batch of all Text'
+          ' inputs.'
+      )
 
   def _get_normalized_text_prompt(
       self, text: str, params: types.TextContextParams

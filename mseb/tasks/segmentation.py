@@ -36,11 +36,17 @@ class SegmentationTask(task.MSEBTask):
     # to fake it. Actual signature will not take embeddings.
 
   def compute_scores(
-      self, embeddings: types.SoundEmbeddingCache
+      self, embeddings: types.MultiModalEmbeddingCache
   ) -> dict[str, list[types.Score]]:
     evaluator = segmentation_evaluator.SegmentationEvaluator()
+
+    sound_embeddings = {}
+    for k, v in embeddings.items():
+      assert isinstance(v, types.SoundEmbedding)
+      sound_embeddings[k] = v
+
     scores = []
-    for ex in self.targets(embeddings):
+    for ex in self.targets(sound_embeddings):
       # FAKE REFERENCES
       reference_waveform_embeddings = ex.embedding
       reference_embedding_timestamps = ex.timestamps

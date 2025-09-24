@@ -28,7 +28,7 @@ import pyarrow.parquet as pq
 
 
 class MockTextEncoder(text_encoder.NormalizedTextEncoderWithPrompt):
-  """A concrete implementation of TextEncoder for testing purposes."""
+  """A concrete implementation of a text encoder for testing purposes."""
 
   def _setup(self):
     pass
@@ -90,10 +90,12 @@ class CascadeEncoderTest(absltest.TestCase):
         text_encoder_cls=MockTextEncoder,
         text_encoder_kwargs={},
     )
-    result = enc.encode(self.sound1)
+    enc.setup()
+    result = enc.encode([self.sound1])[0]
     enc.text_encoder.text_encode_fn.assert_called_once_with(  # pytype: disable=attribute-error
         ['This is the transcript truth.']
     )
+    self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps.shape, [1, 2])
     npt.assert_equal(result.timestamps[0, 0] == 0.0, True)
     npt.assert_equal(
@@ -109,24 +111,31 @@ class CascadeEncoderTest(absltest.TestCase):
         text_encoder_cls=MockTextEncoder,
         text_encoder_kwargs={},
     )
-    result1 = enc.encode(self.sound1)
-    result2 = enc.encode(self.sound2)
-    results_batch = enc.encode_batch([self.sound1, self.sound2])
+    enc.setup()
+    result1 = enc.encode([self.sound1])[0]
+    self.assertIsInstance(result1, types.SoundEmbedding)
+    result2 = enc.encode([self.sound2])[0]
+    self.assertIsInstance(result2, types.SoundEmbedding)
+    results_batch = enc.encode([self.sound1, self.sound2])
     enc.text_encoder.text_encode_fn.assert_called_with(  # pytype: disable=attribute-error
         ['This is the transcript truth.', 'This is another transcript truth.']
     )
     npt.assert_equal(len(results_batch), 2)
+    results_batch1 = results_batch[0]
+    self.assertIsInstance(results_batch1, types.SoundEmbedding)
     self.assertEqual(
-        results_batch[0].embedding.tolist(), result1.embedding.tolist()
+        results_batch1.embedding.tolist(), result1.embedding.tolist()
     )
     self.assertEqual(
-        results_batch[0].timestamps.tolist(), result1.timestamps.tolist()
+        results_batch1.timestamps.tolist(), result1.timestamps.tolist()
+    )
+    results_batch2 = results_batch[1]
+    self.assertIsInstance(results_batch2, types.SoundEmbedding)
+    self.assertEqual(
+        results_batch2.embedding.tolist(), result2.embedding.tolist()
     )
     self.assertEqual(
-        results_batch[1].embedding.tolist(), result2.embedding.tolist()
-    )
-    self.assertEqual(
-        results_batch[1].timestamps.tolist(), result2.timestamps.tolist()
+        results_batch2.timestamps.tolist(), result2.timestamps.tolist()
     )
 
   def test_text_whisper_encoder_encode_batch(self):
@@ -134,28 +143,35 @@ class CascadeEncoderTest(absltest.TestCase):
         model_path='dummy_model_path',
         text_encoder_cls=MockTextEncoder,
         text_encoder_kwargs={},
-        sound_encoder_cls=whisper_encoder.SpeechToTextEncoder,
-        sound_encoder_kwargs={'model_path': 'base'},
+        speech_to_text_encoder_cls=whisper_encoder.SpeechToTextEncoder,
+        speech_to_text_encoder_kwargs={'model_path': 'base'},
     )
-    result1 = enc.encode(self.sound1)
-    result2 = enc.encode(self.sound2)
-    results_batch = enc.encode_batch([self.sound1, self.sound2])
+    enc.setup()
+    result1 = enc.encode([self.sound1])[0]
+    self.assertIsInstance(result1, types.SoundEmbedding)
+    result2 = enc.encode([self.sound2])[0]
+    self.assertIsInstance(result2, types.SoundEmbedding)
+    results_batch = enc.encode([self.sound1, self.sound2])
     enc.text_encoder.text_encode_fn.assert_called_with([  # pytype: disable=attribute-error
         ' How many members does the National Labor Relations Board have?',
         ' How many members does the National Labor Relations Board have?',
     ])
     npt.assert_equal(len(results_batch), 2)
+    results_batch1 = results_batch[0]
+    self.assertIsInstance(results_batch1, types.SoundEmbedding)
     self.assertEqual(
-        results_batch[0].embedding.tolist(), result1.embedding.tolist()
+        results_batch1.embedding.tolist(), result1.embedding.tolist()
     )
     self.assertEqual(
-        results_batch[0].timestamps.tolist(), result1.timestamps.tolist()
+        results_batch1.timestamps.tolist(), result1.timestamps.tolist()
+    )
+    results_batch2 = results_batch[1]
+    self.assertIsInstance(results_batch2, types.SoundEmbedding)
+    self.assertEqual(
+        results_batch2.embedding.tolist(), result2.embedding.tolist()
     )
     self.assertEqual(
-        results_batch[1].embedding.tolist(), result2.embedding.tolist()
-    )
-    self.assertEqual(
-        results_batch[1].timestamps.tolist(), result2.timestamps.tolist()
+        results_batch2.timestamps.tolist(), result2.timestamps.tolist()
     )
 
 

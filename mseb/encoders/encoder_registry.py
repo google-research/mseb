@@ -51,19 +51,13 @@ class EncoderMetadata:
   """Metadata for an Encoder instantiated with specific parameters."""
 
   name: str  # The name of the encoder for creation and leaderboard entry.
-  encoder: Type[
-      encoder_lib.TextEncoder
-      | encoder_lib.SoundEncoder
-      | encoder_lib.MultiModalEncoder
-  ]  # The encoder class, remove SoundEncoder and TextEncoder once all migrated.
+  encoder: Type[encoder_lib.MultiModalEncoder]
   # Lazy evaluation of the encoder parameters so we can use flags.
   params: Callable[[], dict[str, Any]]  # Additional encoder parameters.
 
   def load(self) -> Encoder:
     """Loads the encoder."""
     encoder = self.encoder(**self.params())  # pytype: disable=not-instantiable
-    if isinstance(encoder, encoder_lib.SoundEncoder):
-      encoder = encoder_lib.SoundEncoderAsMultiModalEncoder(encoder)
     return encoder
 
 

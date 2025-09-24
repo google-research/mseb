@@ -24,13 +24,13 @@ from mseb.encoders import whisper_encoder
 import numpy as np
 
 
-class CascadeEncoder(encoder.SoundEncoder):
-  """Defines the interface for cascaded encoding audio into text into embeddings.
+class CascadeEncoder(encoder.MultiModalEncoder):
+  """Cascaded encoder for speech into text into embeddings.
 
-  This class provides a standardized structure for cascaded sound encoders
+  This class provides a standardized structure for cascaded encoders
   consisting of a speech-to-text encoder (ASR) followed by a text-to-embedding
   encoder, within the MSEB benchmark. If the ASR encoder is not provided, the
-  text is taken from params.text.
+  transcript is taken from params.text.
 
   Subclasses are responsible for setting the two encoders in the constructor.
   """
@@ -38,10 +38,10 @@ class CascadeEncoder(encoder.SoundEncoder):
   def __init__(
       self,
       model_path: str,
-      text_encoder_cls: type[encoder.TextEncoder],
+      text_encoder_cls: type[encoder.MultiModalEncoder],
       text_encoder_kwargs: dict[str, Any],
-      sound_encoder_cls: type[encoder.MultiModalEncoder] | None = None,
-      sound_encoder_kwargs: dict[str, Any] | None = None,
+      speech_to_text_encoder_cls: type[encoder.MultiModalEncoder] | None = None,
+      speech_to_text_encoder_kwargs: dict[str, Any] | None = None,
   ):
     """Initializes the sound and text encoders from configurations.
 
@@ -50,35 +50,37 @@ class CascadeEncoder(encoder.SoundEncoder):
       text_encoder_cls: The class of the text encoder to use.
       text_encoder_kwargs: The keyword arguments to pass to the text encoder
         constructor.
-      sound_encoder_cls: The class of the sound encoder to use. If not provided,
-        the text is taken from params.text.
-      sound_encoder_kwargs: The keyword arguments to pass to the sound encoder
-        constructor.
+      speech_to_text_encoder_cls: The class of the speech-to-text encoder to
+        use. If not provided, the transcript is taken from params.text.
+      speech_to_text_encoder_kwargs: The keyword arguments to pass to the
+        speech-to-text encoder constructor.
     """
-    super().__init__(model_path=model_path)
-    self.text_encoder: encoder.TextEncoder = text_encoder_cls(
-        **text_encoder_kwargs
-    )
-    if sound_encoder_cls is not None:
-      sound_encoder_kwargs = sound_encoder_kwargs or {}
-      self.sound_encoder: encoder.MultiModalEncoder = sound_encoder_cls(
-          **sound_encoder_kwargs
+    super().__init__()
+    self.text_encoder = text_encoder_cls(**text_encoder_kwargs)
+    if speech_to_text_encoder_cls is not None:
+      speech_to_text_encoder_kwargs = speech_to_text_encoder_kwargs or {}
+      self.speech_to_text_encoder = speech_to_text_encoder_cls(
+          **speech_to_text_encoder_kwargs
       )
     else:
-      self.sound_encoder = None
-    self._model_loaded = False
+      self.speech_to_text_encoder = None
 
   @final
-  def setup(self):
+  def _setup(self):
     """Loads the models into memory."""
-    if self.sound_encoder is not None:
-      self.sound_encoder.setup()
+    if self.speech_to_text_encoder is not None:
+      self.speech_to_text_encoder.setup()
     self.text_encoder.setup()
-    self._model_loaded = True
+
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError(
+          'CascadeEncoder only supports a batch of all Sound inputs.'
+      )
 
   @final
-  def _encode_batch(
-      self, sound_batch: Sequence[types.Sound]
+  def _encode(
+      self, sound_batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
@@ -99,11 +101,12 @@ class CascadeEncoder(encoder.SoundEncoder):
               the start and end of the entire audio segment from which the
               embeddings were extracted.
     """
-    if self.sound_encoder is not None:
-      transcripts_batch = self.sound_encoder.encode(sound_batch)
+    if self.speech_to_text_encoder is not None:
+      transcripts_batch = self.speech_to_text_encoder.encode(sound_batch)
     else:
       transcripts_batch = []
       for sound in sound_batch:
+        assert isinstance(sound, types.Sound)
         context = sound.context
         transcripts_batch.append(
             types.SoundEmbedding(
@@ -214,8 +217,8 @@ class GeckoWhisperEncoder(CascadeEncoder):
     """
     super().__init__(
         'not_used',
-        sound_encoder_cls=whisper_encoder.SpeechToTextEncoder,
-        sound_encoder_kwargs={
+        speech_to_text_encoder_cls=whisper_encoder.SpeechToTextEncoder,
+        speech_to_text_encoder_kwargs={
             'model_path': model_path,
         },
         text_encoder_cls=text_encoder.GeckoTextEncoder,

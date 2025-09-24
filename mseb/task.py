@@ -56,7 +56,7 @@ class MSEBTask(abc.ABC):
 
   @abc.abstractmethod
   def compute_scores(
-      self, embeddings: types.SoundEmbeddingCache
+      self, embeddings: types.MultiModalEmbeddingCache
   ) -> dict[str, list[types.Score]]:
     """Evaluate the task."""
 
