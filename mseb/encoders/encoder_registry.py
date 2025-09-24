@@ -62,9 +62,7 @@ class EncoderMetadata:
   def load(self) -> Encoder:
     """Loads the encoder."""
     encoder = self.encoder(**self.params())  # pytype: disable=not-instantiable
-    if isinstance(encoder, encoder_lib.TextEncoder):
-      encoder = encoder_lib.TextEncoderAsMultiModalEncoder(encoder)
-    elif isinstance(encoder, encoder_lib.SoundEncoder):
+    if isinstance(encoder, encoder_lib.SoundEncoder):
       encoder = encoder_lib.SoundEncoderAsMultiModalEncoder(encoder)
     return encoder
 
@@ -98,7 +96,7 @@ gecko_whisper = EncoderMetadata(
 mock_text = EncoderMetadata(
     name="mock_text",
     encoder=text_encoder.MockTextEncoder,
-    params=lambda: dict(model_path="not_used"),
+    params=dict,
 )
 
 raw_encoder_25ms_10ms = EncoderMetadata(

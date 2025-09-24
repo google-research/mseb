@@ -42,7 +42,6 @@ class CascadeEncoder(encoder.SoundEncoder):
       text_encoder_kwargs: dict[str, Any],
       sound_encoder_cls: type[encoder.MultiModalEncoder] | None = None,
       sound_encoder_kwargs: dict[str, Any] | None = None,
-      **kwargs: Any,
   ):
     """Initializes the sound and text encoders from configurations.
 
@@ -55,10 +54,8 @@ class CascadeEncoder(encoder.SoundEncoder):
         the text is taken from params.text.
       sound_encoder_kwargs: The keyword arguments to pass to the sound encoder
         constructor.
-      **kwargs: Model-specific initialization arguments that will be stored in
-        `self._kwargs` for use in `setup()`.
     """
-    super().__init__(model_path=model_path, **kwargs)
+    super().__init__(model_path=model_path)
     self.text_encoder: encoder.TextEncoder = text_encoder_cls(
         **text_encoder_kwargs
     )
@@ -70,7 +67,6 @@ class CascadeEncoder(encoder.SoundEncoder):
     else:
       self.sound_encoder = None
     self._model_loaded = False
-    self._kwargs = kwargs
 
   @final
   def setup(self):
@@ -82,13 +78,12 @@ class CascadeEncoder(encoder.SoundEncoder):
 
   @final
   def _encode_batch(
-      self, sound_batch: Sequence[types.Sound], **kwargs: Any
+      self, sound_batch: Sequence[types.Sound]
   ) -> Sequence[types.SoundEmbedding]:
     """Encodes a batch of sound sources.
 
     Args:
       sound_batch: A sequence of sound sources to encode.
-      **kwargs: Any additional parameters required for encoding.
 
     Returns:
       A list of types.SoundEmbedding objects, one for each input:
@@ -136,18 +131,20 @@ class CascadeEncoder(encoder.SoundEncoder):
       else:
         context = types.TextContextParams(id=transcripts.context.id)
       text_batch.append(types.Text(text=text, context=context))
-    text_embeddings_batch = self.text_encoder.encode_batch(text_batch, **kwargs)
+    text_embeddings_batch = self.text_encoder.encode(text_batch)
 
-    outputs = [
-        types.SoundEmbedding(
-            embedding=text_embeddings.embeddings,
-            timestamps=sound_embedding.timestamps,
-            context=sound_embedding.context,
-        )
-        for text_embeddings, sound_embedding in zip(
-            text_embeddings_batch, sound_embeddings_batch
-        )
-    ]
+    outputs = []
+    for text_embeddings, sound_embedding in zip(
+        text_embeddings_batch, sound_embeddings_batch
+    ):
+      assert isinstance(text_embeddings, types.TextEmbeddings)
+      outputs.append(
+          types.SoundEmbedding(
+              embedding=text_embeddings.embeddings,
+              timestamps=sound_embedding.timestamps,
+              context=sound_embedding.context,
+          )
+      )
 
     return outputs
 

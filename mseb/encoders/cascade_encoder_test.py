@@ -14,7 +14,7 @@
 
 import os
 import pathlib
-from typing import Any, Callable
+from typing import Callable
 from unittest import mock
 
 from absl.testing import absltest
@@ -30,7 +30,7 @@ import pyarrow.parquet as pq
 class MockTextEncoder(text_encoder.NormalizedTextEncoderWithPrompt):
   """A concrete implementation of TextEncoder for testing purposes."""
 
-  def setup(self):
+  def _setup(self):
     pass
 
   def __init__(
@@ -38,18 +38,12 @@ class MockTextEncoder(text_encoder.NormalizedTextEncoderWithPrompt):
       text_encode_fn: Callable[[str], np.ndarray] | None = None,
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str | None = None,
-      **kwargs: Any
   ):
-    super().__init__(normalizer, prompt_template, **kwargs)
+    super().__init__(normalizer, prompt_template)
     if text_encode_fn is not None:
       self.text_encode_fn = text_encode_fn
     else:
       self.text_encode_fn = mock.MagicMock(return_value=np.zeros((2, 8)))
-    self.setup = mock.MagicMock(side_effect=self._setup_impl)
-
-  def _setup_impl(self):
-    assert self.text_encode_fn is not None
-    self._model_loaded = True
 
 
 class CascadeEncoderTest(absltest.TestCase):
@@ -97,7 +91,6 @@ class CascadeEncoderTest(absltest.TestCase):
         text_encoder_kwargs={},
     )
     result = enc.encode(self.sound1)
-    enc.text_encoder.setup.assert_called_once()  # pytype: disable=attribute-error
     enc.text_encoder.text_encode_fn.assert_called_once_with(  # pytype: disable=attribute-error
         ['This is the transcript truth.']
     )
@@ -119,7 +112,6 @@ class CascadeEncoderTest(absltest.TestCase):
     result1 = enc.encode(self.sound1)
     result2 = enc.encode(self.sound2)
     results_batch = enc.encode_batch([self.sound1, self.sound2])
-    enc.text_encoder.setup.assert_called_once()  # pytype: disable=attribute-error
     enc.text_encoder.text_encode_fn.assert_called_with(  # pytype: disable=attribute-error
         ['This is the transcript truth.', 'This is another transcript truth.']
     )
@@ -148,7 +140,6 @@ class CascadeEncoderTest(absltest.TestCase):
     result1 = enc.encode(self.sound1)
     result2 = enc.encode(self.sound2)
     results_batch = enc.encode_batch([self.sound1, self.sound2])
-    enc.text_encoder.setup.assert_called_once()  # pytype: disable=attribute-error
     enc.text_encoder.text_encode_fn.assert_called_with([  # pytype: disable=attribute-error
         ' How many members does the National Labor Relations Board have?',
         ' How many members does the National Labor Relations Board have?',

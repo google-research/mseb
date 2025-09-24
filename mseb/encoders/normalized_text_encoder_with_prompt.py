@@ -15,7 +15,7 @@
 """Normalized text encoders with prompt."""
 
 import re
-from typing import Any, Callable, final, Sequence
+from typing import Callable, final, Sequence
 
 import jaxtyping
 from mseb import encoder
@@ -39,11 +39,10 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
       self,
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str | None = None,
-      **kwargs: Any,
   ):
     """Initializes the encoder with configuration.
 
-    All subclasses of this class are expected to load the model in `setup` and
+    All subclasses of this class are expected to load the model in `_setup` and
     set `text_encode_fn` that takes a sequence of string prompts and returns a
     sequence of embeddings (2d np.ndarray or sequence of 1d np.ndarray).
 
@@ -52,10 +51,8 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
         useful for removing special characters or formatting the text for better
         encoding results.
       prompt_template: Format of the prompt to be used for encoding.
-      **kwargs: Model-specific initialization arguments that will be stored in
-        `self._kwargs` for use in `setup()`.
     """
-    super().__init__(**kwargs)
+    super().__init__()
     self.normalizer = normalizer
     self.prompt_template = prompt_template
     self.text_encode_fn: (
@@ -103,8 +100,8 @@ class NormalizedTextEncoderWithPrompt(encoder.TextEncoder):
     return prompt
 
   @final
-  def _encode_batch(
-      self, text_batch: Sequence[types.Text], **kwargs: Any
+  def _encode(
+      self, text_batch: Sequence[types.Text]
   ) -> Sequence[types.TextEmbeddings]:
     """Encodes a batch of text sources."""
     prompt_batch = [
@@ -134,7 +131,6 @@ class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
           r'\[\d+\]', '', x.lower()
       ),
       prompt_template: str | None = 'title: {title} | text: {text}',
-      **kwargs: Any,
   ):
     """Initializes the transcript truth and Gecko models.
 
@@ -147,25 +143,20 @@ class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
       prompt_template: Format of the prompt to be used for Gecko. Typically, the
         prompt is of the form: 'task: search result | query: {text}' for queries
         and 'title: {title} | text: {text}' for documents".
-      **kwargs: Model-specific initialization arguments that will be stored in
-        `self._kwargs` for use in `setup()`.
     """
-    super().__init__(normalizer, prompt_template, **kwargs)
+    super().__init__(normalizer, prompt_template)
     self.model_path = model_path
 
-  def setup(self):
+  def _setup(self):
     """Loads the Gecko model."""
-    assert not self._model_loaded
     gecko_model = tf_hub.load(self.model_path)
     self.text_encode_fn = lambda x: gecko_model.signatures['serving_default'](
         tf.constant(x)
     )['encodings'].numpy()
-    self._model_loaded = True
 
 
 # For testing only.
 class MockTextEncoder(NormalizedTextEncoderWithPrompt):
 
-  def setup(self):
+  def _setup(self):
     self.text_encode_fn = lambda prompts: np.zeros((len(prompts), 3))
-    self._model_loaded = True

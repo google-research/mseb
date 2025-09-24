@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import Any, Callable
+from typing import Callable
 from unittest import mock
 
 from absl.testing import absltest
@@ -33,7 +33,7 @@ class MockNormalizedTextEncoderWithPrompt(
   For testing purposes.
   """
 
-  def setup(self):
+  def _setup(self):
     pass
 
   def __init__(
@@ -41,106 +41,15 @@ class MockNormalizedTextEncoderWithPrompt(
       text_encode_fn: Callable[[str], np.ndarray] | None = None,
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str | None = None,
-      **kwargs: Any
   ):
-    super().__init__(normalizer, prompt_template, **kwargs)
+    super().__init__(normalizer, prompt_template)
     if text_encode_fn is not None:
       self.text_encode_fn = text_encode_fn
     else:
       self.text_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
-    self.setup = mock.MagicMock(side_effect=self._setup_impl)
-
-  def _setup_impl(self):
-    """The actual implementation for the mocked setup method."""
-    self._model_loaded = True
-
-
-class FaultySetupNormalizedTextEncoderWithPrompt(
-    normalized_text_encoder_with_prompt.NormalizedTextEncoderWithPrompt
-):
-  """An encoder that "forgets" to set the _model_loaded flag in setup."""
-
-  def setup(self):
-    logger.info("Faulty setup was called, but did not set the flag.")
 
 
 class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
-
-  def test_initialization_is_lazy_and_does_not_call_setup(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt()
-    mock_encoder.setup.assert_not_called()
-
-  def test_encode_triggers_setup_exactly_once(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt(
-        text_encode_fn=lambda x: np.zeros((10, 8)),
-    )
-
-    mock_encoder.encode(
-        types.Text(
-            text="This is a text.", context=types.TextContextParams(id="id")
-        )
-    )
-    mock_encoder.setup.assert_called_once()
-
-    mock_encoder.encode_batch([
-        types.Text(
-            text="This is another text.",
-            context=types.TextContextParams(id="id"),
-        )
-    ])
-    mock_encoder.setup.assert_called_once()
-
-  def test_encode_batch_triggers_setup_exactly_once(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt()
-    batch = [
-        types.Text(
-            text="This is a text.", context=types.TextContextParams(id="id1")
-        ),
-        types.Text(
-            text="This is another text.",
-            context=types.TextContextParams(id="id2"),
-        ),
-    ]
-    mock_encoder.encode_batch(batch)
-    mock_encoder.setup.assert_called_once()
-
-  def test_default_encode_calls_encode_batch_with_single_item(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt()
-    mock_encoder.encode_batch = mock.MagicMock()
-    text = types.Text(
-        text="This is a text.", context=types.TextContextParams(id="id")
-    )
-
-    mock_encoder.encode(text)
-    mock_encoder.encode_batch.assert_called_once_with([text], **{})
-
-  def test_faulty_setup_raises_runtime_error(self):
-    mock_encoder = FaultySetupNormalizedTextEncoderWithPrompt()
-    with self.assertRaises(RuntimeError):
-      mock_encoder.encode(
-          types.Text(
-              text="This is a text.", context=types.TextContextParams(id="id")
-          )
-      )
-
-  def test_init_kwargs_are_stored_for_later_use(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt(
-        special_param=123, other_param="abc"
-    )
-    self.assertIn("special_param", mock_encoder._kwargs)
-    self.assertEqual(mock_encoder._kwargs["special_param"], 123)
-
-  def test_final_decorator_prevents_override_in_static_analysis(self):
-
-    class BadNormalizedTextEncoderWithPrompt(
-        normalized_text_encoder_with_prompt.NormalizedTextEncoderWithPrompt
-    ):
-
-      def setup(self):
-        self._model_loaded = True
-
-    bad_encoder = BadNormalizedTextEncoderWithPrompt()
-    self.assertIsNotNone(bad_encoder)
 
   def test_get_normalized_text_prompt_with_normalizer(self):
     self.assertEqual(
@@ -185,7 +94,7 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
         prompt_template="title: {title} | context: {text}",
     )
     mock_encoder.text_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
-    _ = mock_encoder.encode_batch([
+    _ = mock_encoder.encode([
         types.Text(
             text="This is a text.", context=types.TextContextParams(id="id1")
         ),

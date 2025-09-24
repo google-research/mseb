@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import Any
+from typing import Any, Sequence
 from unittest import mock
 
 from absl.testing import absltest
@@ -146,153 +146,45 @@ class SoundEncoderTest(absltest.TestCase):
     self.assertIsNotNone(bad_encoder)
 
 
-class MockTextEncoder(encoder.TextEncoder):
-  """A concrete implementation of TextEncoder for testing purposes."""
-
-  def setup(self):
-    pass
-
-  def _encode_batch(self, text_batch, **kwargs):
-    pass
-
-  def __init__(self, **kwargs: Any):
-    super().__init__(**kwargs)
-    self.setup = mock.MagicMock(side_effect=self._setup_impl)
-    self._encode_batch = mock.MagicMock(
-        return_value=[
-            types.TextEmbeddings(
-                embeddings=np.zeros((10, 8)),
-                spans=np.zeros((10, 2)),
-                context=types.TextContextParams(id="id"),
-            )
-        ]
-    )
-
-  def _setup_impl(self):
-    """The actual implementation for the mocked setup method."""
-    self._model_loaded = True
-
-
-class FaultySetupTextEncoder(encoder.TextEncoder):
-  """An encoder that "forgets" to set the _model_loaded flag in setup."""
-
-  def setup(self):
-    logger.info("Faulty setup was called, but did not set the flag.")
-
-  def _encode_batch(self, text_batch, **kwargs):
-    return [
-        types.TextEmbeddings(
-            embeddings=np.array([]),
-            spans=np.array([]),
-            context=types.TextContextParams(id="id"),
-        )
-    ]
-
-
 class TextEncoderTest(absltest.TestCase):
 
-  def test_initialization_is_lazy_and_does_not_call_setup(self):
-    mock_encoder = MockTextEncoder()
-    mock_encoder.setup.assert_not_called()
+  class MockTextEncoder(encoder.TextEncoder):
+    """A concrete implementation of TextEncoder for testing purposes."""
 
-  def test_encode_triggers_setup_exactly_once(self):
-    mock_encoder = MockTextEncoder()
+    def _setup(self):
+      pass
 
-    mock_encoder.encode(
+    def _encode(
+        self, text_batch: Sequence[types.Text]
+    ) -> Sequence[types.TextEmbeddings]:
+      return []
+
+  def test_check_input_types_does_not_raise_error_for_text_inputs(self):
+    mock_encoder = TextEncoderTest.MockTextEncoder()
+    mock_encoder._check_input_types([
         types.Text(
-            text="This is a text.", context=types.TextContextParams(id="id")
-        )
-    )
-    mock_encoder.setup.assert_called_once()
-
-    mock_encoder.encode_batch([
+            text="This is a text.", context=types.TextContextParams(id="id1")
+        ),
         types.Text(
             text="This is another text.",
-            context=types.TextContextParams(id="id"),
-        )
+            context=types.TextContextParams(id="id2"),
+        ),
     ])
-    mock_encoder.setup.assert_called_once()
 
-  def test_encode_batch_triggers_setup_exactly_once(self):
-    mock_encoder = MockTextEncoder()
-    batch = [
-        types.Text(
-            text="This is a text.", context=types.TextContextParams(id="id1")
-        ),
-        types.Text(
-            text="This is another text.",
-            context=types.TextContextParams(id="id2"),
-        ),
-    ]
-    mock_encoder.encode_batch(batch)
-    mock_encoder.setup.assert_called_once()
-
-  def test_encode_batch_delegates_to_encode_batch_with_correct_args(self):
-    mock_encoder = MockTextEncoder()
-    text_batch = [
-        types.Text(
-            text="This is a text.", context=types.TextContextParams(id="id1")
-        ),
-        types.Text(
-            text="This is another text.",
-            context=types.TextContextParams(id="id2"),
-        ),
-        types.Text(
-            text="This is the third text.",
-            context=types.TextContextParams(id="id3"),
-        ),
-    ]
-    mock_encoder.encode_batch(text_batch, runtime_kwarg="hello")
-    mock_encoder._encode_batch.assert_called_once_with(
-        text_batch, runtime_kwarg="hello"
-    )
-
-  def test_default_encode_calls_encode_batch_with_single_item(self):
-    mock_encoder = MockTextEncoder()
-    mock_encoder.encode_batch = mock.MagicMock()
-    text = types.Text(
-        text="This is a text.", context=types.TextContextParams(id="test")
-    )
-
-    mock_encoder.encode(text)
-    mock_encoder.encode_batch.assert_called_once_with([text], **{})
-
-  def test_faulty_setup_raises_runtime_error(self):
-    mock_encoder = FaultySetupTextEncoder()
-    with self.assertRaises(RuntimeError):
-      mock_encoder.encode(
+  def test_check_input_types_raises_error_for_non_text_inputs(self):
+    mock_encoder = TextEncoderTest.MockTextEncoder()
+    with self.assertRaises(ValueError):
+      mock_encoder._check_input_types([
           types.Text(
-              text="This is a text.", context=types.TextContextParams(id="id")
-          )
-      )
-
-  def test_init_kwargs_are_stored_for_later_use(self):
-    mock_encoder = MockTextEncoder(special_param=123, other_param="abc")
-    self.assertIn("special_param", mock_encoder._kwargs)
-    self.assertEqual(mock_encoder._kwargs["special_param"], 123)
-
-  def test_final_decorator_prevents_override_in_static_analysis(self):
-    class BadTextEncoder(encoder.TextEncoder):
-
-      def encode_batch(self, text_batch, **kwargs):
-        return types.TextEmbeddings(
-            embeddings=np.array([-1]),
-            spans=np.array([0]),
-            context=types.TextContextParams(id=""),
-        )
-
-      def setup(self):
-        self._model_loaded = True
-
-      def _encode_batch(self, text_batch, params_batch, **kwargs):
-        return types.TextEmbeddings(
-            embeddings=np.array([-1]),
-            spans=np.array([0]),
-            context=types.TextContextParams(id=""),
-        )
-
-    bad_encoder = BadTextEncoder()
-    self.assertIsNotNone(bad_encoder)
+              text="This is a text.", context=types.TextContextParams(id="text")
+          ),
+          types.Sound(
+              waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+              context=types.SoundContextParams(
+                  sample_rate=2, length=4, id="sound"
+              ),
+          ),
+      ])
 
 
 if __name__ == "__main__":
