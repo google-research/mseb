@@ -16,22 +16,39 @@
 
 import io
 import os
-from typing import Optional, Any
+from typing import Any, Optional
 
+from absl import flags
 from array_record.python import array_record_module as array_record
 import librosa
-from mseb import dataset
 from mseb import types
-from mseb import utils
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 import tensorflow as tf
 
 
+SVQ_BASEPATH = flags.DEFINE_string(
+    "simple_voice_questions_base_path",
+    None,
+    "Path to the SVQ dataset.",
+)
+
+
+def _get_base_path(basepath: str | None = None) -> str:
+  """Return basepath from argument or flag."""
+  if basepath is not None:
+    return basepath
+  if SVQ_BASEPATH.value is not None:
+    return SVQ_BASEPATH.value
+  raise ValueError(
+      "basepath must be provided either as an argument or through the"
+      " --simple_voice_questions_base_path flag."
+  )
+
+
 def _read_wav_bytes(
-    wav_bytes: bytes,
-    target_sr: Optional[int] = None
+    wav_bytes: bytes, target_sr: Optional[int] = None
 ) -> tuple[np.ndarray, int]:
   """Reads WAV bytes and returns a normalized float32 numpy array."""
   rate, data = wavfile.read(io.BytesIO(wav_bytes))
@@ -49,11 +66,7 @@ def _read_wav_bytes(
     raise TypeError(f"Unsupported data type: {data.dtype}")
 
   if target_sr and target_sr != rate:
-    waveform = librosa.resample(
-        waveform,
-        orig_sr=rate,
-        target_sr=target_sr
-    )
+    waveform = librosa.resample(waveform, orig_sr=rate, target_sr=target_sr)
     return waveform, target_sr
 
   return waveform, rate
@@ -88,17 +101,19 @@ class _UttLookup:
     return self.readers[path].read([idx])[0]
 
 
-class SimpleVoiceQuestionsDataset(dataset.Dataset):
+class SimpleVoiceQuestionsDataset:
   """Simple Voice Questions (SVQ) dataset.
 
   This class loads the entire corpus of utterances and provides a method
   to access specific evaluation task files.
   """
 
-  def __init__(self,
-               base_path: str,
-               split: str = "all",
-               target_sr: int | None = None):
+  def __init__(
+      self,
+      base_path: str | None = None,
+      split: str = "all",
+      target_sr: int | None = None,
+  ):
     if split != "all":
       raise ValueError(
           "The 'split' argument is not used for"
@@ -106,9 +121,12 @@ class SimpleVoiceQuestionsDataset(dataset.Dataset):
           " without a split to load the main corpus, then use the"
           " `get_task_data('task_name')` method."
       )
-    super().__init__(base_path=base_path, split=split, target_sr=target_sr)
-    self._utt_lookup = _UttLookup(self.base_path, self._metadata)
-    self.utt_id_to_record = self._metadata.set_index("utt_id").to_dict("index")
+    self.base_path = _get_base_path(base_path)
+    self.split = split
+    self.target_sr = target_sr
+    self._index = self._load_index()
+    self._utt_lookup = _UttLookup(self.base_path, self._index)
+    self.utt_id_to_record = self._index.set_index("utt_id").to_dict("index")
 
   @property
   def metadata(self) -> types.DatasetMetadata:
@@ -130,14 +148,11 @@ class SimpleVoiceQuestionsDataset(dataset.Dataset):
         ],
     )
 
-  def _download_and_prepare(self) -> None:
-    """Clones the SVQ dataset from Hugging Face."""
-    repo_id = "google/svq"
-    utils.download_from_hf(repo_id, self.base_path)
+  def __len__(self) -> int:
+    return len(self._index)
 
-  def _load_metadata(self) -> pd.DataFrame:
+  def _load_index(self) -> pd.DataFrame:
     """Loads the master index of all unique utterances."""
-    self._download_and_prepare()
     utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
     if not tf.io.gfile.exists(utt_index_path):
       raise FileNotFoundError(f"Master index not found: {utt_index_path}")

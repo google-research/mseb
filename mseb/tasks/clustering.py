@@ -15,11 +15,12 @@
 """Clustering tasks."""
 
 import abc
-from typing import Iterable
+from typing import Iterable, Type
 
-from mseb import svq_data
+from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
+from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import clustering_evaluator
 
 
@@ -77,27 +78,26 @@ class SVQClustering(ClusteringTask):
       task_subtypes=['clustering'],
   )
 
+  _svq_dataset: svq.SimpleVoiceQuestionsDataset
+
+  def setup(
+      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+  ):
+    self._svq_dataset = svq.SimpleVoiceQuestionsDataset()
+
   @property
   def sub_tasks(self) -> list[str]:
     return ['speaker_gender', 'speaker_age', 'speaker_id']
 
   def sounds(self) -> Iterable[types.Sound]:
-    for example in svq_data.generate_examples('utt_index.jsonl'):
-      yield types.Sound(
-          example['waveform'],
-          types.SoundContextParams(
-              sample_rate=48000,
-              length=len(example['waveform']),
-              id=example['utt_id'],
-              speaker_id=example['speaker_id'],
-              speaker_age=example['speaker_age'],
-              speaker_gender=example['speaker_gender'],
-          ),
-      )
+    for example in self._svq_dataset.get_task_data('utt_index').itertuples():
+      yield self._svq_dataset.get_sound_by_id(example.utt_id)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     """Get (utt_id, label) examples from svq dataset."""
-    for ex in svq_data.generate_examples('utt_index.jsonl'):
-      yield clustering_evaluator.ClusteringExample(ex['utt_id'], ex[sub_task])
+    for example in self._svq_dataset.get_task_data('utt_index').itertuples():
+      yield clustering_evaluator.ClusteringExample(
+          example.utt_id, getattr(example, sub_task)
+      )

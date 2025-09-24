@@ -17,7 +17,6 @@
 import os
 from typing import Iterable, Sequence
 
-from mseb import svq_data
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reasoning_evaluator
@@ -52,9 +51,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
     return ['span_reasoning_in_lang']
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(
-        base_path=svq_data.SVQ_BASEPATH.value
-    )
+    svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         'span_reasoning_in_lang'
     ).itertuples():
@@ -74,9 +71,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(
-        base_path=svq_data.SVQ_BASEPATH.value
-    )
+    svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(sub_task).itertuples():
       if example.locale == self.locale:
         yield reasoning_evaluator.ReasoningSpans(
@@ -86,9 +81,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
         )
 
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(
-        base_path=svq_data.SVQ_BASEPATH.value
-    )
+    svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         'span_reasoning_in_lang'
     ).itertuples():

@@ -15,18 +15,14 @@
 """Segmentation tasks."""
 
 import abc
-import os
-from mseb import svq_data
 from mseb import task
 from mseb import types
+from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import segmentation_evaluator
 
 
 class SegmentationTask(task.MSEBTask):
   """Segmentation task."""
-
-  def __init__(self, base_path: str):
-    self._base_path = base_path
 
   @abc.abstractmethod
   def targets(self, embeddings: types.SoundEmbeddingCache):
@@ -88,22 +84,15 @@ class SegmentationTaskSVQ(SegmentationTask):
       task_subtypes=['segmentation'],
   )
 
+  def __init__(self):
+    super().__init__()
+    self._svq_dataset = svq.SimpleVoiceQuestionsDataset()
+
   def sounds(self):
-    for example in svq_data.generate_examples(
-        os.path.join(self._base_path, 'utt_index.jsonl')
-    ):
-      yield types.Sound(
-          example['waveform'],
-          types.SoundContextParams(
-              sample_rate=48000,
-              length=len(example['waveform']),
-              id=example['utt_id'],
-          ),
-      )
+    for utt_id in self._svq_dataset.utt_id_to_record:
+      yield self._svq_dataset.get_sound_by_id(utt_id)
 
   def targets(self, embeddings: types.SoundEmbeddingCache):
-    for ex in svq_data.generate_examples(
-        os.path.join(self._base_path, 'utt_index.jsonl')
-    ):
+    for utt_id in self._svq_dataset.utt_id_to_record:
       # TODO(tombagby): Get actual reference labels out, faking for now.
-      yield embeddings[ex['utt_id']]
+      yield embeddings[utt_id]

@@ -17,7 +17,6 @@
 import os
 from typing import Iterable
 
-from mseb import svq_data
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
@@ -63,9 +62,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     return ['document_retrieval_in_lang']
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(
-        base_path=svq_data.SVQ_BASEPATH.value
-    )
+    svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         'document_retrieval_in_lang'
     ).itertuples():
@@ -78,9 +75,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(
-        base_path=svq_data.SVQ_BASEPATH.value
-    )
+    svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(sub_task).itertuples():
       if example.locale == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(

@@ -16,10 +16,15 @@ import os
 import pathlib
 import shutil
 
+from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
+
+from mseb.datasets import simple_voice_questions
 from mseb.tasks.retrievals.document_in_lang import svq
 import tensorflow_datasets as tfds
+
+FLAGS = flags.FLAGS
 
 
 class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
@@ -38,7 +43,9 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
     os.chmod(cache_dir, 0o755)
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
     self.enter_context(
-        flagsaver.flagsaver((svq.svq_data.SVQ_BASEPATH, cache_dir))
+        flagsaver.flagsaver(
+            (simple_voice_questions.SVQ_BASEPATH, cache_dir)
+        )
     )
 
   def test_svq_document_in_lang_retrieval_documents(self):

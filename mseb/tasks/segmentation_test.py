@@ -14,10 +14,15 @@
 
 import os
 import pathlib
+from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import runner as runner_lib
+from mseb.datasets import simple_voice_questions
 from mseb.encoders import raw_encoder
 from mseb.tasks import segmentation
+
+FLAGS = flags.FLAGS
 
 
 def get_test_encoder():
@@ -30,6 +35,14 @@ def get_test_encoder():
 
 class SegmentationTest(absltest.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    self.enter_context(
+        flagsaver.flagsaver(
+            (simple_voice_questions.SVQ_BASEPATH, self.get_testdata_path())
+        )
+    )
+
   def get_testdata_path(self, *args):
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
@@ -39,7 +52,7 @@ class SegmentationTest(absltest.TestCase):
   def test_segmentation_task_svq(self):
     encoder = get_test_encoder()
     runner = runner_lib.DirectRunner(encoder=encoder)
-    task = segmentation.SegmentationTaskSVQ(base_path=self.get_testdata_path())
+    task = segmentation.SegmentationTaskSVQ()
     embeddings = runner.run(task.sounds())
     scores = task.compute_scores(embeddings)
     self.assertNotEmpty(scores)
