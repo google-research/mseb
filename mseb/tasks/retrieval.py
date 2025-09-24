@@ -18,7 +18,6 @@ import abc
 import itertools
 import logging
 import os
-import tempfile
 from typing import Any, Iterable, Type
 
 from mseb import runner as runner_lib
@@ -36,7 +35,6 @@ class RetrievalTask(task.MSEBTask):
 
   def __init__(
       self,
-      cache_dir: str | None = None,
       text_encoder_name: str | None = None,
       id_by_index_id_filepath: str = 'ids.txt',
       num_partitions: int = 1,
@@ -44,14 +42,11 @@ class RetrievalTask(task.MSEBTask):
     """Initializes the retrieval task.
 
     Args:
-      cache_dir: The cache directory to store the document embeddings / index.
       text_encoder_name: The name of the text encoder to build the index.
       id_by_index_id_filepath: The filepath to save the id by index id mapping.
       num_partitions: The number of index partitions to use.
     """
-    super().__init__(
-        cache_dir=cache_dir or os.path.join(tempfile.gettempdir(), 'mseb_cache')
-    )
+    super().__init__()
     self.text_encoder_name = text_encoder_name
     self.id_by_index_id_filepath = id_by_index_id_filepath
     self.num_partitions = num_partitions
@@ -60,7 +55,7 @@ class RetrievalTask(task.MSEBTask):
   @property
   def index_dir(self) -> str:
     """The directory where the index is stored."""
-    return os.path.join(self.cache_dir, 'retrievals')
+    return os.path.join(task.CACHE_BASEPATH.value, 'retrievals')
 
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs

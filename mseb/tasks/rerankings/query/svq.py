@@ -17,6 +17,7 @@
 import os
 from typing import Iterable, Sequence
 
+from mseb import svq_data
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reranking_evaluator
@@ -29,10 +30,9 @@ class SVQQueryReranking(reranking.RerankingTask):
   def __init__(
       self,
       locale: str,
-      cache_dir: str | None = None,
       text_encoder_name: str | None = None,
   ):
-    super().__init__(cache_dir=cache_dir, text_encoder_name=text_encoder_name)
+    super().__init__(text_encoder_name=text_encoder_name)
     self.locale = locale
 
   @property
@@ -48,7 +48,9 @@ class SVQQueryReranking(reranking.RerankingTask):
     return ['query_reranking']
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data('query_reranking').itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
@@ -59,7 +61,9 @@ class SVQQueryReranking(reranking.RerankingTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data(sub_task).itertuples():
       if example.locale == self.locale:
         yield reranking_evaluator.RerankingCandidates(
@@ -69,7 +73,9 @@ class SVQQueryReranking(reranking.RerankingTask):
         )
 
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data('query_reranking').itertuples():
       if example.locale == self.locale:
         yield [
@@ -107,9 +113,7 @@ class SVQEnUsQueryRerankingGecko(SVQQueryReranking):
       task_subtypes=['reranking'],
   )
 
-  def __init__(self, cache_dir: str | None = None):
-    super().__init__(
-        locale='en_us', cache_dir=cache_dir, text_encoder_name='gecko_text'
-    )
+  def __init__(self):
+    super().__init__(locale='en_us', text_encoder_name='gecko_text')
 
 

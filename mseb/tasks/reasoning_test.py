@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import os
-import pathlib
 from typing import Iterable, Sequence
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
 from mseb.evaluators import reasoning_evaluator
@@ -28,9 +28,10 @@ class ReasoningTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent,
-        'testdata',
+    self.enter_context(
+        flagsaver.flagsaver(
+            (reasoning.task.CACHE_BASEPATH, self.create_tempdir().full_path)
+        )
     )
 
   def test_reasoning_task_compute_scores(self):
@@ -119,10 +120,9 @@ class ReasoningTest(absltest.TestCase):
             context=types.TextContextParams(id='ref_2C'),
         ),
     }
-    cache_dir = self.create_tempdir().full_path
     runner_lib.save_embeddings(
         output_prefix=os.path.join(
-            cache_dir,
+            reasoning.task.CACHE_BASEPATH.value,
             'reasonings',
             'svq_en_us_span_reasoning_in_lang',
             'embeddings',
@@ -130,7 +130,7 @@ class ReasoningTest(absltest.TestCase):
         embeddings=span_embeddings,
     )
 
-    task = MockReasoningTask(cache_dir=cache_dir)
+    task = MockReasoningTask()
     task.setup()
     self.assertEqual(task.sub_tasks, ['test'])
     scores = task.compute_scores(embeddings=embeddings)
@@ -168,9 +168,7 @@ class ReasoningTest(absltest.TestCase):
       def sub_tasks(self) -> list[str]:
         return ['not_used']
 
-    task = MockReasoningTask(
-        cache_dir=self.create_tempdir().full_path, text_encoder_name='mock_text'
-    )
+    task = MockReasoningTask(text_encoder_name='mock_text')
     task.setup(runner_cls=runner_lib.DirectRunner)
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.span_embeddings_by_text)

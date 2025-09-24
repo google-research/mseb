@@ -17,6 +17,7 @@
 import os
 from typing import Iterable
 
+from mseb import svq_data
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
@@ -29,10 +30,9 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def __init__(
       self,
       locale: str,
-      cache_dir: str | None = None,
       text_encoder_name: str | None = None,
   ):
-    super().__init__(cache_dir=cache_dir, text_encoder_name=text_encoder_name)
+    super().__init__(text_encoder_name=text_encoder_name)
     self.locale = locale
 
   @property
@@ -48,7 +48,9 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
     return ['passage_retrieval_in_lang']
 
   def documents(self) -> Iterable[types.Text]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data(
         'passage_retrieval_in_lang_index'
     ).itertuples():
@@ -61,7 +63,9 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
       )
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data(
         'passage_retrieval_in_lang'
     ).itertuples():
@@ -74,7 +78,9 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data(sub_task).itertuples():
       if example.locale == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
@@ -104,9 +110,7 @@ class SVQEnUsPassageInLangRetrievalGecko(SVQPassageInLangRetrieval):
       task_subtypes=['retrieval'],
   )
 
-  def __init__(self, cache_dir: str | None = None):
-    super().__init__(
-        locale='en_us', cache_dir=cache_dir, text_encoder_name='gecko_text'
-    )
+  def __init__(self):
+    super().__init__(locale='en_us', text_encoder_name='gecko_text')
 
 

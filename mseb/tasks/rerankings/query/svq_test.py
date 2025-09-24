@@ -17,6 +17,7 @@ import pathlib
 import shutil
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb.tasks.rerankings.query import svq
 
 
@@ -30,14 +31,17 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     )
     # Add a .git marker to prevent SimpleVoiceQuestionsDataset from trying to
     # download the data from Huggingface.
-    self.cache_dir = self.create_tempdir().full_path
-    shutil.rmtree(self.cache_dir)
-    shutil.copytree(testdata_path, self.cache_dir)
-    os.chmod(self.cache_dir, 0o755)
-    pathlib.Path.touch(pathlib.Path(os.path.join(self.cache_dir, ".git")))
+    cache_dir = self.create_tempdir().full_path
+    shutil.rmtree(cache_dir)
+    shutil.copytree(testdata_path, cache_dir)
+    os.chmod(cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
+    self.enter_context(
+        flagsaver.flagsaver((svq.svq_data.SVQ_BASEPATH, cache_dir))
+    )
 
   def test_svq_query_reranking_candidate_lists(self):
-    task = svq.SVQEnUsQueryRerankingGecko(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsQueryRerankingGecko()
     self.assertEqual(task.sub_tasks, ["query_reranking"])
     candidate_lists = list(task.candidate_lists())
     self.assertLen(candidate_lists, 2)
@@ -60,7 +64,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     )
 
   def test_svq_query_reranking_sounds(self):
-    task = svq.SVQEnUsQueryRerankingGecko(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsQueryRerankingGecko()
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -75,7 +79,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_query_reranking_examples(self):
-    task = svq.SVQEnUsQueryRerankingGecko(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsQueryRerankingGecko()
     examples = list(task.examples("query_reranking"))
     self.assertLen(examples, 2)
     example = examples[0]

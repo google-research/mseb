@@ -17,6 +17,7 @@ import pathlib
 from typing import Iterable, Sequence
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
 from mseb.evaluators import reranking_evaluator
@@ -124,8 +125,11 @@ class RerankingTest(absltest.TestCase):
         ),
         embeddings=candidate_embeddings,
     )
+    self.enter_context(
+        flagsaver.flagsaver((reranking.task.CACHE_BASEPATH, cache_dir))
+    )
 
-    task = MockRerankingTask(cache_dir=cache_dir)
+    task = MockRerankingTask()
     task.setup()
     self.assertEqual(task.sub_tasks, ['test'])
     scores = task.compute_scores(embeddings=embeddings)
@@ -192,9 +196,12 @@ class RerankingTest(absltest.TestCase):
       def sub_tasks(self) -> list[str]:
         return ['test']
 
-    task = MockRerankingTask(
-        cache_dir=self.create_tempdir().full_path, text_encoder_name='mock_text'
+    self.enter_context(
+        flagsaver.flagsaver(
+            (reranking.task.CACHE_BASEPATH, self.create_tempdir().full_path)
+        )
     )
+    task = MockRerankingTask(text_encoder_name='mock_text')
     task.setup(runner_cls=runner_lib.DirectRunner)
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.candidate_embeddings_by_sound_id)

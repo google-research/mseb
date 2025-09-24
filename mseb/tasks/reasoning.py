@@ -17,7 +17,6 @@
 import abc
 import logging
 import os
-import tempfile
 from typing import Any, Iterable, Sequence, Type
 
 from mseb import runner as runner_lib
@@ -35,13 +34,10 @@ class ReasoningTask(task.MSEBTask):
 
   def __init__(
       self,
-      cache_dir: str | None = None,
       text_encoder_name: str | None = None,
       no_answer_threshold: float = 0.5,
   ):
-    super().__init__(
-        cache_dir=cache_dir or os.path.join(tempfile.gettempdir(), 'mseb_cache')
-    )
+    super().__init__()
     self.text_encoder_name = text_encoder_name
     self.no_answer_threshold = no_answer_threshold
     self._evaluator = None
@@ -49,7 +45,7 @@ class ReasoningTask(task.MSEBTask):
   @property
   def embeddings_dir(self) -> str:
     """The directory where the span embeddings cache is stored."""
-    return os.path.join(self.cache_dir, 'reasonings')
+    return os.path.join(task.CACHE_BASEPATH.value, 'reasonings')
 
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs

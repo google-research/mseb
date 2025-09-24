@@ -17,6 +17,7 @@ import pathlib
 import shutil
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb.tasks.reasonings.span_in_lang import svq
 
 
@@ -30,14 +31,17 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     )
     # Add a .git marker to prevent SimpleVoiceQuestionsDataset from trying to
     # download the data from Huggingface.
-    self.cache_dir = self.create_tempdir().full_path
-    shutil.rmtree(self.cache_dir)
-    shutil.copytree(testdata_path, self.cache_dir)
-    os.chmod(self.cache_dir, 0o755)
-    pathlib.Path.touch(pathlib.Path(os.path.join(self.cache_dir, ".git")))
+    cache_dir = self.create_tempdir().full_path
+    shutil.rmtree(cache_dir)
+    shutil.copytree(testdata_path, cache_dir)
+    os.chmod(cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
+    self.enter_context(
+        flagsaver.flagsaver((svq.svq_data.SVQ_BASEPATH, cache_dir))
+    )
 
   def test_svq_span_in_lang_reasoning_span_lists(self):
-    task = svq.SVQEnUsSpanInLangReasoningGecko(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsSpanInLangReasoningGecko()
     self.assertEqual(task.sub_tasks, ["span_reasoning_in_lang"])
     span_lists = list(task.span_lists())
     self.assertLen(span_lists, 2)
@@ -60,7 +64,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     )
 
   def test_svq_span_in_lang_reasoning_sounds(self):
-    task = svq.SVQEnUsSpanInLangReasoningGecko(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsSpanInLangReasoningGecko()
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -75,7 +79,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_span_in_lang_reasoning_examples(self):
-    task = svq.SVQEnUsSpanInLangReasoningGecko(cache_dir=self.cache_dir)
+    task = svq.SVQEnUsSpanInLangReasoningGecko()
     examples = list(task.examples("span_reasoning_in_lang"))
     self.assertLen(examples, 2)
     example = examples[0]

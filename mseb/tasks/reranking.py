@@ -17,7 +17,6 @@
 import abc
 import logging
 import os
-import tempfile
 from typing import Any, Iterable, Sequence, Type
 
 from mseb import runner as runner_lib
@@ -35,19 +34,16 @@ class RerankingTask(task.MSEBTask):
 
   def __init__(
       self,
-      cache_dir: str | None = None,
       text_encoder_name: str | None = None,
   ):
-    super().__init__(
-        cache_dir=cache_dir or os.path.join(tempfile.gettempdir(), 'mseb_cache')
-    )
+    super().__init__()
     self.text_encoder_name = text_encoder_name
     self._evaluator = None
 
   @property
   def embeddings_dir(self) -> str:
     """The directory where the candidate embeddings cache is stored."""
-    return os.path.join(self.cache_dir, 'rerankings')
+    return os.path.join(task.CACHE_BASEPATH.value, 'rerankings')
 
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs

@@ -38,13 +38,6 @@ _TASK = flags.DEFINE_string(
     required=True,
 )
 
-_CACHE_DIR = flags.DEFINE_string(
-    'cache_dir',
-    None,
-    'Cache directory.',
-)
-
-
 _BATCH_SIZE = flags.DEFINE_integer(
     'batch_size',
     0,
@@ -62,7 +55,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
-  task = task_cls(cache_dir=_CACHE_DIR.value)
+  task = task_cls()
   task.setup(
       runner_lib.DirectRunner,
       batch_size=_BATCH_SIZE.value,

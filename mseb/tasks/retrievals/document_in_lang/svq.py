@@ -17,6 +17,7 @@
 import os
 from typing import Iterable
 
+from mseb import svq_data
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
@@ -30,7 +31,6 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   def __init__(
       self,
       locale: str,
-      cache_dir: str | None = None,
       text_encoder_name: str | None = None,
       num_partitions: int = 1,
   ):
@@ -38,14 +38,11 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
 
     Args:
       locale: The locale of the task.
-      cache_dir: The cache directory to store the embeddings and the index.
       text_encoder_name: The name of the text encoder to build the index.
       num_partitions: The number of index partitions to use.
     """
     super().__init__(
-        cache_dir=cache_dir,
-        text_encoder_name=text_encoder_name,
-        num_partitions=num_partitions,
+        text_encoder_name=text_encoder_name, num_partitions=num_partitions
     )
     self.locale = locale
 
@@ -66,7 +63,9 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     return ['document_retrieval_in_lang']
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data(
         'document_retrieval_in_lang'
     ).itertuples():
@@ -79,7 +78,9 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset(base_path=self.cache_dir)
+    svq_dataset = svq.SimpleVoiceQuestionsDataset(
+        base_path=svq_data.SVQ_BASEPATH.value
+    )
     for example in svq_dataset.get_task_data(sub_task).itertuples():
       if example.locale == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
@@ -121,9 +122,7 @@ class SVQEnUsDocumentInLangRetrievalGecko(SVQDocumentInLangRetrieval):
       task_subtypes=['retrieval'],
   )
 
-  def __init__(self, cache_dir: str | None = None):
-    super().__init__(
-        locale='en_us', cache_dir=cache_dir, text_encoder_name='gecko_text'
-    )
+  def __init__(self):
+    super().__init__(locale='en_us', text_encoder_name='gecko_text')
 
 

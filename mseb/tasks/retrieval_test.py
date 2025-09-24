@@ -17,6 +17,7 @@ import pathlib
 from typing import Iterable
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
@@ -101,7 +102,10 @@ class RetrievalTest(absltest.TestCase):
         ),
     }
 
-    task = MockRetrievalTask(cache_dir=self.testdata_path)
+    self.enter_context(
+        flagsaver.flagsaver((retrieval.task.CACHE_BASEPATH, self.testdata_path))
+    )
+    task = MockRetrievalTask()
     task.setup()
     self.assertEqual(task.sub_tasks, ['test'])
     scores = task.compute_scores(embeddings=embeddings)
@@ -137,9 +141,12 @@ class RetrievalTest(absltest.TestCase):
       def sub_tasks(self) -> list[str]:
         return ['not_used']
 
-    task = MockRetrievalTask(
-        cache_dir=self.create_tempdir().full_path, text_encoder_name='mock_text'
+    self.enter_context(
+        flagsaver.flagsaver(
+            (retrieval.task.CACHE_BASEPATH, self.create_tempdir().full_path)
+        )
     )
+    task = MockRetrievalTask(text_encoder_name='mock_text')
     task.setup(runner_cls=runner_lib.DirectRunner)
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.searcher)

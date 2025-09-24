@@ -18,7 +18,6 @@ Usage:
 run_task --task SVQClustering --encoder spectrogram_25_10_mean
 """
 
-import os
 from typing import Type
 from absl import app
 from absl import flags
@@ -45,12 +44,6 @@ _TASK = flags.DEFINE_string(
     required=True,
 )
 
-_CACHE_DIR = flags.DEFINE_string(
-    'cache_dir',
-    None,
-    'Cache directory.',
-)
-
 _BATCH_SIZE = flags.DEFINE_integer(
     'batch_size',
     0,
@@ -73,7 +66,6 @@ def main(argv):
       encoder=encoder,
       batch_size=_BATCH_SIZE.value,
       num_threads=_NUM_THREADS.value,
-      output_path=os.path.join(_CACHE_DIR.value, encoder_name),
   )
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
   task = task_cls()

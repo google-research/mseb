@@ -18,8 +18,16 @@ import abc
 import logging
 from typing import Iterable, Type
 
+from absl import flags
 from mseb import runner as runner_lib
 from mseb import types
+
+
+CACHE_BASEPATH = flags.DEFINE_string(
+    "cache_basepath",
+    None,
+    "Base path for the task cache.",
+)
 
 
 logger = logging.getLogger(__name__)
@@ -29,9 +37,6 @@ class MSEBTask(abc.ABC):
   """Abstract base class for MSEB tasks."""
 
   metadata: types.TaskMetadata = None
-
-  def __init__(self, cache_dir: str | None = None):
-    self.cache_dir = cache_dir
 
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
@@ -77,6 +82,6 @@ def get_task_by_name(task_name: str) -> Type[MSEBTask]:
   task_cls = get_name_to_task().get(task_name)
   if task_cls is None:
     raise ValueError(
-        f'Task {task_name} not found. Registered tasks: {get_name_to_task()}'
+        f"Task {task_name} not found. Registered tasks: {get_name_to_task()}"
     )
   return task_cls
