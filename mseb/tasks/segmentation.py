@@ -13,8 +13,9 @@
 # limitations under the License.
 
 """Segmentation tasks."""
-
 import abc
+from typing import Type
+from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
@@ -84,8 +85,9 @@ class SegmentationTaskSVQ(SegmentationTask):
       task_subtypes=['segmentation'],
   )
 
-  def __init__(self):
-    super().__init__()
+  def setup(
+      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+  ):
     self._svq_dataset = svq.SimpleVoiceQuestionsDataset()
 
   def sounds(self):

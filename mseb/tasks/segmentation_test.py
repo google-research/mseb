@@ -53,6 +53,7 @@ class SegmentationTest(absltest.TestCase):
     encoder = get_test_encoder()
     runner = runner_lib.DirectRunner(encoder=encoder)
     task = segmentation.SegmentationTaskSVQ()
+    task.setup()
     embeddings = runner.run(task.sounds())
     scores = task.compute_scores(embeddings)
     self.assertNotEmpty(scores)
