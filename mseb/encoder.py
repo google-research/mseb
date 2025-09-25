@@ -123,3 +123,45 @@ class SoundOrTextEncoder(MultiModalEncoder):
       return self._sound_encoder.encode(batch)
     else:
       return self._text_encoder.encode(batch)
+
+
+class SpeechToTextWithTitleAndContextEncoder(MultiModalEncoder):
+  """Represents speech with its transcription derived by Whisper model."""
+
+  def __init__(self, speech_to_text_encoder: MultiModalEncoder):
+    super().__init__()
+    self.speech_to_text_encoder = speech_to_text_encoder
+
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    if not all(isinstance(x, types.SoundWithTitleAndContext) for x in batch):
+      raise ValueError(
+          "SpeechToTextWithTitleAndContextEncoder only supports a batch of all"
+          " SoundWithTitleAndContext inputs."
+      )
+
+  def _setup(self):
+    self.speech_to_text_encoder.setup()
+
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.SoundEmbeddingWithTitleAndContext]:
+    """Encodes a batch of sound sources into embeddings and timestamps."""
+    sound_batch = []
+    for example in batch:
+      assert isinstance(example, types.SoundWithTitleAndContext)
+      sound_batch.append(types.Sound(example.waveform, example.context))
+    sound_embeddings = self.speech_to_text_encoder.encode(sound_batch)
+    outputs = []
+    for sound_embedding, example in zip(sound_embeddings, batch):
+      assert isinstance(sound_embedding, types.SoundEmbedding)
+      assert isinstance(example, types.SoundWithTitleAndContext)
+      outputs.append(
+          types.SoundEmbeddingWithTitleAndContext(
+              embedding=sound_embedding.embedding,
+              timestamps=sound_embedding.timestamps,
+              title_text=example.title_text,
+              context_text=example.context_text,
+              context=sound_embedding.context,
+          )
+      )
+    return outputs

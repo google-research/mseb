@@ -85,11 +85,7 @@ class CascadeEncoderTest(absltest.TestCase):
     self.sound2 = types.Sound(waveform=self.waveform2, context=self.params2)
 
   def test_cascade_encoder_encode(self):
-    enc = cascade_encoder.CascadeEncoder(
-        model_path='dummy_model_path',
-        text_encoder_cls=MockTextEncoder,
-        text_encoder_kwargs={},
-    )
+    enc = cascade_encoder.CascadeEncoder(text_encoder=MockTextEncoder())
     enc.setup()
     result = enc.encode([self.sound1])[0]
     enc.text_encoder.text_encode_fn.assert_called_once_with(  # pytype: disable=attribute-error
@@ -106,11 +102,7 @@ class CascadeEncoderTest(absltest.TestCase):
     npt.assert_equal(result.embedding, np.zeros((1, 8)))
 
   def test_text_transcript_truth_encoder_encode_batch(self):
-    enc = cascade_encoder.CascadeEncoder(
-        model_path='dummy_model_path',
-        text_encoder_cls=MockTextEncoder,
-        text_encoder_kwargs={},
-    )
+    enc = cascade_encoder.CascadeEncoder(text_encoder=MockTextEncoder())
     enc.setup()
     result1 = enc.encode([self.sound1])[0]
     self.assertIsInstance(result1, types.SoundEmbedding)
@@ -140,11 +132,10 @@ class CascadeEncoderTest(absltest.TestCase):
 
   def test_text_whisper_encoder_encode_batch(self):
     enc = cascade_encoder.CascadeEncoder(
-        model_path='dummy_model_path',
-        text_encoder_cls=MockTextEncoder,
-        text_encoder_kwargs={},
-        speech_to_text_encoder_cls=whisper_encoder.SpeechToTextEncoder,
-        speech_to_text_encoder_kwargs={'model_path': 'base'},
+        text_encoder=MockTextEncoder(),
+        speech_to_text_encoder=whisper_encoder.SpeechToTextEncoder(
+            model_path='base'
+        ),
     )
     enc.setup()
     result1 = enc.encode([self.sound1])[0]

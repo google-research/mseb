@@ -50,23 +50,19 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   def sub_tasks(self) -> list[str]:
     return ['span_reasoning_in_lang']
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         'span_reasoning_in_lang'
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
-        sound.context.text = types.Text(
-            # Add the ground truth query for headroom analysis.
-            text=example.text,
-            context=types.TextContextParams(
-                id=sound.context.id,
-                title=example.page_title,
-                context=example.passage_text,
-            ),
+        yield types.SoundWithTitleAndContext(
+            waveform=sound.waveform,
+            title_text=example.page_title,
+            context_text=example.passage_text,
+            context=sound.context,
         )
-        yield sound
 
   def examples(
       self, sub_task: str

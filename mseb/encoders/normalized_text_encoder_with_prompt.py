@@ -15,7 +15,7 @@
 """Normalized text encoders with prompt."""
 
 import re
-from typing import Callable, final, Sequence
+from typing import Callable, Sequence, final
 
 import jaxtyping
 from mseb import encoder
@@ -77,7 +77,7 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
       )
 
   def _get_normalized_text_prompt(
-      self, text: str, params: types.TextContextParams
+      self, text: str, title: str | None = None, context: str | None = None
   ) -> str:
     """Returns the prompt to be used for encoding."""
     if self.normalizer is not None:
@@ -86,20 +86,12 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
     if self.prompt_template is None:
       return text
 
-    if hasattr(params, 'title') and params.title is not None:
-      title = (
-          params.title
-          if self.normalizer is None
-          else self.normalizer(params.title)
-      )
+    if title is not None:
+      title = title if self.normalizer is None else self.normalizer(title)
     else:
       title = 'None'
-    if params.context is not None:
-      context = (
-          params.context
-          if self.normalizer is None
-          else self.normalizer(params.context)
-      )
+    if context is not None:
+      context = context if self.normalizer is None else self.normalizer(context)
     else:
       context = 'None'
     prompt = self.prompt_template.format(
@@ -109,24 +101,35 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
 
   @final
   def _encode(
-      self, text_batch: Sequence[types.Text]
+      self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.TextEmbeddings]:
     """Encodes a batch of text sources."""
-    prompt_batch = [
-        self._get_normalized_text_prompt(text.text, text.context)
-        for text in text_batch
-    ]
+    prompt_batch = []
+    for example in batch:
+      if isinstance(example, types.TextWithTitleAndContext):
+        prompt = self._get_normalized_text_prompt(
+            example.text, title=example.title_text, context=example.context_text
+        )
+      elif isinstance(example, types.Text):
+        prompt = self._get_normalized_text_prompt(example.text)
+      else:
+        raise ValueError('Unexpected text input type.')
+      prompt_batch.append(prompt)
+
     assert self.text_encode_fn is not None
     embeddings_batch = self.text_encode_fn(prompt_batch)
 
-    return [
-        types.TextEmbeddings(
-            embeddings=np.expand_dims(embeddings, axis=0),
-            spans=np.array([[0, len(text.text)]]),
-            context=text.context,
-        )
-        for embeddings, text in zip(embeddings_batch, text_batch)
-    ]
+    outputs = []
+    for embeddings, text in zip(embeddings_batch, batch):
+      assert isinstance(text, types.Text)
+      outputs.append(
+          types.TextEmbeddings(
+              embeddings=np.expand_dims(embeddings, axis=0),
+              spans=np.array([[0, len(text.text)]]),
+              context=text.context,
+          )
+      )
+    return outputs
 
 
 class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):

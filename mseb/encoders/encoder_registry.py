@@ -81,7 +81,7 @@ gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
     encoder=cascade_encoder.GeckoWhisperEncoder,
     params=lambda: dict(
-        model_path=_WHISPER_MODEL_PATH.value,
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
     ),
 )

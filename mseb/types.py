@@ -77,7 +77,7 @@ class SoundContextParams:
   speaker_id: Optional[str] = None
   speaker_age: Optional[int] = None
   speaker_gender: Optional[int] = None
-  text: Optional[str | Text] = None
+  text: Optional[str] = None
   # The starting second of the relevant waveform segment.
   # Defaults to 0, representing the beginning of the waveform array.
   waveform_start_second: float = 0.0
@@ -154,6 +154,32 @@ class TextEmbeddings:
   def size_bytes(self) -> int:
     """Returns the size of the embedding in bytes."""
     return self.embeddings.size * self.embeddings.dtype.itemsize
+
+
+@dataclasses.dataclass
+class TextWithTitleAndContext(Text):
+  """A text with title and context."""
+  title_text: str | None = None
+  context_text: str | None = None
+
+
+@dataclasses.dataclass
+class SoundWithTitleAndContext(Sound):
+  """A sound with title and context."""
+  title_text: str | None = None
+  context_text: str | None = None
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the waveform in bytes."""
+    return self.waveform.size * self.waveform.dtype.itemsize
+
+
+@dataclasses.dataclass
+class SoundEmbeddingWithTitleAndContext(SoundEmbedding):
+  """A sound embedding with title and context."""
+  title_text: str | None = None
+  context_text: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -269,4 +295,4 @@ MultiModalEmbedding = SoundEmbedding | TextEmbeddings
 MultiModalObject = Sound | Text | MultiModalEmbedding
 SoundEmbeddingCache = Mapping[str, SoundEmbedding]
 TextEmbeddingCache = Mapping[str, TextEmbeddings]
-MultiModalEmbeddingCache = SoundEmbeddingCache | TextEmbeddingCache
+MultiModalEmbeddingCache = Mapping[str, MultiModalEmbedding]

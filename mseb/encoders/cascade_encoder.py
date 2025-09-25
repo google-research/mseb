@@ -14,12 +14,12 @@
 
 """MSEB Encoder base class."""
 
-from typing import Any, Callable, final, Sequence
+from typing import Callable, final, Sequence
 
 import jaxtyping
 from mseb import encoder
 from mseb import types
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
+from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder_lib
 from mseb.encoders import whisper_encoder
 import numpy as np
 
@@ -37,33 +37,19 @@ class CascadeEncoder(encoder.MultiModalEncoder):
 
   def __init__(
       self,
-      model_path: str,
-      text_encoder_cls: type[encoder.MultiModalEncoder],
-      text_encoder_kwargs: dict[str, Any],
-      speech_to_text_encoder_cls: type[encoder.MultiModalEncoder] | None = None,
-      speech_to_text_encoder_kwargs: dict[str, Any] | None = None,
+      text_encoder: encoder.MultiModalEncoder,
+      speech_to_text_encoder: encoder.MultiModalEncoder | None = None,
   ):
     """Initializes the sound and text encoders from configurations.
 
     Args:
-      model_path: Not used.
-      text_encoder_cls: The class of the text encoder to use.
-      text_encoder_kwargs: The keyword arguments to pass to the text encoder
-        constructor.
-      speech_to_text_encoder_cls: The class of the speech-to-text encoder to
-        use. If not provided, the transcript is taken from params.text.
-      speech_to_text_encoder_kwargs: The keyword arguments to pass to the
-        speech-to-text encoder constructor.
+      text_encoder: The text encoder to use.
+      speech_to_text_encoder: The speech-to-text encoder to use. If not
+        provided, the transcript is taken from params.text.
     """
     super().__init__()
-    self.text_encoder = text_encoder_cls(**text_encoder_kwargs)
-    if speech_to_text_encoder_cls is not None:
-      speech_to_text_encoder_kwargs = speech_to_text_encoder_kwargs or {}
-      self.speech_to_text_encoder = speech_to_text_encoder_cls(
-          **speech_to_text_encoder_kwargs
-      )
-    else:
-      self.speech_to_text_encoder = None
+    self.text_encoder = text_encoder
+    self.speech_to_text_encoder = speech_to_text_encoder
 
   @final
   def _setup(self):
@@ -76,6 +62,24 @@ class CascadeEncoder(encoder.MultiModalEncoder):
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError(
           'CascadeEncoder only supports a batch of all Sound inputs.'
+      )
+
+  def _convert_sound_embedding_to_text(
+      self, sound_embedding: types.SoundEmbedding
+  ) -> types.Text:
+    """Converts a SoundEmbedding object to a TextEmbeddings object."""
+    embedding: jaxtyping.Shaped[np.ndarray, '1'] = sound_embedding.embedding
+    if isinstance(sound_embedding, types.SoundEmbeddingWithTitleAndContext):
+      return types.TextWithTitleAndContext(
+          text=str(embedding[0]),
+          title_text=sound_embedding.title_text,
+          context_text=sound_embedding.context_text,
+          context=types.TextContextParams(id=sound_embedding.context.id),
+      )
+    else:
+      return types.Text(
+          text=str(embedding[0]),
+          context=types.TextContextParams(id=sound_embedding.context.id),
       )
 
   @final
@@ -127,13 +131,7 @@ class CascadeEncoder(encoder.MultiModalEncoder):
             f'but got {type(transcripts)}.'
         )
       sound_embeddings_batch.append(transcripts)
-      embedding: jaxtyping.Shaped[np.ndarray, '1'] = transcripts.embedding
-      text = str(embedding[0])
-      if isinstance(transcripts.context.text, types.Text):
-        context = transcripts.context.text.context
-      else:
-        context = types.TextContextParams(id=transcripts.context.id)
-      text_batch.append(types.Text(text=text, context=context))
+      text_batch.append(self._convert_sound_embedding_to_text(transcripts))
     text_embeddings_batch = self.text_encoder.encode(text_batch)
 
     outputs = []
@@ -160,7 +158,6 @@ class GeckoTranscriptTruthEncoder(CascadeEncoder):
       model_path: str,
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str = 'task: search result | query: {text}',
-      **kwargs: Any,
   ):
     """Initializes the transcript truth and Gecko models.
 
@@ -173,18 +170,12 @@ class GeckoTranscriptTruthEncoder(CascadeEncoder):
       prompt_template: Format of the prompt to be used for Gecko. Typically, the
         prompt is of the form: 'task: search result | query: {text}' for queries
         and 'title: {title} | text: {text}' for documents".
-      **kwargs: Model-specific initialization arguments that will be stored in
-        `self._kwargs` for use in `setup()`.
     """
     super().__init__(
-        'not used',
-        text_encoder_cls=text_encoder.GeckoTextEncoder,
-        text_encoder_kwargs={
-            'model_path': model_path,
-            'normalizer': normalizer,
-            'prompt_template': prompt_template,
-        },
-        **kwargs,
+        text_encoder=text_encoder_lib.GeckoTextEncoder(
+            model_path=model_path,
+            normalizer=normalizer,
+            prompt_template=prompt_template),
     )
 
 
@@ -193,17 +184,16 @@ class GeckoWhisperEncoder(CascadeEncoder):
 
   def __init__(
       self,
-      model_path: str,
+      whisper_model_path: str,
       gecko_model_path: str,
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str = 'task: search result | query: {text}',
-      **kwargs: Any,
   ):
     """Initializes the Whisper and Gecko models.
 
     Args:
-      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
-        the Whisper model to be loaded in setup().
+      whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
+        pointing to the Whisper model to be loaded in setup().
       gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
         pointing to the Gecko model to be loaded in setup().
       normalizer: A function that normalizes the text before encoding. This is
@@ -212,19 +202,52 @@ class GeckoWhisperEncoder(CascadeEncoder):
       prompt_template: Format of the prompt to be used for Gecko. Typically, the
         prompt is of the form: 'task: search result | query: {text}' for queries
         and 'title: {title} | text: {text}' for documents".
-      **kwargs: Model-specific initialization arguments that will be stored in
-        `self._kwargs` for use in `setup()`.
     """
     super().__init__(
-        'not_used',
-        speech_to_text_encoder_cls=whisper_encoder.SpeechToTextEncoder,
-        speech_to_text_encoder_kwargs={
-            'model_path': model_path,
-        },
-        text_encoder_cls=text_encoder.GeckoTextEncoder,
-        text_encoder_kwargs={
-            'model_path': gecko_model_path,
-            'normalizer': normalizer,
-            'prompt_template': prompt_template,
-        },
+        speech_to_text_encoder=whisper_encoder.SpeechToTextEncoder(
+            model_path=whisper_model_path
+        ),
+        text_encoder=text_encoder_lib.GeckoTextEncoder(
+            model_path=gecko_model_path,
+            normalizer=normalizer,
+            prompt_template=prompt_template,
+        ),
+    )
+
+
+class GeckoWithTitleAndContextWhisperEncoder(CascadeEncoder):
+  """Cascaded Whisper with title and context and Gecko encoder."""
+
+  def __init__(
+      self,
+      whisper_model_path: str,
+      gecko_model_path: str,
+      normalizer: Callable[[str], str] | None = None,
+      prompt_template: str = 'task: search result | query: {text}',
+  ):
+    """Initializes the Whisper and Gecko models.
+
+    Args:
+      whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
+        pointing to the Whisper model to be loaded in setup().
+      gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
+        pointing to the Gecko model to be loaded in setup().
+      normalizer: A function that normalizes the text before encoding. This is
+        useful for removing special characters or formatting the text for better
+        encoding results.
+      prompt_template: Format of the prompt to be used for Gecko. Typically, the
+        prompt is of the form: 'task: search result | query: {text}' for queries
+        and 'title: {title} | text: {text}' for documents".
+    """
+    super().__init__(
+        speech_to_text_encoder=encoder.SpeechToTextWithTitleAndContextEncoder(
+            speech_to_text_encoder=whisper_encoder.SpeechToTextEncoder(
+                model_path=whisper_model_path
+            )
+        ),
+        text_encoder=text_encoder_lib.GeckoTextEncoder(
+            model_path=gecko_model_path,
+            normalizer=normalizer,
+            prompt_template=prompt_template,
+        ),
     )
