@@ -29,6 +29,7 @@ from mseb import encoder as encoder_lib
 from mseb.encoders import cascade_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
+from mseb.encoders import wav2vec_encoder
 from mseb.encoders import whisper_encoder
 
 _GECKO_MODEL_PATH = flags.DEFINE_string(
@@ -64,25 +65,19 @@ class EncoderMetadata:
 gecko_text = EncoderMetadata(
     name="gecko_text",
     encoder=text_encoder.GeckoTextEncoder,
-    params=lambda: dict(
-        model_path=_GECKO_MODEL_PATH.value
-    ),
+    params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
 )
 
 gecko_transcript_truth = EncoderMetadata(
     name="gecko_transcript_truth",
     encoder=cascade_encoder.GeckoTranscriptTruthEncoder,
-    params=lambda: dict(
-        model_path=_GECKO_MODEL_PATH.value
-    ),
+    params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
 )
 
 gecko_transcript_truth_or_gecko = EncoderMetadata(
     name="gecko_transcript_truth_or_gecko",
     encoder=cascade_encoder.GeckoTranscriptTruthOrGeckoEncoder,
-    params=lambda: dict(
-        gecko_model_path=_GECKO_MODEL_PATH.value
-    ),
+    params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
 )
 
 gecko_whisper = EncoderMetadata(
@@ -147,7 +142,7 @@ whisper_base_pooled_last = EncoderMetadata(
 whisper_base_pooled_mean = EncoderMetadata(
     name="whisper_base_pooled_mean",
     encoder=whisper_encoder.PooledAudioEncoder,
-    params=lambda: dict(model_path="base", pooling="mean"),
+    params=lambda: dict(model_path=_WHISPER_MODEL_PATH.value, pooling="mean"),
 )
 
 whisper_base_pooled_max = EncoderMetadata(
