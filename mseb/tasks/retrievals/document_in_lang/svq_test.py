@@ -50,7 +50,7 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
 
   def test_svq_document_in_lang_retrieval_documents(self):
     with tfds.testing.mock_data(num_examples=1):
-      task = svq.SVQEnUsDocumentInLangRetrievalGecko()
+      task = svq.SVQEnUsDocumentInLangRetrieval()
       self.assertEqual(task.sub_tasks, ["document_retrieval_in_lang"])
       for document in task.documents():
         self.assertEqual(document.context.id, "chg dif hhia i e ce")
@@ -58,7 +58,7 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
         self.assertEqual(document.text, "gebc   ahgjefjhfef")
 
   def test_svq_en_us_document_in_lang_retrieval_sounds(self):
-    task = svq.SVQEnUsDocumentInLangRetrievalGecko()
+    task = svq.SVQEnUsDocumentInLangRetrieval()
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -73,7 +73,7 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_en_us_document_in_lang_retrieval_examples(self):
-    task = svq.SVQEnUsDocumentInLangRetrievalGecko()
+    task = svq.SVQEnUsDocumentInLangRetrieval()
     examples = list(task.examples("document_retrieval_in_lang"))
     self.assertLen(examples, 2)
     example = examples[0]

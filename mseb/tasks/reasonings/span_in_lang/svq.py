@@ -26,24 +26,14 @@ from mseb.tasks import reasoning
 class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   """SVQ span in-lang reasoning task."""
 
-  def __init__(
-      self,
-      locale: str,
-      text_encoder_name: str | None = None,
-      no_answer_threshold: float = 0.5,
-  ):
-    super().__init__(
-        text_encoder_name=text_encoder_name,
-        no_answer_threshold=no_answer_threshold,
-    )
+  def __init__(self, locale: str, no_answer_threshold: float = 0.5):
+    super().__init__(no_answer_threshold=no_answer_threshold)
     self.locale = locale
 
   @property
   def embeddings_dir(self) -> str:
     return os.path.join(
-        super().embeddings_dir,
-        f'svq_{self.locale}_span_reasoning_in_lang',
-        self.text_encoder_name,
+        super().embeddings_dir, f'svq_{self.locale}_span_reasoning_in_lang'
     )
 
   @property
@@ -91,11 +81,11 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
         ]
 
 
-class SVQEnUsSpanInLangReasoningGecko(SVQSpanInLangReasoning):
-  """SVQ span in-lang reasoning for en-US using Gecko."""
+class SVQEnUsSpanInLangReasoning(SVQSpanInLangReasoning):
+  """SVQ span in-lang reasoning for en-US."""
 
   metadata = types.TaskMetadata(
-      name='SVQEnUsSpanInLangReasoningGecko',
+      name='SVQEnUsSpanInLangReasoning',
       description='Span in-lang reasoning task.',
       reference='TODO',
       type='SpanInLangReasoning',
@@ -114,8 +104,4 @@ class SVQEnUsSpanInLangReasoningGecko(SVQSpanInLangReasoning):
   )
 
   def __init__(self):
-    super().__init__(
-        locale='en_us', text_encoder_name='gecko_text', no_answer_threshold=0.5
-    )
-
-
+    super().__init__(locale='en_us', no_answer_threshold=0.5)

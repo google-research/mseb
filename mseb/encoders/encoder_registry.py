@@ -77,6 +77,14 @@ gecko_transcript_truth = EncoderMetadata(
     ),
 )
 
+gecko_transcript_truth_or_gecko = EncoderMetadata(
+    name="gecko_transcript_truth_or_gecko",
+    encoder=cascade_encoder.GeckoTranscriptTruthOrGeckoEncoder,
+    params=lambda: dict(
+        gecko_model_path=_GECKO_MODEL_PATH.value
+    ),
+)
+
 gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
     encoder=cascade_encoder.GeckoWhisperEncoder,
@@ -86,11 +94,31 @@ gecko_whisper = EncoderMetadata(
     ),
 )
 
-# For testing only.
-mock_text = EncoderMetadata(
-    name="mock_text",
-    encoder=text_encoder.MockTextEncoder,
-    params=dict,
+gecko_whisper_or_gecko = EncoderMetadata(
+    name="gecko_whisper_or_gecko",
+    encoder=cascade_encoder.GeckoWhisperOrGeckoEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gecko_model_path=_GECKO_MODEL_PATH.value,
+    ),
+)
+
+gecko_with_title_and_context_whisper = EncoderMetadata(
+    name="gecko_with_title_and_context_whisper",
+    encoder=cascade_encoder.GeckoWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gecko_model_path=_GECKO_MODEL_PATH.value,
+    ),
+)
+
+gecko_with_title_and_context_whisper_or_gecko = EncoderMetadata(
+    name="gecko_with_title_and_context_whisper_or_gecko",
+    encoder=cascade_encoder.GeckoWithTitleAndContextWhisperOrGeckoEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gecko_model_path=_GECKO_MODEL_PATH.value,
+    ),
 )
 
 raw_encoder_25ms_10ms = EncoderMetadata(

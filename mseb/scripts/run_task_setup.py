@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run task setup.
+r"""Run task setup.
 
 This script is used to setup a task, such as creating embeddings cache or the
 index for retrieval tasks.
 
 Usage:
-run_task_setup --task SVQEnUsPassageInLangRetrievalGecko
+run_task_setup --encoder gecko_whisper_or_gecko \
+    --task SVQEnUsPassageInLangRetrieval \
+    --batch_size 2 \
+    --cache_basepath /tmp/mseb_cache/gecko_whisper_or_gecko
 """
 
 from typing import Type
@@ -27,9 +30,17 @@ from absl import flags
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
+from mseb.encoders import encoder_registry
 
 FLAGS = flags.FLAGS
 
+
+_ENCODER = flags.DEFINE_string(
+    'encoder',
+    None,
+    'Name of the encoder.',
+    required=True,
+)
 
 _TASK = flags.DEFINE_string(
     'task',
@@ -54,13 +65,17 @@ _NUM_THREADS = flags.DEFINE_integer(
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
+  encoder_name = _ENCODER.value
+  encoder = encoder_registry.get_encoder_metadata(encoder_name).load()
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
   task = task_cls()
-  task.setup(
-      runner_lib.DirectRunner,
+  runner = runner_lib.DirectRunner(
+      encoder=encoder,
       batch_size=_BATCH_SIZE.value,
       num_workers=_NUM_THREADS.value,
+      output_path=task_lib.CACHE_BASEPATH.value,
   )
+  task.setup(runner=runner)
 
 
 if __name__ == '__main__':

@@ -17,12 +17,11 @@
 import abc
 import logging
 import os
-from typing import Any, Iterable, Sequence, Type
+from typing import Iterable, Sequence
 
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
-from mseb.encoders import encoder_registry
 from mseb.evaluators import reranking_evaluator
 
 
@@ -32,12 +31,8 @@ logger = logging.getLogger(__name__)
 class RerankingTask(task.MSEBTask):
   """Reranking task."""
 
-  def __init__(
-      self,
-      text_encoder_name: str | None = None,
-  ):
+  def __init__(self):
     super().__init__()
-    self.text_encoder_name = text_encoder_name
     self._evaluator = None
 
   @property
@@ -45,18 +40,13 @@ class RerankingTask(task.MSEBTask):
     """The directory where the candidate embeddings cache is stored."""
     return os.path.join(task.CACHE_BASEPATH.value, 'rerankings')
 
-  def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
+  def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the candidate embeddings cache."""
-    if runner_cls is not None:
-      if self.text_encoder_name is None:
-        raise ValueError('Text encoder name is not set.')
-      text_encoder = encoder_registry.get_encoder_metadata(
-          self.text_encoder_name
-      ).load()
-      kwargs: dict[str, Any] = {'output_path': self.embeddings_dir, **kwargs}
-      runner = runner_cls(encoder=text_encoder, **kwargs)
+    if runner is not None:
+      assert hasattr(
+          runner, '_output_path'
+      ), 'Runner must have an _output_path attribute.'
+      runner._output_path = self.embeddings_dir  # pylint: disable=protected-access
       unique_candidates = {}
       for candidate_list in self.candidate_lists():
         for candidate in candidate_list:

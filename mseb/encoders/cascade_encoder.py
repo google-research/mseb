@@ -14,6 +14,7 @@
 
 """MSEB Encoder base class."""
 
+import re
 from typing import Callable, final, Sequence
 
 import jaxtyping
@@ -179,6 +180,33 @@ class GeckoTranscriptTruthEncoder(CascadeEncoder):
     )
 
 
+class GeckoTranscriptTruthOrGeckoEncoder(encoder.SoundOrTextEncoder):
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+
+  def __init__(
+      self,
+      gecko_model_path: str,
+      query_normalizer: Callable[[str], str] | None = None,
+      query_prompt_template: str = 'task: search result | query: {text}',
+      document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+          r'\[\d+\]', '', x.lower()
+      ),
+      document_prompt_template: str | None = 'title: {title} | text: {text}',
+  ):
+    super().__init__(
+        sound_encoder=GeckoTranscriptTruthEncoder(
+            model_path=gecko_model_path,
+            normalizer=query_normalizer,
+            prompt_template=query_prompt_template,
+        ),
+        text_encoder=text_encoder_lib.GeckoTextEncoder(
+            model_path=gecko_model_path,
+            normalizer=document_normalizer,
+            prompt_template=document_prompt_template,
+        ),
+    )
+
+
 class GeckoWhisperEncoder(CascadeEncoder):
   """Cascaded Whisper and Gecko encoder."""
 
@@ -211,6 +239,35 @@ class GeckoWhisperEncoder(CascadeEncoder):
             model_path=gecko_model_path,
             normalizer=normalizer,
             prompt_template=prompt_template,
+        ),
+    )
+
+
+class GeckoWhisperOrGeckoEncoder(encoder.SoundOrTextEncoder):
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+
+  def __init__(
+      self,
+      whisper_model_path: str,
+      gecko_model_path: str,
+      query_normalizer: Callable[[str], str] | None = None,
+      query_prompt_template: str = 'task: search result | query: {text}',
+      document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+          r'\[\d+\]', '', x.lower()
+      ),
+      document_prompt_template: str | None = 'title: {title} | text: {text}',
+  ):
+    super().__init__(
+        sound_encoder=GeckoWhisperEncoder(
+            whisper_model_path=whisper_model_path,
+            gecko_model_path=gecko_model_path,
+            normalizer=query_normalizer,
+            prompt_template=query_prompt_template,
+        ),
+        text_encoder=text_encoder_lib.GeckoTextEncoder(
+            model_path=gecko_model_path,
+            normalizer=document_normalizer,
+            prompt_template=document_prompt_template,
         ),
     )
 
@@ -249,5 +306,34 @@ class GeckoWithTitleAndContextWhisperEncoder(CascadeEncoder):
             model_path=gecko_model_path,
             normalizer=normalizer,
             prompt_template=prompt_template,
+        ),
+    )
+
+
+class GeckoWithTitleAndContextWhisperOrGeckoEncoder(encoder.SoundOrTextEncoder):
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+
+  def __init__(
+      self,
+      whisper_model_path: str,
+      gecko_model_path: str,
+      query_normalizer: Callable[[str], str] | None = None,
+      query_prompt_template: str = 'task: search result | query: {text}',
+      document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+          r'\[\d+\]', '', x.lower()
+      ),
+      document_prompt_template: str | None = 'title: {title} | text: {text}',
+  ):
+    super().__init__(
+        sound_encoder=GeckoWithTitleAndContextWhisperEncoder(
+            whisper_model_path=whisper_model_path,
+            gecko_model_path=gecko_model_path,
+            normalizer=query_normalizer,
+            prompt_template=query_prompt_template,
+        ),
+        text_encoder=text_encoder_lib.GeckoTextEncoder(
+            model_path=gecko_model_path,
+            normalizer=document_normalizer,
+            prompt_template=document_prompt_template,
         ),
     )

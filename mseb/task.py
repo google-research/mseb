@@ -40,7 +40,7 @@ class MSEBTask(abc.ABC):
   metadata: types.TaskMetadata = None
 
   def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+      self, runner: runner_lib.EncoderRunner | None = None
   ):
     """Called once to set up the task.
 
@@ -49,9 +49,8 @@ class MSEBTask(abc.ABC):
     creating directories, or setting up connections to external services.
 
     Args:
-      runner_cls: An optional EncoderRunner class that can be used to
-        get embeddings for setting up the task.
-      **kwargs: Additional arguments to pass to the runner.
+      runner: An optional EncoderRunner class that can be used to get embeddings
+        for setting up the task.
     """
     pass
 

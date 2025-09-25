@@ -27,30 +27,20 @@ import tensorflow_datasets as tfds
 class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   """SVQ document in-lang retrieval."""
 
-  def __init__(
-      self,
-      locale: str,
-      text_encoder_name: str | None = None,
-      num_partitions: int = 1,
-  ):
+  def __init__(self, locale: str, num_partitions: int = 1):
     """Initializes the SVQ document in-lang retrieval task.
 
     Args:
       locale: The locale of the task.
-      text_encoder_name: The name of the text encoder to build the index.
       num_partitions: The number of index partitions to use.
     """
-    super().__init__(
-        text_encoder_name=text_encoder_name, num_partitions=num_partitions
-    )
+    super().__init__(num_partitions=num_partitions)
     self.locale = locale
 
   @property
   def index_dir(self) -> str:
     return os.path.join(
-        super().index_dir,
-        f'svq_{self.language}_document_retrieval_in_lang',
-        self.text_encoder_name,
+        super().index_dir, f'svq_{self.language}_document_retrieval_in_lang'
     )
 
   @property
@@ -95,11 +85,11 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
       )
 
 
-class SVQEnUsDocumentInLangRetrievalGecko(SVQDocumentInLangRetrieval):
-  """SVQ document in-lang retrieval for en-US using Gecko."""
+class SVQEnUsDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
+  """SVQ document in-lang retrieval for en-US."""
 
   metadata = types.TaskMetadata(
-      name='SVQEnUsDocumentInLangRetrievalGecko',
+      name='SVQEnUsDocumentInLangRetrieval',
       description='Document in-lang retrieval task.',
       reference='TODO',
       type='DocumentInLangRetrieval',
@@ -118,6 +108,4 @@ class SVQEnUsDocumentInLangRetrievalGecko(SVQDocumentInLangRetrieval):
   )
 
   def __init__(self):
-    super().__init__(locale='en_us', text_encoder_name='gecko_text')
-
-
+    super().__init__(locale='en_us')

@@ -19,6 +19,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
+from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.evaluators import reasoning_evaluator
 from mseb.tasks import reasoning
 import numpy as np
@@ -168,8 +169,10 @@ class ReasoningTest(absltest.TestCase):
       def sub_tasks(self) -> list[str]:
         return ['not_used']
 
-    task = MockReasoningTask(text_encoder_name='mock_text')
-    task.setup(runner_cls=runner_lib.DirectRunner)
+    task = MockReasoningTask()
+    task.setup(
+        runner=runner_lib.DirectRunner(encoder=text_encoder.MockTextEncoder())
+    )
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.span_embeddings_by_text)
     self.assertLen(task._evaluator.span_embeddings_by_text, 3)

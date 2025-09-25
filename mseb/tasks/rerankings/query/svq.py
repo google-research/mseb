@@ -26,20 +26,14 @@ from mseb.tasks import reranking
 class SVQQueryReranking(reranking.RerankingTask):
   """SVQ query reranking."""
 
-  def __init__(
-      self,
-      locale: str,
-      text_encoder_name: str | None = None,
-  ):
-    super().__init__(text_encoder_name=text_encoder_name)
+  def __init__(self, locale: str):
+    super().__init__()
     self.locale = locale
 
   @property
   def embeddings_dir(self) -> str:
     return os.path.join(
-        super().embeddings_dir,
-        f'svq_{self.locale}_query_reranking',
-        self.text_encoder_name,
+        super().embeddings_dir, f'svq_{self.locale}_query_reranking'
     )
 
   @property
@@ -80,11 +74,11 @@ class SVQQueryReranking(reranking.RerankingTask):
         ]
 
 
-class SVQEnUsQueryRerankingGecko(SVQQueryReranking):
-  """SVQ query reranking for en-US using Gecko."""
+class SVQEnUsQueryReranking(SVQQueryReranking):
+  """SVQ query reranking for en-US."""
 
   metadata = types.TaskMetadata(
-      name='SVQEnUsQueryRerankingGecko',
+      name='SVQEnUsQueryReranking',
       description='Query reranking task.',
       reference='TODO',
       type='QueryReranking',
@@ -107,6 +101,4 @@ class SVQEnUsQueryRerankingGecko(SVQQueryReranking):
   )
 
   def __init__(self):
-    super().__init__(locale='en_us', text_encoder_name='gecko_text')
-
-
+    super().__init__(locale='en_us')

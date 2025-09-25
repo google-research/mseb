@@ -48,7 +48,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
     )
 
   def test_svq_passage_in_lang_retrieval_documents(self):
-    task = svq.SVQEnUsPassageInLangRetrievalGecko()
+    task = svq.SVQEnUsPassageInLangRetrieval()
     self.assertEqual(task.sub_tasks, ["passage_retrieval_in_lang"])
     documents = list(task.documents())
     self.assertLen(documents, 3)
@@ -58,7 +58,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
     self.assertTrue(document.text.startswith("Albert was about one year"))
 
   def test_svq_en_us_passage_in_lang_retrieval_sounds(self):
-    task = svq.SVQEnUsPassageInLangRetrievalGecko()
+    task = svq.SVQEnUsPassageInLangRetrieval()
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -73,7 +73,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_en_us_passage_in_lang_retrieval_examples(self):
-    task = svq.SVQEnUsPassageInLangRetrievalGecko()
+    task = svq.SVQEnUsPassageInLangRetrieval()
     examples = list(task.examples("passage_retrieval_in_lang"))
     self.assertLen(examples, 2)
     example = examples[0]

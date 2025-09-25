@@ -48,7 +48,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     )
 
   def test_svq_span_in_lang_reasoning_span_lists(self):
-    task = svq.SVQEnUsSpanInLangReasoningGecko()
+    task = svq.SVQEnUsSpanInLangReasoning()
     self.assertEqual(task.sub_tasks, ["span_reasoning_in_lang"])
     span_lists = list(task.span_lists())
     self.assertLen(span_lists, 2)
@@ -71,7 +71,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     )
 
   def test_svq_span_in_lang_reasoning_sounds(self):
-    task = svq.SVQEnUsSpanInLangReasoningGecko()
+    task = svq.SVQEnUsSpanInLangReasoning()
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -86,7 +86,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_span_in_lang_reasoning_examples(self):
-    task = svq.SVQEnUsSpanInLangReasoningGecko()
+    task = svq.SVQEnUsSpanInLangReasoning()
     examples = list(task.examples("span_reasoning_in_lang"))
     self.assertLen(examples, 2)
     example = examples[0]

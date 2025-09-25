@@ -18,12 +18,11 @@ import abc
 import itertools
 import logging
 import os
-from typing import Any, Iterable, Type
+from typing import Iterable
 
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
-from mseb.encoders import encoder_registry
 from mseb.evaluators import retrieval_evaluator
 
 
@@ -35,19 +34,16 @@ class RetrievalTask(task.MSEBTask):
 
   def __init__(
       self,
-      text_encoder_name: str | None = None,
       id_by_index_id_filepath: str = 'ids.txt',
       num_partitions: int = 1,
   ):
     """Initializes the retrieval task.
 
     Args:
-      text_encoder_name: The name of the text encoder to build the index.
       id_by_index_id_filepath: The filepath to save the id by index id mapping.
       num_partitions: The number of index partitions to use.
     """
     super().__init__()
-    self.text_encoder_name = text_encoder_name
     self.id_by_index_id_filepath = id_by_index_id_filepath
     self.num_partitions = num_partitions
     self._evaluator = None
@@ -57,29 +53,22 @@ class RetrievalTask(task.MSEBTask):
     """The directory where the index is stored."""
     return os.path.join(task.CACHE_BASEPATH.value, 'retrievals')
 
-  def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
+  def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the index."""
     if self.num_partitions > 1:
-      self.setup_partitioned(runner_cls, **kwargs)
+      self.setup_partitioned(runner)
     else:
-      self.setup_unpartitioned(runner_cls, **kwargs)
+      self.setup_unpartitioned(runner)
 
-  def setup_unpartitioned(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
+  def setup_unpartitioned(self, runner: runner_lib.EncoderRunner | None = None):
     assert self.num_partitions == 1, (
         'setup_unpartitioned requires num_partitions == 1.'
     )
-    if runner_cls is not None:
-      if self.text_encoder_name is None:
-        raise ValueError('Text encoder name is not set.')
-      text_encoder = encoder_registry.get_encoder_metadata(
-          self.text_encoder_name
-      ).load()
-      kwargs: dict[str, Any] = {'output_path': self.index_dir, **kwargs}
-      runner = runner_cls(encoder=text_encoder, **kwargs)
+    if runner is not None:
+      assert hasattr(
+          runner, '_output_path'
+      ), 'Runner must have an _output_path attribute.'
+      runner._output_path = self.index_dir  # pylint: disable=protected-access
       embeddings = runner.run(self.documents())
       searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
       retrieval_evaluator.save_index(
@@ -103,25 +92,16 @@ class RetrievalTask(task.MSEBTask):
         searcher=searcher, id_by_index_id=id_by_index_id
     )
 
-  def setup_partitioned(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
-    if runner_cls is not None:
-      if self.text_encoder_name is None:
-        raise ValueError('Text encoder name is not set.')
-      text_encoder = encoder_registry.get_encoder_metadata(
-          self.text_encoder_name
-      ).load()
+  def setup_partitioned(self, runner: runner_lib.EncoderRunner | None = None):
+    if runner is not None:
       for partition_id in range(self.num_partitions):
         logger.info(
             'Setting up partition %d/%d', partition_id, self.num_partitions
         )
-        index_dir = kwargs.pop('output_path', self.index_dir)
-        kwargs: dict[str, Any] = {
-            'output_path': os.path.join(index_dir, str(partition_id)),
-            **kwargs,
-        }
-        runner = runner_cls(encoder=text_encoder, **kwargs)
+        assert hasattr(
+            runner, '_output_path'
+        ), 'Runner must have an _output_path attribute.'
+        runner._output_path = os.path.join(self.index_dir, str(partition_id))  # pylint: disable=protected-access
         embeddings = runner.run(
             itertools.islice(
                 self.documents(), partition_id, None, self.num_partitions

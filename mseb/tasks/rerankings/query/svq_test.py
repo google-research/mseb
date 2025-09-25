@@ -48,7 +48,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     )
 
   def test_svq_query_reranking_candidate_lists(self):
-    task = svq.SVQEnUsQueryRerankingGecko()
+    task = svq.SVQEnUsQueryReranking()
     self.assertEqual(task.sub_tasks, ["query_reranking"])
     candidate_lists = list(task.candidate_lists())
     self.assertLen(candidate_lists, 2)
@@ -71,7 +71,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     )
 
   def test_svq_query_reranking_sounds(self):
-    task = svq.SVQEnUsQueryRerankingGecko()
+    task = svq.SVQEnUsQueryReranking()
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
@@ -86,7 +86,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertEqual(sound.context.language, "en_us")
 
   def test_svq_query_reranking_examples(self):
-    task = svq.SVQEnUsQueryRerankingGecko()
+    task = svq.SVQEnUsQueryReranking()
     examples = list(task.examples("query_reranking"))
     self.assertLen(examples, 2)
     example = examples[0]

@@ -20,6 +20,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
+from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 import numpy as np
@@ -146,8 +147,10 @@ class RetrievalTest(absltest.TestCase):
             (retrieval.task.CACHE_BASEPATH, self.create_tempdir().full_path)
         )
     )
-    task = MockRetrievalTask(text_encoder_name='mock_text')
-    task.setup(runner_cls=runner_lib.DirectRunner)
+    task = MockRetrievalTask()
+    task.setup(
+        runner=runner_lib.DirectRunner(encoder=text_encoder.MockTextEncoder())
+    )
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.searcher)
     self.assertLen(task._evaluator.id_by_index_id, 16)

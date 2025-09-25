@@ -26,21 +26,13 @@ from mseb.tasks import retrieval
 class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   """SVQ passage in-lang retrieval."""
 
-  def __init__(
-      self,
-      locale: str,
-      text_encoder_name: str | None = None,
-  ):
-    super().__init__(text_encoder_name=text_encoder_name)
+  def __init__(self, locale: str):
+    super().__init__()
     self.locale = locale
 
   @property
   def index_dir(self) -> str:
-    return os.path.join(
-        super().index_dir,
-        'svq_passage_retrieval_in_lang',
-        self.text_encoder_name,
-    )
+    return os.path.join(super().index_dir, 'svq_passage_retrieval_in_lang')
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -81,11 +73,11 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
         )
 
 
-class SVQEnUsPassageInLangRetrievalGecko(SVQPassageInLangRetrieval):
-  """SVQ passage in-lang retrieval for en-US using Gecko."""
+class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
+  """SVQ passage in-lang retrieval for en-US."""
 
   metadata = types.TaskMetadata(
-      name='SVQEnUsPassageInLangRetrievalGecko',
+      name='SVQEnUsPassageInLangRetrieval',
       description='Passage in-lang retrieval task.',
       reference='TODO',
       type='PassageInLangRetrieval',
@@ -104,6 +96,4 @@ class SVQEnUsPassageInLangRetrievalGecko(SVQPassageInLangRetrieval):
   )
 
   def __init__(self):
-    super().__init__(locale='en_us', text_encoder_name='gecko_text')
-
-
+    super().__init__(locale='en_us')

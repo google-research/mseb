@@ -17,12 +17,11 @@
 import abc
 import logging
 import os
-from typing import Any, Iterable, Sequence, Type
+from typing import Iterable, Sequence
 
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
-from mseb.encoders import encoder_registry
 from mseb.evaluators import reasoning_evaluator
 
 
@@ -32,13 +31,8 @@ logger = logging.getLogger(__name__)
 class ReasoningTask(task.MSEBTask):
   """Reasoning task."""
 
-  def __init__(
-      self,
-      text_encoder_name: str | None = None,
-      no_answer_threshold: float = 0.5,
-  ):
+  def __init__(self, no_answer_threshold: float = 0.5):
     super().__init__()
-    self.text_encoder_name = text_encoder_name
     self.no_answer_threshold = no_answer_threshold
     self._evaluator = None
 
@@ -48,17 +42,14 @@ class ReasoningTask(task.MSEBTask):
     return os.path.join(task.CACHE_BASEPATH.value, 'reasonings')
 
   def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
+      self, runner: runner_lib.EncoderRunner | None = None
   ):
     """Create the span embeddings cache."""
-    if runner_cls is not None:
-      if self.text_encoder_name is None:
-        raise ValueError('Text encoder name is not set.')
-      text_encoder = encoder_registry.get_encoder_metadata(
-          self.text_encoder_name
-      ).load()
-      kwargs: dict[str, Any] = {'output_path': self.embeddings_dir, **kwargs}
-      runner = runner_cls(encoder=text_encoder, **kwargs)
+    if runner is not None:
+      assert hasattr(
+          runner, '_output_path'
+      ), 'Runner must have an _output_path attribute.'
+      runner._output_path = self.embeddings_dir  # pylint: disable=protected-access
       unique_spans = {}
       for span_list in self.span_lists():
         for span in span_list:
