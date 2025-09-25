@@ -19,9 +19,13 @@ import sys
 from unittest import mock
 
 from absl.testing import absltest
+import apache_beam as beam
+from apache_beam.testing import test_pipeline
+from apache_beam.testing import util as beam_testing_util
 from mseb.datasets import simple_voice_questions as svq
 import numpy as np
 import pandas as pd
+
 
 # Mock the array_record dependency
 sys.modules["array_record"] = mock.MagicMock()
@@ -63,44 +67,44 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
                 "\ub204\uad6c\uc778\uac00\uc694?"
             ),
             "index": "audio/1:2",
-        }
+        },
     ]
     pd.DataFrame(utt_index_data).to_json(
         os.path.join(self.testdata_dir.full_path, "utt_index.jsonl"),
-        orient="records", lines=True
+        orient="records",
+        lines=True,
     )
 
-    task_data = [
-        {
-            "text": (
-                "  \u0662\u0660\u0661\u0668 \u0645\u06cc\u06ba \u0628\u0646"
-                "\u06af\u0644\u0627\u062f\u06cc\u0634 \u06a9\u0648\u0679"
-                "\u06c1  \u0627\u0635\u0644\u0627\u062d\u0627\u062a \u0645"
-                "\u06cc\u06ba \u06a9\u062a\u0646\u06d2 \u0644\u0648\u06af "
-                "\u0632\u062e\u0645\u06cc \u06c1\u0648\u0626\u06d2?"
-            ),
-            "speaker_id": "speaker_8669843530557324340",
-            "speaker_gender": "female",
-            "speaker_age": 21,
-            "environment": "background_speech",
-            "locale": "ur_in",
-            "passage_id": "-7615928064691233550",
-            "utt_id": "utt_7260261290471960889",
-            "page_title": "2018 Bangladesh quota reform movement",
-            "passage_text": (
-                "On 8 April 2018, hundreds of students began protests..."
-            ),
-            "span": "More than 160",
-            "page_id": "2018 Bangladesh quota reform movement",
-            "task": "qa_cross_lang"
-        }
-    ]
+    task_data = [{
+        "text": (
+            "  \u0662\u0660\u0661\u0668 \u0645\u06cc\u06ba \u0628\u0646"
+            "\u06af\u0644\u0627\u062f\u06cc\u0634 \u06a9\u0648\u0679"
+            "\u06c1  \u0627\u0635\u0644\u0627\u062d\u0627\u062a \u0645"
+            "\u06cc\u06ba \u06a9\u062a\u0646\u06d2 \u0644\u0648\u06af "
+            "\u0632\u062e\u0645\u06cc \u06c1\u0648\u0626\u06d2?"
+        ),
+        "speaker_id": "speaker_8669843530557324340",
+        "speaker_gender": "female",
+        "speaker_age": 21,
+        "environment": "background_speech",
+        "locale": "ur_in",
+        "passage_id": "-7615928064691233550",
+        "utt_id": "utt_7260261290471960889",
+        "page_title": "2018 Bangladesh quota reform movement",
+        "passage_text": (
+            "On 8 April 2018, hundreds of students began protests..."
+        ),
+        "span": "More than 160",
+        "page_id": "2018 Bangladesh quota reform movement",
+        "task": "qa_cross_lang",
+    }]
     pd.DataFrame(task_data).to_json(
         os.path.join(
-            self.testdata_dir.full_path,
-            "span_retrieval_cross_lang.jsonl"
+            self.testdata_dir.full_path, "span_retrieval_cross_lang.jsonl"
         ),
-        orient="records", lines=True, force_ascii=False
+        orient="records",
+        lines=True,
+        force_ascii=False,
     )
 
     audio_dir = os.path.join(self.testdata_dir.full_path, "audio")
@@ -115,10 +119,7 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
       "mseb.datasets.simple_voice_questions.array_record.ArrayRecordReader"
   )
   def test_corpus_and_task_loading(
-      self,
-      mock_array_record_reader,
-      mock_read_wav,
-      _
+      self, mock_array_record_reader, mock_read_wav, _
   ):
     mock_reader_instance = mock.MagicMock()
     mock_reader_instance.read.return_value = [b"dummy_wav_bytes"]
@@ -179,10 +180,53 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
 
     example = examples[2]
     self.assertEqual(example.id, "english-1064747448949054415-7")
-    self.assertEqual(
-        example.title, "Little Albert experiment"
-    )
+    self.assertEqual(example.title, "Little Albert experiment")
     self.assertTrue(example.context.startswith("Albert was about one year old"))
+
+
+class SimpleVoiceQuestionsBeamTest(absltest.TestCase):
+
+  def test_get_task_data_beam(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+    with test_pipeline.TestPipeline() as p:
+      examples = p | dataset.get_task_data_beam("test_task")
+      expected_output = [{
+          "text": "When did the Ottoman empire conquer Italy?",
+          "utt_id": "utt_14868079180393484423",
+          "waveform": (88320,),
+      }]
+      beam_testing_util.assert_that(
+          examples
+          | beam.Map(
+              lambda x: {
+                  "text": x["text"],
+                  "utt_id": x["utt_id"],
+                  "waveform": x["sound"].waveform.shape,
+              }
+          ),
+          beam_testing_util.equal_to(expected_output),
+      )
+
+  def test_get_task_sounds_beam(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+    with test_pipeline.TestPipeline() as p:
+      examples = p | dataset.get_task_sounds_beam("test_task")
+      expected_output = [{
+          "waveform": (88320,),
+      }]
+      beam_testing_util.assert_that(
+          examples
+          | beam.Map(
+              lambda x: {"waveform": x.waveform.shape},
+          ),
+          beam_testing_util.equal_to(expected_output),
+      )
 
 
 if __name__ == "__main__":

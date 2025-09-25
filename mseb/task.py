@@ -19,6 +19,7 @@ import logging
 from typing import Iterable, Type
 
 from absl import flags
+import apache_beam as beam
 from mseb import runner as runner_lib
 from mseb import types
 
@@ -63,6 +64,10 @@ class MSEBTask(abc.ABC):
   @abc.abstractmethod
   def sounds(self) -> Iterable[types.Sound]:
     """Iterate all of the sounds in the corpus for this task."""
+
+  def sounds_beam(self) -> beam.PCollection[types.Sound]:
+    """Beam transform to iterate all of the sounds in the corpus for this task."""
+    return beam.Create(list(self.sounds()))
 
 
 def get_name_to_task() -> dict[str, Type[MSEBTask]]:

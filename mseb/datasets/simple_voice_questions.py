@@ -15,10 +15,12 @@
 """Simple Voice Questions (SVQ) dataset."""
 
 import io
+import json
 import os
 from typing import Any, Optional
 
 from absl import flags
+import apache_beam as beam
 from array_record.python import array_record_module as array_record
 import librosa
 from mseb import types
@@ -99,6 +101,72 @@ class _UttLookup:
       self.readers[path] = array_record.ArrayRecordReader(array_record_path)
 
     return self.readers[path].read([idx])[0]
+
+
+class _LoadAudioFn(beam.DoFn):
+  """Loads audio for a single utterance."""
+
+  def __init__(
+      self, base_path: str, index_df: pd.DataFrame, target_sr: int | None
+  ):
+    self._base_path = base_path
+    self._index_df = index_df
+    self._target_sr = target_sr
+    self._utt_lookup: _UttLookup | None = None
+
+  def setup(self):
+    self._utt_lookup = _UttLookup(self._base_path, self._index_df)
+
+  def process(self, record: dict[str, Any]):
+    wav_bytes = self._utt_lookup(record["utt_id"])
+    waveform, sr = _read_wav_bytes(wav_bytes, self._target_sr)
+
+    speaker_age_val = record.get("speaker_age")
+    context = types.SoundContextParams(
+        id=record["utt_id"],
+        sample_rate=sr,
+        length=len(waveform),
+        language=record.get("locale"),
+        speaker_id=str(record.get("speaker_id")),
+        speaker_age=int(speaker_age_val) if pd.notna(speaker_age_val) else None,
+        speaker_gender=record.get("gender"),
+        text=record.get("text"),
+        waveform_start_second=0.0,
+        waveform_end_second=len(waveform) / sr if sr > 0 else 0.0,
+    )
+    sound = types.Sound(waveform=waveform, context=context)
+    yield record | {"sound": sound}
+
+
+class ReadTaskData(beam.PTransform):
+  """A PTransform that reads task data and loads audio."""
+
+  def __init__(
+      self,
+      base_path: str,
+      index: pd.DataFrame,
+      target_sr: int | None,
+      task_path: str,
+  ):
+    self._base_path = base_path
+    self._index = index
+    self._target_sr = target_sr
+    self._task_path = task_path
+
+  def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
+    return (
+        pcoll
+        | "ReadTaskJson" >> beam.io.ReadFromText(self._task_path)
+        | "ParseTaskJson" >> beam.Map(json.loads)
+        | "LoadAudio"
+        >> beam.ParDo(
+            _LoadAudioFn(
+                self._base_path,
+                self._index,
+                self._target_sr,
+            )
+        )
+    )
 
 
 class SimpleVoiceQuestionsDataset:
@@ -187,6 +255,17 @@ class SimpleVoiceQuestionsDataset:
     )
     return types.Sound(waveform=waveform, context=context)
 
+  def _get_task_path(self, task_name: str) -> str:
+    """Returns the path to the task file for the given task name."""
+    task_filename = f"{task_name}.jsonl"
+    task_path = os.path.join(self.base_path, task_filename)
+    if not tf.io.gfile.exists(task_path):
+      raise FileNotFoundError(
+          f"Task file not found: {task_path}. "
+          f"Ensure the task name '{task_name}' is valid."
+      )
+    return task_path
+
   def get_task_data(self, task_name: str) -> pd.DataFrame:
     """Loads the task data for the given task name.
 
@@ -199,11 +278,21 @@ class SimpleVoiceQuestionsDataset:
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
-    task_filename = f"{task_name}.jsonl"
-    task_path = os.path.join(self.base_path, task_filename)
-    if not tf.io.gfile.exists(task_path):
-      raise FileNotFoundError(
-          f"Task file not found: {task_path}. "
-          f"Ensure the task name '{task_name}' is valid."
-      )
-    return pd.read_json(task_path, lines=True)
+    return pd.read_json(self._get_task_path(task_name), lines=True)
+
+  def get_task_data_beam(self, task_name: str) -> beam.PTransform:
+    """Loads the task data with audio for the given task name with beam."""
+    return ReadTaskData(
+        self.base_path,
+        self._index,
+        self.target_sr,
+        self._get_task_path(task_name),
+    )
+
+  def get_task_sounds_beam(
+      self, task_name: str
+  ) -> beam.PCollection[types.Sound]:
+    """Loads the task data with audio for the given task name with beam."""
+    return self.get_task_data_beam(task_name) | "TakeSound" >> beam.Map(
+        lambda x: x["sound"]
+    )
