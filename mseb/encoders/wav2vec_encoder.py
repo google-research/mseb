@@ -115,7 +115,7 @@ class Wav2VecEncoder(encoder.MultiModalEncoder):
     api = huggingface_hub.HfApi()
     try:
       api.model_info(self.model_path)
-    except (HTTPError, huggingface_hub.HfHubPyError) as e:
+    except HTTPError as e:
       if isinstance(e, HTTPError) and e.response.status_code == 404:
         raise ValueError(
             f'Model {self.model_path} not found on Hugging Face Hub. '
