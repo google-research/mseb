@@ -196,11 +196,11 @@ class Score:
   def __post_init__(self):
     """Validates the score data."""
     if not isinstance(self.metric, str) or not self.metric:
-      raise TypeError("Score 'metric' must be a non-empty string.")
+      raise TypeError("Score 'metric' must be a non-empty string. {self}")
     if not isinstance(self.description, str):
-      raise TypeError("Score 'description' must be a string.")
+      raise TypeError("Score 'description' must be a string. {self}")
     if not isinstance(self.value, float):
-      raise TypeError("Score 'value' must be a float.")
+      raise TypeError(f"Score 'value' must be a float. {self}")
     if not isinstance(self.min, (int, float)) or not isinstance(
         self.max, (int, float)
     ):

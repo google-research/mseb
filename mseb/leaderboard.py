@@ -81,7 +81,7 @@ def get_encoding_scores(
       types.Score(
           metric='flops',
           description='Flops used to encode.',
-          value=stats[0].flops,  # TODO(tombagby): Correct aggregation?
+          value=float(stats[0].flops),  # TODO(tombagby): Correct aggregation?
           min=0,
           max=np.inf,
       ),
