@@ -54,13 +54,13 @@ class ReasoningTask(task.MSEBTask):
       for span_list in self.span_lists():
         for span in span_list:
           unique_spans[span.text] = span
-      embeddings = runner.run(unique_spans.values())
+      embeddings_by_text = runner.run(unique_spans.values())
     else:
       try:
         logger.info(
             'Loading span embeddings cache from %s', self.embeddings_dir
         )
-        embeddings = runner_lib.load_embeddings(
+        embeddings_by_text = runner_lib.load_embeddings(
             os.path.join(self.embeddings_dir, 'embeddings')
         )
       except FileNotFoundError:
@@ -69,8 +69,15 @@ class ReasoningTask(task.MSEBTask):
             ' create the cache by running run_task_setup?'
         ) from FileNotFoundError
 
+    embeddings_by_sound_id = {}
+    for sub_task in self.sub_tasks:
+      for spans in self.examples(sub_task):
+        embeddings_by_sound_id[spans.sound_id] = [
+            embeddings_by_text[text] for text in spans.texts
+        ]
+
     self._evaluator = reasoning_evaluator.ReasoningEvaluator(
-        span_embeddings_by_text=embeddings,
+        span_embeddings_by_sound_id=embeddings_by_sound_id,
         no_answer_threshold=self.no_answer_threshold,
     )
 
@@ -87,8 +94,9 @@ class ReasoningTask(task.MSEBTask):
 
     scores = {}
     for sub_task in self.sub_tasks:
-      scores[sub_task] = self._evaluator(
-          sound_embeddings, tuple(self.examples(sub_task))
+      scores[sub_task] = self._evaluator.compute_metrics(
+          self._evaluator.compute_predictions(sound_embeddings),
+          tuple(self.examples(sub_task)),
       )
     return scores
 

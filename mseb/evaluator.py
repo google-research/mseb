@@ -158,6 +158,16 @@ PredictFn = Callable[
 ]
 
 
+def argmax(
+    scores: jaxtyping.Float[jaxtyping.Array, 'N']
+) -> tuple[
+    jaxtyping.Float[jaxtyping.Array, '1'], jaxtyping.Int[jaxtyping.Array, '1']
+]:
+  """Returns the argmax of scores."""
+  top_id = np.argmax(scores)
+  return np.array([scores[top_id]]), np.array([top_id])
+
+
 def top_k(
     scores: jaxtyping.Float[jaxtyping.Array, 'N'], k: int
 ) -> tuple[

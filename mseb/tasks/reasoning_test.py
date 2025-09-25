@@ -149,7 +149,7 @@ class ReasoningTest(absltest.TestCase):
                 types.Text(
                     text=f'dummy span {i}',
                     context=types.TextContextParams(
-                        id=str(i),
+                        id=f'dummy span {i}',
                     ),
                 )
                 for i in range(3)
@@ -163,19 +163,31 @@ class ReasoningTest(absltest.TestCase):
       def examples(
           self, sub_task: str
       ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
-        raise NotImplementedError()
+        assert sub_task == 'test'
+        return [
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='sound_1',
+                reference_answer='No Answer',
+                texts=['dummy span 0', 'dummy span 1', 'dummy span 2'],
+            ),
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='sound_2',
+                reference_answer='ref_2A',
+                texts=['dummy span 1', 'dummy span 2', 'dummy span 0'],
+            ),
+        ]
 
       @property
       def sub_tasks(self) -> list[str]:
-        return ['not_used']
+        return ['test']
 
     task = MockReasoningTask()
     task.setup(
         runner=runner_lib.DirectRunner(encoder=text_encoder.MockTextEncoder())
     )
     self.assertIsNotNone(task._evaluator)
-    self.assertIsNotNone(task._evaluator.span_embeddings_by_text)
-    self.assertLen(task._evaluator.span_embeddings_by_text, 3)
+    self.assertIsNotNone(task._evaluator.span_embeddings_by_sound_id)
+    self.assertLen(task._evaluator.span_embeddings_by_sound_id, 2)
     self.assertEqual(task._evaluator.no_answer_threshold, 0.5)
 
 

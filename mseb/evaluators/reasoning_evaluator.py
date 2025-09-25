@@ -26,8 +26,6 @@ import jaxtyping
 from mseb import evaluator
 from mseb import types
 import numpy as np
-import tensorflow as tf
-import tensorflow_recommenders as tfrs
 
 
 def f1(value: float = 0.0, std: float | None = None):
@@ -71,8 +69,9 @@ def compute_f1_score(target: str, prediction: str) -> float:
   """Token-based F1 score used XTREME-UP."""
   prediction_tokens = prediction.split()
   target_tokens = target.split()
-  common = (collections.Counter(prediction_tokens) &
-            collections.Counter(target_tokens))
+  common = collections.Counter(prediction_tokens) & collections.Counter(
+      target_tokens
+  )
   num_same = sum(common.values())
   if num_same == 0:
     return 0
@@ -97,47 +96,19 @@ class ReasoningEvaluator:
 
   def __init__(
       self,
-      span_embeddings_by_text: types.TextEmbeddingCache,
-      no_answer_threshold: float,
+      span_embeddings_by_sound_id: Mapping[str, Sequence[types.TextEmbeddings]],
+      distance_fn: evaluator.DistanceFn = evaluator.dot_product,
+      predict_fn: evaluator.PredictFn = evaluator.argmax,
+      no_answer_threshold: float = 0.0,
   ):
-    self.span_embeddings_by_text = span_embeddings_by_text
+    self.span_embeddings_by_sound_id = span_embeddings_by_sound_id
+    self.distance_fn = distance_fn
+    self.predict_fn = predict_fn
     self.no_answer_threshold = no_answer_threshold
-
-  def __call__(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      spans_batch: Sequence[ReasoningSpans],
-  ) -> list[types.Score]:
-    """Evaluates reasoning quality for a batch of examples.
-
-    Args:
-      embeddings: The embeddings to evaluate.
-      spans_batch: The reference spans to evaluate.
-
-    Returns:
-      A list of Score objects containing the final, aggregated scores. The
-      scores include F1 score.
-    """
-    return self.evaluate_predictions(
-        self.compute_predictions(embeddings, spans_batch), spans_batch
-    )
 
   def compute_predictions(
       self,
-      embeddings: types.SoundEmbeddingCache,
-      spans_batch: Sequence[ReasoningSpans],
-  ) -> ReasoningPredictionsCache:
-    """Computes the predictions for the given embeddings."""
-    sound_embedding = next(iter(embeddings.values()))
-    if np.issubdtype(sound_embedding.embedding.dtype, np.floating):
-      return self.compute_predictions_float_embedding(embeddings, spans_batch)
-    else:
-      return self.compute_predictions_string_embedding(embeddings, spans_batch)
-
-  def compute_predictions_float_embedding(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      spans_batch: Sequence[ReasoningSpans],
+      embeddings_by_sound_id: types.SoundEmbeddingCache,
   ) -> ReasoningPredictionsCache:
     """Computes the best matching span.
 
@@ -145,51 +116,31 @@ class ReasoningEvaluator:
     the best span is returned. Otherwise, 'No Answer' is returned.
 
     Args:
-      embeddings: The sound embeddings.
-      spans_batch: The reference spans for each sound.
+      embeddings_by_sound_id: The sound embeddings.
 
     Returns:
       A mapping from sound_id to the predicted answer string.
     """
     predictions = {}
-    for spans in spans_batch:
-      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings[
-          spans.sound_id
-      ].embedding
-      searcher = tfrs.layers.factorized_top_k.BruteForce(k=1)
-      span_embeddings = [
-          self.span_embeddings_by_text[text].embeddings[0]
-          for text in spans.texts
-      ]
-      searcher.index(candidates=tf.constant(span_embeddings, dtype=tf.float32))
-      top_span_score, top_span_id = searcher(
-          tf.constant(embedding, dtype=tf.float32)
-      )
-      top_span_score = float(top_span_score[0].numpy())
-      top_span_text = spans.texts[int(top_span_id[0].numpy())]
+    for sound_id, embeddings in embeddings_by_sound_id.items():
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
+      span_embeddings = self.span_embeddings_by_sound_id[sound_id]
+      embeddings = []
+      for embeds in span_embeddings:
+        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embeddings
+        embeddings.append(embed[0])
+      scores = self.distance_fn(np.array(embeddings), embedding[0])
+      top_span_score, top_span_id = self.predict_fn(scores)
+      texts = [text.context.id for text in span_embeddings]
       prediction = (
           'No Answer'
-          if top_span_score < self.no_answer_threshold
-          else top_span_text
+          if top_span_score[0] < self.no_answer_threshold
+          else texts[top_span_id[0]]
       )
-      predictions[spans.sound_id] = prediction
+      predictions[sound_id] = prediction
     return predictions
 
-  def compute_predictions_string_embedding(
-      self,
-      embeddings: types.SoundEmbeddingCache,
-      spans_batch: Sequence[ReasoningSpans],
-  ) -> ReasoningPredictionsCache:
-    """Copies the predictions for the given string embeddings."""
-    predictions = {}
-    for spans in spans_batch:
-      embedding: jaxtyping.Shaped[np.ndarray, '1'] = embeddings[
-          spans.sound_id
-      ].embedding
-      predictions[spans.sound_id] = str(embedding[0])
-    return predictions
-
-  def evaluate_predictions(
+  def compute_metrics(
       self,
       predictions: ReasoningPredictionsCache,
       spans_batch: Sequence[ReasoningSpans],
