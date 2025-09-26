@@ -23,10 +23,10 @@ import dataclasses
 import inspect
 import sys
 from typing import Any, Callable, Type
-
 from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import cascade_encoder
+from mseb.encoders import hf_sound_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
 from mseb.encoders import wav2vec_encoder
