@@ -45,12 +45,17 @@ class LeaderboardResult:
   def from_json(json_str: str) -> 'LeaderboardResult':
     """Convert metrics from JSON string."""
     data = json.loads(json_str)
-    scores = [types.Score(**x) for x in data['scores']]
+    # Weight field was removed from types.Score, drop from old results.
+    def score_from_dict(x):
+      if 'weight' in x:
+        del x['weight']
+      return types.Score(**x)
+    scores = [score_from_dict(x) for x in data['scores']]
     task_metadata_dict = data['task_metadata']
     dataset_dict = task_metadata_dict['dataset']
     task_metadata = types.TaskMetadata(
         dataset=types.Dataset(**dataset_dict),
-        scores=[types.Score(**x) for x in task_metadata_dict['scores']],
+        scores=[score_from_dict(x) for x in task_metadata_dict['scores']],
         **{
             k: v
             for k, v in task_metadata_dict.items()
