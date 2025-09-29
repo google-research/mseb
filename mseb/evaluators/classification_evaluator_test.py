@@ -1,0 +1,161 @@
+# Copyright 2025 The MSEB Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import logging
+
+from absl.testing import absltest
+from mseb import types
+from mseb.evaluators import classification_evaluator
+import numpy as np
+
+
+class ClassificationEvaluatorTest(absltest.TestCase):
+  """Tests for the ClassificationEvaluator class."""
+
+  def setUp(self):
+    super().setUp()
+    self.embedding_table = np.array([
+        [1.0, 0.0, 0.0, 0.0],  # Class 'cat'
+        [0.0, 1.0, 0.0, 0.0],  # Class 'dog'
+        [0.0, 0.0, 1.0, 0.0],  # Class 'bird'
+    ], dtype=np.float32)
+    self.id_by_class_index = ['cat', 'dog', 'bird']
+
+  def test_initialization_invalid_k_raises_error(self):
+    with self.assertRaises(ValueError):
+      classification_evaluator.ClassificationEvaluator(
+          embedding_table=self.embedding_table,
+          id_by_class_index=self.id_by_class_index,
+          top_k_value=0,
+      )
+
+  def test_initialization_large_k_logs_warning(self):
+    with self.assertLogs(level='WARNING') as log:
+      logging.getLogger().warning(
+          'Dummy message to activate logger.'
+      )  # Ensure logger is active
+      classification_evaluator.ClassificationEvaluator(
+          embedding_table=self.embedding_table,
+          id_by_class_index=self.id_by_class_index,
+          top_k_value=3,  # k is equal to the number of classes
+      )
+    self.assertIn('will always be 100%', log.output[1])
+
+  def test_compute_predictions_malformed_embedding_raises_error(self):
+    evaluator = classification_evaluator.ClassificationEvaluator(
+        self.embedding_table,
+        self.id_by_class_index
+    )
+    malformed_embeddings = {
+        'id_1': types.SoundEmbedding(
+            embedding=np.array([]),
+            timestamps=np.array([]),
+            context=types.SoundContextParams(
+                id='id_1',
+                sample_rate=16000,
+                length=1
+            )
+        ),
+    }
+    with self.assertRaisesRegex(ValueError, 'Found missing or malformed'):
+      evaluator.compute_predictions(malformed_embeddings)
+
+  def test_compute_metrics_perfect_score(self):
+    """Tests a scenario where all predictions are correct."""
+    evaluator = classification_evaluator.ClassificationEvaluator(
+        self.embedding_table, self.id_by_class_index, top_k_value=2
+    )
+    # Each embedding perfectly matches a class embedding.
+    scores = {
+        'ex1': np.array([1.0, 0.1, 0.2]),  # Should be 'cat'
+        'ex2': np.array([0.1, 1.0, 0.2]),  # Should be 'dog'
+    }
+    references = [
+        classification_evaluator.ClassificationReference('ex1', 'cat'),
+        classification_evaluator.ClassificationReference('ex2', 'dog'),
+    ]
+    results = evaluator.compute_metrics(scores, references)
+    # For a perfect score, all metrics should be 1.0
+    for score in results:
+      self.assertAlmostEqual(
+          score.value, 1.0,
+          msg=f'Metric {score.metric} failed.'
+      )
+
+  def test_compute_metrics_top_k_accuracy(self):
+    evaluator = classification_evaluator.ClassificationEvaluator(
+        self.embedding_table,
+        self.id_by_class_index,
+        top_k_value=2
+    )
+    # The highest score is for 'dog', but the second
+    # highest is 'cat' (the true label).
+    scores = {'ex1': np.array([0.9, 1.0, 0.2])}  # True: cat, Pred: dog
+    references = [
+        classification_evaluator.ClassificationReference('ex1', 'cat')
+    ]
+    results = {
+        s.metric: s.value for s in evaluator.compute_metrics(scores, references)
+    }
+    self.assertAlmostEqual(results['Accuracy'], 0.0)
+    self.assertAlmostEqual(results['Top-2 Accuracy'], 1.0)
+
+  def test_compute_metrics_balanced_accuracy(self):
+    evaluator = classification_evaluator.ClassificationEvaluator(
+        self.embedding_table, self.id_by_class_index
+    )
+    # Model always predicts 'cat'. Dataset is 3 'cat', 1 'dog'.
+    scores = {
+        'cat1': np.array([1.0, 0.1, 0.2]),
+        'cat2': np.array([1.0, 0.1, 0.2]),
+        'cat3': np.array([1.0, 0.1, 0.2]),
+        'dog1': np.array([1.0, 0.1, 0.2]),
+    }
+    references = [
+        classification_evaluator.ClassificationReference('cat1', 'cat'),
+        classification_evaluator.ClassificationReference('cat2', 'cat'),
+        classification_evaluator.ClassificationReference('cat3', 'cat'),
+        classification_evaluator.ClassificationReference('dog1', 'dog'),
+    ]
+
+    results = {
+        s.metric: s.value for s in evaluator.compute_metrics(scores, references)
+    }
+    # Model gets 3 out of 4 correct.
+    self.assertAlmostEqual(results['Accuracy'], 0.75)
+    # Recall for 'cat' is 3/3 = 1.0. Recall for 'dog' is 0/1 = 0.0.
+    # Balanced accuracy = (1.0 + 0.0) / 2 = 0.5
+    # (Note: scikit-learn averages recall over all PRESENT classes)
+    self.assertAlmostEqual(results['Balanced Accuracy'], 0.5)
+
+  def test_multimodality_with_text_embeddings(self):
+    evaluator = classification_evaluator.ClassificationEvaluator(
+        self.embedding_table, self.id_by_class_index
+    )
+    text_embeddings = {
+        'id_1': types.TextEmbedding(
+            embedding=np.array([[1., 0., 0., 0.]]),
+            spans=np.array([[0, 1]]),
+            context=types.TextContextParams(id='id_1')
+        ),
+    }
+    # Check that predictions are computed without error
+    scores = evaluator.compute_predictions(text_embeddings)
+    # The embedding for 'id_1' matches 'cat' perfectly
+    expected_scores = np.array([1.0, 0.0, 0.0])
+    np.testing.assert_allclose(scores['id_1'], expected_scores)
+
+
+if __name__ == '__main__':
+  absltest.main()
