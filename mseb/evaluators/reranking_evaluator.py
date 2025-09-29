@@ -142,7 +142,7 @@ class RerankingEvaluator:
   def __init__(
       self,
       candidate_embeddings_by_sound_id: Mapping[
-          str, Sequence[types.TextEmbeddings]
+          str, Sequence[types.MultiModalEmbedding]
       ],
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
       predict_fn: evaluator.PredictFn = functools.partial(
@@ -165,7 +165,7 @@ class RerankingEvaluator:
     self.mrr_at_k = mrr_at_k
 
   def compute_predictions(
-      self, embeddings_by_sound_id: types.SoundEmbeddingCache
+      self, embeddings_by_sound_id: types.MultiModalEmbeddingCache
   ) -> RerankingPredictionsCache:
     """Evaluates reranking quality for a single example.
 
@@ -182,7 +182,7 @@ class RerankingEvaluator:
       candidate_embeddings = self.candidate_embeddings_by_sound_id[sound_id]
       embeddings = []
       for embeds in candidate_embeddings:
-        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embeddings
+        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
         embeddings.append(embed[0])
       scores = self.distance_fn(np.array(embeddings), embedding[0])
       ranked_candidate_scores, ranked_candidate_ids = self.predict_fn(scores)

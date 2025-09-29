@@ -26,7 +26,7 @@ class SegmentationTask(task.MSEBTask):
   """Segmentation task."""
 
   @abc.abstractmethod
-  def targets(self, embeddings: types.SoundEmbeddingCache):
+  def targets(self, embeddings: types.MultiModalEmbeddingCache):
     """Get example labels for the segmentation task."""
     # TODO(tombagby): This is only taking embeddings right now because we
     # don't have reference labels in data yet and this is the easiest way
@@ -94,7 +94,7 @@ class SegmentationTaskSVQ(SegmentationTask):
     for utt_id in self._svq_dataset.utt_id_to_record:
       yield self._svq_dataset.get_sound_by_id(utt_id)
 
-  def targets(self, embeddings: types.SoundEmbeddingCache):
+  def targets(self, embeddings: types.MultiModalEmbeddingCache):
     for utt_id in self._svq_dataset.utt_id_to_record:
       # TODO(tombagby): Get actual reference labels out, faking for now.
       yield embeddings[utt_id]

@@ -25,8 +25,8 @@ class RunnerTest(absltest.TestCase):
   def test_save_and_load_embeddings(self):
     basedir = self.create_tempdir().full_path
     embeddings = {
-        'utt_14868079180393484423': types.TextEmbeddings(
-            embeddings=np.array(
+        'utt_14868079180393484423': types.TextEmbedding(
+            embedding=np.array(
                 [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype=np.float32
             ),
             spans=np.array([[0, -1]], dtype=np.int32),
@@ -51,8 +51,8 @@ class RunnerTest(absltest.TestCase):
     self.assertLen(embeddings_loaded, len(embeddings))
     self.assertCountEqual(embeddings_loaded, embeddings)
     np.testing.assert_array_equal(
-        embeddings_loaded['utt_14868079180393484423'].embeddings,
-        embeddings['utt_14868079180393484423'].embeddings,
+        embeddings_loaded['utt_14868079180393484423'].embedding,
+        embeddings['utt_14868079180393484423'].embedding,
     )
     np.testing.assert_array_equal(
         embeddings_loaded['utt_14868079180393484423'].spans,

@@ -102,7 +102,7 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
   @final
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
-  ) -> Sequence[types.TextEmbeddings]:
+  ) -> Sequence[types.TextEmbedding]:
     """Encodes a batch of text sources."""
     prompt_batch = []
     for example in batch:
@@ -123,8 +123,8 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
     for embeddings, text in zip(embeddings_batch, batch):
       assert isinstance(text, types.Text)
       outputs.append(
-          types.TextEmbeddings(
-              embeddings=np.expand_dims(embeddings, axis=0),
+          types.TextEmbedding(
+              embedding=np.expand_dims(embeddings, axis=0),
               spans=np.array([[0, len(text.text)]]),
               context=text.context,
           )

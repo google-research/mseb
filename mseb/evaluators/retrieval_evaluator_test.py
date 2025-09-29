@@ -220,8 +220,8 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_build_scann_index(self):
     embeddings = {
-        str(i): types.TextEmbeddings(
-            embeddings=np.array([[1, 2, 3]]) + i,
+        str(i): types.TextEmbedding(
+            embedding=np.array([[1, 2, 3]]) + i,
             spans=np.array([[0, 10]]),
             context=types.TextContextParams(id=str(i)),
         )
@@ -256,8 +256,8 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_save_and_load_scann_index(self):
     embeddings = {
-        str(i): types.TextEmbeddings(
-            embeddings=np.array([[1, 2, 3]]) + i,
+        str(i): types.TextEmbedding(
+            embedding=np.array([[1, 2, 3]]) + i,
             spans=np.array([[0, 10]]),
             context=types.TextContextParams(id=str(i)),
         )

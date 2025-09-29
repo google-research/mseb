@@ -25,7 +25,7 @@ import sys
 from typing import Any, Callable, Type
 from absl import flags
 from mseb import encoder as encoder_lib
-from mseb.encoders import cascade_encoder
+from mseb.encoders import gecko_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
@@ -70,19 +70,19 @@ gecko_text = EncoderMetadata(
 
 gecko_transcript_truth = EncoderMetadata(
     name="gecko_transcript_truth",
-    encoder=cascade_encoder.GeckoTranscriptTruthEncoder,
+    encoder=gecko_encoder.GeckoTranscriptTruthEncoder,
     params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
 )
 
 gecko_transcript_truth_or_gecko = EncoderMetadata(
     name="gecko_transcript_truth_or_gecko",
-    encoder=cascade_encoder.GeckoTranscriptTruthOrGeckoEncoder,
+    encoder=gecko_encoder.GeckoTranscriptTruthOrGeckoEncoder,
     params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
 )
 
 gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
-    encoder=cascade_encoder.GeckoWhisperEncoder,
+    encoder=gecko_encoder.GeckoWhisperEncoder,
     params=lambda: dict(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
@@ -91,7 +91,7 @@ gecko_whisper = EncoderMetadata(
 
 gecko_whisper_or_gecko = EncoderMetadata(
     name="gecko_whisper_or_gecko",
-    encoder=cascade_encoder.GeckoWhisperOrGeckoEncoder,
+    encoder=gecko_encoder.GeckoWhisperOrGeckoEncoder,
     params=lambda: dict(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
@@ -100,7 +100,7 @@ gecko_whisper_or_gecko = EncoderMetadata(
 
 gecko_with_title_and_context_whisper = EncoderMetadata(
     name="gecko_with_title_and_context_whisper",
-    encoder=cascade_encoder.GeckoWithTitleAndContextWhisperEncoder,
+    encoder=gecko_encoder.GeckoWithTitleAndContextWhisperEncoder,
     params=lambda: dict(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
@@ -109,7 +109,7 @@ gecko_with_title_and_context_whisper = EncoderMetadata(
 
 gecko_with_title_and_context_whisper_or_gecko = EncoderMetadata(
     name="gecko_with_title_and_context_whisper_or_gecko",
-    encoder=cascade_encoder.GeckoWithTitleAndContextWhisperOrGeckoEncoder,
+    encoder=gecko_encoder.GeckoWithTitleAndContextWhisperOrGeckoEncoder,
     params=lambda: dict(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,

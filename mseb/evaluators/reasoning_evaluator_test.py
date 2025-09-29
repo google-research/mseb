@@ -27,18 +27,18 @@ class ReasoningEvaluatorTest(absltest.TestCase):
     evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_sound_id={
             'test': [
-                types.TextEmbeddings(
-                    embeddings=np.array([[3.0, 4.0]], dtype=np.float32),
+                types.TextEmbedding(
+                    embedding=np.array([[3.0, 4.0]], dtype=np.float32),
                     spans=np.array([[0, -1]]),
                     context=types.TextContextParams(id='b l i'),
                 ),
-                types.TextEmbeddings(
-                    embeddings=np.array([[5.0, 6.0]], dtype=np.float32),
+                types.TextEmbedding(
+                    embedding=np.array([[5.0, 6.0]], dtype=np.float32),
                     spans=np.array([[0, -1]]),
                     context=types.TextContextParams(id='b l a'),
                 ),
-                types.TextEmbeddings(
-                    embeddings=np.array([[1.0, 2.0]], dtype=np.float32),
+                types.TextEmbedding(
+                    embedding=np.array([[1.0, 2.0]], dtype=np.float32),
                     spans=np.array([[0, -1]]),
                     context=types.TextContextParams(id='x y z'),
                 ),

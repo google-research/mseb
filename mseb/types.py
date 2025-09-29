@@ -131,10 +131,10 @@ class SoundEmbedding:
 
 
 @dataclasses.dataclass
-class TextEmbeddings:
+class TextEmbedding:
   """A dataclass for text embeddings."""
   # N embeddings, where the embeddings are either all float vectors or strings.
-  embeddings: (
+  embedding: (
       jaxtyping.Float[jaxtyping.Array, "N D"]
       | jaxtyping.Shaped[np.ndarray, "N"]
   )
@@ -153,7 +153,7 @@ class TextEmbeddings:
   @property
   def size_bytes(self) -> int:
     """Returns the size of the embedding in bytes."""
-    return self.embeddings.size * self.embeddings.dtype.itemsize
+    return self.embedding.size * self.embedding.dtype.itemsize
 
 
 @dataclasses.dataclass
@@ -291,8 +291,6 @@ class TaskMetadata:
       )
 
 
-MultiModalEmbedding = SoundEmbedding | TextEmbeddings
+MultiModalEmbedding = SoundEmbedding | TextEmbedding
 MultiModalObject = Sound | Text | MultiModalEmbedding
-SoundEmbeddingCache = Mapping[str, SoundEmbedding]
-TextEmbeddingCache = Mapping[str, TextEmbeddings]
 MultiModalEmbeddingCache = Mapping[str, MultiModalEmbedding]

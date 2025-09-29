@@ -103,5 +103,74 @@ class MultiModalEncoderTest(absltest.TestCase):
     self.assertIsNotNone(bad_encoder)
 
 
+class CascadeEncoderTest(absltest.TestCase):
+
+  def test_initialization(self):
+    enc = encoder.CascadeEncoder(encoders=[MockMultiModalEncoder()])
+    self.assertLen(enc._encoders, 1)
+    self.assertIsInstance(enc._encoders[0], encoder.MultiModalEncoder)
+    enc._encoders[0]._setup.assert_not_called()
+
+  def test_setup(self):
+    enc = encoder.CascadeEncoder(encoders=[MockMultiModalEncoder()])
+    enc.setup()
+    for e in enc._encoders:
+      e._setup.assert_called_once()
+    enc.setup()
+    for e in enc._encoders:
+      e._setup.assert_called_once()
+
+  def test_encode(self):
+    enc = encoder.CascadeEncoder(encoders=[MockMultiModalEncoder()])
+    sound = types.Sound(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
+    )
+    sound_embeddings = enc.encode([sound])
+    self.assertLen(sound_embeddings, 1)
+    sound_embedding = sound_embeddings[0]
+    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
+    self.assertEqual(sound_embedding.embedding.shape, (10, 8))
+
+
+class CollectionEncoderTest(absltest.TestCase):
+
+  def test_initialization(self):
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: MockMultiModalEncoder()}
+    )
+    self.assertLen(enc._encoder_by_input_type, 1)
+    self.assertIn(types.Sound, enc._encoder_by_input_type)
+    self.assertIsInstance(
+        enc._encoder_by_input_type[types.Sound], encoder.MultiModalEncoder
+    )
+    enc._encoder_by_input_type[types.Sound]._setup.assert_not_called()
+
+  def test_setup(self):
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: MockMultiModalEncoder()}
+    )
+    enc.setup()
+    for e in enc._encoder_by_input_type.values():
+      e._setup.assert_called_once()
+    enc.setup()
+    for e in enc._encoder_by_input_type.values():
+      e._setup.assert_called_once()
+
+  def test_encode(self):
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: MockMultiModalEncoder()}
+    )
+    sound = types.Sound(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
+    )
+    sound_embeddings = enc.encode([sound])
+    self.assertLen(sound_embeddings, 1)
+    sound_embedding = sound_embeddings[0]
+    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
+    self.assertEqual(sound_embedding.embedding.shape, (10, 8))
+
+
 if __name__ == "__main__":
   absltest.main()

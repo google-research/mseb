@@ -129,17 +129,17 @@ class TextTest(parameterized.TestCase):
     self.assertIsNone(text.context.context)
 
 
-class TextEmbeddingsTest(parameterized.TestCase):
+class TextEmbeddingTest(parameterized.TestCase):
 
-  def test_text_embeddings_successful_instantiation(self):
-    embeddings = types.TextEmbeddings(
-        embeddings=np.array([1, 2, 3]),
+  def test_text_embedding_successful_instantiation(self):
+    embedding = types.TextEmbedding(
+        embedding=np.array([1, 2, 3]),
         spans=np.array([[0, 1], [2, 3]]),
         context=types.TextContextParams(id="id"),
     )
-    npt.assert_array_equal(embeddings.embeddings, np.array([1, 2, 3]))
-    npt.assert_array_equal(embeddings.spans, np.array([[0, 1], [2, 3]]))
-    self.assertEqual(embeddings.context.id, "id")
+    npt.assert_array_equal(embedding.embedding, np.array([1, 2, 3]))
+    npt.assert_array_equal(embedding.spans, np.array([[0, 1], [2, 3]]))
+    self.assertEqual(embedding.context.id, "id")
 
 
 class TaskMetadataTest(parameterized.TestCase):

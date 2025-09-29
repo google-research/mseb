@@ -93,28 +93,28 @@ class RerankingTest(absltest.TestCase):
     }
 
     candidate_embeddings = {
-        'ref_1A': types.TextEmbeddings(
-            embeddings=np.zeros((1, 3)),
+        'ref_1A': types.TextEmbedding(
+            embedding=np.zeros((1, 3)),
             spans=np.zeros((1, 2)),
             context=types.TextContextParams(id='ref_1A'),
         ),
-        'ref_1B': types.TextEmbeddings(
-            embeddings=np.ones((1, 3)),
+        'ref_1B': types.TextEmbedding(
+            embedding=np.ones((1, 3)),
             spans=np.zeros((1, 2)),
             context=types.TextContextParams(id='ref_1B'),
         ),
-        'ref_2A': types.TextEmbeddings(
-            embeddings=np.zeros((1, 3)),
+        'ref_2A': types.TextEmbedding(
+            embedding=np.zeros((1, 3)),
             spans=np.zeros((1, 2)),
             context=types.TextContextParams(id='ref_2A'),
         ),
-        'ref_2B': types.TextEmbeddings(
-            embeddings=np.ones((1, 3)),
+        'ref_2B': types.TextEmbedding(
+            embedding=np.ones((1, 3)),
             spans=np.zeros((1, 2)),
             context=types.TextContextParams(id='ref_2B'),
         ),
-        'ref_2C': types.TextEmbeddings(
-            embeddings=np.ones((1, 3)),
+        'ref_2C': types.TextEmbedding(
+            embedding=np.ones((1, 3)),
             spans=np.zeros((1, 2)),
             context=types.TextContextParams(id='ref_2C'),
         ),

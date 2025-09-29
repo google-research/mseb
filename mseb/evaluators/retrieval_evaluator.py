@@ -145,7 +145,7 @@ class RetrievalEvaluator:
     self.top_k = top_k
 
   def compute_predictions(
-      self, embeddings_by_sound_id: types.SoundEmbeddingCache
+      self, embeddings_by_sound_id: types.MultiModalEmbeddingCache
   ) -> RetrievalPredictionsCache:
     """Computes the predictions for the given embeddings.
 
@@ -205,7 +205,7 @@ class RetrievalEvaluatorPartitioned:
     self.top_k = top_k
 
   def compute_predictions(
-      self, embeddings_by_sound_id: types.SoundEmbeddingCache,
+      self, embeddings_by_sound_id: types.MultiModalEmbeddingCache,
   ) -> RetrievalPredictionsCache:
     """Computes the predictions for the given embeddings and reference ids."""
     predictions = {}
@@ -246,7 +246,7 @@ class RetrievalEvaluatorPartitioned:
 
 
 def build_index(
-    embeddings: types.TextEmbeddingCache, k: int = 10
+    embeddings: types.MultiModalEmbeddingCache, k: int = 10
 ) -> tuple[tfrs.layers.factorized_top_k.TopK, Sequence[str]]:
   """Builds the ScaNN index from the embeddings.
 
@@ -270,7 +270,7 @@ def build_index(
       dimensions_per_block=1,
   )
   candidates = tf.constant(
-      [embeddings[did].embeddings[0] for did in id_by_index_id], tf.float32
+      [embeddings[did].embedding[0] for did in id_by_index_id], tf.float32
   )
   scann.index(candidates=candidates)
   _ = scann(tf.constant(tf.zeros((1, candidates.shape[1]), dtype=tf.float32)))

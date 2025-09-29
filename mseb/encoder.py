@@ -15,7 +15,7 @@
 """MSEB Encoder base class."""
 
 import abc
-from typing import final, Sequence
+from typing import final, Mapping, Sequence, Type
 
 from mseb import types
 
@@ -92,37 +92,89 @@ class MultiModalEncoder(abc.ABC):
     return None
 
 
-class SoundOrTextEncoder(MultiModalEncoder):
-  """Pair Sound and Text encoder as for sound to text retrieval."""
+class CascadeEncoder(MultiModalEncoder):
+  """Sequence encoder interface.
+
+  A wrapper around a sequence of encoders (including converters to match the
+  output type of the previous encoder with the input type of the next encoder)
+  that are applied in sequence.
+
+  Example: A cascade encoder consisting of a speech-to-text encoder (ASR)
+  followed by a text-to-embedding encoder. A converter is used to convert the
+  output of the ASR encoder (SoundEmbedding) to the input of the text-to-
+  embedding encoder (Text).
+
+  Attributes:
+    _encoders: The sequence of encoders to apply.
+  """
+
+  def __init__(self, encoders: Sequence[MultiModalEncoder]):
+    super().__init__()
+    self._encoders = encoders
+
+  @final
+  def _setup(self):
+    for encoder in self._encoders:
+      encoder.setup()
+
+  @final
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    # CascadeEncoder checks input types in _encode.
+    return
+
+  @final
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.MultiModalObject]:
+    outputs = batch
+    for encoder in self._encoders:
+      encoder._check_input_types(outputs)  # pylint: disable=protected-access
+      outputs = encoder.encode(outputs)
+    return outputs
+
+
+class CollectionEncoder(MultiModalEncoder):
+  """Collection encoder interface.
+
+  A wrapper around a collection of independent encoders each of different input
+  type that are used for a task. The batches of inputs are assumed to be all of
+  the same type.
+
+  Example (retrieval task): A collection encoder consisting of a sound encoder
+  (for the audio query) and a text encoder (for generating the index of text
+  documents).
+
+  Attributes:
+    _encoder_by_input_type: A mapping of input type to encoder.
+  """
 
   def __init__(
-      self, sound_encoder: MultiModalEncoder, text_encoder: MultiModalEncoder
+      self,
+      encoder_by_input_type: Mapping[
+          Type[types.MultiModalObject], MultiModalEncoder
+      ],
   ):
     super().__init__()
-    self._sound_encoder = sound_encoder
-    self._text_encoder = text_encoder
+    self._encoder_by_input_type = encoder_by_input_type
 
+  @final
   def _setup(self):
-    self._sound_encoder.setup()
-    self._text_encoder.setup()
+    for encoder in self._encoder_by_input_type.values():
+      encoder.setup()
 
+  @final
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not (
-        all(isinstance(x, types.Sound) for x in batch)
-        or all(isinstance(x, types.Text) for x in batch)
-    ):
+    if not all(isinstance(x, type(batch[0])) for x in batch):
       raise ValueError(
-          "SoundOrTextEncoder only supports a batch of all Sound or all Text"
-          " inputs."
+          "CollectionEncoder only supports a batch of all inputs of the same"
+          " type, type must be one of:"
+          f" {tuple(self._encoder_by_input_type.keys())}."
       )
 
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.MultiModalObject]:
-    if isinstance(batch[0], types.Sound):
-      return self._sound_encoder.encode(batch)
-    else:
-      return self._text_encoder.encode(batch)
+    return self._encoder_by_input_type[type(batch[0])].encode(batch)
 
 
 class SpeechToTextWithTitleAndContextEncoder(MultiModalEncoder):

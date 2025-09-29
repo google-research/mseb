@@ -55,7 +55,7 @@ class ClusteringEvaluator:
 
   def __call__(
       self,
-      embeddings: types.SoundEmbeddingCache,
+      embeddings: types.MultiModalEmbeddingCache,
       examples: Iterable[ClusteringExample],
   ) -> list[types.Score]:
     embedded = []

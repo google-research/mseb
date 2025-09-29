@@ -96,7 +96,9 @@ class ReasoningEvaluator:
 
   def __init__(
       self,
-      span_embeddings_by_sound_id: Mapping[str, Sequence[types.TextEmbeddings]],
+      span_embeddings_by_sound_id: Mapping[
+          str, Sequence[types.MultiModalEmbedding]
+      ],
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
       predict_fn: evaluator.PredictFn = evaluator.argmax,
       no_answer_threshold: float = 0.0,
@@ -108,7 +110,7 @@ class ReasoningEvaluator:
 
   def compute_predictions(
       self,
-      embeddings_by_sound_id: types.SoundEmbeddingCache,
+      embeddings_by_sound_id: types.MultiModalEmbeddingCache,
   ) -> ReasoningPredictionsCache:
     """Computes the best matching span.
 
@@ -127,7 +129,7 @@ class ReasoningEvaluator:
       span_embeddings = self.span_embeddings_by_sound_id[sound_id]
       embeddings = []
       for embeds in span_embeddings:
-        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embeddings
+        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
         embeddings.append(embed[0])
       scores = self.distance_fn(np.array(embeddings), embedding[0])
       top_span_score, top_span_id = self.predict_fn(scores)
