@@ -32,6 +32,7 @@ dependencies = [
     "pyarrow",
     "pygtrie",
     "scann[tf]",
+    "scikit-learn",
     "soundfile",
     "spacy",
     "tqdm",
