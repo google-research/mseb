@@ -31,16 +31,17 @@ dependencies = [
     "pandas",
     "pyarrow",
     "pygtrie",
-    "scann[tf]",
+    "scann[tf]==1.4.2",
     "scikit-learn",
     "soundfile",
     "spacy",
     "tqdm",
     "transformers",
-    "tensorflow==2.15",
-    "tensorflow-datasets",
-    "tensorflow_hub",
+    "tensorflow==2.20.0",
+    "tensorflow-datasets>=4.0",
+    "tensorflow_hub>=0.15",
     "tensorflow-recommenders",
+    "tensorflow-metadata>=1.10"
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`
