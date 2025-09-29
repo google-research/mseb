@@ -20,10 +20,18 @@ import logging
 import os
 from typing import Iterable
 
+from absl import flags
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
+
+
+_NUM_PARTITIONS = flags.DEFINE_integer(
+    'num_partitions',
+    1,
+    'Number of partitions to use for the retrieval task.',
+)
 
 
 logger = logging.getLogger(__name__)
@@ -35,17 +43,14 @@ class RetrievalTask(task.MSEBTask):
   def __init__(
       self,
       id_by_index_id_filepath: str = 'ids.txt',
-      num_partitions: int = 1,
   ):
     """Initializes the retrieval task.
 
     Args:
       id_by_index_id_filepath: The filepath to save the id by index id mapping.
-      num_partitions: The number of index partitions to use.
     """
     super().__init__()
     self.id_by_index_id_filepath = id_by_index_id_filepath
-    self.num_partitions = num_partitions
     self._evaluator = None
 
   @property
@@ -55,15 +60,12 @@ class RetrievalTask(task.MSEBTask):
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the index."""
-    if self.num_partitions > 1:
-      self.setup_partitioned(runner)
+    if _NUM_PARTITIONS.value > 1:
+      self.setup_partitioned(_NUM_PARTITIONS.value, runner)
     else:
       self.setup_unpartitioned(runner)
 
   def setup_unpartitioned(self, runner: runner_lib.EncoderRunner | None = None):
-    assert self.num_partitions == 1, (
-        'setup_unpartitioned requires num_partitions == 1.'
-    )
     if runner is not None:
       assert hasattr(
           runner, '_output_path'
@@ -92,11 +94,13 @@ class RetrievalTask(task.MSEBTask):
         searcher=searcher, id_by_index_id=id_by_index_id
     )
 
-  def setup_partitioned(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup_partitioned(
+      self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None
+  ):
     if runner is not None:
-      for partition_id in range(self.num_partitions):
+      for partition_id in range(num_partitions):
         logger.info(
-            'Setting up partition %d/%d', partition_id, self.num_partitions
+            'Setting up partition %d/%d', partition_id, num_partitions
         )
         assert hasattr(
             runner, '_output_path'
@@ -104,7 +108,7 @@ class RetrievalTask(task.MSEBTask):
         runner._output_path = os.path.join(self.index_dir, str(partition_id))  # pylint: disable=protected-access
         embeddings = runner.run(
             itertools.islice(
-                self.documents(), partition_id, None, self.num_partitions
+                self.documents(), partition_id, None, num_partitions
             )
         )
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)

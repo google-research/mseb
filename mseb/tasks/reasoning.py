@@ -19,10 +19,18 @@ import logging
 import os
 from typing import Iterable, Sequence
 
+from absl import flags
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.evaluators import reasoning_evaluator
+
+
+_REASONING_NO_ANSWER_THRESHOLD = flags.DEFINE_float(
+    'reasoning_no_answer_threshold',
+    0.5,
+    '"No Answer" threshold for reasoning task.',
+)
 
 
 logger = logging.getLogger(__name__)
@@ -31,9 +39,8 @@ logger = logging.getLogger(__name__)
 class ReasoningTask(task.MSEBTask):
   """Reasoning task."""
 
-  def __init__(self, no_answer_threshold: float = 0.5):
+  def __init__(self):
     super().__init__()
-    self.no_answer_threshold = no_answer_threshold
     self._evaluator = None
 
   @property
@@ -78,7 +85,7 @@ class ReasoningTask(task.MSEBTask):
 
     self._evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_sound_id=embeddings_by_sound_id,
-        no_answer_threshold=self.no_answer_threshold,
+        no_answer_threshold=_REASONING_NO_ANSWER_THRESHOLD.value,
     )
 
   def compute_scores(

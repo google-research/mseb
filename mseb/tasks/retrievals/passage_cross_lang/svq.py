@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""SVQ passage in-lang retrieval tasks."""
+"""SVQ passage cross-lang retrieval tasks."""
 
 import os
 from typing import Iterable
@@ -23,23 +23,23 @@ from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 
 
-class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
-  """SVQ passage in-lang retrieval."""
+class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
+  """SVQ passage cross-lang retrieval."""
 
   locale: str | None = None
 
   @property
   def index_dir(self) -> str:
-    return os.path.join(super().index_dir, 'svq_passage_retrieval_in_lang')
+    return os.path.join(super().index_dir, 'svq_passage_retrieval_cross_lang')
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ['passage_retrieval_in_lang']
+    return ['passage_retrieval_cross_lang']
 
   def documents(self) -> Iterable[types.Text]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'passage_retrieval_in_lang_index'
+        'passage_retrieval_cross_lang_index'
     ).itertuples():
       yield types.Text(
           text=example.context,
@@ -52,7 +52,7 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'passage_retrieval_in_lang'
+        'passage_retrieval_cross_lang'
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
@@ -71,13 +71,13 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
         )
 
 
-class SVQArEgPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQArEgPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'ar_eg'
   metadata = types.TaskMetadata(
-      name='SVQArEgPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQArEgPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -93,13 +93,13 @@ class SVQArEgPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQArXGulfPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQArXGulfPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'ar_x_gulf'
   metadata = types.TaskMetadata(
-      name='SVQArXGulfPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQArXGulfPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -115,13 +115,13 @@ class SVQArXGulfPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQArXLevantPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQArXLevantPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'ar_x_levant'
   metadata = types.TaskMetadata(
-      name='SVQArXLevantPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQArXLevantPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -137,13 +137,13 @@ class SVQArXLevantPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQArXMaghrebiPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQArXMaghrebiPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'ar_x_maghrebi'
   metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQArXMaghrebiPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -159,13 +159,13 @@ class SVQArXMaghrebiPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQBnBdPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQBnBdPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'bn_bd'
   metadata = types.TaskMetadata(
-      name='SVQBnBdPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQBnBdPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -181,13 +181,13 @@ class SVQBnBdPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQBnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQBnInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'bn_in'
   metadata = types.TaskMetadata(
-      name='SVQBnInPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQBnInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -203,123 +203,13 @@ class SVQBnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQEnAuPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQEnAuPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='TODO',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnGbPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQEnGbPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='TODO',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQEnInPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='TODO',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnPhPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQEnPhPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='TODO',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQEnUsPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='TODO',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQFiFiPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQFiFiPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'fi_fi'
   metadata = types.TaskMetadata(
-      name='SVQFiFiPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQFiFiPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -335,13 +225,13 @@ class SVQFiFiPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQIdIdPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'id_id'
+class SVQGuInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'gu_in'
   metadata = types.TaskMetadata(
-      name='SVQIdIdPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQGuInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -351,19 +241,85 @@ class SVQIdIdPassageInLangRetrieval(SVQPassageInLangRetrieval):
       ),
       scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
       eval_splits=['test'],
-      eval_langs=['id-ID'],
+      eval_langs=['gu-IN'],
       domains=['speech'],
       task_subtypes=['retrieval'],
   )
 
 
-class SVQKoKrPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQHiInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'hi_in'
+  metadata = types.TaskMetadata(
+      name='SVQHiInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['hi-IN'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQJaJpPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'ja_jp'
+  metadata = types.TaskMetadata(
+      name='SVQJaJpPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['ja-JP'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQKnInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'kn_in'
+  metadata = types.TaskMetadata(
+      name='SVQKnInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['kn-IN'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQKoKrPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'ko_kr'
   metadata = types.TaskMetadata(
-      name='SVQKoKrPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQKoKrPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -379,13 +335,57 @@ class SVQKoKrPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQRuRuPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQMlInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'ml_in'
+  metadata = types.TaskMetadata(
+      name='SVQMlInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['ml-IN'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQMrInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'mr_in'
+  metadata = types.TaskMetadata(
+      name='SVQMrInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['mr-IN'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQRuRuPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'ru_ru'
   metadata = types.TaskMetadata(
-      name='SVQRuRuPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQRuRuPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -401,13 +401,13 @@ class SVQRuRuPassageInLangRetrieval(SVQPassageInLangRetrieval):
   )
 
 
-class SVQSwPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'sw'
+class SVQTaInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'ta_in'
   metadata = types.TaskMetadata(
-      name='SVQSwPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQTaInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -417,19 +417,19 @@ class SVQSwPassageInLangRetrieval(SVQPassageInLangRetrieval):
       ),
       scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
       eval_splits=['test'],
-      eval_langs=['sw'],
+      eval_langs=['ta-IN'],
       domains=['speech'],
       task_subtypes=['retrieval'],
   )
 
 
-class SVQTeInPassageInLangRetrieval(SVQPassageInLangRetrieval):
+class SVQTeInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
   locale = 'te_in'
   metadata = types.TaskMetadata(
-      name='SVQTeInPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
+      name='SVQTeInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
       reference='TODO',
-      type='PassageInLangRetrieval',
+      type='PassageCrossLangRetrieval',
       category='speech',
       main_score='MRR',
       revision='1.0.0',
@@ -440,6 +440,50 @@ class SVQTeInPassageInLangRetrieval(SVQPassageInLangRetrieval):
       scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
       eval_splits=['test'],
       eval_langs=['te-IN'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQUrInPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'ur_in'
+  metadata = types.TaskMetadata(
+      name='SVQUrInPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['ur-IN'],
+      domains=['speech'],
+      task_subtypes=['retrieval'],
+  )
+
+
+class SVQUrPkPassageCrossLangRetrieval(SVQPassageCrossLangRetrieval):
+  locale = 'ur_pk'
+  metadata = types.TaskMetadata(
+      name='SVQUrPkPassageCrossLangRetrieval',
+      description='Passage cross-lang retrieval task.',
+      reference='TODO',
+      type='PassageCrossLangRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['test'],
+      eval_langs=['ur-PK'],
       domains=['speech'],
       task_subtypes=['retrieval'],
   )

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""SVQ span in-lang reasoning tasks."""
+"""SVQ span cross-lang reasoning tasks."""
 
 import os
 from typing import Iterable, Sequence
@@ -23,8 +23,8 @@ from mseb.evaluators import reasoning_evaluator
 from mseb.tasks import reasoning
 
 
-class SVQSpanInLangReasoning(reasoning.ReasoningTask):
-  """SVQ span in-lang reasoning task."""
+class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
+  """SVQ span cross-lang reasoning task."""
 
   locale: str | None = None
 
@@ -32,17 +32,17 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   def embeddings_dir(self) -> str:
     assert self.locale is not None
     return os.path.join(
-        super().embeddings_dir, f'svq_{self.locale}_span_reasoning_in_lang'
+        super().embeddings_dir, f'svq_{self.locale}_span_reasoning_cross_lang'
     )
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ['span_reasoning_in_lang']
+    return ['span_reasoning_cross_lang']
 
   def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'span_reasoning_in_lang'
+        'span_reasoning_cross_lang'
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
@@ -68,7 +68,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'span_reasoning_in_lang'
+        'span_reasoning_cross_lang'
     ).itertuples():
       if example.locale == self.locale:
         yield [
@@ -80,13 +80,13 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
         ]
 
 
-class SVQArEgSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQArEgSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'ar_eg'
   metadata = types.TaskMetadata(
-      name='SVQArEgSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQArEgSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -102,13 +102,13 @@ class SVQArEgSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQArXGulfSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQArXGulfSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'ar_x_gulf'
   metadata = types.TaskMetadata(
-      name='SVQArXGulfSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQArXGulfSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -124,13 +124,13 @@ class SVQArXGulfSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQArXLevantSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQArXLevantSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'ar_x_levant'
   metadata = types.TaskMetadata(
-      name='SVQArXLevantSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQArXLevantSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -146,13 +146,13 @@ class SVQArXLevantSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQArXMaghrebiSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQArXMaghrebiSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'ar_x_maghrebi'
   metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQArXMaghrebiSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -168,13 +168,13 @@ class SVQArXMaghrebiSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQBnBdSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQBnBdSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'bn_bd'
   metadata = types.TaskMetadata(
-      name='SVQBnBdSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQBnBdSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -190,13 +190,13 @@ class SVQBnBdSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQBnInSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQBnInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'bn_in'
   metadata = types.TaskMetadata(
-      name='SVQBnInSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQBnInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -212,123 +212,13 @@ class SVQBnInSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQEnAuSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQEnAuSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='TODO',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='F1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnGbSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQEnGbSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='TODO',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='F1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnInSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQEnInSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='TODO',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='F1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnPhSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQEnPhSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='TODO',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='F1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnUsSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQEnUsSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='TODO',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='F1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQFiFiSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQFiFiSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'fi_fi'
   metadata = types.TaskMetadata(
-      name='SVQFiFiSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQFiFiSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -344,13 +234,13 @@ class SVQFiFiSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQIdIdSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'id_id'
+class SVQGuInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'gu_in'
   metadata = types.TaskMetadata(
-      name='SVQIdIdSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQGuInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -360,19 +250,85 @@ class SVQIdIdSpanInLangReasoning(SVQSpanInLangReasoning):
       ),
       scores=[reasoning_evaluator.f1()],
       eval_splits=['test'],
-      eval_langs=['id-ID'],
+      eval_langs=['gu-IN'],
       domains=['speech'],
       task_subtypes=['reasoning'],
   )
 
 
-class SVQKoKrSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQHiInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'hi_in'
+  metadata = types.TaskMetadata(
+      name='SVQHiInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['hi-IN'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQJaJpSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'ja_jp'
+  metadata = types.TaskMetadata(
+      name='SVQJaJpSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['ja-JP'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQKnInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'kn_in'
+  metadata = types.TaskMetadata(
+      name='SVQKnInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['kn-IN'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQKoKrSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'ko_kr'
   metadata = types.TaskMetadata(
-      name='SVQKoKrSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQKoKrSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -388,13 +344,57 @@ class SVQKoKrSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQRuRuSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQMlInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'ml_in'
+  metadata = types.TaskMetadata(
+      name='SVQMlInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['ml-IN'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQMrInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'mr_in'
+  metadata = types.TaskMetadata(
+      name='SVQMrInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['mr-IN'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQRuRuSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'ru_ru'
   metadata = types.TaskMetadata(
-      name='SVQRuRuSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQRuRuSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -410,13 +410,13 @@ class SVQRuRuSpanInLangReasoning(SVQSpanInLangReasoning):
   )
 
 
-class SVQSwSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'sw'
+class SVQTaInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'ta_in'
   metadata = types.TaskMetadata(
-      name='SVQSwSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQTaInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -426,19 +426,19 @@ class SVQSwSpanInLangReasoning(SVQSpanInLangReasoning):
       ),
       scores=[reasoning_evaluator.f1()],
       eval_splits=['test'],
-      eval_langs=['sw'],
+      eval_langs=['ta-IN'],
       domains=['speech'],
       task_subtypes=['reasoning'],
   )
 
 
-class SVQTeInSpanInLangReasoning(SVQSpanInLangReasoning):
+class SVQTeInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
   locale = 'te_in'
   metadata = types.TaskMetadata(
-      name='SVQTeInSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
+      name='SVQTeInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
       reference='TODO',
-      type='SpanInLangReasoning',
+      type='SpanCrossLangReasoning',
       category='speech',
       main_score='F1',
       revision='1.0.0',
@@ -449,6 +449,50 @@ class SVQTeInSpanInLangReasoning(SVQSpanInLangReasoning):
       scores=[reasoning_evaluator.f1()],
       eval_splits=['test'],
       eval_langs=['te-IN'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQUrInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'ur_in'
+  metadata = types.TaskMetadata(
+      name='SVQUrInSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['ur-IN'],
+      domains=['speech'],
+      task_subtypes=['reasoning'],
+  )
+
+
+class SVQUrPkSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
+  locale = 'ur_pk'
+  metadata = types.TaskMetadata(
+      name='SVQUrPkSpanCrossLangReasoning',
+      description='Span cross-lang reasoning task.',
+      reference='TODO',
+      type='SpanCrossLangReasoning',
+      category='speech',
+      main_score='F1',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          path='https://huggingface.co/datasets/google/svq',
+          revision='1.0.0',
+      ),
+      scores=[reasoning_evaluator.f1()],
+      eval_splits=['test'],
+      eval_langs=['ur-PK'],
       domains=['speech'],
       task_subtypes=['reasoning'],
   )

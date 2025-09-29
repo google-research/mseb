@@ -188,7 +188,6 @@ class ReasoningTest(absltest.TestCase):
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.span_embeddings_by_sound_id)
     self.assertLen(task._evaluator.span_embeddings_by_sound_id, 2)
-    self.assertEqual(task._evaluator.no_answer_threshold, 0.5)
 
 
 if __name__ == '__main__':
