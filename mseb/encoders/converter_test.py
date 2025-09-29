@@ -95,5 +95,22 @@ class SoundEmbeddingToTextConverterTest(absltest.TestCase):
     self.assertEqual(text.context_text, "context")
 
 
+class TextEmbeddingToReasoningPredictionConverterTest(absltest.TestCase):
+
+  def test_eval_text_embedding(self):
+    converter = converter_lib.TextEmbeddingToReasoningPredictionConverter()
+    converter.setup()
+    prediction = converter.encode([
+        types.TextEmbedding(
+            embedding=np.array(["transcript truth"]),
+            spans=np.array([[0, 16]]),
+            context=types.TextContextParams(id="test"),
+        )
+    ])[0]
+    self.assertIsInstance(prediction, types.ReasoningPrediction)
+    self.assertEqual(prediction.answer, "transcript truth")
+    self.assertEqual(prediction.context.id, "test")
+
+
 if __name__ == "__main__":
   absltest.main()

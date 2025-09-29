@@ -157,6 +157,25 @@ class TextEmbedding:
 
 
 @dataclasses.dataclass
+class ReasoningContextParams:
+  """Parameters for a reasoning example."""
+  id: str  # Identifier for the reasoning example unique within the dataset.
+
+
+@dataclasses.dataclass
+class ReasoningPrediction:
+  """A dataclass for reasoning predictions."""
+  answer: str
+  context: ReasoningContextParams
+  encoding_stats: Optional[EncodingStats] = None
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the answer in bytes."""
+    return len(self.answer.encode("utf-8"))
+
+
+@dataclasses.dataclass
 class TextWithTitleAndContext(Text):
   """A text with title and context."""
   title_text: str | None = None
@@ -291,6 +310,6 @@ class TaskMetadata:
       )
 
 
-MultiModalEmbedding = SoundEmbedding | TextEmbedding
+MultiModalEmbedding = SoundEmbedding | TextEmbedding | ReasoningPrediction
 MultiModalObject = Sound | Text | MultiModalEmbedding
 MultiModalEmbeddingCache = Mapping[str, MultiModalEmbedding]

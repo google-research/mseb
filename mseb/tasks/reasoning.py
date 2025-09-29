@@ -89,9 +89,12 @@ class ReasoningTask(task.MSEBTask):
 
     scores = {}
     for sub_task in self.sub_tasks:
+      if not isinstance(next(iter(embeddings)), types.ReasoningPrediction):
+        predictions = self._evaluator.compute_predictions(embeddings)
+      else:
+        predictions = embeddings
       scores[sub_task] = self._evaluator.compute_metrics(
-          self._evaluator.compute_predictions(embeddings),
-          tuple(self.examples(sub_task)),
+          predictions, tuple(self.examples(sub_task))
       )
     return scores
 

@@ -61,7 +61,9 @@ class ClusteringEvaluator:
     embedded = []
     labels = []
     for ex in examples:
-      embedded.append(embeddings[ex.sound_id].embedding)
+      embedding = embeddings[ex.sound_id]
+      assert hasattr(embedding, 'embedding')
+      embedded.append(embedding.embedding)
       labels.append(ex.label)
     data = np.vstack(embedded)
     clusters = cluster_kmeans(data, nlabels=len(set(labels)), batch_size=32)

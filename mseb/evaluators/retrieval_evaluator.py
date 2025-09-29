@@ -158,6 +158,7 @@ class RetrievalEvaluator:
     """
     predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
+      assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, 'N D'] = embeddings.embedding
       ranked_doc_scores, ranked_index_ids = self.searcher(
           embedding.astype(np.float32)
@@ -269,8 +270,14 @@ def build_index(
       training_iterations=1,
       dimensions_per_block=1,
   )
+
+  def _get_embedding(embeddings: types.MultiModalEmbedding) -> np.ndarray:
+    assert hasattr(embeddings, 'embedding')
+    embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
+    return embedding[0]
+
   candidates = tf.constant(
-      [embeddings[did].embedding[0] for did in id_by_index_id], tf.float32
+      [_get_embedding(embeddings[did]) for did in id_by_index_id], tf.float32
   )
   scann.index(candidates=candidates)
   _ = scann(tf.constant(tf.zeros((1, candidates.shape[1]), dtype=tf.float32)))

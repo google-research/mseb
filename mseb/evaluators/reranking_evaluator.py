@@ -178,10 +178,12 @@ class RerankingEvaluator:
     """
     predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
+      assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
       candidate_embeddings = self.candidate_embeddings_by_sound_id[sound_id]
       embeddings = []
       for embeds in candidate_embeddings:
+        assert hasattr(embeds, 'embedding')
         embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
         embeddings.append(embed[0])
       scores = self.distance_fn(np.array(embeddings), embedding[0])

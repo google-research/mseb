@@ -88,7 +88,7 @@ class ReasoningSpans:
   texts: Sequence[str]
 
 
-ReasoningPredictionsCache = Mapping[str, str]
+ReasoningPredictionsCache = Mapping[str, types.ReasoningPrediction]
 
 
 class ReasoningEvaluator:
@@ -125,10 +125,12 @@ class ReasoningEvaluator:
     """
     predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
+      assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
       span_embeddings = self.span_embeddings_by_sound_id[sound_id]
       embeddings = []
       for embeds in span_embeddings:
+        assert hasattr(embeds, 'embedding')
         embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
         embeddings.append(embed[0])
       scores = self.distance_fn(np.array(embeddings), embedding[0])
@@ -139,7 +141,10 @@ class ReasoningEvaluator:
           if top_span_score[0] < self.no_answer_threshold
           else texts[top_span_id[0]]
       )
-      predictions[sound_id] = prediction
+      predictions[sound_id] = types.ReasoningPrediction(
+          answer=prediction,
+          context=types.ReasoningContextParams(id=sound_id),
+      )
     return predictions
 
   def compute_metrics(
@@ -153,7 +158,7 @@ class ReasoningEvaluator:
       values_by_metric['f1'].append(
           types.WeightedValue(
               value=compute_f1_score(
-                  spans.reference_answer, predictions[spans.sound_id]
+                  spans.reference_answer, predictions[spans.sound_id].answer
               ),
               weight=1.0,
           )
