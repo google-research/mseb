@@ -151,6 +151,28 @@ whisper_base_pooled_max = EncoderMetadata(
     params=lambda: dict(model_path="base", pooling="max"),
 )
 
+wav2vec2_large_960h_lv60_pooled_mean = EncoderMetadata(
+    name="wav2vec2-large-960h-lv60_pooled_mean",
+    encoder=wav2vec_encoder.Wav2VecEncoder,
+    params=lambda: dict(
+        model_path="facebook/wav2vec2-large-960h-lv60",
+        transform_fn=lambda x: x,
+        pooling="mean",
+        device=None,
+    ),
+)
+
+hubert_large_ls960_ft_pooled_mean = EncoderMetadata(
+    name="hubert_large_ls960_ft_pooled_mean",
+    encoder=hf_sound_encoder.HFSoundEncoder,
+    params=lambda: dict(
+        model_path="facebook/hubert-large-ls960-ft",
+        transform_fn=lambda x: x,
+        pooling="mean",
+        device=None,
+    ),
+)
+
 
 
 _REGISTRY: dict[str, EncoderMetadata] = {}
