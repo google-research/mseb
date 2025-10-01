@@ -66,7 +66,7 @@ def main(argv):
       encoder=encoder,
       batch_size=_BATCH_SIZE.value,
       num_threads=_NUM_THREADS.value,
-      output_path=task_lib.CACHE_BASEPATH.value,
+      output_path=runner_lib.RUNNER_CACHE_BASEPATH.value,
   )
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
   task = task_cls()

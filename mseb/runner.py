@@ -20,6 +20,7 @@ from concurrent import futures
 import os
 import pickle
 
+from absl import flags
 from absl import logging
 import apache_beam as beam
 from apache_beam.utils import shared
@@ -34,6 +35,13 @@ cpu_resource_hints = dict()
 tqdm = tqdm.tqdm
 
 Encoder = encoder_lib.MultiModalEncoder
+
+
+RUNNER_CACHE_BASEPATH = flags.DEFINE_string(
+    'runner_cache_basepath',
+    None,
+    'Base path for the runner cache.',
+)
 
 
 class EncoderRunner(abc.ABC):

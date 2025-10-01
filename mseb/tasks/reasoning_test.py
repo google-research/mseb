@@ -30,9 +30,10 @@ class ReasoningTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
     self.enter_context(
-        flagsaver.flagsaver(
-            (reasoning.task.CACHE_BASEPATH, self.create_tempdir().full_path)
-        )
+        flagsaver.flagsaver((
+            reasoning.task.TASK_CACHE_BASEPATH,
+            self.create_tempdir().full_path,
+        ))
     )
 
   def test_reasoning_task_compute_scores(self):
@@ -123,7 +124,7 @@ class ReasoningTest(absltest.TestCase):
     }
     runner_lib.save_embeddings(
         output_prefix=os.path.join(
-            reasoning.task.CACHE_BASEPATH.value,
+            reasoning.task.TASK_CACHE_BASEPATH.value,
             'reasonings',
             'svq_en_us_span_reasoning_in_lang',
             'embeddings',

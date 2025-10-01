@@ -104,7 +104,9 @@ class RetrievalTest(absltest.TestCase):
     }
 
     self.enter_context(
-        flagsaver.flagsaver((retrieval.task.CACHE_BASEPATH, self.testdata_path))
+        flagsaver.flagsaver(
+            (retrieval.task.TASK_CACHE_BASEPATH, self.testdata_path)
+        )
     )
     task = MockRetrievalTask()
     task.setup()
@@ -143,9 +145,10 @@ class RetrievalTest(absltest.TestCase):
         return ['not_used']
 
     self.enter_context(
-        flagsaver.flagsaver(
-            (retrieval.task.CACHE_BASEPATH, self.create_tempdir().full_path)
-        )
+        flagsaver.flagsaver((
+            retrieval.task.TASK_CACHE_BASEPATH,
+            self.create_tempdir().full_path,
+        ))
     )
     task = MockRetrievalTask()
     task.setup(

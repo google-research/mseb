@@ -24,8 +24,8 @@ from mseb import runner as runner_lib
 from mseb import types
 
 
-CACHE_BASEPATH = flags.DEFINE_string(
-    "cache_basepath",
+TASK_CACHE_BASEPATH = flags.DEFINE_string(
+    "task_cache_basepath",
     None,
     "Base path for the task cache.",
 )

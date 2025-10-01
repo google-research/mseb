@@ -34,7 +34,8 @@ from mseb.encoders import whisper_encoder
 
 _GECKO_MODEL_PATH = flags.DEFINE_string(
     "gecko_model_path",
-    "@gecko/gecko-1b-i18n-tpu/2",
+    "@gecko/gecko-1b-i18n-cpu/2",
+    # "@gecko/gecko-1b-i18n-tpu/2",
     "Path to Gecko model.",
 )
 

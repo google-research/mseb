@@ -73,7 +73,7 @@ def main(argv):
       encoder=encoder,
       batch_size=_BATCH_SIZE.value,
       num_workers=_NUM_THREADS.value,
-      output_path=task_lib.CACHE_BASEPATH.value,
+      output_path=runner_lib.RUNNER_CACHE_BASEPATH.value,
   )
   task.setup(runner=runner)
 

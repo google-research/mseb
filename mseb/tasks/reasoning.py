@@ -46,7 +46,7 @@ class ReasoningTask(task.MSEBTask):
   @property
   def embeddings_dir(self) -> str:
     """The directory where the span embeddings cache is stored."""
-    return os.path.join(task.CACHE_BASEPATH.value, 'reasonings')
+    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'reasonings')
 
   def setup(
       self, runner: runner_lib.EncoderRunner | None = None

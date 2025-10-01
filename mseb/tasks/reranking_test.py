@@ -127,7 +127,7 @@ class RerankingTest(absltest.TestCase):
         embeddings=candidate_embeddings,
     )
     self.enter_context(
-        flagsaver.flagsaver((reranking.task.CACHE_BASEPATH, cache_dir))
+        flagsaver.flagsaver((reranking.task.TASK_CACHE_BASEPATH, cache_dir))
     )
 
     task = MockRerankingTask()
@@ -198,9 +198,10 @@ class RerankingTest(absltest.TestCase):
         return ['test']
 
     self.enter_context(
-        flagsaver.flagsaver(
-            (reranking.task.CACHE_BASEPATH, self.create_tempdir().full_path)
-        )
+        flagsaver.flagsaver((
+            reranking.task.TASK_CACHE_BASEPATH,
+            self.create_tempdir().full_path,
+        ))
     )
     task = MockRerankingTask()
     task.setup(

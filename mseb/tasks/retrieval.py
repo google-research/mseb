@@ -56,7 +56,7 @@ class RetrievalTask(task.MSEBTask):
   @property
   def index_dir(self) -> str:
     """The directory where the index is stored."""
-    return os.path.join(task.CACHE_BASEPATH.value, 'retrievals')
+    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'retrievals')
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the index."""

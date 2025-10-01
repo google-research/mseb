@@ -38,7 +38,7 @@ class RerankingTask(task.MSEBTask):
   @property
   def embeddings_dir(self) -> str:
     """The directory where the candidate embeddings cache is stored."""
-    return os.path.join(task.CACHE_BASEPATH.value, 'rerankings')
+    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'rerankings')
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the candidate embeddings cache."""
