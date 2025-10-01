@@ -15,9 +15,67 @@
 """MSEB Encoder base class."""
 
 import abc
-from typing import final, Mapping, Sequence, Type
+import dataclasses
+from typing import Mapping, Sequence, Type, final
 
+import librosa
 from mseb import types
+import numpy as np
+
+
+def resample_sound(
+    sound: types.Sound,
+    target_sr: int,
+    target_dtype: (
+        type[np.float32] | type[np.int16] | type[np.int32] | type[np.int8]
+    ) = np.float32,
+) -> types.Sound:
+  """Resamples a Sound object to a target sample rate if necessary."""
+  supported_dtypes = (np.float32, np.int16, np.int32, np.int8)
+  if sound.waveform.dtype.type not in supported_dtypes:
+    raise ValueError(
+        f"Unsupported input waveform dtype: {sound.waveform.dtype}"
+    )
+  if target_dtype not in supported_dtypes:
+    raise ValueError(f"Unsupported target_dtype: {target_dtype}")
+
+  if (
+      sound.context.sample_rate == target_sr
+      and sound.waveform.dtype == np.dtype(target_dtype)
+  ):
+    return sound
+
+  if np.issubdtype(sound.waveform.dtype, np.integer):
+    info = np.iinfo(sound.waveform.dtype)
+    d = -info.min if info.min != info.max else 1.0
+    waveform_float = sound.waveform.astype(np.float32) / d
+  else:
+    waveform_float = sound.waveform.astype(np.float32)
+
+  if sound.context.sample_rate == target_sr:
+    resampled_waveform = waveform_float
+    new_context = sound.context
+  else:
+    resampled_waveform = librosa.resample(
+        waveform_float,
+        orig_sr=sound.context.sample_rate,
+        target_sr=target_sr,
+    )
+    new_context = dataclasses.replace(
+        sound.context,
+        sample_rate=target_sr,
+        length=len(resampled_waveform),
+    )
+
+  if target_dtype == np.float32:
+    output_waveform = resampled_waveform
+  else:
+    info = np.iinfo(target_dtype)
+    output_waveform = np.clip(
+        resampled_waveform * -info.min, info.min, info.max
+    ).astype(target_dtype)
+
+  return types.Sound(waveform=output_waveform, context=new_context)
 
 
 class MultiModalEncoder(abc.ABC):
@@ -50,9 +108,7 @@ class MultiModalEncoder(abc.ABC):
       self._is_setup = True
 
   @abc.abstractmethod
-  def _check_input_types(
-      self, batch: Sequence[types.MultiModalObject]
-  ) -> None:
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     """Validates the modality for the specific encoder.
 
     Subclasses must implement this method to verify that the input modality is
@@ -60,6 +116,7 @@ class MultiModalEncoder(abc.ABC):
 
     Args:
       batch: A batch of MultiModelInput example to check.
+
     Raises:
       ValueError: If the sequence of input types is not a valid combination
         for this encoder.

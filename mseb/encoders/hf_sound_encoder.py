@@ -16,7 +16,6 @@
 
 from typing import Any, Callable, Sequence
 
-import librosa
 from mseb import encoder
 from mseb import types
 import numpy as np
@@ -136,21 +135,16 @@ class HFSoundEncoder(encoder.MultiModalEncoder):
     transform_fn_kwargs = self._kwargs.get('transform_fn_kwargs', {})
     outputs = []
     for sound in sound_batch:
+      assert self.processor
+      sound = encoder.resample_sound(
+          sound, self.processor.feature_extractor.sampling_rate
+      )
       waveform = np.asarray(sound.waveform, dtype=np.float32)
       params = sound.context
 
-      assert self.processor
-      assert params.sample_rate
-
-      waveform = librosa.resample(
-          waveform,
-          orig_sr=params.sample_rate,
-          target_sr=self.processor.feature_extractor.sampling_rate,
-      )
-
       input_values = self.processor(
           waveform,
-          sampling_rate=self.processor.feature_extractor.sampling_rate,
+          sampling_rate=params.sample_rate,
           return_tensors='pt',
       ).input_values
       input_values = input_values.to(self.device)

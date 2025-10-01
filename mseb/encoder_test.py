@@ -17,9 +17,11 @@ from typing import Sequence
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from mseb import encoder
 from mseb import types
 import numpy as np
+import numpy.testing as npt
 
 
 logger = logging.getLogger(__name__)
@@ -170,6 +172,116 @@ class CollectionEncoderTest(absltest.TestCase):
     sound_embedding = sound_embeddings[0]
     self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     self.assertEqual(sound_embedding.embedding.shape, (10, 8))
+
+
+class ResampleSoundTest(parameterized.TestCase):
+
+  def test_resample_sound_no_resampling_float(self):
+    waveform = np.linspace(-1.0, 1.0, 16000, dtype=np.float32)
+    context = types.SoundContextParams(
+        id="test", sample_rate=16000, length=16000
+    )
+    sound = types.Sound(waveform=waveform, context=context)
+    resampled_sound = encoder.resample_sound(sound, 16000)
+    self.assertIs(resampled_sound, sound)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="int16_to_float32",
+          dtype=np.int16,
+          target_dtype=np.float32,
+          waveform_array=[-32768, 0, 32767],
+          expected_waveform=[-1.0, 0.0, 32767.0 / 32768.0],
+      ),
+      dict(
+          testcase_name="int8_to_float32",
+          dtype=np.int8,
+          target_dtype=np.float32,
+          waveform_array=[-128, 0, 127],
+          expected_waveform=[-1.0, 0.0, 127.0 / 128.0],
+      ),
+      dict(
+          testcase_name="int32_to_float32",
+          dtype=np.int32,
+          target_dtype=np.float32,
+          waveform_array=[-2147483648, 0, 2147483647],
+          expected_waveform=[-1.0, 0.0, 2147483647.0 / 2147483648.0],
+      ),
+      dict(
+          testcase_name="int16_to_int16",
+          dtype=np.int16,
+          target_dtype=np.int16,
+          waveform_array=[-32768, 0, 32767],
+          expected_waveform=[-32768, 0, 32767],
+      ),
+      dict(
+          testcase_name="int8_to_int8",
+          dtype=np.int8,
+          target_dtype=np.int8,
+          waveform_array=[-128, 0, 127],
+          expected_waveform=[-128, 0, 127],
+      ),
+      dict(
+          testcase_name="int32_to_int32",
+          dtype=np.int32,
+          target_dtype=np.int32,
+          waveform_array=[-2147483648, 0, 2147483647],
+          expected_waveform=[-2147483648, 0, 2147483647],
+      ),
+  )
+  def test_resample_sound_no_resampling_int(
+      self, dtype, target_dtype, waveform_array, expected_waveform
+  ):
+    waveform = np.array(waveform_array, dtype=dtype)
+    context = types.SoundContextParams(id="test", sample_rate=16000, length=3)
+    sound = types.Sound(waveform=waveform, context=context)
+    resampled_sound = encoder.resample_sound(
+        sound, 16000, target_dtype=target_dtype
+    )
+    if dtype == target_dtype:
+      self.assertIs(resampled_sound, sound)
+    else:
+      self.assertIsNot(resampled_sound, sound)
+    self.assertEqual(resampled_sound.waveform.dtype, target_dtype)
+    self.assertEqual(resampled_sound.context.sample_rate, 16000)
+    npt.assert_allclose(resampled_sound.waveform, expected_waveform, atol=1e-4)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="float32",
+          dtype=np.float32,
+          min_val=-1.0,
+          max_val=1.0,
+      ),
+      dict(
+          testcase_name="int16",
+          dtype=np.int16,
+          min_val=-32768,
+          max_val=32767,
+      ),
+      dict(
+          testcase_name="int8",
+          dtype=np.int8,
+          min_val=-128,
+          max_val=127,
+      ),
+      dict(
+          testcase_name="int32",
+          dtype=np.int32,
+          min_val=-2147483648,
+          max_val=2147483647,
+      ),
+  )
+  def test_resample_sound_downsample(self, dtype, min_val, max_val):
+    waveform = np.linspace(min_val, max_val, 16000).astype(dtype)
+    context = types.SoundContextParams(
+        id="test", sample_rate=16000, length=16000
+    )
+    sound = types.Sound(waveform=waveform, context=context)
+    resampled_sound = encoder.resample_sound(sound, 8000)
+    self.assertEqual(resampled_sound.context.sample_rate, 8000)
+    self.assertEqual(resampled_sound.waveform.shape[0], 8000)
+    self.assertEqual(resampled_sound.waveform.dtype, np.float32)
 
 
 if __name__ == "__main__":

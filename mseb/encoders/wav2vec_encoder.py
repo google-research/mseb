@@ -17,7 +17,6 @@
 from typing import Any, Callable, Sequence
 
 import huggingface_hub
-import librosa
 from mseb import encoder
 from mseb import types
 import numpy as np
@@ -188,27 +187,16 @@ class Wav2VecEncoder(encoder.MultiModalEncoder):
     transform_fn_kwargs = self._kwargs.get('transform_fn_kwargs', {})
     outputs = []
     for sound in sound_batch:
+      assert self.processor is not None
+      sound = encoder.resample_sound(
+          sound, self.processor.feature_extractor.sampling_rate
+      )
       waveform = np.asarray(sound.waveform, dtype=np.float32)
       params = sound.context
 
-      assert self.processor is not None
-      # TODO(mseb): In the new design, we need to assume encoder does not do any
-      # preprocessing and only get sequence of floats.
-
-      if params.sample_rate is None:
-        raise ValueError(
-            'Sample rate must be set in context when sequence is '
-            'a raw array or via librosa.load.'
-        )
-      waveform = librosa.resample(
-          waveform,
-          orig_sr=params.sample_rate,
-          target_sr=self.processor.feature_extractor.sampling_rate,
-      )
-
       input_values = self.processor(
           waveform,
-          sampling_rate=self.processor.feature_extractor.sampling_rate,
+          sampling_rate=params.sample_rate,
           return_tensors='pt',
       ).input_values
       input_values = input_values.to(self.device)

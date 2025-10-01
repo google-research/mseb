@@ -44,18 +44,6 @@ class SpeechToTextEncoderTest(absltest.TestCase):
         os.path.join(testdata_path, 'en_us.parquet')
     )
 
-  def test_preprocess(self):
-    whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
-        model_path='base', device='cpu'
-    )
-    whisper_encoder_instance.setup()
-    svq_example = self.svq_samples.read_row_group(0)
-    waveform = svq_example['waveform'].to_numpy()[0]
-    waveform = waveform.astype(np.float32) / 32767.0
-    sample_rate = 48000
-    preprocessed = whisper_encoder_instance.preprocess(waveform, sample_rate)
-    npt.assert_allclose(preprocessed.shape[0], waveform.shape[0] / 3)
-
   def test_encode_sentence_level(self):
     whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
         model_path='base', device='cpu'

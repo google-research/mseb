@@ -19,7 +19,6 @@ from typing import Callable, Optional, Sequence
 
 from absl import logging
 from fvcore import nn
-import librosa
 from mseb import encoder
 from mseb import types
 import numpy as np
@@ -48,43 +47,6 @@ class Whisper(encoder.MultiModalEncoder):
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError('Whisper only supports a batch of all Sound inputs.')
-
-  def preprocess(
-      self, sequence: Sequence[float], sample_rate: Optional[int] = None
-  ) -> np.ndarray:
-    """Preprocesses sequence for Whisper models' input compatibility.
-
-    Args:
-      sequence: A sequence of float values representing the audio waveform.
-      sample_rate: The sample rate associated with the sequence. Required if
-        sequence is a float sequence. Must be None if sequence is a string
-        filepath.
-
-    Returns:
-      Waveform data sampled at whisper.audio.SAMPLE_RATE hertz.
-
-    Raises:
-      ValueError: If sample_rate is inconsistent with ssequence tpye,
-                  or if sequence is neither a string or Sequence[float].
-    """
-    sequence = np.array(sequence, dtype=np.float32)
-    if sample_rate is None:
-      raise ValueError(
-          'The sample_rate argument must not be None when '
-          'sequence input is Sequence[float].'
-      )
-    if not np.issubdtype(sequence.dtype, np.floating):
-      raise ValueError(
-          'The input array is a NumPy ndarray but its data tpye is '
-          f'{sequence.dtype} whereas a floating-point data type is required.'
-      )
-    if sample_rate == whisper.audio.SAMPLE_RATE:
-      return sequence
-    sequence_data = sequence
-
-    return librosa.resample(
-        sequence_data, orig_sr=sample_rate, target_sr=whisper.audio.SAMPLE_RATE
-    )
 
   @abc.abstractmethod
   def _encode_sound(
@@ -139,8 +101,8 @@ class Whisper(encoder.MultiModalEncoder):
       sound_batch.append(example)
     outputs = []
     for sound in sound_batch:
-      sequence_data = self.preprocess(sound.waveform, sound.context.sample_rate)
-      outputs.append(self._encode_sound(sequence_data, sound.context))
+      sound = encoder.resample_sound(sound, whisper.audio.SAMPLE_RATE)
+      outputs.append(self._encode_sound(sound.waveform, sound.context))
     return outputs
 
 
@@ -408,8 +370,8 @@ class PooledAudioEncoder(Whisper):
     if self._flops_cache is not None:
       return self._flops_cache
     assert isinstance(data, types.Sound)
-    waveform = self.preprocess(data.waveform, data.context.sample_rate)
-    mel, _ = self.get_mel_inputs(waveform)
+    sound = encoder.resample_sound(data, whisper.audio.SAMPLE_RATE)
+    mel, _ = self.get_mel_inputs(sound.waveform)
     flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel)
     self._flops_cache = flop_analyzer.total()
     return self._flops_cache

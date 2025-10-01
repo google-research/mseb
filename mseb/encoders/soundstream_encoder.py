@@ -14,9 +14,8 @@
 
 """SoundStream Encoder."""
 
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence
 
-import librosa
 from mseb import encoder
 from mseb import types
 import numpy as np
@@ -252,45 +251,6 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
       self._num_quantizers_tf_tensor_input = tf.constant(
           [self.num_desired_quantizers], dtype=tf.int32)
 
-  def _load_and_preprocess_audio(self,
-                                 sequence: Union[str, Sequence[float]],
-                                 source_sample_rate: int,
-                                 target_sample_rate: int) -> np.ndarray:
-    """Loads audio if path is given, then resamples and pads."""
-    if isinstance(sequence, str):
-      try:
-        waveform, sample_rate = librosa.load(sequence, sr=None)
-        if sample_rate != source_sample_rate:
-          print(f'Warning: Actual audio sampling rate ({sample_rate} Hz) '
-                'differs from provided source_sample_rate '
-                f'({source_sample_rate} Hz). Using actual SR for resampling '
-                'if different from target.')
-          if sample_rate != target_sample_rate:
-            waveform = librosa.resample(
-                waveform,
-                orig_sr=sample_rate,
-                target_sr=target_sample_rate)
-      except Exception as e:
-        raise ValueError(
-            f'Error loading audio from path: {sequence}'
-        ) from e
-    elif isinstance(sequence, np.ndarray):
-      waveform = sequence
-      if source_sample_rate != target_sample_rate:
-        waveform = librosa.resample(
-            waveform,
-            orig_sr=source_sample_rate,
-            target_sr=target_sample_rate)
-    else:
-      raise TypeError('Input sequence must be a file path (str) '
-                      'or a NumPy array.')
-
-    if waveform.dtype != np.float32:
-      waveform = waveform.astype(np.float32)
-    return pad_first_axis_to_target_multiple_length(
-        waveform, length_base=self.sample_size, pad_value=0.0
-    )
-
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.SoundEmbedding]:
@@ -310,10 +270,10 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
       sound_batch.append(example)
     outputs = []
     for sound in sound_batch:
-      waveform = self._load_and_preprocess_audio(
-          sound.waveform,
-          sound.context.sample_rate,
-          self.SOUNDSTREAM_SAMPLING_RATE
+      sound = encoder.resample_sound(sound, self.SOUNDSTREAM_SAMPLING_RATE)
+      waveform = np.array(sound.waveform, dtype=np.float32)
+      waveform = pad_first_axis_to_target_multiple_length(
+          waveform, length_base=self.sample_size, pad_value=0.0
       )
 
       timestamps_list: List[List[float]] = []
