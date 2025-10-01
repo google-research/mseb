@@ -30,13 +30,13 @@ class ClassificationEvaluatorTest(absltest.TestCase):
         [0.0, 1.0, 0.0, 0.0],  # Class 'dog'
         [0.0, 0.0, 1.0, 0.0],  # Class 'bird'
     ], dtype=np.float32)
-    self.id_by_class_index = ['cat', 'dog', 'bird']
+    self.class_labels = ['cat', 'dog', 'bird']
 
   def test_initialization_invalid_k_raises_error(self):
     with self.assertRaises(ValueError):
       classification_evaluator.ClassificationEvaluator(
-          embedding_table=self.embedding_table,
-          id_by_class_index=self.id_by_class_index,
+          weights=self.embedding_table,
+          class_labels=self.class_labels,
           top_k_value=0,
       )
 
@@ -46,16 +46,15 @@ class ClassificationEvaluatorTest(absltest.TestCase):
           'Dummy message to activate logger.'
       )  # Ensure logger is active
       classification_evaluator.ClassificationEvaluator(
-          embedding_table=self.embedding_table,
-          id_by_class_index=self.id_by_class_index,
+          weights=self.embedding_table,
+          class_labels=self.class_labels,
           top_k_value=3,  # k is equal to the number of classes
       )
     self.assertIn('will always be 100%', log.output[1])
 
   def test_compute_predictions_malformed_embedding_raises_error(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        self.embedding_table,
-        self.id_by_class_index
+        class_labels=self.class_labels, weights=self.embedding_table
     )
     malformed_embeddings = {
         'id_1': types.SoundEmbedding(
@@ -74,7 +73,9 @@ class ClassificationEvaluatorTest(absltest.TestCase):
   def test_compute_metrics_perfect_score(self):
     """Tests a scenario where all predictions are correct."""
     evaluator = classification_evaluator.ClassificationEvaluator(
-        self.embedding_table, self.id_by_class_index, top_k_value=2
+        class_labels=self.class_labels,
+        weights=self.embedding_table,
+        top_k_value=2,
     )
     # Each embedding perfectly matches a class embedding.
     scores = {
@@ -95,9 +96,9 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_compute_metrics_top_k_accuracy(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        self.embedding_table,
-        self.id_by_class_index,
-        top_k_value=2
+        class_labels=self.class_labels,
+        weights=self.embedding_table,
+        top_k_value=2,
     )
     # The highest score is for 'dog', but the second
     # highest is 'cat' (the true label).
@@ -113,7 +114,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_compute_metrics_balanced_accuracy(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        self.embedding_table, self.id_by_class_index
+        class_labels=self.class_labels, weights=self.embedding_table
     )
     # Model always predicts 'cat'. Dataset is 3 'cat', 1 'dog'.
     scores = {
@@ -141,7 +142,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_multimodality_with_text_embeddings(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        self.embedding_table, self.id_by_class_index
+        class_labels=self.class_labels, weights=self.embedding_table
     )
     text_embeddings = {
         'id_1': types.TextEmbedding(
@@ -156,6 +157,17 @@ class ClassificationEvaluatorTest(absltest.TestCase):
     expected_scores = np.array([1.0, 0.0, 0.0])
     np.testing.assert_allclose(scores['id_1'], expected_scores)
 
+  def test_save_and_load_linear_classifier(self):
+    base_dir = self.create_tempdir().full_path
+    classification_evaluator.save_linear_classifier(
+        self.class_labels, self.embedding_table, base_dir
+    )
+    class_labels_loaded, weights_loaded = (
+        classification_evaluator.load_linear_classifier(base_dir)
+    )
+    self.assertSequenceEqual(self.class_labels, class_labels_loaded)
+    np.testing.assert_allclose(self.embedding_table, weights_loaded)
+
 
 class MultiLabelClassificationEvaluatorTest(absltest.TestCase):
   """Tests for the MultiLabelClassificationEvaluator class."""
@@ -169,7 +181,7 @@ class MultiLabelClassificationEvaluatorTest(absltest.TestCase):
     ], dtype=np.float32)
     self.id_by_class_index = ['cat', 'dog', 'bird']
     self.evaluator = classification_evaluator.MultiLabelClassificationEvaluator(
-        embedding_table=self.embedding_table,
+        weights=self.embedding_table,
         id_by_class_index=self.id_by_class_index,
     )
 

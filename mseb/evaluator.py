@@ -144,38 +144,38 @@ def compute_weighted_average_and_std(
 
 DistanceFn = Callable[
     [
+        jaxtyping.Float[jaxtyping.Array, '*B D'],
         jaxtyping.Float[jaxtyping.Array, 'N D'],
-        jaxtyping.Float[jaxtyping.Array, 'D'],
     ],
-    jaxtyping.Float[jaxtyping.Array, 'N'],
+    jaxtyping.Float[jaxtyping.Array, '*B N'],
 ]
 
 dot_product = np.dot
 
 PredictFn = Callable[
-    [jaxtyping.Float[jaxtyping.Array, 'N']],
-    jaxtyping.Int[jaxtyping.Array, 'k'],
+    [jaxtyping.Float[jaxtyping.Array, '*B N']],
+    jaxtyping.Int[jaxtyping.Array, '*B k'],
 ]
 
 
 def argmax(
-    scores: jaxtyping.Float[jaxtyping.Array, 'N']
+    scores: jaxtyping.Float[jaxtyping.Array, '*B N'],
 ) -> tuple[
-    jaxtyping.Float[jaxtyping.Array, '1'], jaxtyping.Int[jaxtyping.Array, '1']
+    jaxtyping.Float[jaxtyping.Array, '*B 1'],
+    jaxtyping.Int[jaxtyping.Array, '*B 1'],
 ]:
   """Returns the argmax of scores."""
   top_id = np.argmax(scores)
   return np.array([scores[top_id]]), np.array([top_id])
 
 
-def top_k(
-    scores: jaxtyping.Float[jaxtyping.Array, 'N'], k: int
-) -> tuple[
-    jaxtyping.Float[jaxtyping.Array, 'k'], jaxtyping.Int[jaxtyping.Array, 'k']
+def top_k(scores: jaxtyping.Float[jaxtyping.Array, '*B N'], k: int) -> tuple[
+    jaxtyping.Float[jaxtyping.Array, '*B k'],
+    jaxtyping.Int[jaxtyping.Array, '*B k'],
 ]:
   """Returns top k values and their indices of scores."""
   k = min(k, len(scores))
-  ids_k = np.argpartition(scores, -k)[-k:]
-  ids = np.argsort(scores[ids_k])[::-1]
+  ids_k = np.argpartition(scores, -k, axis=-1)[-k:]
+  ids = np.argsort(scores[ids_k], axis=-1)[::-1]
   ids_k = ids_k[ids]
   return scores[ids_k], ids_k

@@ -186,7 +186,7 @@ class RerankingEvaluator:
         assert hasattr(embeds, 'embedding')
         embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
         embeddings.append(embed[0])
-      scores = self.distance_fn(np.array(embeddings), embedding[0])
+      scores = self.distance_fn(embedding[0], np.array(embeddings).T)
       ranked_candidate_scores, ranked_candidate_ids = self.predict_fn(scores)
       texts = [text.context.id for text in candidate_embeddings]
       ranked_candidate_texts: Sequence[str] = [

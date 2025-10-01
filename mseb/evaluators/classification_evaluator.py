@@ -17,12 +17,17 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import logging
-from typing import Callable, Mapping, Optional, Sequence
+import os
+from typing import Mapping, Sequence
 
+import jaxtyping
+from mseb import evaluator as evaluator_lib
 from mseb import types
 import numpy as np
 from sklearn import metrics
+import tensorflow as tf
 
 
 logger = logging.getLogger(__name__)
@@ -187,37 +192,43 @@ class ClassificationEvaluator:
 
   def __init__(
       self,
-      embedding_table: Optional[np.ndarray],
-      id_by_class_index: Sequence[str],
-      distance_fn: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.dot,
+      class_labels: Sequence[str],
+      weights: jaxtyping.Float[jaxtyping.Array, 'C D'] | None,
+      distance_fn: evaluator_lib.DistanceFn = evaluator_lib.dot_product,
+      predict_fn: evaluator_lib.PredictFn = functools.partial(
+          evaluator_lib.top_k, k=5
+      ),
       top_k_value: int = 5,
   ):
     """Initializes the ClassificationEvaluator.
 
     This evaluator can be configured for a "full pipeline" (generating scores
-    from embeddings and then computing metrics) or "metrics-only" (if you
-    already have scores).
+    from a linear classifier with weights (aka class label embeddings) and then
+    computing metrics) or "metrics-only" (if you already have scores).
 
     Args:
-      embedding_table: An optional [num_classes, embedding_dim] numpy array
-        where each row is the vector representation for a class. This is
-        required only when using the `compute_predictions` method. For
+      class_labels: A required sequence of strings representing the class
+        labels. The order of labels must correspond to the row order of
+        `weights`. This is needed to map score vector indices to human-readable
+        labels.
+      weights: An optional [num_classes, embedding_dim+1] numpy array where each
+        row is the vector representation for a class, including the bias term.
+        This is required only when using the `compute_predictions` method. For
         metrics-only evaluation, this can be `None`.
-      id_by_class_index: A required sequence of strings representing the class
-        labels. The order of labels must correspond to the row order of the
-        `embedding_table`. This is needed to map score vector indices to
-        human-readable labels.
       distance_fn: A callable function used to compute scores between an example
         embedding and the class embedding table. It should accept a (D,) array
         and a (D, V) array and return a (V,) array of scores. Defaults to
         `numpy.dot`.
+      predict_fn: A callable function used to compute predictions from the
+        scores. It should accept a 1D array of scores and return a 1D array of
+        predictions. Defaults to `evaluator_lib.top_k` with `k=5`.
       top_k_value: The integer `k` to use for calculating Top-K accuracy.
         Defaults to 5.
 
     Raises:
       ValueError: If `top_k_value` is not a positive integer.
     """
-    num_classes = len(id_by_class_index)
+    num_classes = len(class_labels)
     if top_k_value <= 0:
       raise ValueError(
           f'top_k_value must be positive, but got {top_k_value}.'
@@ -228,12 +239,12 @@ class ClassificationEvaluator:
           'Top-%d Accuracy will always be 100%%.',
           top_k_value, num_classes, top_k_value
       )
-    self.embedding_table = embedding_table
-    self.id_by_class_index = id_by_class_index
-    self.index_by_id = {
-        label_id: i for i, label_id in enumerate(id_by_class_index)
+      self.weights = weights
+    self.id_by_label = {
+        label: label_id for label_id, label in enumerate(class_labels)
     }
     self.distance_fn = distance_fn
+    self.predict_fn = predict_fn
     self.top_k_value = top_k_value
 
   def compute_predictions(
@@ -241,10 +252,10 @@ class ClassificationEvaluator:
       embeddings_by_id: types.MultiModalEmbeddingCache
   ) -> Mapping[str, np.ndarray]:
     """Computes prediction scores for the given embeddings."""
-    if self.embedding_table is None:
+    if self.weights is None:
       raise ValueError(
-          'An embedding_table must be provided during initialization to '
-          'use compute_predictions.'
+          'Weights must be provided during initialization to use'
+          ' compute_predictions.'
       )
 
     classification_scores = {}
@@ -261,7 +272,7 @@ class ClassificationEvaluator:
       example_embedding = embedding_array[0]
       classification_scores[example_id] = self.distance_fn(
           example_embedding,
-          self.embedding_table.T
+          self.weights.T
       )
     return classification_scores
 
@@ -295,40 +306,37 @@ class ClassificationEvaluator:
       one of the computed metrics. Returns an empty list if no matching
       predictions are found for the provided references.
     """
-    y_true_labels, y_pred_labels, y_scores_list = [], [], []
+    y_true_labels, y_pred_labels, y_top_k_labels = [], [], []
 
     for ref in references:
       if ref.example_id in scores:
-        y_true_labels.append(ref.label_id)
-        pred_index = np.argmax(scores[ref.example_id])
-        y_pred_labels.append(self.id_by_class_index[pred_index])
-        y_scores_list.append(scores[ref.example_id])
+        y_true_labels.append(self.id_by_label[ref.label_id])
+        _, top_k_indices = self.predict_fn(scores[ref.example_id])
+        y_pred_labels.append(top_k_indices[0])
+        y_top_k_labels.append(top_k_indices[:self.top_k_value])
 
     if not y_true_labels:
       logger.error('No matching predictions found for the given references.')
       return []
 
-    y_scores = np.array(y_scores_list)
     acc = metrics.accuracy_score(y_true_labels, y_pred_labels)
-    true_indices = np.array(
-        [self.index_by_id[label] for label in y_true_labels]
+    top_k_hits = np.any(
+        np.array(y_top_k_labels) == np.array(y_true_labels)[:, np.newaxis],
+        axis=1,
     )
-    top_k_indices = np.argsort(y_scores, axis=1)[:, -self.top_k_value:]
-    top_k_hits = np.any(top_k_indices == true_indices[:, np.newaxis], axis=1)
     top_k_acc = np.mean(top_k_hits)
     bal_acc = metrics.balanced_accuracy_score(y_true_labels, y_pred_labels)
-    class_labels = list(self.id_by_class_index)
     prec, rec, f1, _ = metrics.precision_recall_fscore_support(
         y_true_labels,
         y_pred_labels,
         average='weighted',
-        labels=class_labels,
+        labels=list(self.id_by_label.values()),
         zero_division=0
     )
 
     return [
         accuracy(acc),
-        top_k_accuracy(top_k_acc, k=self.top_k_value),
+        top_k_accuracy(float(top_k_acc), k=self.top_k_value),
         balanced_accuracy(bal_acc),
         weighted_precision(prec),
         weighted_recall(rec),
@@ -341,23 +349,25 @@ class MultiLabelClassificationEvaluator:
 
   def __init__(
       self,
-      embedding_table: Optional[np.ndarray],
+      weights: jaxtyping.Float[jaxtyping.Array, 'C D'] | None,
       id_by_class_index: Sequence[str],
-      distance_fn: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.dot,
+      distance_fn: evaluator_lib.DistanceFn = evaluator_lib.dot_product,
   ):
     """Initializes the MultiLabelClassificationEvaluator.
 
     Args:
-      embedding_table: An optional [num_classes, embedding_dim] numpy array
+      weights: An optional [num_classes, embedding_dim] numpy array
         where each row is the vector representation for a class. This is
         required only when using the `compute_predictions` method.
       id_by_class_index: A required sequence of strings representing all
         possible class labels. The order must correspond to the row order of
         the `embedding_table`.
-      distance_fn: A callable function used to compute scores. Defaults to
+      distance_fn: A callable function used to compute scores between an example
+        embedding and the class embedding table. It should accept a (D,) array
+        and a (D, V) array and return a (V,) array of scores. Defaults to
         `numpy.dot`.
     """
-    self.embedding_table = embedding_table
+    self.weights = weights
     self.id_by_class_index = id_by_class_index
     self.index_by_id = {
         label_id: i for i, label_id in enumerate(id_by_class_index)
@@ -368,7 +378,7 @@ class MultiLabelClassificationEvaluator:
       self, embeddings_by_id: types.MultiModalEmbeddingCache
   ) -> Mapping[str, np.ndarray]:
     """Computes prediction scores for the given embeddings."""
-    if self.embedding_table is None:
+    if self.weights is None:
       raise ValueError(
           'An embedding_table must be provided during initialization to '
           'use compute_predictions.'
@@ -387,7 +397,7 @@ class MultiLabelClassificationEvaluator:
         )
       example_embedding = embedding_array[0]
       classification_scores[example_id] = self.distance_fn(
-          example_embedding, self.embedding_table.T
+          example_embedding, self.weights.T
       )
     return classification_scores
 
@@ -464,3 +474,31 @@ class MultiLabelClassificationEvaluator:
         hamming_loss(h_loss),
         subset_accuracy(sub_acc),
     ]
+
+
+def load_linear_classifier(base_dir: str) -> tuple[
+    Sequence[str],
+    jaxtyping.Float[jaxtyping.Array, 'C D'],
+]:
+  """Loads the linear classifier from a directory."""
+  logger.info('Loading weights and bias from %s', base_dir)
+
+  with tf.io.gfile.GFile(os.path.join(base_dir, 'weights.npy'), 'rb') as f:
+    weights = np.load(f)
+  with tf.io.gfile.GFile(os.path.join(base_dir, 'class_labels.txt'), 'r') as f:
+    class_labels = f.read().splitlines()
+  return class_labels, weights
+
+
+def save_linear_classifier(
+    class_labels: Sequence[str],
+    weights: jaxtyping.Float[jaxtyping.Array, 'C D'],
+    base_dir: str,
+):
+  """Saves the linear classifier to a directory."""
+  logger.info('Saving weights and bias to %s', base_dir)
+  tf.io.gfile.makedirs(base_dir)
+  with tf.io.gfile.GFile(os.path.join(base_dir, 'weights.npy'), 'wb') as f:
+    np.save(f, weights)
+  with tf.io.gfile.GFile(os.path.join(base_dir, 'class_labels.txt'), 'w') as f:
+    f.write('\n'.join(class_labels))
