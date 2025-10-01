@@ -28,7 +28,9 @@ from mseb import metrics as metrics_lib
 from mseb import types
 import numpy as np
 import tensorflow as tf
-import tensorflow_recommenders as tfrs
+
+from scann import scann_ops_pybind
+ScannSearcher = scann_ops_pybind.ScannSearcher
 
 
 logger = logging.getLogger(__name__)
@@ -136,7 +138,7 @@ class RetrievalEvaluator:
 
   def __init__(
       self,
-      searcher: tfrs.layers.factorized_top_k.TopK,
+      searcher: ScannSearcher,
       id_by_index_id: Sequence[str],
       top_k: int = 10,
   ):
@@ -160,15 +162,15 @@ class RetrievalEvaluator:
     for sound_id, embeddings in embeddings_by_sound_id.items():
       assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, 'N D'] = embeddings.embedding
-      ranked_doc_scores, ranked_index_ids = self.searcher(
+      ranked_index_ids, ranked_doc_scores = self.searcher.search_batched(
           embedding.astype(np.float32)
       )
       ranked_doc_scores = [  # pylint: disable=g-complex-comprehension
-          [float(score.numpy()) for score in scores]
+          [float(score) for score in scores]
           for scores in ranked_doc_scores
       ]
       ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
-          [self.id_by_index_id[int(x.numpy())] for x in ids]
+          [self.id_by_index_id[int(x)] for x in ids]
           for ids in ranked_index_ids
       ]
       predictions[sound_id] = tuple(
@@ -206,7 +208,8 @@ class RetrievalEvaluatorPartitioned:
     self.top_k = top_k
 
   def compute_predictions(
-      self, embeddings_by_sound_id: types.MultiModalEmbeddingCache,
+      self,
+      embeddings_by_sound_id: types.MultiModalEmbeddingCache,
   ) -> RetrievalPredictionsCache:
     """Computes the predictions for the given embeddings and reference ids."""
     predictions = {}
@@ -248,7 +251,7 @@ class RetrievalEvaluatorPartitioned:
 
 def build_index(
     embeddings: types.MultiModalEmbeddingCache, k: int = 10
-) -> tuple[tfrs.layers.factorized_top_k.TopK, Sequence[str]]:
+) -> tuple[ScannSearcher, Sequence[str]]:
   """Builds the ScaNN index from the embeddings.
 
   Args:
@@ -256,37 +259,41 @@ def build_index(
     k: The number of neighbors to return.
 
   Returns:
-    A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
-    mapping from index id (int) to id (str).
+    A tuple of the searcher of type ScannSearcher and the mapping from index id
+    (int) to id (str).
   """
   logger.info('Building ScaNN index...')
   id_by_index_id: Sequence[str] = sorted(embeddings.keys())
-
-  scann = tfrs.layers.factorized_top_k.ScaNN(
-      k=k,
-      distance_measure='dot_product',
-      num_leaves=min(2000, len(id_by_index_id)),
-      num_leaves_to_search=min(100, len(id_by_index_id)),
-      training_iterations=1,
-      dimensions_per_block=1,
-  )
 
   def _get_embedding(embeddings: types.MultiModalEmbedding) -> np.ndarray:
     assert hasattr(embeddings, 'embedding')
     embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
     return embedding[0]
 
-  candidates = tf.constant(
-      [_get_embedding(embeddings[did]) for did in id_by_index_id], tf.float32
+  candidates = np.array(
+      [_get_embedding(embeddings[did]) for did in id_by_index_id], np.float32
   )
-  scann.index(candidates=candidates)
-  _ = scann(tf.constant(tf.zeros((1, candidates.shape[1]), dtype=tf.float32)))
+  searcher = (
+      scann_ops_pybind.builder(
+          db=candidates, num_neighbors=k, distance_measure='dot_product'
+      )
+      .tree(
+          num_leaves=min(2000, len(id_by_index_id)),
+          num_leaves_to_search=min(100, len(id_by_index_id)),
+          training_sample_size=250_000,
+      )
+      .score_ah(2, anisotropic_quantization_threshold=0.2)
+      .reorder(100)
+      .build()
+  )
+  _ = searcher.search(np.zeros((candidates.shape[1],)))
+  _ = searcher.search_batched(np.zeros((1, candidates.shape[1])))
   logger.info('Built ScaNN index with %d documents.', len(id_by_index_id))
-  return scann, id_by_index_id
+  return searcher, id_by_index_id
 
 
 def save_index(
-    searcher: tfrs.layers.factorized_top_k.TopK,
+    searcher: ScannSearcher,
     id_by_index_id: Sequence[str],
     scann_base_dir: str,
     id_by_index_id_filepath: str = 'ids.txt',
@@ -306,17 +313,13 @@ def save_index(
       os.path.join(scann_base_dir, id_by_index_id_filepath), 'w'
   ) as f:
     f.write('\n'.join(id_by_index_id))
-  tf.saved_model.save(
-      searcher,
-      scann_base_dir,
-      options=tf.saved_model.SaveOptions(namespace_whitelist=['Scann']),
-  )
+  searcher.serialize(scann_base_dir, relative_path=False)
 
 
 def load_index(
     scann_base_dir: str,
     id_by_index_id_filepath: str = 'ids.txt',
-) -> tuple[tfrs.layers.factorized_top_k.TopK, Sequence[str]]:
+) -> tuple[ScannSearcher, Sequence[str]]:
   """Loads the ScaNN index and its metadata from a directory.
 
   Args:
@@ -325,15 +328,13 @@ def load_index(
       relative to scann_base_dir.
 
   Returns:
-    A tuple of the searcher of type tfrs.layers.factorized_top_k.TopK and the
-    mapping from index id (int) to id (str).
+    A tuple of the searcher of type ScannSearcher and the mapping from index id
+    (int) to id (str).
   """
   logger.info('Loading ScaNN index from %s', scann_base_dir)
   with tf.io.gfile.GFile(
       os.path.join(scann_base_dir, id_by_index_id_filepath), 'r'
   ) as f:
     id_by_index_id: Sequence[str] = f.read().splitlines()
-  searcher: tfrs.layers.factorized_top_k.TopK = tf.saved_model.load(
-      scann_base_dir
-  )
+  searcher = scann_ops_pybind.load_searcher(scann_base_dir)
   return searcher, id_by_index_id

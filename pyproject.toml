@@ -29,18 +29,18 @@ dependencies = [
     "numpy",
     "openai-whisper",
     "pandas",
+    "protobuf",
     "pyarrow",
     "pygtrie",
-    "scann[tf]",
+    "scann==1.3.5",
     "scikit-learn",
     "soundfile",
     "spacy",
     "tqdm",
     "transformers",
-    "tensorflow==2.15",
+    "tensorflow",
     "tensorflow-datasets",
     "tensorflow_hub",
-    "tensorflow-recommenders",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`

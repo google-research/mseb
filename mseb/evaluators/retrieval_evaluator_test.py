@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os import path
+import os
 import pathlib
 import shutil
 
@@ -21,25 +21,31 @@ from mseb import types
 from mseb.evaluators import retrieval_evaluator
 import numpy as np
 import numpy.testing as npt
-import tensorflow as tf
-import tensorflow_recommenders as tfrs
+
+from scann import scann_ops_pybind
+ScannSearcher = scann_ops_pybind.ScannSearcher
 
 
 class RetrievalEvaluatorTest(absltest.TestCase):
 
   def test_compute_predictions(self):
-    searcher = tfrs.layers.factorized_top_k.BruteForce(k=2)
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
-    searcher.index(
-        candidates=tf.constant(
-            [
-                [1.0, 2.0, 3.0],
-                [2.0, 3.0, 4.0],
-                [3.0, 4.0, 5.0],
-                [4.0, 5.0, 6.0],
-            ],
-            tf.float32,
-        ),
+    searcher = (
+        scann_ops_pybind.builder(
+            db=np.array(
+                [
+                    [1.0, 2.0, 3.0],
+                    [2.0, 3.0, 4.0],
+                    [3.0, 4.0, 5.0],
+                    [4.0, 5.0, 6.0],
+                ],
+                np.float32,
+            ),
+            num_neighbors=2,
+            distance_measure='dot_product',
+        )
+        .score_brute_force()
+        .build()
     )
     evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=searcher,
@@ -69,7 +75,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
 
   def test_compute_metrics(self):
     evaluator = retrieval_evaluator.RetrievalEvaluator(
-        searcher=tfrs.layers.factorized_top_k.BruteForce(),  # Not used.
+        searcher=ScannSearcher(None),  # Not used.
         id_by_index_id=(),  # Not used.
     )
     scores = evaluator.compute_metrics(
@@ -102,18 +108,32 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    testdata_path = path.join(
-        pathlib.Path(path.abspath(__file__)).parent.parent, 'testdata'
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
     num_partitions = 2
     self.index_dir = self.create_tempdir().full_path
+
+    source_base_dir = os.path.join(
+        testdata_path, 'retrievals', 'svq_passage_retrieval_in_lang'
+    )
     for partition_id in range(num_partitions):
-      shutil.copytree(
-          path.join(
-              testdata_path, 'retrievals', 'svq_passage_retrieval_in_lang'
-          ),
-          path.join(self.index_dir, str(partition_id)),
-      )
+      target_base_dir = os.path.join(self.index_dir, str(partition_id))
+      shutil.copytree(source_base_dir, target_base_dir)
+      os.chmod(os.path.join(target_base_dir, 'scann_assets.pbtxt'), 0o755)
+      with open(
+          os.path.join(target_base_dir, 'scann_assets.pbtxt'),
+          'w',
+      ) as fout:
+        with open(
+            os.path.join(source_base_dir, 'scann_assets.pbtxt'),
+        ) as fin:
+          for line in fin:
+            line = line.replace(
+                'asset_path: "dataset.npy"',
+                f'asset_path: "{target_base_dir}/dataset.npy"',
+            )
+            fout.write(line)
 
   def test_compute_metrics(self):
     evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
@@ -249,10 +269,12 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
             '9',
         ],
     )
-    results = searcher(tf.constant([[4.0, 5.0, 6.0]], dtype=tf.float32))
+    results = searcher.search_batched(
+        np.array([[4.0, 5.0, 6.0]], dtype=np.float32)
+    )
     self.assertLen(results, 2)
-    npt.assert_array_equal(results[0], [[257.0, 242.0]])
-    npt.assert_array_equal(results[1], [[7, 6]])
+    npt.assert_array_equal(results[0], [[7, 6]])
+    npt.assert_array_equal(results[1], [[257.0, 242.0]])
 
   def test_save_and_load_scann_index(self):
     embeddings = {
@@ -264,14 +286,16 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
         for i in range(16)
     }
     searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
-    results = searcher(tf.constant([[4.0, 5.0, 6.0]], dtype=tf.float32))
+    results = searcher.search_batched(
+        np.array([[4.0, 5.0, 6.0]], dtype=np.float32)
+    )
     scann_base_dir = self.create_tempdir().full_path
     retrieval_evaluator.save_index(searcher, id_by_index_id, scann_base_dir)
     searcher_loaded, id_by_index_id_loaded = retrieval_evaluator.load_index(
         scann_base_dir
     )
-    results_loaded = searcher_loaded(
-        tf.constant([[4.0, 5.0, 6.0]], dtype=tf.float32)
+    results_loaded = searcher_loaded.search_batched(
+        np.array([[4.0, 5.0, 6.0]], dtype=np.float32)
     )
     self.assertEqual(len(results_loaded), len(results))
     for i in range(len(results)):

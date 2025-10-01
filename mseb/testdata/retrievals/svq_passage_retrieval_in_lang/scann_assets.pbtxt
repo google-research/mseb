@@ -1,0 +1,4 @@
+assets {
+  asset_type: DATASET_NPY
+  asset_path: "dataset.npy"
+}
