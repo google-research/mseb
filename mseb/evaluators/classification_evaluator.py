@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def accuracy(value: float = 0.0) -> types.Score:
+  """Creates a Score object for accuracy."""
   return types.Score(
       metric='Accuracy',
       description='Overall classification accuracy',
@@ -39,6 +40,7 @@ def accuracy(value: float = 0.0) -> types.Score:
 
 
 def top_k_accuracy(value: float = 0.0, k: int = 1) -> types.Score:
+  """Creates a Score object for top-k accuracy."""
   return types.Score(
       metric=f'Top-{k} Accuracy',
       description=f'Accuracy considering the top {k} predictions',
@@ -49,6 +51,7 @@ def top_k_accuracy(value: float = 0.0, k: int = 1) -> types.Score:
 
 
 def balanced_accuracy(value: float = 0.0) -> types.Score:
+  """Creates a Score object for balanced accuracy."""
   return types.Score(
       metric='Balanced Accuracy',
       description='Accuracy adjusted for class imbalance',
@@ -59,6 +62,7 @@ def balanced_accuracy(value: float = 0.0) -> types.Score:
 
 
 def weighted_precision(value: float = 0.0) -> types.Score:
+  """Creates a Score object for weighted precision."""
   return types.Score(
       metric='Weighted Precision',
       description='Precision weighted by class support',
@@ -69,6 +73,7 @@ def weighted_precision(value: float = 0.0) -> types.Score:
 
 
 def weighted_recall(value: float = 0.0) -> types.Score:
+  """Creates a Score object for weighted recall."""
   return types.Score(
       metric='Weighted Recall',
       description='Recall weighted by class support',
@@ -79,9 +84,72 @@ def weighted_recall(value: float = 0.0) -> types.Score:
 
 
 def weighted_f1(value: float = 0.0) -> types.Score:
+  """Creates a Score object for weighted F1-score."""
   return types.Score(
       metric='Weighted F1-Score',
       description='F1-Score weighted by class support',
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
+# Multi-label classification metrics.
+def mean_average_precision(value: float = 0.0) -> types.Score:
+  """Creates a Score object for mean Average Precision."""
+  return types.Score(
+      metric='mAP',
+      description='Mean Average Precision (Macro)',
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
+def micro_f1(value: float = 0.0) -> types.Score:
+  """Creates a Score object for micro-averaged F1-score."""
+  return types.Score(
+      metric='Micro F1',
+      description='F1-score calculated globally across all labels',
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
+def macro_f1(value: float = 0.0) -> types.Score:
+  """Creates a Score object for macro-averaged F1-score."""
+  return types.Score(
+      metric='Macro F1',
+      description='F1-score averaged per class, treating all classes equally',
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
+def hamming_loss(value: float = 0.0) -> types.Score:
+  """Creates a Score object for Hamming loss."""
+  return types.Score(
+      metric='Hamming Loss',
+      description=(
+          'Fraction of incorrectly predicted labels to '
+          'the total number of labels'
+      ),
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
+def subset_accuracy(value: float = 0.0) -> types.Score:
+  """Creates a Score object for subset accuracy."""
+  return types.Score(
+      metric='Subset Accuracy',
+      description=(
+          'Fraction of samples where the predicted '
+          'label set is an exact match'
+      ),
       value=value,
       min=0.0,
       max=1.0,
@@ -93,6 +161,14 @@ class ClassificationReference:
   """A generic ground-truth reference for a classification task."""
   example_id: str
   label_id: str
+
+
+@dataclasses.dataclass
+class MultiLabelClassificationReference:
+  """A ground-truth reference for a multi-label classification task."""
+
+  example_id: str
+  label_ids: list[str]
 
 
 def _get_embedding_array(
@@ -257,4 +333,134 @@ class ClassificationEvaluator:
         weighted_precision(prec),
         weighted_recall(rec),
         weighted_f1(f1),
+    ]
+
+
+class MultiLabelClassificationEvaluator:
+  """Generic evaluator for multi-label classification tasks."""
+
+  def __init__(
+      self,
+      embedding_table: Optional[np.ndarray],
+      id_by_class_index: Sequence[str],
+      distance_fn: Callable[[np.ndarray, np.ndarray], np.ndarray] = np.dot,
+  ):
+    """Initializes the MultiLabelClassificationEvaluator.
+
+    Args:
+      embedding_table: An optional [num_classes, embedding_dim] numpy array
+        where each row is the vector representation for a class. This is
+        required only when using the `compute_predictions` method.
+      id_by_class_index: A required sequence of strings representing all
+        possible class labels. The order must correspond to the row order of
+        the `embedding_table`.
+      distance_fn: A callable function used to compute scores. Defaults to
+        `numpy.dot`.
+    """
+    self.embedding_table = embedding_table
+    self.id_by_class_index = id_by_class_index
+    self.index_by_id = {
+        label_id: i for i, label_id in enumerate(id_by_class_index)
+    }
+    self.distance_fn = distance_fn
+
+  def compute_predictions(
+      self, embeddings_by_id: types.MultiModalEmbeddingCache
+  ) -> Mapping[str, np.ndarray]:
+    """Computes prediction scores for the given embeddings."""
+    if self.embedding_table is None:
+      raise ValueError(
+          'An embedding_table must be provided during initialization to '
+          'use compute_predictions.'
+      )
+
+    classification_scores = {}
+    for example_id, embedding_obj in embeddings_by_id.items():
+      embedding_array = _get_embedding_array(embedding_obj)
+
+      if embedding_array.ndim != 2 or embedding_array.shape[0] == 0:
+        raise ValueError(
+            'Found missing or malformed embeddings '
+            f'for example_id {example_id}. '
+            f'Expected shape (N, D) with N > 0, but got shape '
+            f'{embedding_array.shape}.'
+        )
+      example_embedding = embedding_array[0]
+      classification_scores[example_id] = self.distance_fn(
+          example_embedding, self.embedding_table.T
+      )
+    return classification_scores
+
+  def compute_metrics(
+      self,
+      scores: Mapping[str, np.ndarray],
+      references: Sequence[MultiLabelClassificationReference],
+      threshold: float = 0.5,
+  ) -> list[types.Score]:
+    """Computes a suite of multi-label classification metrics.
+
+    This method calculates ranking-based (mAP) and threshold-based
+    (F1, Hamming Loss, etc.) metrics.
+
+    Args:
+      scores: A mapping from an example ID to its raw prediction score vector.
+      references: A sequence of `MultiLabelClassificationReference` objects.
+      threshold: The decision threshold (0.0 to 1.0) to convert scores into
+        binary predictions for threshold-based metrics.
+
+    Returns:
+      A list of `types.Score` objects representing the computed metrics.
+    """
+    num_classes = len(self.id_by_class_index)
+    y_true = []
+    y_scores = []
+
+    # Align ground truth and predictions into binary matrices
+    for ref in references:
+      if ref.example_id in scores:
+        true_labels_binary = np.zeros(num_classes, dtype=int)
+        for label_id in ref.label_ids:
+          if label_id in self.index_by_id:
+            true_labels_binary[self.index_by_id[label_id]] = 1
+        y_true.append(true_labels_binary)
+        y_scores.append(scores[ref.example_id])
+
+    if not y_true:
+      logger.error('No matching predictions found for the given references.')
+      return []
+
+    y_true = np.array(y_true)
+    y_scores = np.array(y_scores)
+
+    # 1. Ranking-based metric (threshold-independent)
+    map_score = metrics.average_precision_score(
+        y_true,
+        y_scores,
+        average='macro'
+    )
+
+    # 2. Threshold-based metrics
+    y_pred = (y_scores >= threshold).astype(int)
+
+    micro_f1_score = metrics.f1_score(
+        y_true,
+        y_pred,
+        average='micro',
+        zero_division=0
+    )
+    macro_f1_score = metrics.f1_score(
+        y_true,
+        y_pred,
+        average='macro',
+        zero_division=0
+    )
+    h_loss = metrics.hamming_loss(y_true, y_pred)
+    sub_acc = metrics.accuracy_score(y_true, y_pred)
+
+    return [
+        mean_average_precision(map_score),
+        micro_f1(micro_f1_score),
+        macro_f1(macro_f1_score),
+        hamming_loss(h_loss),
+        subset_accuracy(sub_acc),
     ]

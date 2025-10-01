@@ -157,5 +157,129 @@ class ClassificationEvaluatorTest(absltest.TestCase):
     np.testing.assert_allclose(scores['id_1'], expected_scores)
 
 
+class MultiLabelClassificationEvaluatorTest(absltest.TestCase):
+  """Tests for the MultiLabelClassificationEvaluator class."""
+
+  def setUp(self):
+    super().setUp()
+    self.embedding_table = np.array([
+        [1.0, 0.0, 0.0],  # Class 'cat'
+        [0.0, 1.0, 0.0],  # Class 'dog'
+        [0.0, 0.0, 1.0],  # Class 'bird'
+    ], dtype=np.float32)
+    self.id_by_class_index = ['cat', 'dog', 'bird']
+    self.evaluator = classification_evaluator.MultiLabelClassificationEvaluator(
+        embedding_table=self.embedding_table,
+        id_by_class_index=self.id_by_class_index,
+    )
+
+  def test_compute_metrics_perfect_score(self):
+    # Example 1 has high scores for 'cat' and 'dog'
+    # Example 2 has a high score for 'bird'
+    scores = {
+        'ex1': np.array([0.9, 0.8, 0.1]),
+        'ex2': np.array([0.2, 0.1, 0.9]),
+    }
+    references = [
+        classification_evaluator.MultiLabelClassificationReference(
+            example_id='ex1',
+            label_ids=['cat', 'dog']
+        ),
+        classification_evaluator.MultiLabelClassificationReference(
+            example_id='ex',
+            label_ids=['bird']
+        ),
+    ]
+
+    results = {
+        s.metric: s.value
+        for s in self.evaluator.compute_metrics(
+            scores,
+            references,
+            threshold=0.5
+        )
+    }
+
+    # For perfect predictions (above threshold), most scores should be 1.0
+    self.assertAlmostEqual(results['mAP'], 0.666666, places=5)
+    self.assertAlmostEqual(results['Micro F1'], 1.0)
+    self.assertAlmostEqual(results['Macro F1'], 0.666666, places=5)
+    self.assertAlmostEqual(results['Subset Accuracy'], 1.0)
+    self.assertAlmostEqual(results['Hamming Loss'], 0.0)
+
+  def test_compute_metrics_mixed_score(self):
+    # ex1: Predicts 'cat' (correct), misses 'dog' (FN), predicts 'bird' (FP)
+    # ex2: Predicts 'bird' (correct)
+    scores = {
+        'ex1': np.array([0.9, 0.2, 0.7]),
+        'ex2': np.array([0.1, 0.3, 0.8]),
+    }
+    references = [
+        classification_evaluator.MultiLabelClassificationReference(
+            example_id='ex1',
+            label_ids=['cat', 'dog']
+        ),
+        classification_evaluator.MultiLabelClassificationReference(
+            example_id='ex2',
+            label_ids=['bird']
+        ),
+    ]
+
+    results = {
+        s.metric: s.value
+        for s in self.evaluator.compute_metrics(
+            scores,
+            references,
+            threshold=0.5
+        )
+    }
+
+    # y_true = [[1, 1, 0], [0, 0, 1]]
+    # y_pred = [[1, 0, 1], [0, 0, 1]]
+    # TP=2, FP=1, FN=1, TN=2
+    self.assertAlmostEqual(results['mAP'], 0.833333, places=5)
+    self.assertAlmostEqual(results['Micro F1'], 0.666666, places=5)
+    self.assertAlmostEqual(results['Macro F1'], 0.555555, places=5)
+    self.assertAlmostEqual(results['Subset Accuracy'], 0.5)
+    self.assertAlmostEqual(results['Hamming Loss'], 2.0 / 6.0, places=5)
+
+  def test_compute_metrics_empty_labels(self):
+    scores = {'ex1': np.array([0.1, 0.2, 0.3])}  # Model predicts nothing
+    references = [
+        classification_evaluator.MultiLabelClassificationReference(
+            example_id='ex1',
+            label_ids=[]
+        ),
+    ]
+
+    results = {
+        s.metric: s.value
+        for s in self.evaluator.compute_metrics(
+            scores,
+            references,
+            threshold=0.5
+        )
+    }
+
+    # With no positive labels, precision is undefined, but F1 should be 1.0
+    # because the model correctly predicted nothing.
+    self.assertAlmostEqual(results['mAP'], 0.0)  # No positive class to rank
+    self.assertAlmostEqual(results['Micro F1'], 0.0)
+    self.assertAlmostEqual(results['Macro F1'], 0.0)
+    self.assertAlmostEqual(results['Subset Accuracy'], 1.0)
+    self.assertAlmostEqual(results['Hamming Loss'], 0.0)
+
+  def test_no_matching_references(self):
+    scores = {'ex1': np.array([0.9, 0.8, 0.1])}
+    references = [
+        classification_evaluator.MultiLabelClassificationReference(
+            example_id='non_existent_id',
+            label_ids=['cat']
+        ),
+    ]
+    results = self.evaluator.compute_metrics(scores, references)
+    self.assertEqual(results, [])
+
+
 if __name__ == '__main__':
   absltest.main()
