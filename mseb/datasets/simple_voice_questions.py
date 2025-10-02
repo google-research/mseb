@@ -14,19 +14,16 @@
 
 """Simple Voice Questions (SVQ) dataset."""
 
-import io
 import json
 import os
-from typing import Any, Optional
+from typing import Any
 
 from absl import flags
 import apache_beam as beam
 from array_record.python import array_record_module as array_record
-import librosa
 from mseb import types
-import numpy as np
+from mseb import utils
 import pandas as pd
-from scipy.io import wavfile
 import tensorflow as tf
 
 
@@ -47,31 +44,6 @@ def _get_base_path(basepath: str | None = None) -> str:
       "basepath must be provided either as an argument or through the"
       " --simple_voice_questions_base_path flag."
   )
-
-
-def _read_wav_bytes(
-    wav_bytes: bytes, target_sr: Optional[int] = None
-) -> tuple[np.ndarray, int]:
-  """Reads WAV bytes and returns a normalized float32 numpy array."""
-  rate, data = wavfile.read(io.BytesIO(wav_bytes))
-
-  # Convert to mono
-  if data.ndim > 1:
-    data = np.mean(data, axis=1)
-  if data.dtype == np.int16:
-    waveform = data.astype(np.float32) / np.iinfo(np.int16).max
-  elif data.dtype == np.int32:
-    waveform = data.astype(np.float32) / np.iinfo(np.int32).max
-  elif data.dtype == np.float32:
-    waveform = data.astype(np.float32)
-  else:
-    raise TypeError(f"Unsupported data type: {data.dtype}")
-
-  if target_sr and target_sr != rate:
-    waveform = librosa.resample(waveform, orig_sr=rate, target_sr=target_sr)
-    return waveform, target_sr
-
-  return waveform, rate
 
 
 class _UttLookup:
@@ -106,12 +78,9 @@ class _UttLookup:
 class _LoadAudioFn(beam.DoFn):
   """Loads audio for a single utterance."""
 
-  def __init__(
-      self, base_path: str, index_df: pd.DataFrame, target_sr: int | None
-  ):
+  def __init__(self, base_path: str, index_df: pd.DataFrame):
     self._base_path = base_path
     self._index_df = index_df
-    self._target_sr = target_sr
     self._utt_lookup: _UttLookup | None = None
 
   def setup(self):
@@ -119,7 +88,7 @@ class _LoadAudioFn(beam.DoFn):
 
   def process(self, record: dict[str, Any]):
     wav_bytes = self._utt_lookup(record["utt_id"])
-    waveform, sr = _read_wav_bytes(wav_bytes, self._target_sr)
+    waveform, sr = utils.wav_bytes_to_waveform(wav_bytes)
 
     speaker_age_val = record.get("speaker_age")
     context = types.SoundContextParams(
@@ -145,12 +114,10 @@ class ReadTaskData(beam.PTransform):
       self,
       base_path: str,
       index: pd.DataFrame,
-      target_sr: int | None,
       task_path: str,
   ):
     self._base_path = base_path
     self._index = index
-    self._target_sr = target_sr
     self._task_path = task_path
 
   def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
@@ -158,14 +125,7 @@ class ReadTaskData(beam.PTransform):
         pcoll
         | "ReadTaskJson" >> beam.io.ReadFromText(self._task_path)
         | "ParseTaskJson" >> beam.Map(json.loads)
-        | "LoadAudio"
-        >> beam.ParDo(
-            _LoadAudioFn(
-                self._base_path,
-                self._index,
-                self._target_sr,
-            )
-        )
+        | "LoadAudio" >> beam.ParDo(_LoadAudioFn(self._base_path, self._index))
     )
 
 
@@ -180,7 +140,6 @@ class SimpleVoiceQuestionsDataset:
       self,
       base_path: str | None = None,
       split: str = "all",
-      target_sr: int | None = None,
   ):
     if split != "all":
       raise ValueError(
@@ -191,7 +150,6 @@ class SimpleVoiceQuestionsDataset:
       )
     self.base_path = _get_base_path(base_path)
     self.split = split
-    self.target_sr = target_sr
     self._index = self._load_index()
     self._utt_lookup = _UttLookup(self.base_path, self._index)
     self.utt_id_to_record = self._index.set_index("utt_id").to_dict("index")
@@ -238,7 +196,7 @@ class SimpleVoiceQuestionsDataset:
   def _get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Loads a single utterance from its record in the utterance index."""
     wav_bytes = self._utt_lookup(record["utt_id"])
-    waveform, sr = _read_wav_bytes(wav_bytes, self.target_sr)
+    waveform, sr = utils.wav_bytes_to_waveform(wav_bytes)
 
     speaker_age_val = record.get("speaker_age")
     context = types.SoundContextParams(
@@ -285,7 +243,6 @@ class SimpleVoiceQuestionsDataset:
     return ReadTaskData(
         self.base_path,
         self._index,
-        self.target_sr,
         self._get_task_path(task_name),
     )
 

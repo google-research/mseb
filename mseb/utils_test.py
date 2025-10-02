@@ -59,6 +59,17 @@ class UtilsTest(absltest.TestCase):
     self.assertEqual(sr, self.sample_rate)
     self.assertEqual(waveform.shape[0], self.num_samples)
 
+  def test_wav_bytes_to_waveform_loads_correctly(self):
+    with open(self.mock_audio_path, "rb") as f:
+      wav_bytes = f.read()
+    waveform, sr = utils.wav_bytes_to_waveform(wav_bytes)
+    self.assertEqual(sr, self.sample_rate)
+    self.assertEqual(waveform.shape[0], self.num_samples)
+    self.assertIsInstance(waveform, np.ndarray)
+    self.assertEqual(waveform.dtype, np.float32)
+    # Check that normalization happened (values are between -1.0 and 1.0)
+    self.assertLessEqual(np.max(np.abs(waveform)), 1.0)
+
 
 if __name__ == "__main__":
   absltest.main()
