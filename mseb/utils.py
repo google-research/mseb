@@ -15,6 +15,7 @@
 """Utilities for MSEB library."""
 
 import io
+import logging
 import os
 import subprocess
 from typing import Optional
@@ -26,16 +27,21 @@ import soundfile
 import tensorflow as tf
 
 
+logger = logging.getLogger(__name__)
+
+
 def download_from_hf(repo_id: str, target_dir: str, repo_type: str = "dataset"):
   """Clones a repository from Hugging Face if not already present."""
   if tf.io.gfile.exists(os.path.join(target_dir, ".git")):
-    print(f"Repo '{repo_id}' already found at {target_dir}. Skipping.")
+    logger.warning(
+        "Repo '%s' already found at %s. Skipping.", repo_id, target_dir
+    )
     return
 
-  print(f"Cloning '{repo_id}' to {target_dir}...")
-  # For a real library, replacing this with the `huggingface_hub`
-  # library would be more robust.
+  # For a real library, replacing this with the `huggingface_hub` library would
+  # be more robust.
   clone_url = f"https://huggingface.co/{repo_type}s/{repo_id}"
+  logging.info("Cloning '%s' to %s...", clone_url, target_dir)
   subprocess.run(["git", "clone", clone_url, target_dir], check=True)
 
 
