@@ -1,11 +1,18 @@
 #!/bin/bash
 
+DUMP_DATE="20251001"
 output_dir="${HOME}/tmp/idf_tables"
 python_bindir="${HOME}/python/bin"
 scripts_dir=`pwd`
 
 languages="ar bn en fi gu hi id ja kn ko ml mr ru sw ta te ur"
 cpus=30
+
+if [ ! -f "${python_bindir}/python" ]; then
+  echo "Python virtual environment not found. Creating it now at ~/python..."
+  python3 -m venv "${HOME}/python"
+  echo "Environment created successfully."
+fi
 
 # We use the spacy multi-lamguage tokenizer for these languages:
 #  - 'sw': no spacy support,
@@ -75,9 +82,9 @@ for language in ${languages}; do
   echo "${wiki}, using spacy language: ${spacy_language}"
   mkdir -p ${output_dir}/${wiki}
   pushd ${output_dir}/${wiki}
-  wget https://dumps.wikimedia.org/${wiki}/20250401/${wiki}-20250401-pages-articles.xml.bz2
+  wget https://dumps.wikimedia.org/${wiki}/${DUMP_DATE}/${wiki}-${DUMP_DATE}-pages-articles.xml.bz2
   mkdir -p data
-  ${python_bindir}/wikiextractor -o data --processes=${cpus} --json  ${wiki}-20250401-pages-articles.xml.bz2
+  ${python_bindir}/wikiextractor -o data --processes=${cpus} --json  ${wiki}-${DUMP_DATE}-pages-articles.xml.bz2
   ${python_bindir}/python ${scripts_dir}/wikipediaidf-spacy.py -s ${spacy_language} -i data/*/*  -o idf -c ${cpus}
   popd
 done
