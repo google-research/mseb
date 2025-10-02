@@ -61,7 +61,7 @@ class FSD50KDatasetTest(absltest.TestCase):
     pd.DataFrame(eval_data).to_csv(
         os.path.join(labels_dir, 'eval.csv'), index=False
     )
-    clips_dir = os.path.join(self.testdata_dir.full_path, 'clips')
+    clips_dir = os.path.join(self.testdata_dir.full_path, 'clips', 'eval')
     os.makedirs(clips_dir)
     wavfile.write(
         os.path.join(clips_dir, '37199.wav'),

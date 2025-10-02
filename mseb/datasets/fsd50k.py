@@ -22,6 +22,8 @@ from mseb import types
 from mseb import utils
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 
 class FSD50KDataset(dataset.Dataset):
@@ -50,6 +52,7 @@ class FSD50KDataset(dataset.Dataset):
       raise ValueError(
           f'Split must be validation or test, but got {split}.'
       )
+    self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
     super().__init__(base_path=base_path, split=split, target_sr=None)
     self._load_vocabulary()
@@ -111,16 +114,24 @@ class FSD50KDataset(dataset.Dataset):
     self._class_labels = vocab_df['display_name'].tolist()
     self.label_to_id = {label: i for i, label in enumerate(self._class_labels)}
 
-  def _load_eval(self):
-    return pd.read_csv(self._path('labels', 'eval.csv'))
+  def _load_csv(self):
+    csv_name = 'eval.csv' if self.split == 'test' else 'dev.csv'
+    df = pd.read_csv(self._path('labels', csv_name))
+    if self.split == 'validation':
+      df = df[df['split'] == 'val']
+    return df
 
   def _load_metadata(self) -> pd.DataFrame:
     """Loads the dataset for the split using the HF datasets library."""
     cache_path = self._path(f'{self.split}.parquet')
     if os.path.exists(cache_path):
-      return pd.read_parquet(cache_path)
+      # Batch reading avoids a some C++ pyarrow issue: "List index overflow."
+      parquet_file = pq.ParquetFile(cache_path)
+      batches = list(parquet_file.iter_batches(batch_size=1024))
+      pa_table = pa.Table.from_batches(batches)
+      return pa_table.to_pandas()
     utils.download_from_hf(self.repo_id, self.base_path)
-    return self._load_eval()
+    return self._load_csv()
 
   def get_string_labels(self, index: int) -> list[str]:
     """Returns the raw string labels for a given index."""
@@ -140,13 +151,18 @@ class FSD50KDataset(dataset.Dataset):
 
   def _load_wav_for_row(self, row):
     fname = row['fname']
-    clip_path = self._path('clips', f'{fname}.wav')
+    clip_path = self._path('clips', self._clip_dir, f'{fname}.wav')
     clip_bytes = open(clip_path, 'rb').read()
     waveform, sr = utils.wav_bytes_to_waveform(clip_bytes)
     return waveform, sr
 
   def load_sounds(self):
     """Loads all sounds from disk and adds them to the metadata."""
+    if (
+        'waveform' in self._metadata.columns
+        and 'sample_rate' in self._metadata.columns
+    ):
+      return
     self._metadata[['waveform', 'sample_rate']] = self._metadata.apply(
         self._load_wav_for_row, axis=1, result_type='expand')
     cache_path = self._path(f'{self.split}.parquet')
