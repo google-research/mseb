@@ -29,6 +29,10 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
   locale: str | None = None
 
   @property
+  def task_type(self) -> str:
+    return "multi_class"
+
+  @property
   def weights_dir(self) -> str:
     assert self.locale is not None
     return os.path.join(

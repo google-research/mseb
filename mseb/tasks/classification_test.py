@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import pathlib
-from typing import Iterable, Sequence
+from typing import Iterable
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.evaluators import classification_evaluator
 from mseb.tasks import classification
 import numpy as np
@@ -30,135 +28,279 @@ class ClassificationTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent,
-        'testdata',
+    self.cache_dir = self.create_tempdir().full_path
+    # Set the TASK_CACHE_BASEPATH flag to use our temporary directory
+    self.enter_context(
+        flagsaver.flagsaver(
+            (classification.task.TASK_CACHE_BASEPATH, self.cache_dir)
+        )
     )
 
-  def test_classification_task_compute_scores(self):
+  def test_classification_task_setup_with_runner(self):
 
-    class MockClassificationTask(classification.ClassificationTask):
-
+    class MockTask(classification.ClassificationTask):
       @property
-      def weights_dir(self) -> str:
-        return os.path.join(
-            super().weights_dir, 'speech_massive_en_us_intent_classification'
-        )
+      def task_type(self) -> str:
+        return "multi_class"
 
       def sounds(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
-      def examples(
-          self, sub_task: str
-      ) -> Iterable[classification_evaluator.ClassificationReference]:
-        return [
-            classification_evaluator.ClassificationReference(
-                example_id='utt_11697423627206642872',
-                label_id='label_1',
-            ),
-            classification_evaluator.ClassificationReference(
-                example_id='utt_15041124811443622614',
-                label_id='label_2',
-            ),
-        ]
+      def class_labels(self) -> Iterable[str]:
+        return ["label_1", "label_2", "label_3"]
 
-      def class_labels(self) -> Iterable[Sequence[types.Text]]:
-        return ['label_1', 'label_2', 'label_3']
+      def examples(self, sub_task: str) -> Iterable[types.Sound]:
+        raise NotImplementedError()
 
       @property
       def sub_tasks(self) -> list[str]:
-        return ['test']
+        return ["test"]
+
+    # This mock simulates a text encoder that returns fixed-size embeddings
+    mock_encoder = mock.Mock()
+    mock_encoder.encode.return_value = [
+        types.TextEmbedding(
+            embedding=np.zeros((1, 10)),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id="mock"),
+        )
+    ] * 3
+
+    task = MockTask()
+    task.setup(runner=runner_lib.DirectRunner(encoder=mock_encoder))
+
+    self.assertIsNotNone(task._evaluator)
+    self.assertIsInstance(
+        task._evaluator, classification_evaluator.ClassificationEvaluator
+    )
+    self.assertEqual(task._evaluator.top_k_value, 5)
+    self.assertIsNotNone(task._evaluator.weights)
+    # 3 classes, 10 embedding dims + 1 bias dim
+    self.assertEqual(task._evaluator.weights.shape, (3, 11))
+
+  def test_classification_task_compute_scores_multi_class(self):
+
+    class MockMultiClassTask(classification.ClassificationTask):
+      @property
+      def task_type(self) -> str:
+        return "multi_class"
+
+      def sounds(self) -> Iterable[types.Sound]:
+        raise NotImplementedError()
+
+      def class_labels(self) -> Iterable[str]:
+        return ["label_1", "label_2"]
+
+      def examples(self, sub_task: str):
+        return [
+            classification_evaluator.ClassificationReference(
+                example_id="utt_1", label_id="label_1"
+            ),
+            classification_evaluator.ClassificationReference(
+                example_id="utt_2", label_id="label_2"
+            ),
+        ]
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ["test"]
+
+    # Manually save weights to the cache for the task to load
+    weights = np.array([[1.0, 0.0, 0.1], [0.0, 1.0, 0.1]])
+    task = MockMultiClassTask()
+    classification_evaluator.save_linear_classifier(
+        task.class_labels(), weights, task.weights_dir
+    )
+    task.setup()  # Should load the weights we just saved
 
     embeddings = {
-        'utt_11697423627206642872': types.SoundEmbedding(
+        "utt_1": types.SoundEmbedding(
             context=types.SoundContextParams(
+                id="utt_1",
                 sample_rate=16000,
-                length=10,
-                id='utt_11697423627206642872',
-                language='en',
+                length=1
             ),
-            embedding=np.zeros((1, 2)),
+            embedding=np.array([[1.0, 0.0]]),
             timestamps=np.zeros((1, 2)),
         ),
-        'utt_15041124811443622614': types.SoundEmbedding(
+        "utt_2": types.SoundEmbedding(
             context=types.SoundContextParams(
+                id="utt_2",
                 sample_rate=16000,
-                length=10,
-                id='utt_15041124811443622614',
-                language='en',
+                length=1
             ),
-            embedding=np.ones((1, 2)),
+            embedding=np.array([[0.0, 1.0]]),
             timestamps=np.zeros((1, 2)),
         ),
     }
 
-    cache_dir = self.create_tempdir().full_path
-    weights = np.ones((3, 2 + 1))
-    classification_evaluator.save_linear_classifier(
-        MockClassificationTask().class_labels(),
-        weights,
-        os.path.join(
-            cache_dir,
-            'classifications',
-            'speech_massive_en_us_intent_classification',
-        ),
-    )
-
-    self.enter_context(
-        flagsaver.flagsaver(
-            (classification.task.TASK_CACHE_BASEPATH, cache_dir)
-        )
-    )
-
-    task = MockClassificationTask()
-    task.setup()
-    self.assertEqual(task.sub_tasks, ['test'])
     scores = task.compute_scores(embeddings=embeddings)
-    self.assertLen(scores, 1)
-    self.assertIn('test', scores)
-    self.assertLen(scores['test'], 6)
-    self.assertEqual(scores['test'][0].metric, 'Accuracy')
-    self.assertEqual(scores['test'][1].metric, 'Top-5 Accuracy')
-    self.assertEqual(scores['test'][2].metric, 'Balanced Accuracy')
-    self.assertEqual(scores['test'][3].metric, 'Weighted Precision')
-    self.assertEqual(scores['test'][4].metric, 'Weighted Recall')
-    self.assertEqual(scores['test'][5].metric, 'Weighted F1-Score')
+    self.assertIn("test", scores)
+    accuracy_score = next(s for s in scores["test"] if s.metric == "Accuracy")
+    # utt_1:
+    # emb[1,0] * w1[1,0] = 1. emb * w2[0,1] = 0. Pred=label_1 (correct)
+    # utt_2:
+    # emb[0,1] * w2[0,1] = 1. emb * w1[1,0] = 0. Pred=label_2 (correct)
+    self.assertAlmostEqual(accuracy_score.value, 1.0)
 
-  def test_classification_task_setup(self):
+  def test_classification_task_compute_scores_multi_label(self):
 
-    class MockClassificationTask(classification.ClassificationTask):
-
-      def class_labels(self) -> Iterable[Sequence[types.Text]]:
-        return ['label_1', 'label_2', 'label_3']
+    class MockMultiLabelTask(classification.ClassificationTask):
+      @property
+      def task_type(self) -> str:
+        return "multi_label"
 
       def sounds(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
-      def examples(
-          self, sub_task: str
-      ) -> Iterable[classification_evaluator.ClassificationReference]:
+      def class_labels(self) -> Iterable[str]:
+        return ["label_1", "label_2"]
+
+      def examples(self, sub_task: str):
+        return [
+            classification_evaluator.MultiLabelClassificationReference(
+                example_id="utt_1", label_ids=["label_1", "label_2"]
+            )
+        ]
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ["test"]
+
+    weights = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    task = MockMultiLabelTask(
+        multi_label_threshold=0.4
+    )
+    classification_evaluator.save_linear_classifier(
+        task.class_labels(), weights, task.weights_dir
+    )
+    task.setup()
+
+    embeddings = {
+        "utt_1": types.SoundEmbedding(
+            context=types.SoundContextParams(
+                id="utt_1",
+                sample_rate=16000,
+                length=1
+            ),
+            embedding=np.array([[0.5, 0.5]]),
+            timestamps=np.zeros((1, 2)),
+        ),
+    }
+
+    scores = task.compute_scores(embeddings=embeddings)
+    self.assertIn("test", scores)
+    map_score = next(s for s in scores["test"] if s.metric == "mAP")
+    # Since scores will be high for both correct labels, mAP should be 1.0
+    self.assertAlmostEqual(map_score.value, 1.0)
+
+  def test_create_weights_from_runner(self):
+    class MockTask(classification.ClassificationTask):
+      @property
+      def task_type(self) -> str:
+        return "multi_class"
+
+      def sounds(self) -> Iterable[types.Sound]:
+        raise NotImplementedError()
+
+      def class_labels(self) -> Iterable[str]:
+        return ["cat", "dog"]
+
+      def examples(self, sub_task: str):
         raise NotImplementedError()
 
       @property
       def sub_tasks(self) -> list[str]:
-        return ['test']
+        return ["test"]
 
-    self.enter_context(
-        flagsaver.flagsaver((
-            classification.task.TASK_CACHE_BASEPATH,
-            self.create_tempdir().full_path,
-        ))
+    mock_encoder = mock.Mock()
+
+    # Create a side_effect function that returns the correct embedding
+    # based on the input text it receives.
+    def encode_side_effect(text_inputs: list[types.Text]):
+      embedding_map = {
+          "cat": types.TextEmbedding(
+              embedding=np.array([[0.1, 0.2]]),
+              spans=np.zeros((1, 2)),
+              context=types.TextContextParams(id="cat"),
+          ),
+          "dog": types.TextEmbedding(
+              embedding=np.array([[0.3, 0.4]]),
+              spans=np.zeros((1, 2)),
+              context=types.TextContextParams(id="dog"),
+          ),
+      }
+      # This handles batch or single-item calls from the runner.
+      return [embedding_map[t.text] for t in text_inputs]
+
+    mock_encoder.encode.side_effect = encode_side_effect
+
+    task = MockTask()
+    runner = runner_lib.DirectRunner(encoder=mock_encoder)
+    class_labels, weights = task._create_weights_from_runner(runner)
+
+    self.assertEqual(class_labels, ("cat", "dog"))
+    # Shape should be (num_classes, embedding_dim + bias_dim)
+    self.assertEqual(weights.shape, (2, 3))
+
+    np.testing.assert_allclose(
+        weights,
+        np.array([[0.1, 0.2, 0.0], [0.3, 0.4, 0.0]])
     )
-    task = MockClassificationTask()
-    task.setup(
-        runner=runner_lib.DirectRunner(encoder=text_encoder.MockTextEncoder())
+
+    # Verify that the weights were saved to the cache.
+    loaded_labels, loaded_weights = (
+        classification_evaluator.load_linear_classifier(task.weights_dir)
     )
-    self.assertIsNotNone(task._evaluator)
-    self.assertIsNotNone(task._evaluator.id_by_label)
-    self.assertLen(task._evaluator.id_by_label, 3)
-    self.assertIsNotNone(task._evaluator.weights)
-    self.assertEqual(task._evaluator.top_k_value, 5)
+    self.assertEqual(tuple(loaded_labels), class_labels)
+    np.testing.assert_allclose(loaded_weights, weights)
 
+  def test_compute_metrics(self):
 
-if __name__ == '__main__':
+    class MockMultiClassTask(classification.ClassificationTask):
+      @property
+      def task_type(self) -> str:
+        return "multi_class"
+
+      def sounds(self) -> Iterable[types.Sound]:
+        raise NotImplementedError()
+
+      def class_labels(self) -> Iterable[str]:
+        return ["label_1", "label_2"]
+
+      def examples(self, sub_task: str):
+        return [
+            classification_evaluator.ClassificationReference(
+                example_id="utt_1", label_id="label_1"
+            ),
+            classification_evaluator.ClassificationReference(
+                example_id="utt_2", label_id="label_2"
+            ),
+        ]
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ["test"]
+
+    # Setup the task with a dummy evaluator.
+    task = MockMultiClassTask()
+    weights = np.array([[1.0, 0.0], [0.0, 1.0]])
+    task._evaluator = classification_evaluator.ClassificationEvaluator(
+        class_labels=list(task.class_labels()), weights=weights
+    )
+
+    # Mock predictions where the correct class has the highest score.
+    predictions = {
+        "utt_1": np.array([0.9, 0.1]),  # Correctly predicts label_1
+        "utt_2": np.array([0.2, 0.8]),  # Correctly predicts label_2
+    }
+
+    metrics = task._compute_metrics(predictions)
+    self.assertIn("test", metrics)
+    accuracy_score = next(
+        s for s in metrics["test"] if s.metric == "Accuracy"
+    )
+    self.assertAlmostEqual(accuracy_score.value, 1.0)
+
+if __name__ == "__main__":
   absltest.main()

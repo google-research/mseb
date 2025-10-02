@@ -176,7 +176,7 @@ class MultiLabelClassificationReference:
   label_ids: list[str]
 
 
-def _get_embedding_array(
+def get_embedding_array(
         embedding_obj: types.MultiModalEmbedding
 ) -> np.ndarray:
   """Extracts the embedding numpy array from a MultiModalEmbedding object."""
@@ -260,7 +260,7 @@ class ClassificationEvaluator:
 
     classification_scores = {}
     for example_id, embedding_obj in embeddings_by_id.items():
-      embedding_array = _get_embedding_array(embedding_obj)
+      embedding_array = get_embedding_array(embedding_obj)
 
       if embedding_array.ndim != 2 or embedding_array.shape[0] == 0:
         raise ValueError(
@@ -386,7 +386,7 @@ class MultiLabelClassificationEvaluator:
 
     classification_scores = {}
     for example_id, embedding_obj in embeddings_by_id.items():
-      embedding_array = _get_embedding_array(embedding_obj)
+      embedding_array = get_embedding_array(embedding_obj)
 
       if embedding_array.ndim != 2 or embedding_array.shape[0] == 0:
         raise ValueError(
