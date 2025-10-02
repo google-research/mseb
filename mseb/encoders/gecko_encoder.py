@@ -71,12 +71,10 @@ class GeckoTranscriptTruthOrGeckoEncoder(encoder.CollectionEncoder):
       ),
       document_prompt_template: str | None = 'title: {title} | text: {text}',
   ):
-    sound_encoder = (
-        GeckoTranscriptTruthEncoder(
-            model_path=gecko_model_path,
-            normalizer=query_normalizer,
-            prompt_template=query_prompt_template,
-        ),
+    sound_encoder = GeckoTranscriptTruthEncoder(
+        model_path=gecko_model_path,
+        normalizer=query_normalizer,
+        prompt_template=query_prompt_template,
     )
     text_encoder = text_encoder_lib.GeckoTextEncoder(
         model_path=gecko_model_path,

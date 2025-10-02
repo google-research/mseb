@@ -157,6 +157,7 @@ class EncodeDoFn(beam.DoFn):
 
   def setup(self):
     self._encoder: Encoder = self._shared_handle.acquire(lambda: self._encoder)
+    self._encoder.setup()
 
   def start_bundle(self) -> None:
     """Resets the batch."""
