@@ -13,6 +13,7 @@ th, td {
   border: 1px solid #ddd;
   padding: 10px;
   text-align: left;
+  white-space: nowrap;
 }
 
 thead {
@@ -30,6 +31,58 @@ tr:nth-child(even) {
 
 tr:hover {
   background-color: #f1f1f1;
+}
+
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.sort-icon {
+  padding-left: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.sort-icon::after {
+  content: "\2195"; /* up down arrow */
+}
+
+th[data-sort-direction="asc"] .sort-icon::after {
+  content: "\25B2"; /* up arrow */
+}
+
+th[data-sort-direction="desc"] .sort-icon::after {
+  content: "\25BC"; /* down arrow */
+}
+
+.summary-table {
+  width: auto;
+  margin-top: 10px;
+  border: 1px solid #ddd;
+}
+
+.summary-table td {
+  padding: 5px 10px;
+  border: none;
+  background-color: transparent !important; /* Override hover and nth-child */
+}
+
+.toggle-mean {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle-icon {
+  font-family: monospace;
+  font-weight: bold;
+  margin-right: 5px;
+  display: inline-block;
+  width: 1em;
+}
+
+.task-col-hidden {
+  display: none;
 }
 
 .header-section {

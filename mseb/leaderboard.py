@@ -116,6 +116,7 @@ class FlattenedLeaderboardResult:
   name: str
   task_name: str
   task_type: str
+  task_languages: list[str]
   main_score_metric: str
   main_score_value: float
   metric: str
@@ -154,6 +155,7 @@ def flatten_leaderboard_results(
               name=result.name,
               task_name=f'{task_metadata.name}/{result.sub_task_name}',
               task_type=task_metadata.type,
+              task_languages=task_metadata.eval_langs,
               main_score_metric=main_score_metric,
               main_score_value=main_score_value,
               metric=score.metric,
