@@ -17,6 +17,7 @@
 import abc
 from collections.abc import Iterable, Iterator, Sequence
 from concurrent import futures
+import math
 import os
 import pickle
 
@@ -203,15 +204,26 @@ def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
 
 
 def save_embeddings(
-    output_prefix: str, embeddings: types.MultiModalEmbeddingCache
+    output_prefix: str,
+    embeddings: types.MultiModalEmbeddingCache,
+    shard_size: int = 25_000,
 ):
   """Saves embeddings from a dict into to TFRecord files."""
-  logging.info('Saving embeddings to %s', f'{output_prefix}.tfrecord')
+  num_embeddings = len(embeddings)
+  num_shards = math.ceil(num_embeddings / shard_size)
+  logging.info('Saving embeddings to %s', f'{output_prefix}@{num_shards}')
   tf.io.gfile.makedirs(os.path.dirname(output_prefix))
-  with tf.io.TFRecordWriter(f'{output_prefix}.tfrecord') as writer:
-    for embedding in embeddings.values():
-      record_bytes = pickle.dumps(embedding)
-      writer.write(record_bytes)  # pytype: disable=attribute-error
+  embed_it = iter(embeddings.values())
+  for shard_id in range(num_shards):
+    with tf.io.TFRecordWriter(
+        f'{output_prefix}-{shard_id:05d}-of-{num_shards:05d}'
+    ) as writer:
+      for _ in range(
+          shard_id * shard_size,
+          min(num_embeddings, (shard_id + 1) * shard_size),
+      ):
+        record_bytes = pickle.dumps(next(embed_it))
+        writer.write(record_bytes)  # pytype: disable=attribute-error
 
 
 class BeamRunner(EncoderRunner):
