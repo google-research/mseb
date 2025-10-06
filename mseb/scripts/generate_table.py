@@ -15,7 +15,6 @@
 """Generate an HTML table from flattened leaderboard results."""
 
 import json
-import os
 from typing import List, Sequence
 
 from absl import app
@@ -108,67 +107,21 @@ def main(argv: Sequence[str]) -> None:
 
   html_table = generate_html_table(flattened_results)
 
-  javascript_code = """
-
-function sortTable(table, column, asc = true) {
-  const dirModifier = asc ? 1 : -1;
-  const tBody = table.tBodies[0];
-  const rows = Array.from(tBody.querySelectorAll("tr"));
-
-  const sortedRows = rows.sort((a, b) => {
-    const aColText = a.querySelector(`td:nth-child(${ column + 1 })`).textContent.trim();
-    const bColText = b.querySelector(`td:nth-child(${ column + 1 })`).textContent.trim();
-
-    const aVal = parseFloat(aColText);
-    const bVal = parseFloat(bColText);
-
-    if (!isNaN(aVal) && !isNaN(bVal)) {
-      return (aVal - bVal) * dirModifier;
-    }
-    return aColText.localeCompare(bColText) * dirModifier;
-  });
-
-  while (tBody.firstChild) {
-    tBody.removeChild(tBody.firstChild);
-  }
-  tBody.append(...sortedRows);
-
-  table.querySelectorAll("th").forEach(th => th.removeAttribute("data-sort-direction"));
-  table.querySelector(`th:nth-child(${ column + 1 })`).setAttribute("data-sort-direction", asc ? "asc" : "desc");
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll("th").forEach((headerCell, headerIndex) => {
-    if (headerIndex === 0) return; // Don't sort by the Name column
-    headerCell.addEventListener("click", () => {
-      const tableElement = headerCell.closest("table");
-      const currentAsc = headerCell.getAttribute("data-sort-direction") === "asc";
-      sortTable(tableElement, headerIndex, !currentAsc);
-    });
-  });
-});
-"""
-
-  output_dir = os.path.dirname(_OUTPUT_FILE.value)
-  js_file_path = os.path.join(output_dir, "leaderboard.js")
-  with open(js_file_path, "w") as f:
-    f.write(javascript_code)
-
   html_content = f"""
 <!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
 <title>Leaderboard</title>
-<style>
-  table {{ border-collapse: collapse; width: 100%; }}
-  th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-  th {{ background-color: #f2f2f2; cursor: pointer; }}
-  tr:nth-child(even) {{ background-color: #f9f9f9; }}
-</style>
+<link rel="stylesheet" href="leaderboard.css">
 <script src="leaderboard.js"></script>
 </head>
 <body>
+  <div class="header-section">
+    <h2>MSEB Leaderboard</h2>
+    <p>This is a leaderboard for MSEB: Massive Speech Embedding Benchmark.</p>
+    <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
+  </div>
   <h1>Leaderboard Results</h1>
   {html_table}
 </body>
@@ -179,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
     f.write(html_content)
 
   print(f"HTML table written to {_OUTPUT_FILE.value}")
-  print(f"JavaScript written to {js_file_path}")
 
 
 if __name__ == "__main__":
