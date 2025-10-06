@@ -21,6 +21,8 @@ import subprocess
 from typing import Optional
 
 import librosa
+from mseb import encoder
+from mseb import types
 import numpy as np
 from scipy.io import wavfile
 import soundfile
@@ -32,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 def download_from_hf(repo_id: str, target_dir: str, repo_type: str = "dataset"):
   """Clones a repository from Hugging Face if not already present."""
+  # Expand the '~' to the user's full home directory path.
+  target_dir = os.path.expanduser(target_dir)
   if tf.io.gfile.exists(os.path.join(target_dir, ".git")):
     logger.warning(
         "Repo '%s' already found at %s. Skipping.", repo_id, target_dir
@@ -80,3 +84,30 @@ def wav_bytes_to_waveform(wav_bytes: bytes) -> tuple[np.ndarray, int]:
     waveform = np.mean(waveform, axis=1)
 
   return waveform, rate
+
+
+def sound_to_wav_bytes(sound: types.Sound) -> bytes:
+  """Converts a Sound object's waveform to a 16-bit WAV byte string.
+
+  This function handles various input waveform data types (integers and floats)
+  by first normalizing them to a standard float32 format before encoding.
+
+  Args:
+    sound: The input Sound object containing the waveform and context.
+
+  Returns:
+    A byte string representing the sound in 16-bit WAV format.
+  """
+  int16_sound = encoder.resample_sound(
+      sound,
+      sound.context.sample_rate,
+      np.int16
+  )
+
+  buffer = io.BytesIO()
+  wavfile.write(
+      buffer,
+      rate=int16_sound.context.sample_rate,
+      data=int16_sound.waveform
+  )
+  return buffer.getvalue()

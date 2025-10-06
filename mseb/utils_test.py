@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import os
 
 from absl.testing import absltest
+from mseb import types
 from mseb import utils
 import numpy as np
+from scipy.io import wavfile
 import soundfile
 
 
@@ -29,11 +32,11 @@ class UtilsTest(absltest.TestCase):
     self.sample_rate = 16000
     self.duration_s = 2
     self.num_samples = self.sample_rate * self.duration_s
-    self.mock_audio_path = os.path.join(self.test_dir, "mock_audio.wav")
+    self.mock_audio_path = os.path.join(self.test_dir, 'mock_audio.wav')
     t = np.linspace(0., self.duration_s, self.num_samples, endpoint=False)
     amplitude = np.iinfo(np.int16).max * 0.5
-    data = (amplitude * np.sin(2. * np.pi * 440. * t)).astype(np.int16)
-    soundfile.write(self.mock_audio_path, data, self.sample_rate)
+    self.data = (amplitude * np.sin(2. * np.pi * 440. * t)).astype(np.int16)
+    soundfile.write(self.mock_audio_path, self.data, self.sample_rate)
 
   def test_read_audio_loads_correctly(self):
     waveform, sr = utils.read_audio(self.mock_audio_path)
@@ -60,7 +63,7 @@ class UtilsTest(absltest.TestCase):
     self.assertEqual(waveform.shape[0], self.num_samples)
 
   def test_wav_bytes_to_waveform_loads_correctly(self):
-    with open(self.mock_audio_path, "rb") as f:
+    with open(self.mock_audio_path, 'rb') as f:
       wav_bytes = f.read()
     waveform, sr = utils.wav_bytes_to_waveform(wav_bytes)
     self.assertEqual(sr, self.sample_rate)
@@ -71,5 +74,57 @@ class UtilsTest(absltest.TestCase):
     self.assertLessEqual(np.max(np.abs(waveform)), 1.0)
 
 
-if __name__ == "__main__":
+class TestSoundUtils(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.sample_rate = 16000
+    self.num_samples = self.sample_rate * 1
+    t = np.linspace(0., 1., self.num_samples, endpoint=False)
+    amplitude = np.iinfo(np.int16).max * 0.5
+    self.reference_data_int16 = (
+        (amplitude * np.sin(2. * np.pi * 440. * t)).astype(np.int16)
+    )
+    self.mock_context = types.SoundContextParams(
+        id='sound',
+        sample_rate=self.sample_rate,
+        length=self.num_samples
+    )
+
+  def test_sound_to_wav_bytes_from_float32(self):
+    float_waveform = (
+        self.reference_data_int16.astype(np.float32) / np.iinfo(np.int16).max
+    )
+    sound_object = types.Sound(
+        waveform=float_waveform,
+        context=self.mock_context
+    )
+    wav_bytes = utils.sound_to_wav_bytes(sound_object)
+    reread_rate, reread_data = wavfile.read(io.BytesIO(wav_bytes))
+    self.assertEqual(reread_rate, self.sample_rate)
+    self.assertLen(reread_data, self.num_samples)
+    self.assertEqual(reread_data.dtype, np.int16)
+    np.testing.assert_allclose(
+        reread_data,
+        self.reference_data_int16,
+        atol=1
+    )
+
+  def test_sound_to_wav_bytes_from_int16(self):
+    int16_waveform = self.reference_data_int16
+    sound_object = types.Sound(
+        waveform=int16_waveform,
+        context=self.mock_context
+    )
+    wav_bytes = utils.sound_to_wav_bytes(sound_object)
+    reread_rate, reread_data = wavfile.read(io.BytesIO(wav_bytes))
+    self.assertEqual(reread_rate, self.sample_rate)
+    self.assertLen(reread_data, self.num_samples)
+    np.testing.assert_allclose(
+        reread_data,
+        int16_waveform,
+        atol=1
+    )
+
+if __name__ == '__main__':
   absltest.main()
