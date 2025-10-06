@@ -1,9 +1,9 @@
 #!/bin/bash
 
-DUMP_DATE="20251001"
+DUMP_DATE="20250920"
 output_dir="${HOME}/tmp/idf_tables"
 python_bindir="${HOME}/python/bin"
-scripts_dir=`pwd`
+scripts_dir=$(cd "$(dirname "$0")" && pwd)
 
 languages="ar bn en fi gu hi id ja kn ko ml mr ru sw ta te ur"
 cpus=30
