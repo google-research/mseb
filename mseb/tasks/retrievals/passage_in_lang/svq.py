@@ -39,7 +39,8 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def documents(self) -> Iterable[types.Text]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'passage_retrieval_in_lang_index'
+        'passage_retrieval_in_lang_index',
+        dtype={'id': str, 'title': str, 'context': str},
     ).itertuples():
       yield types.Text(
           text=example.context,
@@ -52,7 +53,8 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'passage_retrieval_in_lang'
+        'passage_retrieval_in_lang',
+        dtype={'locale': str, 'utt_id': str, 'text': str},
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
@@ -64,7 +66,9 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
-    for example in svq_dataset.get_task_data(sub_task).itertuples():
+    for example in svq_dataset.get_task_data(
+        sub_task, dtype={'locale': str, 'utt_id': str, 'passage_id': str}
+    ).itertuples():
       if example.locale == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
             sound_id=example.utt_id, reference_id=example.passage_id

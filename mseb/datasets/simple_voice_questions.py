@@ -16,7 +16,7 @@
 
 import json
 import os
-from typing import Any
+from typing import Any, Mapping
 
 from absl import flags
 import apache_beam as beam
@@ -224,11 +224,14 @@ class SimpleVoiceQuestionsDataset:
       )
     return task_path
 
-  def get_task_data(self, task_name: str) -> pd.DataFrame:
+  def get_task_data(
+      self, task_name: str, dtype: Mapping[str, Any] | None = None
+  ) -> pd.DataFrame:
     """Loads the task data for the given task name.
 
     Args:
       task_name: The name of the task file (e.g., "span_retrieval_cross_lang").
+      dtype: The dtype for the columns.
 
     Returns:
       A pandas DataFrame containing the task data.
@@ -236,7 +239,9 @@ class SimpleVoiceQuestionsDataset:
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
-    return pd.read_json(self._get_task_path(task_name), lines=True)
+    return pd.read_json(
+        self._get_task_path(task_name), lines=True, dtype=dtype
+    )
 
   def get_task_data_beam(self, task_name: str) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""

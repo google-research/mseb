@@ -42,7 +42,13 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
   def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'span_reasoning_cross_lang'
+        'span_reasoning_cross_lang',
+        dtype={
+            'locale': str,
+            'utt_id': str,
+            'page_title': str,
+            'passage_text': str,
+        },
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
@@ -57,7 +63,15 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
-    for example in svq_dataset.get_task_data(sub_task).itertuples():
+    for example in svq_dataset.get_task_data(
+        sub_task,
+        dtype={
+            'locale': str,
+            'utt_id': str,
+            'span': str,
+            'spans': Sequence[str],
+        },
+    ).itertuples():
       if example.locale == self.locale:
         yield reasoning_evaluator.ReasoningSpans(
             sound_id=example.utt_id,
@@ -68,7 +82,8 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'span_reasoning_cross_lang'
+        'span_reasoning_cross_lang',
+        dtype={'locale': str, 'spans': Sequence[str]},
     ).itertuples():
       if example.locale == self.locale:
         yield [

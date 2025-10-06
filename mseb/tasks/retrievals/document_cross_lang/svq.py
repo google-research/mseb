@@ -42,7 +42,8 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
-        'document_retrieval_cross_lang'
+        'document_retrieval_cross_lang',
+        dtype={'locale': str, 'utt_id': str, 'text': str},
     ).itertuples():
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
@@ -54,7 +55,9 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
-    for example in svq_dataset.get_task_data(sub_task).itertuples():
+    for example in svq_dataset.get_task_data(
+        sub_task, dtype={'locale': str, 'utt_id': str, 'page_title': str}
+    ).itertuples():
       if example.locale == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
             sound_id=example.utt_id, reference_id=example.page_title
