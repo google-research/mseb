@@ -21,6 +21,7 @@ name, and writes them to a directory structure of the form:
 """
 
 import json
+import logging
 import os
 from typing import Sequence
 
@@ -28,6 +29,9 @@ from absl import app
 from absl import flags
 from mseb import leaderboard
 import tensorflow as tf
+
+
+logger = logging.getLogger(__name__)
 
 
 _INPUT_GLOB = flags.DEFINE_string(
@@ -69,6 +73,7 @@ def main(argv: Sequence[str]) -> None:
 
   for partition_name, results in partitions.items():
     output_path = os.path.join(_OUTPUT_DIR.value, f'{partition_name}.jsonl')
+    logger.info('Writing results to %s', output_path)
     tf.io.gfile.makedirs(os.path.dirname(output_path))
     with tf.io.gfile.GFile(output_path, 'w') as f:
       leaderboard.write_dataclasses_to_jsonl(results, f)

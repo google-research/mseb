@@ -72,7 +72,7 @@ def main(argv):
   runner = runner_lib.DirectRunner(
       encoder=encoder,
       batch_size=_BATCH_SIZE.value,
-      num_workers=_NUM_THREADS.value,
+      num_threads=_NUM_THREADS.value,
       output_path=runner_lib.RUNNER_CACHE_BASEPATH.value,
   )
   task.setup(runner=runner)
