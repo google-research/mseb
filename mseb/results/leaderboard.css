@@ -1,28 +1,36 @@
 body {
-  font-family: sans-serif;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
   line-height: 1.6;
+  padding: 20px;
+  background-color: #f8f9fa;
+  color: #3c4043;
 }
 
 table {
   border-collapse: collapse;
   width: auto;
   margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden; /* Ensures rounded corners apply to content */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 th, td {
-  border: 1px solid #ddd;
-  padding: 10px;
+  border: 1px solid #e0e0e0;
+  padding: 12px 15px;
   text-align: left;
   white-space: nowrap;
 }
 
 thead {
-  background-color: #f2f2f2;
+  background-color: #e8f0fe; /* Light Google Blue */
+  color: #1a73e8;
 }
 
 th {
   cursor: pointer;
   position: relative;
+  padding: 15px;
 }
 
 tr:nth-child(even) {
@@ -30,12 +38,13 @@ tr:nth-child(even) {
 }
 
 tr:hover {
-  background-color: #f1f1f1;
+  background-color: #e0f2f7; /* Light cyan on hover */
 }
 
 .table-container {
   overflow-x: auto;
   width: 100%;
+  margin-top: 20px;
 }
 
 .sort-icon {
@@ -68,6 +77,22 @@ th[data-sort-direction="desc"] .sort-icon::after {
   background-color: transparent !important; /* Override hover and nth-child */
 }
 
+#encoder-filter {
+  padding: 10px 12px;
+  margin-top: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  width: 300px;
+  font-size: 1em;
+  color: #3c4043;
+}
+
+#encoder-filter:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 1px #1a73e8;
+}
+
 .toggle-mean {
   cursor: pointer;
   white-space: nowrap;
@@ -87,14 +112,25 @@ th[data-sort-direction="desc"] .sort-icon::after {
 
 .header-section {
   margin-bottom: 20px;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .header-section p {
   margin: 5px 0;
 }
 
-h1, h2 {
-  color: #333;
+h1 {
+  color: #1a73e8; /* Google Blue 600 */
+  font-size: 2em;
+  margin-bottom: 10px;
+}
+
+h2 {
+  color: #1a73e8; /* Google Blue 600 */
+  font-size: 1.5em;
+  margin-top: 0;
 }
