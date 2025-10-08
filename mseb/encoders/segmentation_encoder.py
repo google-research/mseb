@@ -17,7 +17,6 @@
 from collections.abc import Sequence
 from typing import Iterator, Tuple
 
-import jaxtyping
 from mseb import encoder
 from mseb import types
 from mseb.encoders import whisper_encoder
@@ -33,8 +32,9 @@ class RetokenizerBase:
     """Retokenizes an input text defined by a sequence of words.
 
     Args:
-      words: A sequence of words.
-
+      words: A sequence of words or word-pieces. This sequence is expected
+        to contain explicit spaces to define word boundaries (e.g.,
+        [' word1', ' word2']) for space-delimited languages.
     Yields:
       A sequence of tuples, each corresponding to a token and consisting of
           (token_text, front, back)
@@ -52,7 +52,6 @@ class SpacyRetokenizer(RetokenizerBase):
 
   def _tokenize(self, text: str) -> Iterator[Tuple[str, int, int]]:
     for token in self.model(text):
-      print(token.text, token.idx, token.idx + len(token.text) - 1)
       yield token.text, token.idx, token.idx + len(token.text) - 1
 
   def retokenize(self, words: Sequence[str]) -> Iterator[Tuple[str, int, int]]:
@@ -147,116 +146,95 @@ class LongestPrefixIDFSegmenter(SegmenterBase):
       ]
 
 
-class CascadedSegmentationEncoder(encoder.MultiModalEncoder):
-  """Encodes anaudio sequence into segments using a cascaded approach.
+class TextSegmenterEncoder(encoder.MultiModalEncoder):
+  """An encoder that segments text and returns top-k segments with scores."""
 
-   1. Use an ASR encoder to transcribe the speech into text.
-   2. Use a text-based segmenter to segment the text into segments.
-   3. Select the top-k segments with the highest segment scores.
-   4. Return the start and end timestamps, texts, and scores of the selected
-      segments
-  """
-
-  def __init__(
-      self,
-      asr_encoder: whisper_encoder.Whisper,
-      segmenter: SegmenterBase,
-      top_k: int = 1
-  ):
+  def __init__(self, segmenter: SegmenterBase, top_k: int = 1):
     super().__init__()
-    self.asr_encoder = asr_encoder
     self.segmenter = segmenter
     self.top_k = top_k
 
   def _setup(self):
-    self.asr_encoder.setup()
+    pass
 
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not all(isinstance(x, types.Sound) for x in batch):
+    if not all(isinstance(x, types.SoundEmbedding) for x in batch):
       raise ValueError(
-          'CascadedSegmentationEncoder only supports a batch of all Sound '
-          'inputs.'
+          'TextSegmenterEncoder only supports SoundEmbedding inputs.'
       )
 
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.SoundEmbedding]:
-    """Encodes a batch of sound sources into segments.
-
-    Args:
-      batch: A sequence of sound sources to encode.
-
-    Returns:
-      A list of types.SoundEmbedding objects, one for each input:
-       timestamps: Array of start and end times tuple for each segment.
-       segments: Array of text and score for each segment.
-    """
-    sound_batch: list[types.Sound] = []
-    for example in batch:
-      assert isinstance(example, types.Sound)
-      sound_batch.append(example)
-    sound_embeddings = self.asr_encoder.encode(sound_batch)
     outputs = []
-    for sound_embedding in sound_embeddings:
+    for sound_embedding in batch:
       assert isinstance(sound_embedding, types.SoundEmbedding)
-      words: jaxtyping.Shaped[np.ndarray, 'N'] = sound_embedding.embedding
-      segments = list(self.segmenter.segment([str(x) for x in words]))
+      words = sound_embedding.embedding
+      segments = list(self.segmenter.segment([str(w) for w in words]))
       if not segments:
         outputs.append(
             types.SoundEmbedding(
                 embedding=np.array([['', 0.0]], dtype=object),
-                timestamps=np.array([0.0, 0.0], dtype=float),
+                timestamps=np.array([[0.0, 0.0]], dtype=float),
                 context=sound_embedding.context,
             )
         )
         continue
-      # TODO(allauzen): consider using a heap instead of sorting.
       segments.sort(key=lambda x: x[1], reverse=True)
+      top_segments = segments[: self.top_k]
       outputs.append(
           types.SoundEmbedding(
-              embedding=np.array([
-                  [term, score] for term, score, _, _ in segments[: self.top_k]
-              ]),
-              timestamps=np.array([
+              embedding=np.array(
+                  [[term, score] for term, score, _, _ in top_segments]
+              ),
+              timestamps=np.array(
                   [
-                      sound_embedding.timestamps[front][0],
-                      sound_embedding.timestamps[back][1],
+                      [
+                          sound_embedding.timestamps[front][0],
+                          sound_embedding.timestamps[back][1],
+                      ]
+                      for _, _, front, back in top_segments
                   ]
-                  for _, _, front, back in segments[: self.top_k]
-              ]),
+              ),
               context=sound_embedding.context,
           )
       )
     return outputs
 
 
-class MaxIDFSegmentEncoder(CascadedSegmentationEncoder):
-  """Encodes an audio sequence into the top-k segments with the highest IDF scores in the output of an ASR encoder."""
+def create_max_idf_segment_encoder(
+    asr_encoder: whisper_encoder.Whisper,
+    idf_table: dict[str, float],
+    language: str,
+    top_k: int = 1,
+) -> encoder.CascadeEncoder:
+  """Factory function that assembles a cascaded salient term encoder.
 
-  def __init__(
-      self,
-      asr_encoder: whisper_encoder.Whisper,
-      idf_table: dict[str, float],
-      language: str,
-      top_k: int = 1,
-  ):
-    """Initialize the MaxIDFSegmentEncoder.
+  This function builds a two-stage encoder:
+  1. An ASR encoder (like ForcedAlignmentEncoder) runs to get word timestamps.
+  2. A TextSegmenterEncoder runs on the output to find and score salient terms.
 
-    Args:
-      asr_encoder: The ASR encoder to use.
-      idf_table: The IDF table to use.
-      language: The language of the speech.
-      top_k: The number of segments to return.
-    """
-    # As workaround for some issues with the Japanase and Korean spacy
-    # tokenizers, we use a different segmenter for these languages.
-    if language.startswith('ja'):
-      segmenter = LongestPrefixIDFSegmenter(idf_table)
-    else:
-      segmenter = TokenIDFSegmenter(
-          idf_table,
-          SpacyRetokenizer(
-              language=('xx' if language.startswith('ko') else language)
-          ),
-      )
-    super().__init__(asr_encoder, segmenter, top_k)
+  Args:
+    asr_encoder: An initialized ASR encoder (e.g., ForcedAlignmentEncoder).
+    idf_table: A dictionary mapping tokens to their IDF scores.
+    language: The language code (e.g., 'en', 'ja') to configure the segmenter.
+    top_k: The number of top salient terms to return.
+
+  Returns:
+    A configured CascadeEncoder ready for use.
+  """
+  if language.startswith('ja'):
+    segmenter = LongestPrefixIDFSegmenter(idf_table)
+  else:
+    segmenter = TokenIDFSegmenter(
+        idf_table,
+        SpacyRetokenizer(
+            language=('xx' if language.startswith('ko') else language)
+        ),
+    )
+  return encoder.CascadeEncoder(
+      encoders=[
+          asr_encoder,
+          TextSegmenterEncoder(segmenter, top_k),
+      ]
+  )

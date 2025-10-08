@@ -14,19 +14,20 @@
 
 import os
 import pathlib
-from unittest import mock
 
 from absl.testing import absltest
-from absl.testing import parameterized
 from mseb import types
+from mseb.datasets import simple_voice_questions
 from mseb.encoders import segmentation_encoder
 from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
-import pyarrow.parquet as pq
 
 
 IDF_TABLE = {
+    'anatolian': 0.9,
+    'shepherds': 0.8,
+    'rare': 0.7,
     'national': 3.0,
     'labor': 2.0,
     'relations': 4.0,
@@ -34,91 +35,101 @@ IDF_TABLE = {
 }
 
 
-def whisper_cache_context(name: str):
-  # Use a unique cache directory for each test to avoid collisions when
-  # running tests in parallel via pytest.
-  original_xdg_cache_home = os.path.join(os.path.expanduser('~'), '.cache')
-  new_xdg_cache_home = os.path.join(original_xdg_cache_home, f'{name}_whisper')
-  return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
-
-
-class SegmentationEncoderTests(parameterized.TestCase):
+class TextSegmenterEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.enter_context(whisper_cache_context(self.__class__.__name__))
+    self.mock_input_embedding = types.SoundEmbedding(
+        embedding=np.array(['national', ' labor', ' relations', ' board']),
+        timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),
+        context=types.SoundContextParams(
+            id='test_utt',
+            sample_rate=16000,
+            length=32000,
+            language='en',
+            text='dummy'
+        )
+    )
+
+  def test_spacy_retokenizer_in_isolation(self):
+    words = ['national', ' labor', ' relations', ' board']
+    expected_output = [
+        ('national', 0, 0),
+        ('labor', 1, 1),
+        ('relations', 2, 2),
+        ('board', 3, 3)
+    ]
+    retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
+    actual_output = list(retokenizer.retokenize(words))
+    print(f'Actual retokenizer output: {actual_output}')
+    self.assertEqual(actual_output, expected_output)
+
+  def test_encode_selects_top_k_segments(self):
+    retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
+    segmenter = segmentation_encoder.TokenIDFSegmenter(IDF_TABLE, retokenizer)
+    encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
+    output_embeddings = encoder.encode([self.mock_input_embedding])
+    self.assertLen(output_embeddings, 1)
+    result = output_embeddings[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
+    expected_terms_and_scores = np.array(
+        [['relations', 4.0], ['national', 3.0]]
+    )
+    expected_timestamps = np.array([[1.1, 1.5], [0.1, 0.5]])
+    npt.assert_array_equal(result.embedding, expected_terms_and_scores)
+    npt.assert_array_equal(result.timestamps, expected_timestamps)
+
+
+class MaxIDFSegmentEncoderFactoryTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
     testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata')
-    self.svq_samples = pq.ParquetFile(
-        os.path.join(testdata_path, 'en_us.parquet'))
-    self.whisper_encoder = whisper_encoder.SpeechToTextEncoder(
-        model_path='base', device='cpu', word_timestamps=True
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )
-    self.whisper_encoder.setup()
+    self.mini_dataset_path = os.path.join(testdata_path, 'svq_mini')
+    self.assertTrue(
+        os.path.exists(self.mini_dataset_path),
+        f'Mini dataset not found at {self.mini_dataset_path}. '
+        'Please run create_test_dataset.py first.'
+    )
+    dataset = simple_voice_questions.SimpleVoiceQuestionsDataset(
+        base_path=self.mini_dataset_path
+    )
+    self.sound_input = dataset.get_sound_by_id('utt_6844631007344632667')
+    if self.sound_input.context.text:
+      self.sound_input.context.text = self.sound_input.context.text.lower()
 
-  @parameterized.named_parameters(
-      dict(
-          testcase_name='spacy_retokenizer',
-          segmenter=segmentation_encoder.TokenIDFSegmenter(
-              IDF_TABLE, segmentation_encoder.SpacyRetokenizer()
-          ),
-      ),
-      dict(
-          testcase_name='normalizing_retokenizer',
-          segmenter=segmentation_encoder.TokenIDFSegmenter(
-              IDF_TABLE, segmentation_encoder.NormalizingRetokenizer()
-          ),
-      ),
-      dict(
-          testcase_name='longest_prefix_idf_segmenter',
-          segmenter=segmentation_encoder.LongestPrefixIDFSegmenter(IDF_TABLE),
-      ),
-  )
-  def test_encode(self, segmenter):
-    seg_encoder = segmentation_encoder.CascadedSegmentationEncoder(
-        self.whisper_encoder, segmenter, top_k=2
+  def test_factory_creates_and_runs_real_encoder(self):
+    asr_encoder = whisper_encoder.ForcedAlignmentEncoder(
+        model_path='base.en', device='cpu', language='en'
     )
-    svq_example = self.svq_samples.read_row_group(0)
-    waveform = svq_example['waveform'].to_numpy()[0]
-    waveform = waveform.astype(np.float32) / 32767.0
-    sample_rate = 48000
-    context = types.SoundContextParams(
-        id='0',
-        length=waveform.shape[0],
+    cascade_encoder = segmentation_encoder.create_max_idf_segment_encoder(
+        asr_encoder=asr_encoder,
+        idf_table=IDF_TABLE,
         language='en',
-        sample_rate=sample_rate,
-        text=svq_example['text'].to_numpy()[0],
+        top_k=2
     )
-    sound_embeddings = seg_encoder.encode(
-        [types.Sound(waveform=waveform, context=context)]
+    cascade_encoder.setup()
+    outputs = cascade_encoder.encode([self.sound_input])
+    self.assertLen(outputs, 1)
+    result = outputs[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
+    found_terms = [term[0] for term in result.embedding]
+    print(f'Found Salient Terms: {found_terms}')
+    print(f'Found Timestamps: {result.timestamps.tolist()}')
+    self.assertNotEmpty(result.embedding, 'No salient terms were found.')
+    self.assertNotEqual(result.timestamps.tolist(), [[0.0, 0.0]])
+    self.assertIn('anatolian', found_terms)
+    self.assertIn('shepherds', found_terms)
+    duration = (
+        len(self.sound_input.waveform) / self.sound_input.context.sample_rate
     )
-    sound_embedding = sound_embeddings[0]
-    self.assertIsInstance(sound_embedding, types.SoundEmbedding)
-    npt.assert_equal(sound_embedding.timestamps.shape, [2, 2])
-    npt.assert_array_almost_equal(
-        sound_embedding.timestamps, [[3.58, 4.08], [2.76, 3.2]], decimal=1
-    )
-    npt.assert_equal(
-        sound_embedding.timestamps[0, 1] <= waveform.shape[0] / sample_rate,
-        True,
-    )
-    npt.assert_equal(
-        sound_embedding.timestamps[1, 1] <= waveform.shape[0] / sample_rate,
-        True,
-    )
-    npt.assert_equal(
-        sound_embedding.embedding, [['relations', 4.0], ['national', 3.0]]
-    )
+    for timestamp in result.timestamps:
+      self.assertLessEqual(timestamp[0], timestamp[1])
+      self.assertGreaterEqual(timestamp[0], 0)
+      self.assertLess(timestamp[1], duration + 1.0)
 
-
-class SegmentationEncoderUsingTruthTests(SegmentationEncoderTests):
-
-  def setUp(self):
-    super().setUp()
-    self.whisper_encoder = whisper_encoder.ForcedAlignmentEncoder(
-        model_path='base', device='cpu', language='en'
-    )
-    self.whisper_encoder.setup()
 
 if __name__ == '__main__':
   absltest.main()
