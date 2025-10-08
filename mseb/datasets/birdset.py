@@ -16,14 +16,13 @@
 
 import json
 import os
-from typing import Any
 
 from mseb import dataset
 from mseb import types
 import pandas as pd
 
 
-class BirdsetDataset(dataset.Dataset):
+class BirdsetDataset:
   """Birdset dataset for bird sound classification.
 
   This class loads the Birdset, a large-scale collection of bird sound
@@ -34,9 +33,9 @@ class BirdsetDataset(dataset.Dataset):
 
   def __init__(
       self,
-      base_path: str,
-      split: str,
-      configuration: str,
+      base_path: str | None = None,
+      split: str = "test",
+      configuration: str = "AWC",
   ):
     """Initializes the dataset for a specific split and configuration.
 
@@ -51,13 +50,12 @@ class BirdsetDataset(dataset.Dataset):
           f"Split must be 'train', 'test', or 'test_5s', but got '{split}'."
       )
 
+    self.base_path = dataset.get_base_path(base_path)
+    self.split = split
     self.configuration = configuration
     self._native_sr = 32_000
     self._ebird_code_names: list[str] | None = None
-    super().__init__(
-        base_path=base_path,
-        split=split,
-    )
+    self._data = self._load_data()
 
   @property
   def metadata(self) -> types.DatasetMetadata:
@@ -97,7 +95,10 @@ class BirdsetDataset(dataset.Dataset):
 """,
     )
 
-  def _load_metadata(self) -> pd.DataFrame:
+  def __len__(self) -> int:
+    return len(self._data)
+
+  def _load_data(self) -> pd.DataFrame:
     """Loads and configures the Hugging Face dataset object."""
     cache_filename = f"birdset_{self.configuration}_{self.split}.parquet"
     cache_path = os.path.join(self.base_path, cache_filename)
@@ -114,20 +115,24 @@ class BirdsetDataset(dataset.Dataset):
     self._ebird_code_names = class_lists[class_list_name]
     return df
 
-  def _get_sound(self, record: dict[str, Any]) -> types.Sound:
+  def get_task_data(self) -> pd.DataFrame:
+    """Returns the entire dataset as a DataFrame."""
+    return self._data
+
+  def get_sound(self, record: pd.Series) -> types.Sound:
     """Creates a Sound object from the HF dataset record."""
-    audio_data = record["audio"]
+    audio_data = record.audio
     waveform = audio_data["waveform"]
     sr = audio_data["sampling_rate"]
 
     # Get the string label for the ebird_code
     text_label = None
-    if "ebird_code" in record and record["ebird_code"] is not None:
-      if self._metadata is not None and self._ebird_code_names is not None:
-        text_label = self._ebird_code_names[record["ebird_code"]]
+    if "ebird_code" in record and record.ebird_code is not None:
+      if self._ebird_code_names is not None:
+        text_label = self._ebird_code_names[record.ebird_code]
 
     context = types.SoundContextParams(
-        id=str(record["filepath"]),
+        id=str(record.filepath),
         sample_rate=sr,
         length=len(waveform),
         language=None,

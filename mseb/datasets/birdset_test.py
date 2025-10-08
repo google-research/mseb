@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Tests for Birdset dataset."""
+
 import json
 import os
-from unittest import mock
 
 from absl.testing import absltest
 from mseb import types
@@ -28,74 +29,79 @@ class BirdsetDatasetTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.fake_df = pd.DataFrame({
-        "audio": [{"waveform": np.ones(32000), "sampling_rate": 32_000}],
-        "filepath": ["fake/path/audio.ogg"],
-        "ebird_code": [0],  # 'astcal'
-        "sex": ["male"],
-        "other_col": [123],
-    })
+    self.testdata_dir = self.create_tempdir()
+
+    mock_data = dict(
+        audio=[{"waveform": np.ones(32000), "sampling_rate": 32_000}],
+        filepath=["fake/path/audio.ogg"],
+        ebird_code=[0],  # 'astcal'
+        sex=["male"],
+        other_col=[123],
+    )
+    self.fake_df = pd.DataFrame(mock_data)
     self.class_lists = {"some_list": ["astcal", "brnthr"]}
     self.config_to_class_list = {"HSN": "some_list"}
+
+    # Write fake data to temporary files
+    fake_parquet_path = os.path.join(
+        self.testdata_dir.full_path, "birdset_HSN_test_5s.parquet"
+    )
+    self.fake_df.to_parquet(fake_parquet_path)
+
+    fake_class_lists_path = os.path.join(
+        self.testdata_dir.full_path, "class_lists.json"
+    )
+    with open(fake_class_lists_path, "w") as f:
+      json.dump(self.class_lists, f)
+
+    fake_config_path = os.path.join(
+        self.testdata_dir.full_path, "config_to_class_list.json"
+    )
+    with open(fake_config_path, "w") as f:
+      json.dump(self.config_to_class_list, f)
 
   def test_initialization_invalid_split_raises_error(self):
     with self.assertRaisesRegex(ValueError, "Split must be"):
       birdset.BirdsetDataset(
-          base_path=".",
+          base_path=self.testdata_dir.full_path,
           split="validation",
-          configuration="HSN"
+          configuration="HSN",
       )
 
-  @mock.patch("pandas.read_parquet")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
-  def test_load_metadata_and_init_success(
-      self, mock_open, mock_read_parquet
-  ):
-    mock_read_parquet.return_value = self.fake_df
-    mock_open.return_value.__enter__.return_value.read.side_effect = [
-        json.dumps(self.class_lists),
-        json.dumps(self.config_to_class_list),
-    ]
-
+  def test_loading_and_parsing(self):
     ds = birdset.BirdsetDataset(
-        base_path="/fake/cache", split="test_5s", configuration="HSN"
+        base_path=self.testdata_dir.full_path,
+        split="test_5s",
+        configuration="HSN",
     )
 
-    cache_filename = "birdset_HSN_test_5s.parquet"
-    cache_path = os.path.join("/fake/cache", cache_filename)
-    mock_read_parquet.assert_called_once_with(cache_path)
-    self.assertEqual(mock_open.call_count, 2)
-    mock_open.assert_any_call("/fake/cache/class_lists.json", "r")
-    mock_open.assert_any_call("/fake/cache/config_to_class_list.json", "r")
+    self.assertLen(ds, 1)
 
-    pd.testing.assert_frame_equal(
-        ds._metadata[["filepath", "ebird_code", "sex", "other_col"]],
-        self.fake_df[["filepath", "ebird_code", "sex", "other_col"]],
-    )
+    task_df = ds.get_task_data()
+    self.assertIsInstance(task_df, pd.DataFrame)
+    self.assertLen(task_df, 1)
+
+    record = task_df.iloc[0]
+    self.assertEqual(record.filepath, "fake/path/audio.ogg")
+    self.assertEqual(record.ebird_code, 0)
+    self.assertEqual(record.sex, "male")
+
     self.assertEqual(ds._ebird_code_names, ["astcal", "brnthr"])
 
-  @mock.patch("pandas.read_parquet")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
-  def test_getitem_and_get_sound_parsing(
-      self, mock_open, mock_read_parquet
-  ):
-    mock_read_parquet.return_value = self.fake_df
-    mock_open.return_value.__enter__.return_value.read.side_effect = [
-        json.dumps(self.class_lists),
-        json.dumps(self.config_to_class_list),
-    ]
-
+  def test_get_sound(self):
     ds = birdset.BirdsetDataset(
-        base_path="/fake/cache", split="train", configuration="HSN"
+        base_path=self.testdata_dir.full_path,
+        split="test_5s",
+        configuration="HSN",
     )
+    record = ds.get_task_data().iloc[0]
+    sound = ds.get_sound(record)
 
-    sound_item = ds[0]
-
-    self.assertIsInstance(sound_item, types.Sound)
-    self.assertEqual(sound_item.context.id, "fake/path/audio.ogg")
-    self.assertEqual(sound_item.context.speaker_gender, "male")
-    self.assertEqual(sound_item.context.text, "astcal")
-    self.assertEqual(sound_item.context.sample_rate, 32_000)
+    self.assertIsInstance(sound, types.Sound)
+    self.assertEqual(sound.context.id, "fake/path/audio.ogg")
+    self.assertEqual(sound.context.speaker_gender, "male")
+    self.assertEqual(sound.context.text, "astcal")
+    self.assertEqual(sound.context.sample_rate, 32_000)
 
 
 if __name__ == "__main__":
