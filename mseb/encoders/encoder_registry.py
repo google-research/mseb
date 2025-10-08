@@ -22,7 +22,7 @@ specific encoder configurations.
 import dataclasses
 import inspect
 import sys
-from typing import Any, Callable, Type
+from typing import Any, Callable
 from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import gecko_encoder
@@ -53,7 +53,7 @@ class EncoderMetadata:
   """Metadata for an Encoder instantiated with specific parameters."""
 
   name: str  # The name of the encoder for creation and leaderboard entry.
-  encoder: Type[encoder_lib.MultiModalEncoder]
+  encoder: Callable[..., encoder_lib.MultiModalEncoder]
   # Lazy evaluation of the encoder parameters so we can use flags.
   params: Callable[[], dict[str, Any]]  # Additional encoder parameters.
 
@@ -81,6 +81,24 @@ gecko_transcript_truth_or_gecko = EncoderMetadata(
     params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
 )
 
+gecko_transcript_truth_or_gecko_no_prompt = EncoderMetadata(
+    name="gecko_transcript_truth_or_gecko_no_prompt",
+    encoder=gecko_encoder.GeckoTranscriptTruthOrGeckoEncoder,
+    params=lambda: dict(
+        gecko_model_path=_GECKO_MODEL_PATH.value,
+        query_normalizer=None,
+        query_prompt_template=None,
+        document_normalizer=None,
+        document_prompt_template=None,
+    ),
+)
+
+gecko_with_title_and_context_transcript_truth_or_gecko = EncoderMetadata(
+    name="gecko_with_title_and_context_transcript_truth_or_gecko",
+    encoder=gecko_encoder.GeckoWithTitleAndContextTranscriptTruthOrGeckoEncoder,
+    params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
+)
+
 gecko_whisper = EncoderMetadata(
     name="gecko_whisper",
     encoder=gecko_encoder.GeckoWhisperEncoder,
@@ -96,6 +114,19 @@ gecko_whisper_or_gecko = EncoderMetadata(
     params=lambda: dict(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
+    ),
+)
+
+gecko_whisper_or_gecko_no_prompt = EncoderMetadata(
+    name="gecko_whisper_or_gecko_no_prompt",
+    encoder=gecko_encoder.GeckoWhisperOrGeckoEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gecko_model_path=_GECKO_MODEL_PATH.value,
+        query_normalizer=None,
+        query_prompt_template=None,
+        document_normalizer=None,
+        document_prompt_template=None,
     ),
 )
 

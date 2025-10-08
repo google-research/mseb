@@ -24,210 +24,226 @@ from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder_li
 from mseb.encoders import whisper_encoder
 
 
-class GeckoTranscriptTruthEncoder(encoder.CascadeEncoder):
-  """Transcript truth encoder with Gecko model."""
+def GeckoTranscriptTruthEncoder(
+    model_path: str,
+    normalizer: Callable[[str], str] | None = None,
+    prompt_template: str = 'task: search result | query: {text}',
+) -> encoder.CascadeEncoder:
+  """Transcript truth encoder with Gecko model.
 
-  def __init__(
-      self,
-      model_path: str,
-      normalizer: Callable[[str], str] | None = None,
-      prompt_template: str = 'task: search result | query: {text}',
-  ):
-    """Initializes the transcript truth and Gecko models.
+  Args:
+    model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
+      the model to be loaded in setup().
+    normalizer: A function that normalizes the text before encoding. This is
+      useful for removing special characters or formatting the text for better
+      encoding results.
+    prompt_template: Format of the prompt to be used for Gecko. Typically, the
+      prompt is of the form: 'task: search result | query: {text}' for queries
+      and 'title: {title} | text: {text}' for documents".
 
-    Args:
-      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
-        the model to be loaded in setup().
-      normalizer: A function that normalizes the text before encoding. This is
-        useful for removing special characters or formatting the text for better
-        encoding results.
-      prompt_template: Format of the prompt to be used for Gecko. Typically, the
-        prompt is of the form: 'task: search result | query: {text}' for queries
-        and 'title: {title} | text: {text}' for documents".
-    """
-    super().__init__(
-        encoders=[
-            converter.SoundToSoundEmbeddingConverter(),
-            converter.SoundEmbeddingToTextConverter(),
-            text_encoder_lib.GeckoTextEncoder(
-                model_path=model_path,
-                normalizer=normalizer,
-                prompt_template=prompt_template,
-            ),
-        ]
-    )
+  Returns:
+    A CascadeEncoder that encodes Sound to text to embedding.
+  """
+  return encoder.CascadeEncoder(
+      encoders=[
+          converter.SoundToSoundEmbeddingConverter(),
+          converter.SoundEmbeddingToTextConverter(),
+          text_encoder_lib.GeckoTextEncoder(
+              model_path=model_path,
+              normalizer=normalizer,
+              prompt_template=prompt_template,
+          ),
+      ]
+  )
 
 
-class GeckoTranscriptTruthOrGeckoEncoder(encoder.CollectionEncoder):
+def GeckoTranscriptTruthOrGeckoEncoder(
+    gecko_model_path: str,
+    query_normalizer: Callable[[str], str] | None = None,
+    query_prompt_template: str | None = 'task: search result | query: {text}',
+    document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    document_prompt_template: str | None = 'title: {title} | text: {text}',
+) -> encoder.CollectionEncoder:
   """Pair Sound and Text encoder as for sound to text retrieval."""
-
-  def __init__(
-      self,
-      gecko_model_path: str,
-      query_normalizer: Callable[[str], str] | None = None,
-      query_prompt_template: str = 'task: search result | query: {text}',
-      document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
-          r'\[\d+\]', '', x.lower()
-      ),
-      document_prompt_template: str | None = 'title: {title} | text: {text}',
-  ):
-    sound_encoder = GeckoTranscriptTruthEncoder(
-        model_path=gecko_model_path,
-        normalizer=query_normalizer,
-        prompt_template=query_prompt_template,
-    )
-    text_encoder = text_encoder_lib.GeckoTextEncoder(
-        model_path=gecko_model_path,
-        normalizer=document_normalizer,
-        prompt_template=document_prompt_template,
-    )
-    super().__init__(
-        encoder_by_input_type={
-            types.Sound: sound_encoder,
-            types.Text: text_encoder,
-        }
-    )
+  sound_encoder = GeckoTranscriptTruthEncoder(
+      model_path=gecko_model_path,
+      normalizer=query_normalizer,
+      prompt_template=query_prompt_template,
+  )
+  text_encoder = text_encoder_lib.GeckoTextEncoder(
+      model_path=gecko_model_path,
+      normalizer=document_normalizer,
+      prompt_template=document_prompt_template,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )
 
 
-class GeckoWhisperEncoder(encoder.CascadeEncoder):
-  """Cascaded Whisper and Gecko encoder."""
-
-  def __init__(
-      self,
-      whisper_model_path: str,
-      gecko_model_path: str,
-      normalizer: Callable[[str], str] | None = None,
-      prompt_template: str = 'task: search result | query: {text}',
-  ):
-    """Initializes the Whisper and Gecko models.
-
-    Args:
-      whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
-        pointing to the Whisper model to be loaded in setup().
-      gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
-        pointing to the Gecko model to be loaded in setup().
-      normalizer: A function that normalizes the text before encoding. This is
-        useful for removing special characters or formatting the text for better
-        encoding results.
-      prompt_template: Format of the prompt to be used for Gecko. Typically, the
-        prompt is of the form: 'task: search result | query: {text}' for queries
-        and 'title: {title} | text: {text}' for documents".
-    """
-    super().__init__(
-        encoders=[
-            whisper_encoder.SpeechToTextEncoder(model_path=whisper_model_path),
-            converter.SoundEmbeddingToTextConverter(),
-            text_encoder_lib.GeckoTextEncoder(
-                model_path=gecko_model_path,
-                normalizer=normalizer,
-                prompt_template=prompt_template,
-            ),
-        ]
-    )
+def GeckoWithTitleAndContextTranscriptTruthOrGeckoEncoder(
+    gecko_model_path: str,
+    query_normalizer: Callable[[str], str] | None = None,
+    query_prompt_template: str = 'task: search result | query: {text}',
+    document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    document_prompt_template: str | None = 'title: {title} | text: {text}',
+) -> encoder.CollectionEncoder:
+  """Pair SoundWithTitleAndContext and Text encoder as for sound to text retrieval."""
+  sound_encoder = GeckoTranscriptTruthEncoder(
+      model_path=gecko_model_path,
+      normalizer=query_normalizer,
+      prompt_template=query_prompt_template,
+  )
+  text_encoder = text_encoder_lib.GeckoTextEncoder(
+      model_path=gecko_model_path,
+      normalizer=document_normalizer,
+      prompt_template=document_prompt_template,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.SoundWithTitleAndContext: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )
 
 
-class GeckoWhisperOrGeckoEncoder(encoder.CollectionEncoder):
+def GeckoWhisperEncoder(
+    whisper_model_path: str,
+    gecko_model_path: str,
+    normalizer: Callable[[str], str] | None = None,
+    prompt_template: str = 'task: search result | query: {text}',
+) -> encoder.CascadeEncoder:
+  """Cascaded Whisper and Gecko encoder.
+
+  Args:
+    whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
+      pointing to the Whisper model to be loaded in setup().
+    gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
+      pointing to the Gecko model to be loaded in setup().
+    normalizer: A function that normalizes the text before encoding. This is
+      useful for removing special characters or formatting the text for better
+      encoding results.
+    prompt_template: Format of the prompt to be used for Gecko. Typically, the
+      prompt is of the form: 'task: search result | query: {text}' for queries
+      and 'title: {title} | text: {text}' for documents".
+
+  Returns:
+    A CascadeEncoder that encodes Sound to text to embedding.
+  """
+  return encoder.CascadeEncoder(
+      encoders=[
+          whisper_encoder.SpeechToTextEncoder(model_path=whisper_model_path),
+          converter.SoundEmbeddingToTextConverter(),
+          text_encoder_lib.GeckoTextEncoder(
+              model_path=gecko_model_path,
+              normalizer=normalizer,
+              prompt_template=prompt_template,
+          ),
+      ]
+  )
+
+
+def GeckoWhisperOrGeckoEncoder(
+    whisper_model_path: str,
+    gecko_model_path: str,
+    query_normalizer: Callable[[str], str] | None = None,
+    query_prompt_template: str | None = 'task: search result | query: {text}',
+    document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    document_prompt_template: str | None = 'title: {title} | text: {text}',
+) -> encoder.CollectionEncoder:
   """Pair Sound and Text encoder as for sound to text retrieval."""
-
-  def __init__(
-      self,
-      whisper_model_path: str,
-      gecko_model_path: str,
-      query_normalizer: Callable[[str], str] | None = None,
-      query_prompt_template: str = 'task: search result | query: {text}',
-      document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
-          r'\[\d+\]', '', x.lower()
-      ),
-      document_prompt_template: str | None = 'title: {title} | text: {text}',
-  ):
-    sound_encoder = GeckoWhisperEncoder(
-        whisper_model_path=whisper_model_path,
-        gecko_model_path=gecko_model_path,
-        normalizer=query_normalizer,
-        prompt_template=query_prompt_template,
-    )
-    text_encoder = text_encoder_lib.GeckoTextEncoder(
-        model_path=gecko_model_path,
-        normalizer=document_normalizer,
-        prompt_template=document_prompt_template,
-    )
-    super().__init__(
-        encoder_by_input_type={
-            types.Sound: sound_encoder,
-            types.Text: text_encoder,
-        }
-    )
+  sound_encoder = GeckoWhisperEncoder(
+      whisper_model_path=whisper_model_path,
+      gecko_model_path=gecko_model_path,
+      normalizer=query_normalizer,
+      prompt_template=query_prompt_template,
+  )
+  text_encoder = text_encoder_lib.GeckoTextEncoder(
+      model_path=gecko_model_path,
+      normalizer=document_normalizer,
+      prompt_template=document_prompt_template,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )
 
 
-class GeckoWithTitleAndContextWhisperEncoder(encoder.CascadeEncoder):
-  """Cascaded Whisper with title and context and Gecko encoder."""
+def GeckoWithTitleAndContextWhisperEncoder(
+    whisper_model_path: str,
+    gecko_model_path: str,
+    normalizer: Callable[[str], str] | None = None,
+    prompt_template: str = 'task: search result | query: {text}',
+) -> encoder.CascadeEncoder:
+  """Cascaded Whisper with title and context and Gecko encoder.
 
-  def __init__(
-      self,
-      whisper_model_path: str,
-      gecko_model_path: str,
-      normalizer: Callable[[str], str] | None = None,
-      prompt_template: str = 'task: search result | query: {text}',
-  ):
-    """Initializes the Whisper and Gecko models.
+  Args:
+    whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
+      pointing to the Whisper model to be loaded in setup().
+    gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
+      pointing to the Gecko model to be loaded in setup().
+    normalizer: A function that normalizes the text before encoding. This is
+      useful for removing special characters or formatting the text for better
+      encoding results.
+    prompt_template: Format of the prompt to be used for Gecko. Typically, the
+      prompt is of the form: 'task: search result | query: {text}' for queries
+      and 'title: {title} | text: {text}' for documents".
 
-    Args:
-      whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
-        pointing to the Whisper model to be loaded in setup().
-      gecko_model_path: A serializable string (e.g., a GCS path or Hub ID)
-        pointing to the Gecko model to be loaded in setup().
-      normalizer: A function that normalizes the text before encoding. This is
-        useful for removing special characters or formatting the text for better
-        encoding results.
-      prompt_template: Format of the prompt to be used for Gecko. Typically, the
-        prompt is of the form: 'task: search result | query: {text}' for queries
-        and 'title: {title} | text: {text}' for documents".
-    """
-    super().__init__(
-        encoders=[
-            encoder.SpeechToTextWithTitleAndContextEncoder(
-                speech_to_text_encoder=whisper_encoder.SpeechToTextEncoder(
-                    model_path=whisper_model_path
-                )
-            ),
-            converter.SoundEmbeddingToTextConverter(),
-            text_encoder_lib.GeckoTextEncoder(
-                model_path=gecko_model_path,
-                normalizer=normalizer,
-                prompt_template=prompt_template,
-            ),
-        ]
-    )
+  Returns:
+    A CascadeEncoder that encodes sound to text to embedding.
+  """
+  return encoder.CascadeEncoder(
+      encoders=[
+          encoder.SpeechToTextWithTitleAndContextEncoder(
+              speech_to_text_encoder=whisper_encoder.SpeechToTextEncoder(
+                  model_path=whisper_model_path
+              )
+          ),
+          converter.SoundEmbeddingToTextConverter(),
+          text_encoder_lib.GeckoTextEncoder(
+              model_path=gecko_model_path,
+              normalizer=normalizer,
+              prompt_template=prompt_template,
+          ),
+      ]
+  )
 
 
-class GeckoWithTitleAndContextWhisperOrGeckoEncoder(encoder.CollectionEncoder):
+def GeckoWithTitleAndContextWhisperOrGeckoEncoder(
+    whisper_model_path: str,
+    gecko_model_path: str,
+    query_normalizer: Callable[[str], str] | None = None,
+    query_prompt_template: str = 'task: search result | query: {text}',
+    document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    document_prompt_template: str | None = 'title: {title} | text: {text}',
+) -> encoder.CollectionEncoder:
   """Pair Sound and Text encoder as for sound to text retrieval."""
-
-  def __init__(
-      self,
-      whisper_model_path: str,
-      gecko_model_path: str,
-      query_normalizer: Callable[[str], str] | None = None,
-      query_prompt_template: str = 'task: search result | query: {text}',
-      document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
-          r'\[\d+\]', '', x.lower()
-      ),
-      document_prompt_template: str | None = 'title: {title} | text: {text}',
-  ):
-    sound_encoder = GeckoWithTitleAndContextWhisperEncoder(
-        whisper_model_path=whisper_model_path,
-        gecko_model_path=gecko_model_path,
-        normalizer=query_normalizer,
-        prompt_template=query_prompt_template,
-    )
-    text_encoder = text_encoder_lib.GeckoTextEncoder(
-        model_path=gecko_model_path,
-        normalizer=document_normalizer,
-        prompt_template=document_prompt_template,
-    )
-    super().__init__(
-        encoder_by_input_type={
-            types.SoundWithTitleAndContext: sound_encoder,
-            types.Text: text_encoder,
-        }
-    )
+  sound_encoder = GeckoWithTitleAndContextWhisperEncoder(
+      whisper_model_path=whisper_model_path,
+      gecko_model_path=gecko_model_path,
+      normalizer=query_normalizer,
+      prompt_template=query_prompt_template,
+  )
+  text_encoder = text_encoder_lib.GeckoTextEncoder(
+      model_path=gecko_model_path,
+      normalizer=document_normalizer,
+      prompt_template=document_prompt_template,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.SoundWithTitleAndContext: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )
