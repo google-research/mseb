@@ -19,7 +19,7 @@ from unittest import mock
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
-from mseb.datasets import speech_massive
+from mseb import dataset
 from mseb.tasks.classifications.intent import speech_massive as speech_massive_intent
 
 
@@ -36,7 +36,7 @@ class SpeechMassiveDeDeIntentClassificationTest(absltest.TestCase):
     )
     self.enter_context(
         flagsaver.flagsaver((
-            speech_massive.SPEECH_MASSIVE_BASE_PATH,
+            dataset._DATASET_BASEPATH,
             os.path.join(testdata_path, "speech_massive"),
         ))
     )

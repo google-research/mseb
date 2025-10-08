@@ -16,18 +16,11 @@
 
 import os
 
-from absl import flags
+from mseb import dataset
 from mseb import types
 from mseb import utils
 import pandas as pd
 import tensorflow as tf
-
-
-SPEECH_MASSIVE_BASE_PATH = flags.DEFINE_string(
-    "speech_massive_base_path",
-    None,
-    "Path to the Speech Massive dataset.",
-)
 
 
 bcp47_by_locale = {
@@ -45,18 +38,6 @@ bcp47_by_locale = {
     "vi_vn": "vi-VN",
 }
 locale_by_bcp47 = {v: k for k, v in bcp47_by_locale.items()}
-
-
-def _get_base_path(basepath: str | None = None) -> str:
-  """Return basepath from argument or flag."""
-  if basepath is not None:
-    return basepath
-  if SPEECH_MASSIVE_BASE_PATH.value is not None:
-    return SPEECH_MASSIVE_BASE_PATH.value
-  raise ValueError(
-      "basepath must be provided either as an argument or through the"
-      " --speech_massive_base_path flag."
-  )
 
 
 class SpeechMassiveDataset:
@@ -79,7 +60,7 @@ class SpeechMassiveDataset:
         richer 'FBK-MT/Speech-MASSIVE' version, but the original
         'speechcolab/massive' is also supported.
     """
-    self.base_path = _get_base_path(base_path)
+    self.base_path = dataset.get_base_path(base_path)
     self.repo_id = repo_id
     self.language = bcp47_by_locale.get(language, language)
     self.split = split

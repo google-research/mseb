@@ -17,9 +17,29 @@
 import abc
 from typing import Iterator, Optional, Any
 
+from absl import flags
 from mseb import types
 import numpy as np
 import pandas as pd
+
+
+_DATASET_BASEPATH = flags.DEFINE_string(
+    "dataset_basepath",
+    None,
+    "Path to the MSEB dataset cache.",
+)
+
+
+def get_base_path(basepath: str | None = None) -> str:
+  """Return basepath from argument or flag."""
+  if basepath is not None:
+    return basepath
+  if _DATASET_BASEPATH.value is not None:
+    return _DATASET_BASEPATH.value
+  raise ValueError(
+      "basepath must be provided either as an argument or through the"
+      " --dataset_basepath flag."
+  )
 
 
 class BatchIterator:
@@ -49,13 +69,16 @@ class Dataset(abc.ABC):
   """Abstract Base Class for all benchmark datasets."""
 
   def __init__(self,
-               base_path: str,
                split: str,
-               target_sr: Optional[int] = None):
-    self.base_path = base_path
+               base_path: Optional[str] = None):
+    self._base_path = base_path
     self.split = split
-    self.target_sr = target_sr
     self._metadata = self._load_metadata()
+
+  @property
+  def base_path(self) -> str:
+    """Returns the base path for caching this dataset."""
+    return get_base_path(self._base_path)
 
   # --- Methods for child classes to implement ---
   @property

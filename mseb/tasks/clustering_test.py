@@ -17,8 +17,8 @@ import pathlib
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
+from mseb import dataset
 from mseb import runner as runner_lib
-from mseb.datasets import simple_voice_questions
 from mseb.encoders import raw_encoder
 from mseb.tasks import clustering
 
@@ -44,7 +44,7 @@ class ClusteringTest(absltest.TestCase):
     super().setUp()
     self.enter_context(
         flagsaver.flagsaver(
-            (simple_voice_questions.SVQ_BASEPATH, self.get_testdata_path())
+            (dataset._DATASET_BASEPATH, self.get_testdata_path())
         )
     )
 

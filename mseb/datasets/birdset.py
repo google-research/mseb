@@ -57,7 +57,6 @@ class BirdsetDataset(dataset.Dataset):
     super().__init__(
         base_path=base_path,
         split=split,
-        target_sr=self._native_sr
     )
 
   @property

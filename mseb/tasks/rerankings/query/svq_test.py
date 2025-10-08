@@ -20,7 +20,7 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
 
-from mseb.datasets import simple_voice_questions
+from mseb import dataset
 from mseb.tasks.rerankings.query import svq
 
 FLAGS = flags.FLAGS
@@ -43,7 +43,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
     self.enter_context(
         flagsaver.flagsaver(
-            (simple_voice_questions.SVQ_BASEPATH, cache_dir)
+            (dataset._DATASET_BASEPATH, cache_dir)
         )
     )
 

@@ -36,16 +36,16 @@ class FSD50KDataset(dataset.Dataset):
 
   def __init__(
       self,
-      base_path: str,
       split: str,
+      base_path: str | None = None,
       repo_id: str = 'Fhrozen/FSD50k',
   ):
     """Initializes the dataset for a specific split from Hugging Face.
 
     Args:
+      split: The dataset split to load. Must be 'validation' or 'test'.
       base_path: The root directory to use as a cache for Hugging Face
         downloads. This directory should also contain 'labels/vocabulary.cs´v'.
-      split: The dataset split to load. Must be 'validation' or 'test'.
       repo_id: The Hugging Face repository ID to download from.
     """
     if split not in ['validation', 'test']:
@@ -54,7 +54,7 @@ class FSD50KDataset(dataset.Dataset):
       )
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
-    super().__init__(base_path=base_path, split=split, target_sr=None)
+    super().__init__(split=split, base_path=base_path)
     self._load_vocabulary()
 
   @property

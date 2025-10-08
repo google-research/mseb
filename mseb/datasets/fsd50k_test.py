@@ -80,8 +80,8 @@ class FSD50KDatasetTest(absltest.TestCase):
       mock_download_from_hf,
   ):
     dataset = fsd50k.FSD50KDataset(
-        base_path=self.testdata_dir.full_path,
         split='test',
+        base_path=self.testdata_dir.full_path,
     )
 
     mock_download_from_hf.assert_called_once()

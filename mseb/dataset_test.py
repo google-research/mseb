@@ -25,7 +25,7 @@ import pandas as pd
 class MockDataset(dataset.Dataset):
   """A mock dataset for testing the Dataset's shared functionality."""
 
-  def __init__(self, base_path: str, split: str):
+  def __init__(self, split: str, base_path: str):
     self.mock_metadata_path = os.path.join(base_path, f"{split}.csv")
     self.mock_data = {
         "sound_id": ["a", "b", "c", "d", "e"],
@@ -33,7 +33,7 @@ class MockDataset(dataset.Dataset):
         "value": [10, 20, 30, 40, 50]
     }
     pd.DataFrame(self.mock_data).to_csv(self.mock_metadata_path, index=False)
-    super().__init__(base_path, split, target_sr=16000)
+    super().__init__(split, base_path=base_path)
 
   @property
   def metadata(self) -> types.DatasetMetadata:
@@ -66,7 +66,7 @@ class DatasetTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
     self.test_dir = self.create_tempdir().full_path
-    self.dataset = MockDataset(base_path=self.test_dir, split="test")
+    self.dataset = MockDataset(split="test", base_path=self.test_dir)
 
   def test_dataset_len(self):
     self.assertLen(self.dataset, 5)

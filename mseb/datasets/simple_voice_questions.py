@@ -18,32 +18,13 @@ import json
 import os
 from typing import Any, Mapping
 
-from absl import flags
 import apache_beam as beam
 from array_record.python import array_record_module as array_record
+from mseb import dataset
 from mseb import types
 from mseb import utils
 import pandas as pd
 import tensorflow as tf
-
-
-SVQ_BASEPATH = flags.DEFINE_string(
-    "simple_voice_questions_base_path",
-    None,
-    "Path to the SVQ dataset.",
-)
-
-
-def _get_base_path(basepath: str | None = None) -> str:
-  """Return basepath from argument or flag."""
-  if basepath is not None:
-    return basepath
-  if SVQ_BASEPATH.value is not None:
-    return SVQ_BASEPATH.value
-  raise ValueError(
-      "basepath must be provided either as an argument or through the"
-      " --simple_voice_questions_base_path flag."
-  )
 
 
 class _UttLookup:
@@ -148,7 +129,7 @@ class SimpleVoiceQuestionsDataset:
           " without a split to load the main corpus, then use the"
           " `get_task_data('task_name')` method."
       )
-    self.base_path = _get_base_path(base_path)
+    self.base_path = dataset.get_base_path(base_path)
     self.split = split
     self._index = self._load_index()
     self._utt_lookup = _UttLookup(self.base_path, self._index)
