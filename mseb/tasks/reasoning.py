@@ -61,27 +61,25 @@ class ReasoningTask(task.MSEBTask):
       for span_list in self.span_lists():
         for span in span_list:
           unique_spans[span.text] = span
-      embeddings_by_text = runner.run(unique_spans.values())
-    else:
-      try:
-        logger.info(
-            'Loading span embeddings cache from %s', self.embeddings_dir
-        )
-        embeddings_by_text = runner_lib.load_embeddings(
-            os.path.join(self.embeddings_dir, 'embeddings')
-        )
-      except FileNotFoundError:
-        raise ValueError(
-            'Span embeddings cache not found in cache directory. Did you'
-            ' create the cache by running run_task_setup?'
-        ) from FileNotFoundError
+      _ = runner.run(unique_spans.values())
 
-    embeddings_by_sound_id = {}
-    for sub_task in self.sub_tasks:
-      for spans in self.examples(sub_task):
-        embeddings_by_sound_id[spans.sound_id] = [
-            embeddings_by_text[text] for text in spans.texts
-        ]
+    try:
+      logger.info('Loading span embeddings cache from %s', self.embeddings_dir)
+      embeddings_by_text = runner_lib.load_embeddings(
+          os.path.join(self.embeddings_dir, 'embeddings')
+      )
+      embeddings_by_sound_id = {}
+      for sub_task in self.sub_tasks:
+        for spans in self.examples(sub_task):
+          embeddings_by_sound_id[spans.sound_id] = [
+              embeddings_by_text[text] for text in spans.texts
+          ]
+    except FileNotFoundError:
+      logger.error(
+          'Span embeddings cache not found in cache directory. Did you'
+          ' create the cache by running run_task_setup?'
+      )
+      embeddings_by_sound_id = {}
 
     self._evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_sound_id=embeddings_by_sound_id,
