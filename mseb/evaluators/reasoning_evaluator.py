@@ -128,19 +128,22 @@ class ReasoningEvaluator:
       assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
       span_embeddings = self.span_embeddings_by_sound_id[sound_id]
-      embeddings = []
-      for embeds in span_embeddings:
-        assert hasattr(embeds, 'embedding')
-        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
-        embeddings.append(embed[0])
-      scores = self.distance_fn(embedding[0], np.array(embeddings).T)
-      top_span_score, top_span_id = self.predict_fn(scores)
-      texts = [text.context.id for text in span_embeddings]
-      prediction = (
-          'No Answer'
-          if top_span_score[0] < self.no_answer_threshold
-          else texts[top_span_id[0]]
-      )
+      if span_embeddings:
+        embeddings = []
+        for embeds in span_embeddings:
+          assert hasattr(embeds, 'embedding')
+          embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
+          embeddings.append(embed[0])
+        scores = self.distance_fn(embedding[0], np.array(embeddings).T)
+        top_span_score, top_span_id = self.predict_fn(scores)
+        texts = [text.context.id for text in span_embeddings]
+        prediction = (
+            'No Answer'
+            if top_span_score[0] < self.no_answer_threshold
+            else texts[top_span_id[0]]
+        )
+      else:
+        prediction = 'No Answer'
       predictions[sound_id] = types.ReasoningPrediction(
           answer=prediction,
           context=types.ReasoningContextParams(id=sound_id),

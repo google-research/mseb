@@ -26,6 +26,7 @@ from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
 from mseb.encoders import encoder_registry
+import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
@@ -42,6 +43,12 @@ _TASK = flags.DEFINE_string(
     None,
     'Name of the task.',
     required=True,
+)
+
+_RESULTS_JSONL = flags.DEFINE_string(
+    'results_jsonl',
+    None,
+    'If set, write results to this JSONL file.',
 )
 
 _BATCH_SIZE = flags.DEFINE_integer(
@@ -74,8 +81,13 @@ def main(argv):
   results = leaderboard.run_benchmark(
       encoder_name=encoder_name, runner=runner, task=task
   )
-  for result in results:
-    print(result.to_json())
+  if _RESULTS_JSONL.value:
+    with tf.io.gfile.GFile(_RESULTS_JSONL.value, 'w') as f:
+      for result in results:
+        f.write(result.to_json() + '\n')
+  else:
+    for result in results:
+      print(result.to_json())
 
 
 if __name__ == '__main__':
