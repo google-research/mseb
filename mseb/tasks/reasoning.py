@@ -92,12 +92,15 @@ class ReasoningTask(task.MSEBTask):
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
 
+    if not isinstance(
+        next(iter(embeddings.values())), types.ReasoningPrediction
+    ):
+      predictions = self._evaluator.compute_predictions(embeddings)
+    else:
+      predictions = embeddings
+
     scores = {}
     for sub_task in self.sub_tasks:
-      if not isinstance(next(iter(embeddings)), types.ReasoningPrediction):
-        predictions = self._evaluator.compute_predictions(embeddings)
-      else:
-        predictions = embeddings
       scores[sub_task] = self._evaluator.compute_metrics(
           predictions, tuple(self.examples(sub_task))
       )
