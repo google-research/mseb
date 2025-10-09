@@ -27,6 +27,27 @@ import pandas as pd
 import tensorflow as tf
 
 
+LANGUAGES = [
+    "ar",
+    "bn",
+    "en",
+    "fi",
+    "gu",
+    "hi",
+    "id",
+    "ja",
+    "kn",
+    "ko",
+    "ml",
+    "mr",
+    "ru",
+    "sw",
+    "ta",
+    "te",
+    "ur"
+]
+
+
 class _UttLookup:
   """A helper class to efficiently look up utterances from array records."""
 
