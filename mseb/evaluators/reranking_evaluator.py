@@ -98,7 +98,7 @@ def _compute_levenshtein_stats(truth: str, hypothesis: str) -> Dict[str, float]:
 def compute_word_errors(
     truth: str, hypothesis: str, *, is_english: bool
 ) -> tuple[float, float]:
-  """Computes the word error rate (WER)."""
+  """Computes the word errors."""
   text_transform = (
       english.EnglishTextNormalizer()
       if is_english
@@ -114,16 +114,17 @@ def compute_word_errors(
   )
 
 
-def compute_correct(truth: str, hypothesis: str, *, is_english: bool) -> float:
-  """Computes the query error rate (QER)."""
+def are_normalized_texts_different(
+    truth: str, hypothesis: str, *, is_english: bool
+) -> float:
+  """Computes the query error, i.e., whether the normalized texts are different."""
   text_transform = (
       english.EnglishTextNormalizer()
       if is_english
       else basic.BasicTextNormalizer()
   )
 
-  correct = float(text_transform(truth) != text_transform(hypothesis))
-  return correct
+  return float(text_transform(truth) != text_transform(hypothesis))
 
 
 @dataclasses.dataclass
@@ -229,7 +230,7 @@ class RerankingEvaluator:
       )
       values_by_metric['cer'].append(
           types.WeightedValue(
-              value=compute_correct(
+              value=are_normalized_texts_different(
                   truth=candidates.texts[0],
                   hypothesis=ranked_candidate_texts[0],
                   is_english=is_english(candidates.language),
@@ -246,7 +247,15 @@ class RerankingEvaluator:
       values_by_metric['map'].append(
           types.WeightedValue(
               value=sklearn_metrics.average_precision_score(
-                  y_true=[True] + [False] * (len(ranked_candidate_scores) - 1),
+                  y_true=[
+                      are_normalized_texts_different(
+                          truth=text,
+                          hypothesis=candidates.texts[0],
+                          is_english=is_english(candidates.language),
+                      )
+                      == 0.0
+                      for text in ranked_candidate_texts
+                  ],
                   y_score=ranked_candidate_scores,
               ),
           )

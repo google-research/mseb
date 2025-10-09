@@ -78,7 +78,7 @@ class RerankingEvaluatorTest(absltest.TestCase):
     )
     npt.assert_equal(len(scores), 4)
     self.assertIn('MAP', scores[0].metric)
-    npt.assert_equal(scores[0].value, 1)
+    npt.assert_equal(scores[0].value, 1 / 2)
     npt.assert_equal(scores[0].std, 0)
     self.assertIn('WER', scores[1].metric)
     npt.assert_equal(scores[1].value, 1 / 3)
