@@ -190,7 +190,7 @@ def main(argv: Sequence[str]) -> None:
     <h2>MSEB Leaderboard</h2>
     <p>This is a leaderboard for MSEB: Massive Speech Embedding Benchmark.</p>
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
-    {stats_table}
+{stats_table}
   </div>
   <h1>Leaderboard Results</h1>
   <div>

@@ -14,8 +14,8 @@
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
 
 <table class="summary-table">
-  <tr><td>Tasks:</td><td>117</td></tr>
-  <tr><td>Task Types:</td><td>3</td></tr>
+  <tr><td>Tasks:</td><td>185</td></tr>
+  <tr><td>Task Types:</td><td>7</td></tr>
   <tr><td>Languages:</td><td>26</td></tr>
 </table>
 
@@ -32,8 +32,12 @@
       <th>Rank</th>
       <th>Encoder Name</th>
       <th class="toggle-mean" data-toggle-task-type="Clustering"><span class="toggle-icon">+</span>Clustering (mean) <span class="sort-icon"></span></th>
+      <th class="toggle-mean" data-toggle-task-type="DocumentCrossLangRetrieval"><span class="toggle-icon">+</span>DocumentCrossLangRetrieval (mean) <span class="sort-icon"></span></th>
+      <th class="toggle-mean" data-toggle-task-type="DocumentInLangRetrieval"><span class="toggle-icon">+</span>DocumentInLangRetrieval (mean) <span class="sort-icon"></span></th>
       <th class="toggle-mean" data-toggle-task-type="PassageCrossLangRetrieval"><span class="toggle-icon">+</span>PassageCrossLangRetrieval (mean) <span class="sort-icon"></span></th>
       <th class="toggle-mean" data-toggle-task-type="PassageInLangRetrieval"><span class="toggle-icon">+</span>PassageInLangRetrieval (mean) <span class="sort-icon"></span></th>
+      <th class="toggle-mean" data-toggle-task-type="SpanCrossLangReasoning"><span class="toggle-icon">+</span>SpanCrossLangReasoning (mean) <span class="sort-icon"></span></th>
+      <th class="toggle-mean" data-toggle-task-type="SpanInLangReasoning"><span class="toggle-icon">+</span>SpanInLangReasoning (mean) <span class="sort-icon"></span></th>
       <th class="task-col-header" data-task-type="Clustering">SVQClustering/speaker_age (VMeasure)<br/>(Clustering, en-US)</th>
       <th class="task-col-header" data-task-type="Clustering">SVQClustering/speaker_gender (VMeasure)<br/>(Clustering, en-US)</th>
       <th class="task-col-header" data-task-type="Clustering">SVQClustering/speaker_id (VMeasure)<br/>(Clustering, en-US)</th>
@@ -115,6 +119,38 @@
       <th class="task-col-header" data-task-type="Clustering">SVQClusteringUrPk/speaker_age (VMeasure)<br/>(Clustering, ur-PK)</th>
       <th class="task-col-header" data-task-type="Clustering">SVQClusteringUrPk/speaker_gender (VMeasure)<br/>(Clustering, ur-PK)</th>
       <th class="task-col-header" data-task-type="Clustering">SVQClusteringUrPk/speaker_id (VMeasure)<br/>(Clustering, ur-PK)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQArEgDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-EG)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQArXGulfDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-gulf)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQArXLevantDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-levant)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQArXMaghrebiDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-maghrebi)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQBnBdDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, bn-BD)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQBnInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, bn-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQFiFiDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, fi-FI)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQGuInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, gu-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQHiInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, hi-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQJaJpDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ja-JP)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQKnInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, kn-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQKoKrDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ko-KR)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQMlInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ml-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQMrInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, mr-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQRuRuDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ru-RU)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQTaInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ta-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQTeInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, te-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQUrInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ur-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentCrossLangRetrieval">SVQUrPkDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ur-PK)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQArEgDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-EG)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQArXGulfDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-gulf)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQArXLevantDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-levant)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQArXMaghrebiDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-maghrebi)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQBnBdDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, bn-BD)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQBnInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, bn-IN)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQEnUsDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-US)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQFiFiDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, fi-FI)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQIdIdDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, id-ID)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQKoKrDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ko-KR)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQRuRuDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ru-RU)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQSwDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, sw)</th>
+      <th class="task-col-header" data-task-type="DocumentInLangRetrieval">SVQTeInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, te-IN)</th>
       <th class="task-col-header" data-task-type="PassageCrossLangRetrieval">SVQArEgPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-EG)</th>
       <th class="task-col-header" data-task-type="PassageCrossLangRetrieval">SVQArXGulfPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-gulf)</th>
       <th class="task-col-header" data-task-type="PassageCrossLangRetrieval">SVQArXLevantPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-levant)</th>
@@ -151,6 +187,42 @@
       <th class="task-col-header" data-task-type="PassageInLangRetrieval">SVQRuRuPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ru-RU)</th>
       <th class="task-col-header" data-task-type="PassageInLangRetrieval">SVQSwPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, sw)</th>
       <th class="task-col-header" data-task-type="PassageInLangRetrieval">SVQTeInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, te-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQArEgSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ar-EG)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQArXGulfSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ar-x-gulf)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQArXLevantSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ar-x-levant)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQArXMaghrebiSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ar-x-maghrebi)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQBnBdSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, bn-BD)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQBnInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, bn-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQFiFiSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, fi-FI)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQGuInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, gu-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQHiInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, hi-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQJaJpSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ja-JP)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQKnInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, kn-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQKoKrSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ko-KR)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQMlInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ml-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQMrInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, mr-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQRuRuSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ru-RU)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQTaInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ta-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQTeInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, te-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQUrInSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ur-IN)</th>
+      <th class="task-col-header" data-task-type="SpanCrossLangReasoning">SVQUrPkSpanCrossLangReasoning/span_reasoning_cross_lang (F1)<br/>(SpanCrossLangReasoning, ur-PK)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQArEgSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, ar-EG)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQArXGulfSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, ar-x-gulf)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQArXLevantSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, ar-x-levant)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQArXMaghrebiSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, ar-x-maghrebi)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQBnBdSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, bn-BD)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQBnInSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, bn-IN)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQEnAuSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, en-AU)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQEnGbSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, en-GB)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQEnInSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, en-IN)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQEnPhSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, en-PH)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQEnUsSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, en-US)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQFiFiSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, fi-FI)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQIdIdSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, id-ID)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQKoKrSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, ko-KR)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQRuRuSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, ru-RU)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQSwSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, sw)</th>
+      <th class="task-col-header" data-task-type="SpanInLangReasoning">SVQTeInSpanInLangReasoning/span_reasoning_in_lang (F1)<br/>(SpanInLangReasoning, te-IN)</th>
     </tr>
   </thead>
   <tbody>
@@ -158,8 +230,12 @@
      <td>1</td>
      <td>gecko_transcript_truth_or_gecko</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>0.6193</td>
       <td>0.4503</td>
       <td>0.6777</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
@@ -241,6 +317,38 @@
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6476</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6489</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6470</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6501</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5933</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5968</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6709</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6675</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.4085</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5630</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7186</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.4511</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.4516</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.4543</td>
@@ -277,13 +385,53 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.5751</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.5308</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.6768</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
     <tr>
      <td>2</td>
      <td>gecko_whisper_or_gecko</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>0.3908</td>
       <td>0.2620</td>
       <td>0.5134</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
@@ -365,6 +513,38 @@
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.4629</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.4794</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5045</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.4159</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.2706</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.2543</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.3409</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5677</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.3313</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.3517</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.3192</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.3296</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.3441</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.3598</td>
@@ -401,13 +581,445 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.5189</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.3130</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.3766</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
     <tr>
      <td>3</td>
+     <td>gecko_with_title_and_context_transcript_truth_or_gecko</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.0484</td>
+      <td>0.0350</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0125</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0124</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0124</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0125</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0592</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0587</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0140</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0895</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0179</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0175</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0763</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0085</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0839</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0930</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0118</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0896</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0811</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0857</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0833</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0286</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0284</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0287</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0282</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0323</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0355</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0461</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0457</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0460</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0458</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0469</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0355</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0424</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0212</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0257</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0369</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0205</td>
+    </tr>
+    <tr>
+     <td>4</td>
+     <td>gecko_with_title_and_context_whisper_or_gecko</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.0450</td>
+      <td>0.0357</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0116</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0125</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0513</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0128</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0732</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0697</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0082</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0738</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0121</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0763</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0560</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0828</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0295</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0289</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0293</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0257</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0327</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0327</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0494</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0485</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0490</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0492</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0485</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0284</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0435</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0204</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0259</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0290</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+    </tr>
+    <tr>
+     <td>5</td>
      <td>gemini_embedding_transcript_truth_or_gemini_embedding</td>
       <td>N/A</td>
+      <td>0.5492</td>
+      <td>0.7258</td>
       <td>0.6863</td>
       <td>0.7590</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
@@ -489,6 +1101,38 @@
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5583</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5582</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5612</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5537</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5892</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5907</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5969</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5357</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5411</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5423</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5448</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5119</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5491</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5411</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.6080</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5180</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5835</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4758</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4754</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7312</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7322</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7295</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7324</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7479</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7505</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7636</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7552</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7266</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5931</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7517</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7004</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.7214</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.6962</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.6952</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.6968</td>
@@ -525,13 +1169,53 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.6760</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.6312</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.6839</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
     <tr>
-     <td>4</td>
+     <td>6</td>
      <td>gemini_embedding_whisper_or_gemini_embedding</td>
       <td>N/A</td>
+      <td>0.3764</td>
+      <td>0.5520</td>
       <td>0.5011</td>
       <td>0.6155</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
@@ -613,6 +1297,38 @@
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4180</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4178</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4578</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3862</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3291</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3370</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3065</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3667</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4438</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4189</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3771</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.4315</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.1379</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3841</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.5408</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3338</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3359</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3767</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">0.3522</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5492</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5659</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5892</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5195</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5516</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5654</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.4209</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6371</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5324</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.6810</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5067</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">0.5051</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.5452</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.5590</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">0.5945</td>
@@ -649,11 +1365,443 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.6273</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.4421</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">0.4989</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
     <tr>
-     <td>5</td>
+     <td>7</td>
+     <td>gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.0464</td>
+      <td>0.0318</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0134</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0133</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0139</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0136</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0708</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0706</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0114</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0837</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0152</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0147</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0737</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0111</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0886</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0752</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0118</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0799</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0648</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0787</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0762</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0266</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0263</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0265</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0264</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0371</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0397</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0360</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0371</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0376</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0377</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0378</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0223</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0338</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0358</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0226</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0283</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0293</td>
+    </tr>
+    <tr>
+     <td>8</td>
+     <td>gemini_embedding_with_title_and_context_whisper_or_gemini_embedding</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.0116</td>
+      <td>0.0356</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="Clustering">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0120</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0128</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0131</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0111</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0091</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0133</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">0.0099</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0382</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0391</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0393</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0385</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0358</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">0.0225</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+    </tr>
+    <tr>
+     <td>9</td>
      <td>hubert_large_ls960_ft_pooled_mean</td>
       <td>0.6147</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
@@ -737,6 +1885,38 @@
       <td class="task-col-cell" data-task-type="Clustering">0.8530</td>
       <td class="task-col-cell" data-task-type="Clustering">0.0371</td>
       <td class="task-col-cell" data-task-type="Clustering">0.8787</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
@@ -773,11 +1953,51 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
     <tr>
-     <td>6</td>
+     <td>10</td>
      <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>0.6108</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">0.0604</td>
@@ -861,6 +2081,38 @@
       <td class="task-col-cell" data-task-type="Clustering">0.8530</td>
       <td class="task-col-cell" data-task-type="Clustering">0.2746</td>
       <td class="task-col-cell" data-task-type="Clustering">0.7796</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
@@ -897,11 +2149,51 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
     <tr>
-     <td>7</td>
+     <td>11</td>
      <td>wav2vec2-large-960h-lv60_pooled_mean</td>
       <td>0.5990</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td class="task-col-cell" data-task-type="Clustering">N/A</td>
@@ -985,6 +2277,38 @@
       <td class="task-col-cell" data-task-type="Clustering">0.7621</td>
       <td class="task-col-cell" data-task-type="Clustering">0.0371</td>
       <td class="task-col-cell" data-task-type="Clustering">0.8203</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentCrossLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="DocumentInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageCrossLangRetrieval">N/A</td>
@@ -1021,6 +2345,42 @@
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
       <td class="task-col-cell" data-task-type="PassageInLangRetrieval">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanCrossLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
+      <td class="task-col-cell" data-task-type="SpanInLangReasoning">N/A</td>
     </tr>
   </tbody>
 </table>
