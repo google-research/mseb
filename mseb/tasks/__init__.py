@@ -17,6 +17,7 @@
 from mseb.task import get_name_to_task
 from mseb.task import get_task_by_name
 
+from .classifications.birdset.birdset import *
 from .classifications.intent.speech_massive import *
 from .clustering import ClusteringTask
 from .reasonings.span_cross_lang.svq import *
