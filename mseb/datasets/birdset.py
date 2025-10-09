@@ -113,6 +113,12 @@ class BirdsetDataset:
       config_to_class_list = json.load(f)
     class_list_name = config_to_class_list[self.configuration]
     self._ebird_code_names = class_lists[class_list_name]
+
+    # Convert ebird_code to text labels
+    if "ebird_code" in df.columns and self._ebird_code_names is not None:
+      df["ebird_code"] = df["ebird_code"].apply(
+          lambda x: self._ebird_code_names[x] if x is not None else None
+      )
     return df
 
   def get_task_data(self) -> pd.DataFrame:
@@ -124,12 +130,7 @@ class BirdsetDataset:
     audio_data = record.audio
     waveform = audio_data["waveform"]
     sr = audio_data["sampling_rate"]
-
-    # Get the string label for the ebird_code
-    text_label = None
-    if "ebird_code" in record and record.ebird_code is not None:
-      if self._ebird_code_names is not None:
-        text_label = self._ebird_code_names[record.ebird_code]
+    text_label = record.get("ebird_code")
 
     context = types.SoundContextParams(
         id=str(record.filepath),

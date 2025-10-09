@@ -12,20 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for Birdset dataset."""
+"""Tests for Birdset classification tasks."""
 
 import json
 import os
 
+from absl import flags
 from absl.testing import absltest
-from mseb import types
-from mseb.datasets import birdset
+from absl.testing import flagsaver
+from mseb import dataset
+from mseb.tasks.classifications.birdset import birdset
 import numpy as np
 import pandas as pd
 
 
-class BirdsetDatasetTest(absltest.TestCase):
-  """Tests for the BirdsetDataset class."""
+FLAGS = flags.FLAGS
+
+
+class BirdsetHSNClassificationTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -63,53 +67,38 @@ class BirdsetDatasetTest(absltest.TestCase):
     with open(fake_config_path, "w") as f:
       json.dump(self.config_to_class_list, f)
 
-  def test_initialization_invalid_split_raises_error(self):
-    with self.assertRaisesRegex(ValueError, "Split must be"):
-      birdset.BirdsetDataset(
-          base_path=self.testdata_dir.full_path,
-          split="validation",
-          configuration="HSN",
-      )
-
-  def test_loading_and_parsing(self):
-    ds = birdset.BirdsetDataset(
-        base_path=self.testdata_dir.full_path,
-        split="test_5s",
-        configuration="HSN",
+    self.enter_context(
+        flagsaver.flagsaver((
+            dataset._DATASET_BASEPATH,
+            self.testdata_dir.full_path,
+        ))
     )
 
-    self.assertLen(ds, 2)
+  def test_birdset_classification_sounds(self):
+    task = birdset.BirdsetHSNClassification()
+    sounds = list(task.sounds())
+    self.assertLen(sounds, 2)
+    self.assertEqual(sounds[0].context.id, "fake/path/audio.ogg")
+    self.assertEqual(sounds[0].context.text, "astcal")
+    self.assertLen(sounds[0].waveform, 32000)
+    self.assertEqual(sounds[1].context.id, "fake/path/audio2.ogg")
+    self.assertEqual(sounds[1].context.text, "brnthr")
+    self.assertLen(sounds[1].waveform, 32000)
 
-    task_df = ds.get_task_data()
-    self.assertIsInstance(task_df, pd.DataFrame)
-    self.assertLen(task_df, 2)
+  def test_birdset_classification_examples(self):
+    task = birdset.BirdsetHSNClassification()
+    examples = list(task.examples("ebird_classification"))
+    self.assertLen(examples, 2)
+    self.assertEqual(examples[0].example_id, "fake/path/audio.ogg")
+    self.assertEqual(examples[0].label_id, "astcal")
+    self.assertEqual(examples[1].example_id, "fake/path/audio2.ogg")
+    self.assertEqual(examples[1].label_id, "brnthr")
 
-    record1 = task_df.iloc[0]
-    self.assertEqual(record1.filepath, "fake/path/audio.ogg")
-    self.assertEqual(record1.ebird_code, "astcal")
-    self.assertEqual(record1.sex, "male")
-
-    record2 = task_df.iloc[1]
-    self.assertEqual(record2.filepath, "fake/path/audio2.ogg")
-    self.assertEqual(record2.ebird_code, "brnthr")
-    self.assertEqual(record2.sex, "female")
-
-    self.assertEqual(ds._ebird_code_names, ["astcal", "brnthr"])
-
-  def test_get_sound(self):
-    ds = birdset.BirdsetDataset(
-        base_path=self.testdata_dir.full_path,
-        split="test_5s",
-        configuration="HSN",
-    )
-    record = ds.get_task_data().iloc[0]
-    sound = ds.get_sound(record)
-
-    self.assertIsInstance(sound, types.Sound)
-    self.assertEqual(sound.context.id, "fake/path/audio.ogg")
-    self.assertEqual(sound.context.speaker_gender, "male")
-    self.assertEqual(sound.context.text, "astcal")
-    self.assertEqual(sound.context.sample_rate, 32_000)
+  def test_birdset_classification_class_labels(self):
+    task = birdset.BirdsetHSNClassification()
+    self.assertEqual(task.sub_tasks, ["ebird_classification"])
+    class_labels = list(task.class_labels())
+    self.assertEqual(class_labels, ["astcal", "brnthr"])
 
 
 if __name__ == "__main__":
