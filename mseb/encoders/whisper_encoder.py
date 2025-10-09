@@ -177,12 +177,15 @@ class SpeechToTextEncoder(Whisper):
       timestamps = np.array(timestamps_list, dtype=float)
       embeddings = np.array(embeddings_list, dtype=object)
     else:
-      n_segments = len(recognition_result['segments'])
-      timestamps = np.empty((n_segments, 2), dtype=float)
-      embeddings = np.empty((n_segments), dtype=object)
+      timestamp_start, timestamp_end = 0, 0
+      texts = []
       for i, segment in enumerate(recognition_result['segments']):
-        timestamps[i, :] = [segment['start'], segment['end']]
-        embeddings[i] = segment['text']
+        if i == 0:
+          timestamp_start = segment['start']
+        timestamp_end = segment['end']
+        texts.append(segment['text'])
+      timestamps = np.array([[timestamp_start, timestamp_end]], dtype=float)
+      embeddings = np.array([''.join(texts)], dtype=object)
     return types.SoundEmbedding(
         embedding=embeddings, timestamps=timestamps, context=params
     )
