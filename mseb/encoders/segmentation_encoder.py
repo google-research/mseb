@@ -21,8 +21,19 @@ from mseb import encoder
 from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
+import pandas as pd
 import pygtrie
 import spacy
+
+
+def load_idf_table_from_csv(path: str) -> dict[str, float]:
+  """Reads a CSV file into a dictionary mapping 'token' to 'idf'."""
+  df = pd.read_csv(path, dtype={'token': str})
+  if 'token' not in df.columns or 'idf' not in df.columns:
+    raise ValueError(
+        'IDF table CSV must contain token and idf columns.'
+    )
+  return df.set_index('token')['idf'].to_dict()
 
 
 class RetokenizerBase:
@@ -126,7 +137,8 @@ class LongestPrefixIDFSegmenter(SegmenterBase):
   """Represents an IDF term extractor using longest prefix matching."""
 
   def __init__(self, idf_table: dict[str, float]):
-    self.trie = pygtrie.Trie(idf_table)
+    string_keyed_idf_table = {str(k): v for k, v in idf_table.items()}
+    self.trie = pygtrie.Trie(string_keyed_idf_table)
 
   def _segment_text(self, text: str) -> Iterator[Tuple[str, float, int]]:
     for pos in range(len(text)):
