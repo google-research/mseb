@@ -53,7 +53,7 @@ _RESULTS_JSONL = flags.DEFINE_string(
 
 _BATCH_SIZE = flags.DEFINE_integer(
     'batch_size',
-    0,
+    1,
     'Batch size for the encoder.',
 )
 
@@ -77,7 +77,7 @@ def main(argv):
   )
   task_cls: Type[task_lib.MSEBTask] = tasks.get_task_by_name(_TASK.value)
   task = task_cls()
-  task.setup()
+  task.setup(runner=runner)
   results = leaderboard.run_benchmark(
       encoder_name=encoder_name, runner=runner, task=task
   )
