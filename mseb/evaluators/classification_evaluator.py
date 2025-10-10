@@ -239,7 +239,7 @@ class ClassificationEvaluator:
           'Top-%d Accuracy will always be 100%%.',
           top_k_value, num_classes, top_k_value
       )
-      self.weights = weights
+    self.weights = weights
     self.id_by_label = {
         label: label_id for label_id, label in enumerate(class_labels)
     }
