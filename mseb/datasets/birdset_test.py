@@ -37,13 +37,16 @@ class BirdsetDatasetTest(absltest.TestCase):
             {"waveform": np.ones(32000), "sampling_rate": 32_000},
         ],
         filepath=["fake/path/audio.ogg", "fake/path/audio2.ogg"],
-        ebird_code=[0, 1],  # 'astcal', 'brnthr'
+        ebird_code_multilabel=[
+            [0],  # ['astcal']
+            [1, 2],  # ['brnthr', 'rufwar1']
+        ],
         sex=["male", "female"],
         other_col=[123, 456],
     )
     self.fake_df = pd.DataFrame(mock_data)
-    self.class_lists = {"some_list": ["astcal", "brnthr"]}
-    self.config_to_class_list = {"HSN": "some_list"}
+    class_lists = {"some_list": ["astcal", "brnthr", "rufwar1"]}
+    config_to_class_list = {"HSN": "some_list"}
 
     # Write fake data to temporary files
     fake_parquet_path = os.path.join(
@@ -55,13 +58,13 @@ class BirdsetDatasetTest(absltest.TestCase):
         self.testdata_dir.full_path, "class_lists.json"
     )
     with open(fake_class_lists_path, "w") as f:
-      json.dump(self.class_lists, f)
+      json.dump(class_lists, f)
 
     fake_config_path = os.path.join(
         self.testdata_dir.full_path, "config_to_class_list.json"
     )
     with open(fake_config_path, "w") as f:
-      json.dump(self.config_to_class_list, f)
+      json.dump(config_to_class_list, f)
 
   def test_initialization_invalid_split_raises_error(self):
     with self.assertRaisesRegex(ValueError, "Split must be"):
@@ -86,15 +89,15 @@ class BirdsetDatasetTest(absltest.TestCase):
 
     record1 = task_df.iloc[0]
     self.assertEqual(record1.filepath, "fake/path/audio.ogg")
-    self.assertEqual(record1.ebird_code, "astcal")
+    self.assertEqual(record1.ebird_code_multilabel, ["astcal"])
     self.assertEqual(record1.sex, "male")
 
     record2 = task_df.iloc[1]
     self.assertEqual(record2.filepath, "fake/path/audio2.ogg")
-    self.assertEqual(record2.ebird_code, "brnthr")
+    self.assertEqual(record2.ebird_code_multilabel, ["brnthr", "rufwar1"])
     self.assertEqual(record2.sex, "female")
 
-    self.assertEqual(ds._ebird_code_names, ["astcal", "brnthr"])
+    self.assertEqual(ds._ebird_code_names, ["astcal", "brnthr", "rufwar1"])
 
   def test_get_sound(self):
     ds = birdset.BirdsetDataset(

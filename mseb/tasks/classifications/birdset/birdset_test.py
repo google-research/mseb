@@ -39,15 +39,24 @@ class BirdsetHSNClassificationTest(absltest.TestCase):
         audio=[
             {"waveform": np.ones(32000), "sampling_rate": 32_000},
             {"waveform": np.ones(32000), "sampling_rate": 32_000},
+            {"waveform": np.ones(32000), "sampling_rate": 32_000},
         ],
-        filepath=["fake/path/audio.ogg", "fake/path/audio2.ogg"],
-        ebird_code=[0, 1],  # 'astcal', 'brnthr'
-        sex=["male", "female"],
-        other_col=[123, 456],
+        filepath=[
+            "fake/path/audio.ogg",
+            "fake/path/audio2.ogg",
+            "fake/path/audio3.ogg",
+        ],
+        ebird_code_multilabel=[
+            [0],  # ['astcal']
+            [1, 2],  # ['brnthr', 'rufwar1']
+            [],   # No labels.
+        ],
+        sex=["male", "female", "male"],
+        other_col=[123, 456, 789],
     )
     self.fake_df = pd.DataFrame(mock_data)
-    self.class_lists = {"some_list": ["astcal", "brnthr"]}
-    self.config_to_class_list = {"HSN": "some_list"}
+    class_lists = {"some_list": ["astcal", "brnthr", "rufwar1"]}
+    config_to_class_list = {"HSN": "some_list"}
 
     # Write fake data to temporary files
     fake_parquet_path = os.path.join(
@@ -59,13 +68,13 @@ class BirdsetHSNClassificationTest(absltest.TestCase):
         self.testdata_dir.full_path, "class_lists.json"
     )
     with open(fake_class_lists_path, "w") as f:
-      json.dump(self.class_lists, f)
+      json.dump(class_lists, f)
 
     fake_config_path = os.path.join(
         self.testdata_dir.full_path, "config_to_class_list.json"
     )
     with open(fake_config_path, "w") as f:
-      json.dump(self.config_to_class_list, f)
+      json.dump(config_to_class_list, f)
 
     self.enter_context(
         flagsaver.flagsaver((
@@ -77,28 +86,33 @@ class BirdsetHSNClassificationTest(absltest.TestCase):
   def test_birdset_classification_sounds(self):
     task = birdset.BirdsetHSNClassification()
     sounds = list(task.sounds())
-    self.assertLen(sounds, 2)
+    self.assertLen(sounds, 3)
     self.assertEqual(sounds[0].context.id, "fake/path/audio.ogg")
     self.assertEqual(sounds[0].context.text, "astcal")
     self.assertLen(sounds[0].waveform, 32000)
     self.assertEqual(sounds[1].context.id, "fake/path/audio2.ogg")
-    self.assertEqual(sounds[1].context.text, "brnthr")
+    self.assertEqual(sounds[1].context.text, "brnthr,rufwar1")
     self.assertLen(sounds[1].waveform, 32000)
+    self.assertEqual(sounds[2].context.id, "fake/path/audio3.ogg")
+    self.assertEqual(sounds[2].context.text, "")
+    self.assertLen(sounds[2].waveform, 32000)
 
   def test_birdset_classification_examples(self):
     task = birdset.BirdsetHSNClassification()
     examples = list(task.examples("ebird_classification"))
-    self.assertLen(examples, 2)
+    self.assertLen(examples, 3)
     self.assertEqual(examples[0].example_id, "fake/path/audio.ogg")
-    self.assertEqual(examples[0].label_id, "astcal")
+    self.assertEqual(examples[0].label_ids, ["astcal"])
     self.assertEqual(examples[1].example_id, "fake/path/audio2.ogg")
-    self.assertEqual(examples[1].label_id, "brnthr")
+    self.assertEqual(examples[1].label_ids, ["brnthr", "rufwar1"])
+    self.assertEqual(examples[2].example_id, "fake/path/audio3.ogg")
+    self.assertEqual(examples[2].label_ids, [])
 
   def test_birdset_classification_class_labels(self):
     task = birdset.BirdsetHSNClassification()
     self.assertEqual(task.sub_tasks, ["ebird_classification"])
     class_labels = list(task.class_labels())
-    self.assertEqual(class_labels, ["astcal", "brnthr"])
+    self.assertEqual(class_labels, ["astcal", "brnthr", "rufwar1"])
 
 
 if __name__ == "__main__":

@@ -59,7 +59,7 @@ class BirdsetClassification(classification.ClassificationTask):
 
   @property
   def task_type(self) -> str:
-    return "multi_class"
+    return "multi_label"
 
   @property
   def weights_dir(self) -> str:
@@ -85,18 +85,22 @@ class BirdsetClassification(classification.ClassificationTask):
 
   def examples(
       self, sub_task: str
-  ) -> Iterable[classification_evaluator.ClassificationReference]:
+  ) -> Iterable[classification_evaluator.MultiLabelClassificationReference]:
     dataset = self._get_dataset()
     for _, example in dataset.get_task_data().iterrows():
-      ebird_str = example["ebird_code"]
-      yield classification_evaluator.ClassificationReference(
+      yield classification_evaluator.MultiLabelClassificationReference(
           example_id=str(example["filepath"]),
-          label_id=ebird_str,
+          label_ids=list(example["ebird_code_multilabel"]),
       )
 
   def class_labels(self) -> Iterable[str]:
     dataset = self._get_dataset()
-    return sorted(list(dataset.get_task_data()["ebird_code"].unique()))
+    unique_labels = set()
+    for labels in dataset.get_task_data()["ebird_code_multilabel"]:
+      for label in labels:
+        unique_labels.add(label)
+    all_labels = sorted(list(unique_labels))
+    return all_labels
 
 
 class BirdsetHSNClassification(BirdsetClassification):

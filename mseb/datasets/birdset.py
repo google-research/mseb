@@ -20,6 +20,7 @@ import os
 from mseb import dataset
 from mseb import types
 import pandas as pd
+import tensorflow as tf
 
 
 class BirdsetDataset:
@@ -104,21 +105,20 @@ class BirdsetDataset:
     cache_path = os.path.join(self.base_path, cache_filename)
     df = pd.read_parquet(cache_path)
     class_lists_path = os.path.join(self.base_path, "class_lists.json")
-    with open(class_lists_path, "r") as f:
+    with tf.io.gfile.GFile(class_lists_path, "r") as f:
       class_lists = json.load(f)
     config_to_class_list_path = os.path.join(
         self.base_path, "config_to_class_list.json"
     )
-    with open(config_to_class_list_path, "r") as f:
+    with tf.io.gfile.GFile(config_to_class_list_path, "r") as f:
       config_to_class_list = json.load(f)
     class_list_name = config_to_class_list[self.configuration]
     self._ebird_code_names = class_lists[class_list_name]
 
     # Convert ebird_code to text labels
-    if "ebird_code" in df.columns and self._ebird_code_names is not None:
-      df["ebird_code"] = df["ebird_code"].apply(
-          lambda x: self._ebird_code_names[x] if x is not None else None
-      )
+    df["ebird_code_multilabel"] = df["ebird_code_multilabel"].apply(
+        lambda x: [self._ebird_code_names[x] for x in x]
+    )
     return df
 
   def get_task_data(self) -> pd.DataFrame:
@@ -130,7 +130,7 @@ class BirdsetDataset:
     audio_data = record.audio
     waveform = audio_data["waveform"]
     sr = audio_data["sampling_rate"]
-    text_label = record.get("ebird_code")
+    text_label = ",".join(record.ebird_code_multilabel)
 
     context = types.SoundContextParams(
         id=str(record.filepath),
