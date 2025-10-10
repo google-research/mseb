@@ -27,11 +27,15 @@ def resample_sound(
     sound: types.Sound,
     target_sr: int,
     target_dtype: (
-        type[np.float32] | type[np.int16] | type[np.int32] | type[np.int8]
+        type[np.float32]
+        | type[np.float64]
+        | type[np.int16]
+        | type[np.int32]
+        | type[np.int8]
     ) = np.float32,
 ) -> types.Sound:
   """Resamples a Sound object to a target sample rate if necessary."""
-  supported_dtypes = (np.float32, np.int16, np.int32, np.int8)
+  supported_dtypes = (np.float32, np.float64, np.int16, np.int32, np.int8)
   if sound.waveform.dtype.type not in supported_dtypes:
     raise ValueError(
         f"Unsupported input waveform dtype: {sound.waveform.dtype}"
@@ -69,6 +73,8 @@ def resample_sound(
 
   if target_dtype == np.float32:
     output_waveform = resampled_waveform
+  elif target_dtype == np.float64:
+    output_waveform = resampled_waveform.astype(np.float64)
   else:
     info = np.iinfo(target_dtype)
     output_waveform = np.clip(

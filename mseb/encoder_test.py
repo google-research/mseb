@@ -228,8 +228,15 @@ class ResampleSoundTest(parameterized.TestCase):
           waveform_array=[-2147483648, 0, 2147483647],
           expected_waveform=[-2147483648, 0, 2147483647],
       ),
+      dict(
+          testcase_name="float64_to_float64",
+          dtype=np.float64,
+          target_dtype=np.float64,
+          waveform_array=[-1.0, 0.0, 1.0],
+          expected_waveform=[-1.0, 0.0, 1.0],
+      ),
   )
-  def test_resample_sound_no_resampling_int(
+  def test_resample_sound_no_resampling_dtype(
       self, dtype, target_dtype, waveform_array, expected_waveform
   ):
     waveform = np.array(waveform_array, dtype=dtype)
@@ -270,6 +277,12 @@ class ResampleSoundTest(parameterized.TestCase):
           dtype=np.int32,
           min_val=-2147483648,
           max_val=2147483647,
+      ),
+      dict(
+          testcase_name="float64",
+          dtype=np.float64,
+          min_val=-1.0,
+          max_val=1.0,
       ),
   )
   def test_resample_sound_downsample(self, dtype, min_val, max_val):
