@@ -131,7 +131,6 @@ class BirdsetDataset:
     waveform = audio_data["waveform"]
     sr = audio_data["sample_rate"]
     text_label = ",".join(record.ebird_code_multilabel)
-    print(f"TOMDBG get_sound {text_label=}")
 
     context = types.SoundContextParams(
         id=str(record.filepath),
