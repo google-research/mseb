@@ -33,8 +33,8 @@ class BirdsetDatasetTest(absltest.TestCase):
 
     mock_data = dict(
         audio=[
-            {"waveform": np.ones(32000), "sampling_rate": 32_000},
-            {"waveform": np.ones(32000), "sampling_rate": 32_000},
+            {"waveform": np.ones(32000), "sample_rate": 32_000},
+            {"waveform": np.ones(32000), "sample_rate": 32_000},
         ],
         filepath=["fake/path/audio.ogg", "fake/path/audio2.ogg"],
         ebird_code_multilabel=[
