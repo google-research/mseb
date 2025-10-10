@@ -179,7 +179,7 @@ class ClassificationTask(task.MSEBTask):
             text=class_label, context=types.TextContextParams(id=class_label)
         )
         for class_label in class_labels
-    ])
+    ], output_name="label_embeddings")
     weights = []
     for class_label in class_labels:
       embedding = class_label_embeddings[class_label]
