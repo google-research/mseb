@@ -45,6 +45,10 @@ RUNNER_CACHE_BASEPATH = flags.DEFINE_string(
 )
 
 
+def get_num_shards(num_examples: int, examples_per_shard: int = 25_000) -> int:
+  return math.ceil(num_examples / examples_per_shard)
+
+
 class EncoderRunner(abc.ABC):
   """Interface for running a MultiModalEncoder to get a cache of embeddings.
 
@@ -210,11 +214,13 @@ def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
 def save_embeddings(
     output_prefix: str,
     embeddings: types.MultiModalEmbeddingCache,
-    shard_size: int = 25_000,
+    examples_per_shard: int = 25_000,
 ):
   """Saves embeddings from a dict into to TFRecord files."""
   num_embeddings = len(embeddings)
-  num_shards = math.ceil(num_embeddings / shard_size)
+  num_shards = get_num_shards(
+      num_embeddings, examples_per_shard=examples_per_shard
+  )
   logging.info('Saving embeddings to %s', f'{output_prefix}@{num_shards}')
   tf.io.gfile.makedirs(os.path.dirname(output_prefix))
   embed_it = iter(embeddings.values())
@@ -223,8 +229,8 @@ def save_embeddings(
         f'{output_prefix}-{shard_id:05d}-of-{num_shards:05d}'
     ) as writer:
       for _ in range(
-          shard_id * shard_size,
-          min(num_embeddings, (shard_id + 1) * shard_size),
+          shard_id * examples_per_shard,
+          min(num_embeddings, (shard_id + 1) * examples_per_shard),
       ):
         record_bytes = pickle.dumps(next(embed_it))
         writer.write(record_bytes)  # pytype: disable=attribute-error
@@ -271,17 +277,24 @@ class BeamRunner(EncoderRunner):
 
     resource_hints = cpu_resource_hints
 
+    elements = list(elements)
     pipeline = beam.Pipeline(runner=self._runner)
     _ = (
         pipeline
-        | 'ReadExamples' >> beam.Create(list(elements))
+        | 'ReadExamples' >> beam.Create(elements)
         | 'Encode'
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)
         ).with_resource_hints(**resource_hints)
         | 'Serialize' >> beam.Map(pickle.dumps)
         # Using TFRecord because it's available as standard beam io.
-        | 'WriteTFRecord' >> beam.io.tfrecordio.WriteToTFRecord(output_prefix)
+        | 'WriteTFRecord'
+        >> beam.io.tfrecordio.WriteToTFRecord(
+            output_prefix,
+            # Explicitly set num_shards to avoid an excessive number of shards,
+            # which unnecessarily slows down loading.
+            num_shards=get_num_shards(len(elements)),
+        )
     )
     logging.info('Running pipeline')
     pipeline.run().wait_until_finish()
