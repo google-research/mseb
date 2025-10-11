@@ -150,7 +150,8 @@ DistanceFn = Callable[
     jaxtyping.Float[jaxtyping.Array, '*B N'],
 ]
 
-dot_product = np.dot
+dot_product = lambda x, y: np.dot(x, y.T)
+
 
 PredictFn = Callable[
     [jaxtyping.Float[jaxtyping.Array, '*B N']],
@@ -158,13 +159,13 @@ PredictFn = Callable[
 ]
 
 
-def argmax(
+def top_1(
     scores: jaxtyping.Float[jaxtyping.Array, '*B N'],
 ) -> tuple[
     jaxtyping.Float[jaxtyping.Array, '*B 1'],
     jaxtyping.Int[jaxtyping.Array, '*B 1'],
 ]:
-  """Returns the argmax of scores."""
+  """Returns the top-1 value and its index of scores."""
   top_id = np.argmax(scores)
   return np.array([scores[top_id]]), np.array([top_id])
 
@@ -179,3 +180,12 @@ def top_k(scores: jaxtyping.Float[jaxtyping.Array, '*B N'], k: int) -> tuple[
   ids = np.argsort(scores[ids_k], axis=-1)[::-1]
   ids_k = ids_k[ids]
   return scores[ids_k], ids_k
+
+
+def top_inf(scores: jaxtyping.Float[jaxtyping.Array, '*B N']) -> tuple[
+    jaxtyping.Float[jaxtyping.Array, '*B N'],
+    jaxtyping.Int[jaxtyping.Array, '*B N'],
+]:
+  """Returns the values and their indices of scores in descending order."""
+  ids = np.argsort(-scores, axis=-1)
+  return scores[ids], ids

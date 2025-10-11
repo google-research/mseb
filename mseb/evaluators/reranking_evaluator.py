@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import dataclasses
-import functools
 from typing import Dict, Mapping, Sequence
 
 import jaxtyping
@@ -146,9 +145,7 @@ class RerankingEvaluator:
           str, Sequence[types.MultiModalEmbedding]
       ],
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
-      predict_fn: evaluator.PredictFn = functools.partial(
-          evaluator.top_k, k=10
-      ),
+      predict_fn: evaluator.PredictFn = evaluator.top_inf,
       mrr_at_k: int = 10,
   ):
     """Initializes the reranking evaluator.
@@ -187,7 +184,7 @@ class RerankingEvaluator:
         assert hasattr(embeds, 'embedding')
         embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
         embeddings.append(embed[0])
-      scores = self.distance_fn(embedding[0], np.array(embeddings).T)
+      scores = self.distance_fn(embedding[0], np.array(embeddings))
       ranked_candidate_scores, ranked_candidate_ids = self.predict_fn(scores)
       texts = [text.context.id for text in candidate_embeddings]
       ranked_candidate_texts: Sequence[str] = [

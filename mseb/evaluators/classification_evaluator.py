@@ -271,8 +271,7 @@ class ClassificationEvaluator:
         )
       example_embedding = embedding_array[0]
       classification_scores[example_id] = self.distance_fn(
-          example_embedding,
-          self.weights.T
+          example_embedding, self.weights
       )
     return classification_scores
 
@@ -397,7 +396,7 @@ class MultiLabelClassificationEvaluator:
         )
       example_embedding = embedding_array[0]
       classification_scores[example_id] = self.distance_fn(
-          example_embedding, self.weights.T
+          example_embedding, self.weights
       )
     return classification_scores
 

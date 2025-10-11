@@ -129,9 +129,9 @@ class EvaluatorTest(absltest.TestCase):
     npt.assert_almost_equal(mean, 5 / 3)
     npt.assert_almost_equal(std**2, 5 / 9)
 
-  def test_argmax(self):
+  def test_top_1(self):
     scores = np.array([2, 8, 5, 0])
-    top_score, top_id = evaluator.argmax(scores)
+    top_score, top_id = evaluator.top_1(scores)
     npt.assert_almost_equal(top_score, np.array([8]))
     npt.assert_equal(top_id, np.array([1]))
 
