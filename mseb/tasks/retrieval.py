@@ -25,6 +25,7 @@ from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
+import tensorflow as tf
 
 
 _NUM_PARTITIONS = flags.DEFINE_integer(
@@ -66,25 +67,25 @@ class RetrievalTask(task.MSEBTask):
       self.setup_unpartitioned(runner)
 
   def setup_unpartitioned(self, runner: runner_lib.EncoderRunner | None = None):
-    if runner is not None:
-      embeddings = runner.run(self.documents(), output_path=self.index_dir)
-      searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
-      retrieval_evaluator.save_index(
-          searcher,
-          id_by_index_id,
-          self.index_dir,
-          self.id_by_index_id_filepath,
+    try:
+      searcher, id_by_index_id = retrieval_evaluator.load_index(
+          self.index_dir, self.id_by_index_id_filepath
       )
-    else:
-      try:
-        searcher, id_by_index_id = retrieval_evaluator.load_index(
-            self.index_dir, self.id_by_index_id_filepath
+    except tf.errors.NotFoundError:
+      if runner is not None:
+        embeddings = runner.run(self.documents(), output_path=self.index_dir)
+        searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
+        retrieval_evaluator.save_index(
+            searcher,
+            id_by_index_id,
+            self.index_dir,
+            self.id_by_index_id_filepath,
         )
-      except FileNotFoundError:
+      else:
         raise ValueError(
             'Index not found in cache directory. Did you create the index by'
             ' running run_task_setup?'
-        ) from FileNotFoundError
+        ) from tf.errors.NotFoundError
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=searcher, id_by_index_id=id_by_index_id
@@ -93,11 +94,19 @@ class RetrievalTask(task.MSEBTask):
   def setup_partitioned(
       self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None
   ):
-    if runner is not None:
-      for partition_id in range(num_partitions):
+    for partition_id in range(num_partitions):
+      logger.info(
+          'Setting up partition %d/%d', partition_id, num_partitions
+      )
+      if tf.io.gfile.exists(os.path.join(self.index_dir, str(partition_id))):
         logger.info(
-            'Setting up partition %d/%d', partition_id, num_partitions
+            'Index partition %d/%d already exists at %s',
+            partition_id,
+            num_partitions,
+            os.path.join(self.index_dir, str(partition_id)),
         )
+        continue
+      elif runner is not None:
         embeddings = runner.run(
             itertools.islice(
                 self.documents(), partition_id, None, num_partitions
@@ -111,6 +120,12 @@ class RetrievalTask(task.MSEBTask):
             os.path.join(self.index_dir, str(partition_id)),
             self.id_by_index_id_filepath,
         )
+      else:
+        raise ValueError(
+            'Index partition %d/%d not found in cache directory. Did you create'
+            ' the index by running run_task_setup?'
+            % (partition_id, num_partitions)
+        ) from FileNotFoundError
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
         index_dir=self.index_dir

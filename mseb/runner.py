@@ -72,6 +72,10 @@ class EncoderRunner(abc.ABC):
   ) -> types.MultiModalEmbeddingCache:
     """Encode the given multimodal objects and return a cache of embeddings."""
 
+  def encoder_output_type(self) -> type[types.MultiModalEmbedding]:
+    """The type of the output of the encoder."""
+    return self._encoder.output_type()
+
 
 class DirectRunner(EncoderRunner):
   """Simple runner that encodes locally, stores results in a dict in-memory."""

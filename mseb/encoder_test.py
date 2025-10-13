@@ -43,20 +43,21 @@ class MockMultiModalEncoder(encoder.MultiModalEncoder):
   ) -> Sequence[types.SoundEmbedding]:
     return []
 
-  def __init__(self):
+  def __init__(self, use_magic_mock=True):
     super().__init__()
-    self._setup = mock.MagicMock(side_effect=lambda: None)
-    self._encode = mock.MagicMock(
-        return_value=[
-            types.SoundEmbedding(
-                embedding=np.zeros((10, 8)),
-                timestamps=np.zeros((10, 2)),
-                context=types.SoundContextParams(
-                    id="test", sample_rate=16000, length=10
-                ),
-            )
-        ]
-    )
+    if use_magic_mock:
+      self._setup = mock.MagicMock(side_effect=lambda: None)
+      self._encode = mock.MagicMock(
+          return_value=[
+              types.SoundEmbedding(
+                  embedding=np.zeros((10, 8)),
+                  timestamps=np.zeros((10, 2)),
+                  context=types.SoundContextParams(
+                      id="test", sample_rate=16000, length=10
+                  ),
+              )
+          ]
+      )
 
 
 class MultiModalEncoderTest(absltest.TestCase):
@@ -104,6 +105,10 @@ class MultiModalEncoderTest(absltest.TestCase):
     bad_encoder = BadMultiModalEncoder()
     self.assertIsNotNone(bad_encoder)
 
+  def test_output_type(self) -> type[types.MultiModalObject]:
+    mock_encoder = MockMultiModalEncoder(use_magic_mock=False)
+    self.assertEqual(mock_encoder.output_type(), types.SoundEmbedding)
+
 
 class CascadeEncoderTest(absltest.TestCase):
 
@@ -133,6 +138,12 @@ class CascadeEncoderTest(absltest.TestCase):
     sound_embedding = sound_embeddings[0]
     self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     self.assertEqual(sound_embedding.embedding.shape, (10, 8))
+
+  def test_output_type(self):
+    enc = encoder.CascadeEncoder(
+        encoders=[MockMultiModalEncoder(use_magic_mock=False)]
+    )
+    self.assertEqual(enc.output_type(), types.SoundEmbedding)
 
 
 class CollectionEncoderTest(absltest.TestCase):

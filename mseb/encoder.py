@@ -154,6 +154,11 @@ class MultiModalEncoder(abc.ABC):
     del data
     return None
 
+  def output_type(self) -> type[types.MultiModalObject]:
+    """The type of the output of the encoder."""
+    assert self._encode is not None
+    return self._encode.__annotations__["return"].__args__[0]
+
 
 class CascadeEncoder(MultiModalEncoder):
   """Sequence encoder interface.
@@ -194,6 +199,10 @@ class CascadeEncoder(MultiModalEncoder):
       encoder._check_input_types(outputs)  # pylint: disable=protected-access
       outputs = encoder.encode(outputs)
     return outputs
+
+  def output_type(self) -> type[types.MultiModalObject]:
+    """The type of the output of the encoder."""
+    return self._encoders[-1].output_type()
 
 
 class CollectionEncoder(MultiModalEncoder):

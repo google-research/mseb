@@ -15,9 +15,10 @@
 """Reasoning super task."""
 
 import abc
+from collections.abc import Sequence
 import logging
 import os
-from typing import Iterable, Sequence
+from typing import Iterable
 
 from absl import flags
 from mseb import runner as runner_lib
@@ -52,30 +53,34 @@ class ReasoningTask(task.MSEBTask):
       self, runner: runner_lib.EncoderRunner | None = None
   ):
     """Create the span embeddings cache."""
+    embeddings_by_text = {}
     if runner is not None:
-      unique_spans = {}
-      for span_list in self.span_lists():
-        for span in span_list:
-          unique_spans[span.text] = span
-      _ = runner.run(unique_spans.values(), output_path=self.embeddings_dir)
+      if runner.encoder_output_type() is not types.ReasoningPrediction:
+        unique_spans = {}
+        for span_list in self.span_lists():
+          for span in span_list:
+            unique_spans[span.text] = span
+        embeddings_by_text = runner.run(
+            unique_spans.values(), output_path=self.embeddings_dir
+        )
+    else:
+      try:
+        embeddings_by_text = runner_lib.load_embeddings(
+            os.path.join(self.embeddings_dir, 'embeddings')
+        )
+      except FileNotFoundError:
+        logger.error(
+            'Span embeddings cache not found in cache directory. Did you'
+            ' create the cache by running run_task_setup?'
+        )
 
-    try:
-      logger.info('Loading span embeddings cache from %s', self.embeddings_dir)
-      embeddings_by_text = runner_lib.load_embeddings(
-          os.path.join(self.embeddings_dir, 'embeddings')
-      )
-      embeddings_by_sound_id = {}
+    embeddings_by_sound_id = {}
+    if embeddings_by_text:
       for sub_task in self.sub_tasks:
         for spans in self.examples(sub_task):
           embeddings_by_sound_id[spans.sound_id] = [
               embeddings_by_text[text] for text in spans.texts
           ]
-    except FileNotFoundError:
-      logger.error(
-          'Span embeddings cache not found in cache directory. Did you'
-          ' create the cache by running run_task_setup?'
-      )
-      embeddings_by_sound_id = {}
 
     self._evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_sound_id=embeddings_by_sound_id,

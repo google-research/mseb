@@ -17,6 +17,7 @@ from os import path
 from absl.testing import absltest
 from mseb import runner as runner_lib
 from mseb import types
+from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 import numpy as np
 
 
@@ -62,6 +63,10 @@ class RunnerTest(absltest.TestCase):
         embeddings_loaded['utt_14868079180393484423'].context,
         embeddings['utt_14868079180393484423'].context,
     )
+
+  def test_encoder_output_type(self):
+    runner = runner_lib.DirectRunner(encoder=text_encoder.MockTextEncoder())
+    self.assertEqual(runner.encoder_output_type(), types.TextEmbedding)
 
 
 if __name__ == '__main__':
