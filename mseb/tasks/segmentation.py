@@ -12,89 +12,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Segmentation tasks."""
+"""Segmentation super task."""
+
 import abc
-from typing import Type
-from mseb import runner as runner_lib
+from typing import Iterable
+
 from mseb import task
 from mseb import types
-from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import segmentation_evaluator
 
 
 class SegmentationTask(task.MSEBTask):
-  """Segmentation task."""
+  """Segmentation super task.
+
+  This task class orchestrates the evaluation pipeline for segmentation.
+  The `setup` method initializes the `SegmentationEvaluator`, and the
+  `compute_scores` method uses it to run the full evaluation, including
+  accuracy, ranking (mAP), and order-based (NDCG, Edit Distance) metrics.
+
+  Concrete subclasses must implement `sub_tasks`, `examples`, and `sounds`
+  to provide the specific data for a given dataset.
+  """
+
+  def __init__(self, tau: float = 0.05):
+    """Initializes the SegmentationTask.
+
+    Args:
+      tau: The acceptable time tolerance in seconds for a segment match,
+        to be passed to the evaluator.
+    """
+    super().__init__()
+    self._evaluator: segmentation_evaluator.SegmentationEvaluator | None = None
+    self.tau = tau
+
+  @property
+  @abc.abstractmethod
+  def sub_tasks(self) -> list[str]:
+    """Get the list of sub-tasks, e.g., evaluation splits like ['test']."""
+    ...
 
   @abc.abstractmethod
-  def targets(self, embeddings: types.MultiModalEmbeddingCache):
-    """Get example labels for the segmentation task."""
-    # TODO(tombagby): This is only taking embeddings right now because we
-    # don't have reference labels in data yet and this is the easiest way
-    # to fake it. Actual signature will not take embeddings.
+  def examples(
+      self, sub_task: str
+  ) -> Iterable[segmentation_evaluator.SegmentationReference]:
+    """Get all reference examples for a given sub-task."""
+    ...
+
+  @abc.abstractmethod
+  def sounds(self) -> Iterable[types.Sound]:
+    """Iterate all sounds in the corpus for this task."""
+    ...
+
+  def setup(self, runner=None):
+    """Initializes the SegmentationEvaluator."""
+    self._evaluator = segmentation_evaluator.SegmentationEvaluator(tau=self.tau)
 
   def compute_scores(
       self, embeddings: types.MultiModalEmbeddingCache
   ) -> dict[str, list[types.Score]]:
-    evaluator = segmentation_evaluator.SegmentationEvaluator()
+    """Runs the full segmentation evaluation pipeline.
 
-    sound_embeddings = {}
-    for k, v in embeddings.items():
-      assert isinstance(v, types.SoundEmbedding)
-      sound_embeddings[k] = v
+    For each sub-task, this method calculates intermediate scores and then
+    computes the final, comprehensive set of metrics.
 
-    scores = []
-    for ex in self.targets(sound_embeddings):
-      # FAKE REFERENCES
-      reference_waveform_embeddings = ex.embedding
-      reference_embedding_timestamps = ex.timestamps
-      scores.extend([
-          evaluator.evaluate(
-              ex.embedding,
-              ex.timestamps,
-              ex.context,
-              reference_waveform_embeddings=reference_waveform_embeddings,
-              reference_embedding_timestamps=reference_embedding_timestamps,
-          )
-      ])
-    return {'segmentation': evaluator.combine_scores(scores)}
+    Args:
+      embeddings: A cache of `SoundEmbedding` objects from the model, keyed by
+        example ID.
 
+    Returns:
+      A dictionary mapping each sub-task name to a list of its computed
+      `types.Score` objects.
 
-class SegmentationTaskSVQ(SegmentationTask):
-  """Segmentation task on SVQ dataset."""
+    Raises:
+      ValueError: If the evaluator has not been initialized via `setup()`.
+    """
+    if self._evaluator is None:
+      raise ValueError("Evaluator is not initialized. Did you call setup()?")
 
-  metadata = types.TaskMetadata(
-      name='SegmentationTaskSVQ',
-      description='Segmentation task.',
-      reference='TODO',
-      type='Segmentation',
-      category='speech',
-      main_score='TimestampsAccuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          segmentation_evaluator.timestamps_accuracy_score(),
-          segmentation_evaluator.embeddings_accuracy_score(),
-          segmentation_evaluator.timestamps_and_embedding_accuracy_score(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['segmentation'],
-  )
+    results = {}
+    for sub_task in self.sub_tasks:
+      references = list(self.examples(sub_task))
+      if not references:
+        results[sub_task] = []
+        continue
+      scoring_result = self._evaluator.compute_scores(embeddings, references)
+      final_scores = self._evaluator.compute_metrics(scoring_result)
+      results[sub_task] = final_scores
 
-  def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
-    self._svq_dataset = svq.SimpleVoiceQuestionsDataset()
-
-  def sounds(self):
-    for utt_id in self._svq_dataset.utt_id_to_record:
-      yield self._svq_dataset.get_sound_by_id(utt_id)
-
-  def targets(self, embeddings: types.MultiModalEmbeddingCache):
-    for utt_id in self._svq_dataset.utt_id_to_record:
-      # TODO(tombagby): Get actual reference labels out, faking for now.
-      yield embeddings[utt_id]
+    return results

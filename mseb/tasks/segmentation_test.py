@@ -12,51 +12,126 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import pathlib
-from absl import flags
 from absl.testing import absltest
-from absl.testing import flagsaver
-from mseb import dataset
-from mseb import runner as runner_lib
-from mseb.encoders import raw_encoder
+from mseb import types
+from mseb.evaluators import segmentation_evaluator
 from mseb.tasks import segmentation
-
-FLAGS = flags.FLAGS
-
-
-def get_test_encoder():
-  return raw_encoder.RawEncoder(
-      transform_fn=raw_encoder.spectrogram_transform,
-      frame_length=(48000 // 1000 * 25),
-      frame_step=(48000 // 1000 * 10),
-  )
+import numpy as np
 
 
-class SegmentationTest(absltest.TestCase):
+class SegmentationTaskTest(absltest.TestCase):
 
-  def setUp(self):
-    super().setUp()
-    self.enter_context(
-        flagsaver.flagsaver(
-            (dataset._DATASET_BASEPATH, self.get_testdata_path())
-        )
-    )
+  def _assert_scores(
+      self, scores: list[types.Score], expected_scores: list[types.Score]
+  ):
+    """Helper to compare the final list of Score objects."""
+    # This helper is unchanged and is now used in the main test.
+    self.assertLen(scores, len(expected_scores))
+    scores_map = {s.metric: s for s in scores}
+    expected_scores_map = {s.metric: s for s in expected_scores}
+    self.assertCountEqual(scores_map.keys(), expected_scores_map.keys())
+    for metric, expected_score in expected_scores_map.items():
+      actual_score = scores_map[metric]
+      self.assertEqual(actual_score.metric, expected_score.metric)
+      self.assertAlmostEqual(
+          actual_score.value,
+          expected_score.value,
+          places=6,
+          msg=f"Failed on metric: {metric}",
+      )
 
-  def get_testdata_path(self, *args):
-    testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
-    )
-    return os.path.join(testdata_path, *args)
+  def test_setup_initializes_evaluator(self):
 
-  def test_segmentation_task_svq(self):
-    encoder = get_test_encoder()
-    runner = runner_lib.DirectRunner(encoder=encoder)
-    task = segmentation.SegmentationTaskSVQ()
+    class MockTask(segmentation.SegmentationTask):
+
+      sub_tasks = []
+
+      def examples(self, sub_task):
+        return []
+
+      def sounds(self):
+        return []
+
+    task = MockTask(tau=0.25)
     task.setup()
-    embeddings = runner.run(task.sounds())
-    scores = task.compute_scores(embeddings)
-    self.assertNotEmpty(scores)
+    self.assertIsInstance(
+        task._evaluator, segmentation_evaluator.SegmentationEvaluator
+    )
+    self.assertEqual(task._evaluator.tau, 0.25)
+
+  def test_compute_scores_raises_error_if_not_setup(self):
+
+    class MockTask(segmentation.SegmentationTask):
+
+      sub_tasks = []
+
+      def examples(self, sub_task):
+        return []
+
+      def sounds(self):
+        return []
+
+    task = MockTask()
+    with self.assertRaisesRegex(ValueError, "Evaluator is not initialized"):
+      task.compute_scores(embeddings={})
+
+  def test_compute_scores_runs_full_pipeline(self):
+
+    class MockTask(segmentation.SegmentationTask):
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ["test"]
+
+      def examples(self, sub_task: str):
+        if sub_task == "test":
+          return [
+              segmentation_evaluator.SegmentationReference(
+                  example_id="utt_1",
+                  segments=[
+                      segmentation_evaluator.Segment("dog", 1.0, 2.0),
+                      segmentation_evaluator.Segment("cat", 3.0, 4.0),
+                  ],
+              )
+          ]
+        return []
+
+      def sounds(self):
+        raise NotImplementedError()
+
+    task = MockTask(tau=0.1)
+    task.setup()
+    predictions = {
+        "utt_1": types.SoundEmbedding(
+            embedding=np.array(["dog", "cat"]),
+            timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),
+            scores=np.array([0.9, 0.8]),
+            context=types.SoundContextParams(
+                id="utt_1",
+                sample_rate=16000,
+                length=1
+            ),
+        )
+    }
+    results = task.compute_scores(predictions)
+    self.assertIn("test", results)
+    expected_scores = [
+        # Accuracy metrics (100%)
+        segmentation_evaluator.timestamps_and_embeddings_hits(2.0, 2.0),
+        segmentation_evaluator.timestamps_hits(2.0, 2.0),
+        segmentation_evaluator.embeddings_hits(2.0, 2.0),
+        segmentation_evaluator.num_segments(2.0),
+        segmentation_evaluator.timestamps_and_embeddings_accuracy(1.0),
+        segmentation_evaluator.timestamps_accuracy(1.0),
+        segmentation_evaluator.embeddings_accuracy(1.0),
+        # Order metrics (perfect order)
+        segmentation_evaluator.normalized_discounted_cumulative_gain(1.0),
+        segmentation_evaluator.word_error_rate(0.0),
+        # Ranking metric (perfect ranking)
+        segmentation_evaluator.mean_average_precision(1.0),
+    ]
+
+    self._assert_scores(results["test"], expected_scores)
 
 
 if __name__ == "__main__":

@@ -15,11 +15,13 @@
 """Segmentation evaluators metrics include."""
 
 import collections
-from typing import Any
+import dataclasses
+from typing import Sequence
 
-from mseb import evaluator
+import jiwer
 from mseb import types
 import numpy as np
+from sklearn import metrics
 
 
 _METRIC_DESCRIPTIONS: dict[str, str] = {
@@ -33,7 +35,7 @@ _METRIC_DESCRIPTIONS: dict[str, str] = {
         "embedding (e.g., a transcribed label) exactly matches the reference, "
         "irrespective of its timing."
     ),
-    "TimestampsAndEmbeddingAccuracy": (
+    "TimestampsAndEmbeddingsAccuracy": (
         "Overall Accuracy: The percentage of segments where the embedding is "
         "correct AND its associated start/end times are within the tolerance "
         "(tau). This is the strictest metric."
@@ -51,266 +53,461 @@ _METRIC_DESCRIPTIONS: dict[str, str] = {
     "NumSegments": (
         "The total number of ground-truth segments in the reference."
     ),
+    "mAP": (
+        "Mean Average Precision, a ranking metric that evaluates detection"
+        " performance based on confidence scores."
+    ),
+    "NDCG": (
+        "Normalized Discounted Cumulative Gain. A metric that evaluates "
+        "the quality of a sequence by rewarding correct terms found in the "
+        "correct order."
+    ),
+    "WordErrorRate": (
+        "Word Error Rate (WER) between the predicted and reference sequences. "
+        "Lower is better."
+    ),
 }
 
 
-def timestamps_accuracy_score(value: float = 0.0):
+def timestamps_accuracy(value: float = 0.0) -> types.Score:
   return types.Score(
       metric="TimestampsAccuracy",
       description=_METRIC_DESCRIPTIONS["TimestampsAccuracy"],
       value=value,
-      min=0,
-      max=1,
+      min=0.0,
+      max=1.0
   )
 
 
-def embeddings_accuracy_score(value: float = 0.0):
+def embeddings_accuracy(value: float = 0.0) -> types.Score:
   return types.Score(
       metric="EmbeddingsAccuracy",
       description=_METRIC_DESCRIPTIONS["EmbeddingsAccuracy"],
       value=value,
-      min=0,
-      max=1,
+      min=0.0,
+      max=1.0
   )
 
 
-def timestamps_and_embedding_accuracy_score(value: float = 0.0):
+def timestamps_and_embeddings_accuracy(value: float = 0.0) -> types.Score:
   return types.Score(
-      metric="TimestampsAndEmbeddingAccuracy",
-      description=_METRIC_DESCRIPTIONS["TimestampsAndEmbeddingAccuracy"],
+      metric="TimestampsAndEmbeddingsAccuracy",
+      description=_METRIC_DESCRIPTIONS["TimestampsAndEmbeddingsAccuracy"],
       value=value,
-      min=0,
-      max=1,
+      min=0.0,
+      max=1.0
   )
 
 
-class SegmentationEvaluator(evaluator.SoundEmbeddingEvaluator):
-  """Evaluates segmentation quality of sound encodings.
+def timestamps_hits(value: float = 0.0, total: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="TimestampsHits",
+      description=_METRIC_DESCRIPTIONS["TimestampsHits"],
+      value=value,
+      min=0.0,
+      max=total
+  )
 
-  This evaluator calculates metrics by comparing predicted segments
-  (waveform_embeddings, embedding_timestamps) against a ground truth
-  reference. It measures how well the encoder identifies the content
-  and timing of sound events.
+
+def embeddings_hits(value: float = 0.0, total: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="EmbeddingsHits",
+      description=_METRIC_DESCRIPTIONS["EmbeddingsHits"],
+      value=value,
+      min=0.0,
+      max=total
+  )
+
+
+def timestamps_and_embeddings_hits(
+    value: float = 0.0,
+    total: float = 0.0
+) -> types.Score:
+  return types.Score(
+      metric="TimestampsAndEmbeddingsHits",
+      description=_METRIC_DESCRIPTIONS["TimestampsAndEmbeddingsHits"],
+      value=value,
+      min=0.0,
+      max=total
+  )
+
+
+def num_segments(value: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="NumSegments",
+      description=_METRIC_DESCRIPTIONS["NumSegments"],
+      value=value,
+      min=0.0,
+      max=value
+  )
+
+
+def mean_average_precision(value: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="mAP",
+      description=_METRIC_DESCRIPTIONS["mAP"],
+      value=value,
+      min=0.0,
+      max=1.0
+  )
+
+
+def normalized_discounted_cumulative_gain(value: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="NDCG",
+      description=_METRIC_DESCRIPTIONS["NDCG"],
+      value=value,
+      min=0.0,
+      max=1.0
+  )
+
+
+def word_error_rate(value: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="WordErrorRate",
+      description=_METRIC_DESCRIPTIONS["WordErrorRate"],
+      value=value,
+      min=0.0,
+      max=float("inf"),  # WER can be > 1.0
+  )
+
+
+@dataclasses.dataclass(frozen=True)
+class Segment:
+  embedding: str
+  start_time: float
+  end_time: float
+  confidence: float = 1.0
+
+
+@dataclasses.dataclass
+class SegmentationReference:
+  example_id: str
+  segments: list[Segment]
+
+
+@dataclasses.dataclass
+class SegmentationScores:
+  timestamps_hits: int
+  embeddings_hits: int
+  timestamps_and_embeddings_hits: int
+  num_reference_segments: int
+  ndcg: float
+  edit_distance: float
+  num_reference_words: int
+
+
+@dataclasses.dataclass
+class SegmentationScoringResult:
+  per_example_scores: list[SegmentationScores]
+  all_predictions_for_map: list[tuple[str, Segment]]
+  ground_truths_for_map: dict[str, list[Segment]]
+
+
+class SegmentationEvaluator:
+  """Evaluates segmentation quality with accuracy and ranking metrics.
+
+  This evaluator measures performance by comparing a model's predicted sequence
+  of salient terms against a ground-truth reference sequence for each audio
+  example. It provides a comprehensive analysis by computing three distinct
+  categories of metrics.
+
+  Core Concepts:
+    - The **Reference** for an audio clip consists of a ground-truth ordered
+      list of top-k salient terms and their corresponding start/end timestamps.
+    - The **Prediction** from a model consists of its predicted ordered list of
+      top-k salient terms, their timestamps, and a confidence or saliency
+      score for each term.
+
+  Metric Categories:
+    1.  **Hit-Based Accuracy (TimestampsAccuracy, EmbeddingsAccuracy, etc.):**
+        These metrics are based on a **greedy bipartite matching** algorithm
+        that pairs each reference segment to the best available predicted
+        segment.
+        - A **time match** is successful if a predicted segment's start and end
+          times are both within the `tau` tolerance of a reference segment's
+          timestamps.
+        - An **embedding match** is successful if the string labels of a
+          predicted and reference segment are identical (case-insensitive).
+
+    2.  **Sequence Order Metrics (WER, NDCG):**
+        These metrics directly compare the two sequences of labels to measure
+        ordering and transcription quality. For example, it measures the Word
+        Error Rate (WER) between the predicted list
+        `["tires screeech", "engine revs"]` and the reference list
+        `["engine revs", "tires screech"]`.
+
+    3.  **Ranking Metric (mAP):**
+        This metric evaluates the model's ability to assign higher confidence
+        scores to correct detections than to incorrect ones, across the entire
+        dataset. It is agnostic to the sequence order within a single example.
   """
 
-  def __init__(self, **kwargs: Any):
-    """Initializes the evaluator.
+  def __init__(self, tau: float = 0.05):
+    if tau < 0:
+      raise ValueError("Time tolerance `tau` cannot be negative.")
+    self.tau = tau
+
+  def compute_scores(
+      self,
+      predictions: types.MultiModalEmbeddingCache,
+      references: Sequence[SegmentationReference],
+  ) -> SegmentationScoringResult:
+    """Calculates all per-example scores and prepares data for final metrics.
+
+    In a single pass, this method computes hit counts, NDCG, and Edit Distance
+    for each example. It also gathers the necessary raw data for the subsequent
+    mAP calculation in `compute_metrics`.
 
     Args:
-      **kwargs: Keyword arguments for evaluation. Expected keys include:
-        - `tau` (float): The acceptable tolerance in seconds for a timestamp
-          to be considered a match. Defaults to 0.0.
-    """
-    super().__init__(**kwargs)
-    self.tau = self._kwargs.get("tau", 0.0)
-
-  def _validate_timestamps(
-      self,
-      timestamps: np.ndarray,
-      max_length: float,
-      name: str
-  ):
-    """Checks if all timestamps are within the valid range [0, max_length]."""
-    if timestamps.size == 0:
-      return  # Nothing to validate.
-    if np.any(timestamps < 0):
-      raise ValueError(
-          f"'{name}' contains negative timestamps, which is invalid."
-      )
-    if np.any(timestamps > max_length):
-      raise ValueError(
-          f"'{name}' contains a timestamp ({np.max(timestamps):.2f}s) that"
-          f" exceeds the total waveform length ({max_length:.2f}s)."
-      )
-    if np.any(timestamps[:, 0] > timestamps[:, 1]):
-      raise ValueError(
-          f"'{name}' contains entries where start_time > end_time."
-      )
-
-  def evaluate(
-      self,
-      waveform_embeddings: np.ndarray,
-      embedding_timestamps: np.ndarray,
-      params: types.SoundContextParams,
-      **kwargs: Any,
-  ) -> list[types.Score]:
-    """Evaluates segmentation quality for a single example.
-
-    Args:
-      waveform_embeddings: A 2D array from the encoder.
-      embedding_timestamps: A 2D array of [start, end] sample seconds.
-      params: The waveform context parameters, used as a source of ground truth.
-      **kwargs: Additional runtime arguments. MUST contain:
-        - `reference_waveform_embeddings` (np.ndarray): Ground truth
-          waveform_embeddings.
-        - `reference_embedding_timestamps` (np.ndarray): Ground truth
-          embedding_timestamps.
-        - `tau` (Optional[float]): Overrides the init `tau` value.
+      predictions: A mapping from example_id to `SoundEmbedding` objects from
+        the model.
+      references: A sequence of `SegmentationReference` ground-truth objects.
 
     Returns:
-      A list of Score objects containing the raw hit counts and total
-      segments for this single example.
+      A `SegmentationScoringResult` object containing the collected per-example
+      scores and the data required for dataset-level metrics.
+
+    Raises:
+      TypeError: If any value in the `predictions` cache is not a
+        `types.SoundEmbedding`.
+      ValueError: If an example's number of embeddings does not match its
+        number of timestamps or scores.
     """
-    reference_embeddings = kwargs.get("reference_waveform_embeddings")
-    reference_timestamps = kwargs.get("reference_embedding_timestamps")
+    per_example_scores = []
+    all_preds_for_map = []
+    gts_for_map = collections.defaultdict(list)
 
-    if reference_embeddings is None or reference_embeddings.size == 0:
-      raise ValueError(
-          "Missing required kwarg: `reference_waveform_embeddings`."
-      )
-    if reference_timestamps is None or reference_timestamps.size == 0:
-      raise ValueError(
-          "Missing required kwarg: `reference_embedding_timestamps`."
-      )
+    for ref in references:
+      gt_labels = [seg.embedding.lower() for seg in ref.segments]
+      for seg in ref.segments:
+        gts_for_map[ref.example_id].append(seg)
 
-    max_duration_seconds = params.length / params.sample_rate
-    self._validate_timestamps(
-        embedding_timestamps,
-        max_duration_seconds,
-        "Predicted `embedding_timestamps`"
-    )
-    self._validate_timestamps(
-        reference_timestamps,
-        max_duration_seconds,
-        "Ground-truth `reference_embedding_timestamps`",
-    )
-
-    tau_seconds = kwargs.get("tau", self.tau)
-    num_reference_segments = len(reference_timestamps)
-    num_candidate_segments = len(embedding_timestamps)
-    timestamps_hits, embeddings_hits, timestamps_and_embeddings_hits = 0, 0, 0
-
-    if num_reference_segments > 0 and num_candidate_segments > 0:
-      cand_embeds_str = [str(e).lower() for e in waveform_embeddings]
-      for i in range(num_reference_segments):
-        ref_start, ref_end = reference_timestamps[i]
-        ref_emb_str = str(reference_embeddings[i]).lower()
-
-        if i < num_candidate_segments:
-          cand_start, cand_end = embedding_timestamps[i]
-          time_match = (
-              abs(ref_start - cand_start) <= tau_seconds
-              and abs(ref_end - cand_end) <= tau_seconds
+      prediction_obj = predictions.get(ref.example_id)
+      pred_segments = []
+      if prediction_obj:
+        if not isinstance(prediction_obj, types.SoundEmbedding):
+          raise TypeError(
+              "Evaluator expected a SoundEmbedding for example_id "
+              f"'{ref.example_id}', but received a "
+              f"{type(prediction_obj).__name__}."
           )
-          embedding_match = ref_emb_str == cand_embeds_str[i]
-          if time_match and embedding_match:
-            timestamps_and_embeddings_hits += 1
-
-        if any(
-            (abs(ref_start - cs) <= tau_seconds
-             and abs(ref_end - ce) <= tau_seconds)
-            for cs, ce in embedding_timestamps
+        embeds = prediction_obj.embedding
+        scores = prediction_obj.scores
+        timestamps = prediction_obj.timestamps
+        if len(embeds) != len(timestamps) or (
+            scores is not None and len(embeds) != len(scores)
         ):
-          timestamps_hits += 1
+          raise ValueError(
+              f"Inconsistent lengths in example '{ref.example_id}'."
+          )
+        for i in range(len(embeds)):
+          confidence = scores[i] if scores is not None else 1.0
+          seg = Segment(
+              str(embeds[i]), timestamps[i, 0], timestamps[i, 1], confidence
+          )
+          pred_segments.append(seg)
+          if scores is not None:
+            all_preds_for_map.append((ref.example_id, seg))
 
-        if ref_emb_str in cand_embeds_str:
-          embeddings_hits += 1
+      pred_labels = [seg.embedding.lower() for seg in pred_segments]
 
-    max_val = float(num_reference_segments)
-    return [
-        types.Score(
-            metric="TimestampsHits",
-            description=_METRIC_DESCRIPTIONS["TimestampsHits"],
-            value=float(timestamps_hits),
-            min=0.0,
-            max=max_val
-        ),
-        types.Score(
-            metric="EmbeddingsHits",
-            description=_METRIC_DESCRIPTIONS["EmbeddingsHits"],
-            value=float(embeddings_hits),
-            min=0.0,
-            max=max_val
-        ),
-        types.Score(
-            metric="TimestampsAndEmbeddingsHits",
-            description=_METRIC_DESCRIPTIONS["TimestampsAndEmbeddingsHits"],
-            value=float(timestamps_and_embeddings_hits),
-            min=0.0,
-            max=max_val
-        ),
-        types.Score(
-            metric="NumSegments",
-            description=_METRIC_DESCRIPTIONS["NumSegments"],
-            value=max_val,
-            min=0.0,
-            max=max_val
-        ),
-    ]
+      # --- Hit Count Logic ---
+      ex_ts_hits, ex_emb_hits, ex_ts_emb_hits = 0, 0, 0
+      if pred_segments and ref.segments:
+        preds_used = [False] * len(pred_segments)
+        ref_matched_on_both = [False] * len(ref.segments)
+        ref_matched_on_time = [False] * len(ref.segments)
+        ref_matched_on_emb = [False] * len(ref.segments)
+        for i, ref_seg in enumerate(ref.segments):
+          for j, pred_seg in enumerate(pred_segments):
+            if preds_used[j]:
+              continue
+            time_match = (
+                abs(ref_seg.start_time - pred_seg.start_time) <= self.tau
+                and abs(ref_seg.end_time - pred_seg.end_time) <= self.tau
+            )
+            if (
+                time_match
+                and ref_seg.embedding.lower() == pred_seg.embedding.lower()
+            ):
+              ref_matched_on_both[i] = True
+              preds_used[j] = True
+              break
+        for i, ref_seg in enumerate(ref.segments):
+          if ref_matched_on_both[i]:
+            continue
+          for j, pred_seg in enumerate(pred_segments):
+            if preds_used[j]:
+              continue
+            if (
+                abs(ref_seg.start_time - pred_seg.start_time) <= self.tau
+                and abs(ref_seg.end_time - pred_seg.end_time) <= self.tau
+            ):
+              ref_matched_on_time[i] = True
+              preds_used[j] = True
+              break
+        for i, ref_seg in enumerate(ref.segments):
+          if ref_matched_on_both[i] or ref_matched_on_time[i]:
+            continue
+          for j, pred_seg in enumerate(pred_segments):
+            if preds_used[j]:
+              continue
+            if ref_seg.embedding.lower() == pred_seg.embedding.lower():
+              ref_matched_on_emb[i] = True
+              preds_used[j] = True
+              break
+        ex_ts_emb_hits = sum(ref_matched_on_both)
+        ex_ts_hits = ex_ts_emb_hits + sum(ref_matched_on_time)
+        ex_emb_hits = ex_ts_emb_hits + sum(ref_matched_on_emb)
 
-  def combine_scores(
-      self, scores_per_example: list[list[types.Score]]
-  ) -> list[types.Score]:
-    """Combines raw hit counts from all examples and computes final accuracy."""
-    if not scores_per_example:
-      return []
+      # --- Sequence Logic ---
+      gt_sentence = " ".join(gt_labels)
+      pred_sentence = " ".join(pred_labels)
+      measures = jiwer.compute_measures(gt_sentence, pred_sentence)
+      edit_dist = (
+          measures["substitutions"] +
+          measures["deletions"] +
+          measures["insertions"]
+      )
+      num_ref_words = int(
+          measures["hits"] +
+          measures["substitutions"] +
+          measures["deletions"]
+      )
+      dcg = sum(
+          1.0 / np.log2(i + 2)
+          for i, pl in enumerate(pred_labels)
+          if i < len(gt_labels) and pl == gt_labels[i]
+      )
+      idcg = sum(1.0 / np.log2(i + 2) for i in range(len(gt_labels)))
+      ndcg = dcg / idcg if idcg > 0 else 0.0
 
-    aggregated_counts = collections.defaultdict(float)
-    for example_scores in scores_per_example:
-      for score in example_scores:
-        if score.metric in _METRIC_DESCRIPTIONS:
-          aggregated_counts[score.metric] += score.value
-
-    final_scores = []
-    total_segments = aggregated_counts.get("NumSegments", 0.0)
-
-    for name in ["TimestampsHits",
-                 "EmbeddingsHits",
-                 "TimestampsAndEmbeddingsHits",
-                 "NumSegments"]:
-      value = aggregated_counts.get(name, 0.0)
-      final_scores.append(
-          types.Score(
-              metric=name,
-              description=_METRIC_DESCRIPTIONS[name],
-              value=value,
-              min=0.0,
-              max=total_segments
+      per_example_scores.append(
+          SegmentationScores(
+              timestamps_hits=ex_ts_hits,
+              embeddings_hits=ex_emb_hits,
+              timestamps_and_embeddings_hits=ex_ts_emb_hits,
+              num_reference_segments=len(ref.segments),
+              ndcg=ndcg,
+              edit_distance=edit_dist,
+              num_reference_words=num_ref_words,
           )
       )
-    accuracy_names = [
-        "TimestampsAccuracy",
-        "EmbeddingsAccuracy",
-        "TimestampsAndEmbeddingAccuracy"
-    ]
-    if total_segments > 0:
-      final_scores.extend([
-          types.Score(
-              metric="TimestampsAccuracy",
-              description=_METRIC_DESCRIPTIONS["TimestampsAccuracy"],
-              value=aggregated_counts["TimestampsHits"] / total_segments,
-              min=0.0,
-              max=1.0
-          ),
-          types.Score(
-              metric="EmbeddingsAccuracy",
-              description=_METRIC_DESCRIPTIONS["EmbeddingsAccuracy"],
-              value=aggregated_counts["EmbeddingsHits"] / total_segments,
-              min=0.0,
-              max=1.0
-          ),
-          types.Score(
-              metric="TimestampsAndEmbeddingAccuracy",
-              description=_METRIC_DESCRIPTIONS[
-                  "TimestampsAndEmbeddingAccuracy"],
-              value=(
-                  aggregated_counts["TimestampsAndEmbeddingsHits"]
-                  / total_segments
-              ),
-              min=0.0,
-              max=1.0
-          ),
-      ])
-    else:
-      for name in accuracy_names:
-        final_scores.append(
-            types.Score(
-                metric=name,
-                description=_METRIC_DESCRIPTIONS[name],
-                value=0.0,
-                min=0.0,
-                max=1.0
-            )
-        )
+    return SegmentationScoringResult(
+        per_example_scores=per_example_scores,
+        all_predictions_for_map=all_preds_for_map,
+        ground_truths_for_map=gts_for_map,
+    )
 
+  def compute_metrics(
+      self,
+      result: SegmentationScoringResult
+  ) -> list[types.Score]:
+    """Aggregates intermediate scores into the final list of metrics.
+
+    This method takes the output of `compute_scores` and performs the final
+    aggregation for per-example metrics (accuracy, NDCG, Edit Distance) and
+    calculates the dataset-level mAP score.
+
+    Args:
+      result: The `SegmentationScoringResult` object returned by the
+        `compute_scores` method.
+
+    Returns:
+      A list of all computed `types.Score` objects.
+    """
+    final_scores = []
+
+    # --- Aggregate Per-Example Metrics ---
+    total_ref_segments = sum(
+        s.num_reference_segments for s in result.per_example_scores
+    )
+    if total_ref_segments > 0:
+      total_ts_hits = sum(s.timestamps_hits for s in result.per_example_scores)
+      total_emb_hits = sum(
+          s.embeddings_hits for s in result.per_example_scores
+      )
+      total_ts_emb_hits = sum(
+          s.timestamps_and_embeddings_hits for s in result.per_example_scores
+      )
+      mean_ndcg = np.mean([s.ndcg for s in result.per_example_scores])
+      total_edit_distance = sum(
+          s.edit_distance for s in result.per_example_scores
+      )
+      total_reference_words = sum(
+          s.num_reference_words for s in result.per_example_scores
+      )
+      corpus_wer = (
+          total_edit_distance / total_reference_words
+          if total_reference_words > 0
+          else 0.0
+      )
+
+      ts_acc = total_ts_hits / total_ref_segments
+      emb_acc = total_emb_hits / total_ref_segments
+      ts_emb_acc = total_ts_emb_hits / total_ref_segments
+
+      final_scores.extend([
+          timestamps_and_embeddings_hits(
+              float(total_ts_emb_hits),
+              float(total_ref_segments)
+          ),
+          timestamps_hits(
+              float(total_ts_hits),
+              float(total_ref_segments)
+          ),
+          embeddings_hits(
+              float(total_emb_hits),
+              float(total_ref_segments)
+          ),
+          num_segments(float(total_ref_segments)),
+          timestamps_and_embeddings_accuracy(float(ts_emb_acc)),
+          timestamps_accuracy(float(ts_acc)),
+          embeddings_accuracy(float(emb_acc)),
+          normalized_discounted_cumulative_gain(float(mean_ndcg)),
+          word_error_rate(corpus_wer),
+      ])
+
+    # --- Calculate Dataset-Level mAP ---
+    all_preds = result.all_predictions_for_map
+    ground_truths = result.ground_truths_for_map
+    if not all_preds:
+      map_score = mean_average_precision(0.0)
+    else:
+      all_preds.sort(key=lambda x: x[1].confidence, reverse=True)
+      gt_used = {
+          ex_id: [False] * len(gts) for ex_id, gts in ground_truths.items()
+      }
+      y_true = []
+      y_score = []
+      for ex_id, pred_seg in all_preds:
+        y_score.append(pred_seg.confidence)
+        gts_for_example = ground_truths.get(ex_id, [])
+        is_match_found = False
+        for i, gt_seg in enumerate(gts_for_example):
+          if gt_used.get(ex_id) and gt_used[ex_id][i]:
+            continue
+          time_match = (
+              abs(pred_seg.start_time - gt_seg.start_time) <= self.tau
+              and abs(pred_seg.end_time - gt_seg.end_time) <= self.tau
+          )
+          if (
+              time_match
+              and pred_seg.embedding.lower() == gt_seg.embedding.lower()
+          ):
+            gt_used[ex_id][i] = True
+            is_match_found = True
+            break
+        y_true.append(1 if is_match_found else 0)
+
+      if np.any(y_true):
+        map_value = metrics.average_precision_score(
+            np.array(y_true), np.array(y_score)
+        )
+      else:
+        map_value = 0.0
+      map_score = mean_average_precision(map_value)
+
+    final_scores.append(map_score)
     return final_scores

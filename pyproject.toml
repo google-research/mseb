@@ -25,7 +25,7 @@ dependencies = [
     "fvcore",
     "huggingface_hub",
     "jaxtyping",
-    "jiwer",
+    "jiwer>=2.0,<3.0",
     "librosa",
     "numpy",
     "openai-whisper",
