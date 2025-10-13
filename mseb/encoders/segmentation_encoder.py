@@ -194,11 +194,15 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
         continue
       segments.sort(key=lambda x: x[1], reverse=True)
       top_segments = segments[: self.top_k]
+      terms = np.array([term for term, _, _, _ in top_segments])
+      saliency_scores = np.array(
+          [score for _, score, _, _ in top_segments],
+          dtype=float
+      )
       outputs.append(
           types.SoundEmbedding(
-              embedding=np.array(
-                  [[term, score] for term, score, _, _ in top_segments]
-              ),
+              embedding=terms,
+              scores=saliency_scores,
               timestamps=np.array(
                   [
                       [

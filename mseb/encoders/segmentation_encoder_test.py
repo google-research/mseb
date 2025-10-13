@@ -61,7 +61,6 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     ]
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
     actual_output = list(retokenizer.retokenize(words))
-    print(f'Actual retokenizer output: {actual_output}')
     self.assertEqual(actual_output, expected_output)
 
   def test_encode_selects_top_k_segments(self):
@@ -72,11 +71,12 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     self.assertLen(output_embeddings, 1)
     result = output_embeddings[0]
     self.assertIsInstance(result, types.SoundEmbedding)
-    expected_terms_and_scores = np.array(
-        [['relations', 4.0], ['national', 3.0]]
-    )
+    expected_terms = np.array(['relations', 'national'])
+    expected_scores = np.array([4.0, 3.0])
     expected_timestamps = np.array([[1.1, 1.5], [0.1, 0.5]])
-    npt.assert_array_equal(result.embedding, expected_terms_and_scores)
+    npt.assert_array_equal(result.embedding, expected_terms)
+    self.assertIsNotNone(result.scores)
+    npt.assert_array_equal(result.scores, expected_scores)
     npt.assert_array_equal(result.timestamps, expected_timestamps)
 
   def test_longest_prefix_segmenter_handles_numeric_keys_from_table(self):
@@ -130,10 +130,13 @@ class MaxIDFSegmentEncoderFactoryTest(absltest.TestCase):
     self.assertLen(outputs, 1)
     result = outputs[0]
     self.assertIsInstance(result, types.SoundEmbedding)
-    found_terms = [term[0] for term in result.embedding]
-    print(f'Found Salient Terms: {found_terms}')
-    print(f'Found Timestamps: {result.timestamps.tolist()}')
+    found_terms = result.embedding.tolist()
     self.assertNotEmpty(result.embedding, 'No salient terms were found.')
+    self.assertIsNotNone(result.scores, 'Scores should not be None.')
+    self.assertEqual(
+        result.embedding.shape, result.scores.shape,
+        'Shape of embeddings and scores should match.'
+    )
     self.assertNotEqual(result.timestamps.tolist(), [[0.0, 0.0]])
     self.assertIn('anatolian', found_terms)
     self.assertIn('shepherds', found_terms)
