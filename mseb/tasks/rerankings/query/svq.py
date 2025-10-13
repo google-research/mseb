@@ -47,7 +47,7 @@ class SVQQueryReranking(reranking.RerankingTask):
       if example.locale == self.locale:
         sound = svq_dataset.get_sound_by_id(example.utt_id)
         # Add the ground truth query for headroom analysis.
-        sound.context.text = example.text
+        sound.context.text = example.candidates[0]
         yield sound
 
   def examples(

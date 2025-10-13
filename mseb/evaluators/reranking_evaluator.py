@@ -113,19 +113,6 @@ def compute_word_errors(
   )
 
 
-def are_normalized_texts_different(
-    truth: str, hypothesis: str, *, is_english: bool
-) -> float:
-  """Computes the query error, i.e., whether the normalized texts are different."""
-  text_transform = (
-      english.EnglishTextNormalizer()
-      if is_english
-      else basic.BasicTextNormalizer()
-  )
-
-  return float(text_transform(truth) != text_transform(hypothesis))
-
-
 @dataclasses.dataclass
 class RerankingCandidates:
   sound_id: str
@@ -155,7 +142,7 @@ class RerankingEvaluator:
         sequence of candidate embeddings.
       distance_fn: The distance function to use for computing the scores.
       predict_fn: The function to use for computing the predictions.
-      mrr_at_k: Computes MRR @ `mrr_at_k`..
+      mrr_at_k: Computes MRR @ `mrr_at_k`.
     """
     self.candidate_embeddings_by_sound_id = candidate_embeddings_by_sound_id
     self.distance_fn = distance_fn
@@ -227,10 +214,13 @@ class RerankingEvaluator:
       )
       values_by_metric['cer'].append(
           types.WeightedValue(
-              value=are_normalized_texts_different(
-                  truth=candidates.texts[0],
-                  hypothesis=ranked_candidate_texts[0],
-                  is_english=is_english(candidates.language),
+              value=float(
+                  compute_word_errors(
+                      truth=candidates.texts[0],
+                      hypothesis=ranked_candidate_texts[0],
+                      is_english=is_english(candidates.language),
+                  )[0]
+                  != 0.0
               )
           )
       )
@@ -245,11 +235,11 @@ class RerankingEvaluator:
           types.WeightedValue(
               value=sklearn_metrics.average_precision_score(
                   y_true=[
-                      are_normalized_texts_different(
+                      compute_word_errors(
                           truth=text,
                           hypothesis=candidates.texts[0],
                           is_english=is_english(candidates.language),
-                      )
+                      )[0]
                       == 0.0
                       for text in ranked_candidate_texts
                   ],
