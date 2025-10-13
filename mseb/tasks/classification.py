@@ -171,15 +171,13 @@ class ClassificationTask(task.MSEBTask):
       self, runner: runner_lib.EncoderRunner
   ) -> tuple[Sequence[str], np.ndarray]:
     """Generate classifier weights by running a text encoder over class labels."""
-    assert hasattr(runner, "_output_path")
-    runner._output_path = self.weights_dir  # pylint: disable=protected-access
     class_labels = tuple(self.class_labels())
     class_label_embeddings = runner.run([
         types.Text(
             text=class_label, context=types.TextContextParams(id=class_label)
         )
         for class_label in class_labels
-    ], output_name="label_embeddings")
+    ], output_name="label_embeddings", output_path=self.weights_dir)
     weights = []
     for class_label in class_labels:
       embedding = class_label_embeddings[class_label]

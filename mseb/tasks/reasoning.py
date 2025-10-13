@@ -53,15 +53,11 @@ class ReasoningTask(task.MSEBTask):
   ):
     """Create the span embeddings cache."""
     if runner is not None:
-      assert hasattr(
-          runner, '_output_path'
-      ), 'Runner must have an _output_path attribute.'
-      runner._output_path = self.embeddings_dir  # pylint: disable=protected-access
       unique_spans = {}
       for span_list in self.span_lists():
         for span in span_list:
           unique_spans[span.text] = span
-      _ = runner.run(unique_spans.values())
+      _ = runner.run(unique_spans.values(), output_path=self.embeddings_dir)
 
     try:
       logger.info('Loading span embeddings cache from %s', self.embeddings_dir)

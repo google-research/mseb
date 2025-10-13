@@ -68,6 +68,7 @@ class EncoderRunner(abc.ABC):
       self,
       elements: Iterable[types.MultiModalObject],
       output_name: str = 'embeddings',
+      output_path: str | None = None,
   ) -> types.MultiModalEmbeddingCache:
     """Encode the given multimodal objects and return a cache of embeddings."""
 
@@ -116,12 +117,13 @@ class DirectRunner(EncoderRunner):
       self,
       elements: Iterable[types.MultiModalObject],
       output_name: str = 'embeddings',
+      output_path: str | None = None,
   ) -> types.MultiModalEmbeddingCache:
-    output_prefix = (
-        os.path.join(self._output_path, output_name)
-        if self._output_path
-        else None
-    )
+    output_path = output_path or self._output_path
+    if output_path is not None:
+      output_prefix = os.path.join(output_path, output_name)
+    else:
+      output_prefix = None
     if output_prefix is not None:
       try:
         return load_embeddings(output_prefix)
@@ -266,8 +268,10 @@ class BeamRunner(EncoderRunner):
       self,
       elements: Iterable[types.MultiModalObject],
       output_name: str = 'embeddings',
+      output_path: str | None = None,
   ) -> types.MultiModalEmbeddingCache:
-    output_prefix = os.path.join(self._output_path, output_name)
+    output_path = output_path or self._output_path
+    output_prefix = os.path.join(output_path, output_name)
     try:
       logging.info('Loading embeddings from %s', output_prefix)
       return load_embeddings(output_prefix)

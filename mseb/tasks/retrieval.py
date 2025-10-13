@@ -67,11 +67,7 @@ class RetrievalTask(task.MSEBTask):
 
   def setup_unpartitioned(self, runner: runner_lib.EncoderRunner | None = None):
     if runner is not None:
-      assert hasattr(
-          runner, '_output_path'
-      ), 'Runner must have an _output_path attribute.'
-      runner._output_path = self.index_dir  # pylint: disable=protected-access
-      embeddings = runner.run(self.documents())
+      embeddings = runner.run(self.documents(), output_path=self.index_dir)
       searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
       retrieval_evaluator.save_index(
           searcher,
@@ -102,14 +98,11 @@ class RetrievalTask(task.MSEBTask):
         logger.info(
             'Setting up partition %d/%d', partition_id, num_partitions
         )
-        assert hasattr(
-            runner, '_output_path'
-        ), 'Runner must have an _output_path attribute.'
-        runner._output_path = os.path.join(self.index_dir, str(partition_id))  # pylint: disable=protected-access
         embeddings = runner.run(
             itertools.islice(
                 self.documents(), partition_id, None, num_partitions
-            )
+            ),
+            output_path=os.path.join(self.index_dir, str(partition_id)),
         )
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
         retrieval_evaluator.save_index(

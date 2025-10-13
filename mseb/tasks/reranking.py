@@ -43,15 +43,13 @@ class RerankingTask(task.MSEBTask):
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the candidate embeddings cache."""
     if runner is not None:
-      assert hasattr(
-          runner, '_output_path'
-      ), 'Runner must have an _output_path attribute.'
-      runner._output_path = self.embeddings_dir  # pylint: disable=protected-access
       unique_candidates = {}
       for candidate_list in self.candidate_lists():
         for candidate in candidate_list:
           unique_candidates[candidate.text] = candidate
-      embeddings_by_text = runner.run(unique_candidates.values())
+      embeddings_by_text = runner.run(
+          unique_candidates.values(), output_path=self.embeddings_dir
+      )
     else:
       try:
         logger.info(
