@@ -123,6 +123,10 @@ class SoundEmbedding:
   timestamps: jaxtyping.Float[jaxtyping.Array, "M 2"]
   context: SoundContextParams
   encoding_stats: Optional[EncodingStats] = None
+  # Optional field for scores associated with each embedding vector. This can
+  # serve as confidence score, or saliency score, or any other score relevant
+  # for each task.
+  scores: Optional[jaxtyping.Float[jaxtyping.Array, "N"]] = None
 
   @property
   def size_bytes(self) -> int:
