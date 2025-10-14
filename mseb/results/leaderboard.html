@@ -14,9 +14,9 @@
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
 
 <table class="summary-table">
-  <tr><td>Tasks:</td><td>188</td></tr>
-  <tr><td>Task Types:</td><td>8</td></tr>
-  <tr><td>Languages:</td><td>27</td></tr>
+  <tr><td>Tasks:</td><td>226</td></tr>
+  <tr><td>Task Types:</td><td>10</td></tr>
+  <tr><td>Languages:</td><td>37</td></tr>
 </table>
 
   </div>
@@ -36,8 +36,10 @@
       <th title="V-measure clustering metric: Normalised mutal information against a set of labels."><a href="#Clustering">Clustering (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#DocumentCrossLangRetrieval">DocumentCrossLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#DocumentInLangRetrieval">DocumentInLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Overall classification accuracy"><a href="#IntentClassification">IntentClassification (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#PassageCrossLangRetrieval">PassageCrossLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#PassageInLangRetrieval">PassageInLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Mean Reciprocal Rank"><a href="#QueryReranking">QueryReranking (mean)</a> <span class="sort-icon"></span></th>
       <th title="F1 score"><a href="#SpanCrossLangReasoning">SpanCrossLangReasoning (mean)</a> <span class="sort-icon"></span></th>
       <th title="F1 score"><a href="#SpanInLangReasoning">SpanInLangReasoning (mean)</a> <span class="sort-icon"></span></th>
     </tr>
@@ -54,6 +56,8 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>2</td>
@@ -62,8 +66,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>0.6193</td>
+      <td>0.4429</td>
       <td>0.4503</td>
       <td>0.6777</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
@@ -74,14 +80,18 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>0.3908</td>
+      <td>N/A</td>
       <td>0.2620</td>
       <td>0.5134</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>4</td>
      <td>gecko_with_title_and_context_transcript_truth_or_gecko</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -100,6 +110,8 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>0.0422</td>
       <td>0.0357</td>
     </tr>
@@ -110,26 +122,46 @@
       <td>N/A</td>
       <td>0.5492</td>
       <td>0.7258</td>
+      <td>0.8339</td>
       <td>0.6863</td>
       <td>0.7590</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>7</td>
-     <td>gemini_embedding_whisper_or_gemini_embedding</td>
+     <td>gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>0.3764</td>
-      <td>0.5584</td>
-      <td>0.5011</td>
-      <td>0.6155</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>1.0000</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>8</td>
+     <td>gemini_embedding_whisper_or_gemini_embedding</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.3764</td>
+      <td>0.5584</td>
+      <td>N/A</td>
+      <td>0.5011</td>
+      <td>0.6155</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>9</td>
      <td>gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -140,8 +172,10 @@
       <td>0.0318</td>
     </tr>
     <tr>
-     <td>9</td>
+     <td>10</td>
      <td>gemini_embedding_with_title_and_context_whisper_or_gemini_embedding</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -152,8 +186,10 @@
       <td>0.0303</td>
     </tr>
     <tr>
-     <td>10</td>
+     <td>11</td>
      <td>gemma_with_title_and_context_transcript_truth</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -164,8 +200,10 @@
       <td>0.6080</td>
     </tr>
     <tr>
-     <td>11</td>
+     <td>12</td>
      <td>gemma_with_title_and_context_whisper</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -176,7 +214,7 @@
       <td>0.5770</td>
     </tr>
     <tr>
-     <td>12</td>
+     <td>13</td>
      <td>hubert_large_ls960_ft_pooled_mean</td>
       <td>N/A</td>
       <td>0.6147</td>
@@ -186,9 +224,11 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>13</td>
+     <td>14</td>
      <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>N/A</td>
       <td>0.6108</td>
@@ -198,12 +238,16 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>14</td>
+     <td>15</td>
      <td>wav2vec2-large-960h-lv60_pooled_mean</td>
       <td>N/A</td>
       <td>0.5990</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -965,6 +1009,82 @@
 </div>
 </div>
 <div class="detail-table-section">
+<h2 id="IntentClassification">IntentClassification</h2>
+<div class="table-container">
+<table id="details-table-IntentClassification" border="1">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>gecko_transcript_truth_or_gecko</th>
+      <th>gemini_embedding_transcript_truth_or_gemini_embedding</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td>SpeechMassiveArSaIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ar-SA)</td>
+      <td>0.3937</td>
+      <td>0.7666</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveDeDeIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, de-DE)</td>
+      <td>0.4492</td>
+      <td>0.8440</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveEsEsIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, es-ES)</td>
+      <td>0.4610</td>
+      <td>0.8373</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveFrFrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, fr-FR)</td>
+      <td>0.4593</td>
+      <td>0.8473</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveHuHuIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, hu-HU)</td>
+      <td>0.4153</td>
+      <td>0.8312</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveKoKrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ko-KR)</td>
+      <td>0.4469</td>
+      <td>0.8373</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveNlNlIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, nl-NL)</td>
+      <td>0.4627</td>
+      <td>0.8534</td>
+    </tr>
+    <tr>
+     <td>SpeechMassivePlPlIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, pl-PL)</td>
+      <td>0.4553</td>
+      <td>0.8410</td>
+    </tr>
+    <tr>
+     <td>SpeechMassivePtPtIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, pt-PT)</td>
+      <td>0.4610</td>
+      <td>0.8362</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveRuRuIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ru-RU)</td>
+      <td>0.4546</td>
+      <td>0.8473</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveTrTrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, tr-TR)</td>
+      <td>0.4328</td>
+      <td>0.8329</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveViVnIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, vi-VN)</td>
+      <td>0.4233</td>
+      <td>0.8319</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<div class="detail-table-section">
 <h2 id="PassageCrossLangRetrieval">PassageCrossLangRetrieval</h2>
 <div class="table-container">
 <table id="details-table-PassageCrossLangRetrieval" border="1">
@@ -1247,6 +1367,125 @@
       <td>0.3766</td>
       <td>0.6839</td>
       <td>0.4989</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<div class="detail-table-section">
+<h2 id="QueryReranking">QueryReranking</h2>
+<div class="table-container">
+<table id="details-table-QueryReranking" border="1">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td>SVQArEgQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-EG)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ar-x-gulf)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ar-x-levant)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ar-x-maghrebi)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdQueryReranking/query_reranking (MRR)<br/>(QueryReranking, bn-BD)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQBnInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, bn-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-AU)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-GB)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQEnInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-PH)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-US)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiQueryReranking/query_reranking (MRR)<br/>(QueryReranking, fi-FI)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQGuInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, gu-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQHiInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, hi-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdQueryReranking/query_reranking (MRR)<br/>(QueryReranking, id-ID)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ja-JP)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQKnInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, kn-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ko-KR)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQMlInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ml-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQMrInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, mr-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ru-RU)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQSwQueryReranking/query_reranking (MRR)<br/>(QueryReranking, sw)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQTaInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ta-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQTeInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, te-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQUrInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ur-IN)</td>
+      <td>1.0000</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ur-PK)</td>
+      <td>1.0000</td>
     </tr>
   </tbody>
 </table>
