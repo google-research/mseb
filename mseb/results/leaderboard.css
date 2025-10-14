@@ -93,23 +93,6 @@ th[data-sort-direction="desc"] .sort-icon::after {
   box-shadow: 0 0 0 1px #1a73e8;
 }
 
-.toggle-mean {
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.toggle-icon {
-  font-family: monospace;
-  font-weight: bold;
-  margin-right: 5px;
-  display: inline-block;
-  width: 1em;
-}
-
-.task-col-hidden {
-  display: none;
-}
-
 .header-section {
   margin-bottom: 20px;
   padding: 20px;
@@ -133,4 +116,8 @@ h2 {
   color: #1a73e8; /* Google Blue 600 */
   font-size: 1.5em;
   margin-top: 0;
+}
+
+.detail-table-section {
+  margin-top: 40px;
 }

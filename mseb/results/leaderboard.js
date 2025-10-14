@@ -40,89 +40,103 @@ function sortTable(table, column, asc = true) {
   table.querySelectorAll("th").forEach(th => th.removeAttribute("data-sort-direction"));
   table.querySelector(`th:nth-child(${ column + 1 })`).setAttribute("data-sort-direction", asc ? "asc" : "desc");
 
-  // Update rank column
-  const numRows = tBody.querySelectorAll('tr').length;
-  tBody.querySelectorAll('tr').forEach((row, index) => {
-    row.querySelector('td:first-child').textContent =
-        asc ? numRows - index : index + 1;
-  });
+  // Update rank column if it exists (i.e., for the main results-table)
+  if (table.id === 'results-table') {
+    const numRows = tBody.querySelectorAll('tr').length;
+    tBody.querySelectorAll('tr').forEach((row, index) => {
+      row.querySelector('td:first-child').textContent =
+          asc ? numRows - index : index + 1;
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const resultsTable = document.getElementById('results-table');
   if (!resultsTable) return;
 
-  // Sorting listeners
+  // Sorting listeners for the main table's mean columns
   resultsTable.querySelectorAll('th').forEach((headerCell, headerIndex) => {
-    // Don't sort by Rank, Name, or Mean columns. Only sort score columns.
-    if (headerIndex > 1 && !headerCell.classList.contains('toggle-mean')) {
+    // Only sort columns starting from index 2 (after Rank and Encoder Name)
+    if (headerIndex > 1) {
       headerCell.addEventListener('click', () => {
-        const tableElement = headerCell.closest('table');
         const currentAsc =
             headerCell.getAttribute('data-sort-direction') === 'asc';
-        sortTable(tableElement, headerIndex, !currentAsc);
+        sortTable(resultsTable, headerIndex, !currentAsc);
       });
     }
   });
 
-  resultsTable.querySelectorAll('.sort-icon').forEach(sortIcon => {
-    sortIcon.addEventListener('click', (e) => {
-      const headerCell = sortIcon.closest('th');
-      const headerIndex =
-          Array.from(headerCell.parentNode.children).indexOf(headerCell);
-      const tableElement = headerCell.closest("table");
-      const currentAsc = headerCell.getAttribute("data-sort-direction") === "asc";
-      sortTable(tableElement, headerIndex, !currentAsc);
-      e.stopPropagation();  // prevent toggle listener on parent th
+  // Sorting for individual detail tables
+  document.querySelectorAll('[id^="details-table-"]').forEach(detailTable => {
+    detailTable.querySelectorAll('th').forEach((headerCell, headerIndex) => {
+      // Don't sort by Encoder Name (index 0)
+      if (headerIndex > 0) {
+        headerCell.addEventListener('click', () => {
+          const currentAsc =
+              headerCell.getAttribute('data-sort-direction') === 'asc';
+          sortTable(detailTable, headerIndex, !currentAsc);
+        });
+      }
     });
   });
 
   // Filter listener
   const filterInput = document.getElementById('encoder-filter');
-  const tableBody = resultsTable.querySelector('tbody');
-  if (filterInput && tableBody) {
-    filterInput.addEventListener('input', () => {
-      const filterValue = filterInput.value;
-      let regex;
-      try {
-        regex = new RegExp(filterValue, 'i');
-      } catch (e) {
-        // Invalid regex. Show all rows and skip filtering.
-        tableBody.querySelectorAll('tr').forEach(row => row.style.display = '');
-        return;
-      }
-      tableBody.querySelectorAll('tr').forEach(row => {
+  if (!filterInput) return;
+
+  filterInput.addEventListener('input', () => {
+    const filterValue = filterInput.value;
+    let regex;
+    try {
+      regex = new RegExp(filterValue, 'i');
+    } catch (e) {
+      // Invalid regex. Show all rows/columns.
+      document.querySelectorAll('#results-table tbody tr')
+          .forEach(row => row.style.display = '');
+      document.querySelectorAll('[id^="details-table-"]')
+          .forEach(detailTable => {
+            detailTable.querySelectorAll('th').forEach((th, index) => {
+              if (index > 0) th.style.display = '';
+            });
+            detailTable.querySelectorAll('td').forEach((td, index) => {
+              if (index > 0) td.style.display = '';
+            });
+          });
+      return;
+    }
+
+    // Filter main results table
+    const resultsTableBody = resultsTable.querySelector('tbody');
+    if (resultsTableBody) {
+      resultsTableBody.querySelectorAll('tr').forEach(row => {
         const nameCell = row.querySelector('td:nth-child(2)');
         if (nameCell) {
           const encoderName = nameCell.textContent.trim();
           row.style.display = regex.test(encoderName) ? '' : 'none';
         }
       });
-    });
-  }
+    }
 
-  // Hide task columns by default for collapsibility
-  document.querySelectorAll('.task-col-header, .task-col-cell')
-      .forEach(cell => {
-        cell.classList.add('task-col-hidden');
+    // Filter detail tables
+    document.querySelectorAll('[id^="details-table-"]').forEach(detailTable => {
+      const headerCells = detailTable.querySelectorAll('thead th');
+      const rows = detailTable.querySelectorAll('tbody tr');
+
+      headerCells.forEach((headerCell, index) => {
+        if (index === 0) return;  // Skip "Metric" column
+
+        const encoderName = headerCell.textContent.trim();
+        const shouldShow = regex.test(encoderName);
+        headerCell.style.display = shouldShow ? '' : 'none';
+
+        // Hide corresponding data cells in each row
+        rows.forEach(row => {
+          const dataCell = row.querySelector(`td:nth-child(${index + 1})`);
+          if (dataCell) {
+            dataCell.style.display = shouldShow ? '' : 'none';
+          }
+        });
       });
-
-  // Collapsible column listeners
-  document.querySelectorAll('.toggle-mean').forEach(toggleTh => {
-    toggleTh.addEventListener('click', () => {
-      const taskType = toggleTh.dataset.toggleTaskType;
-      const icon = toggleTh.querySelector('.toggle-icon');
-      const cellsToToggle = document.querySelectorAll(
-          `.task-col-header[data-task-type="${taskType}"], ` +
-          `.task-col-cell[data-task-type="${taskType}"]`);
-
-      if (icon.textContent === '+') {
-        icon.textContent = '-';
-        cellsToToggle.forEach(cell => cell.classList.remove('task-col-hidden'));
-      } else {
-        icon.textContent = '+';
-        cellsToToggle.forEach(cell => cell.classList.add('task-col-hidden'));
-      }
     });
   });
 });
