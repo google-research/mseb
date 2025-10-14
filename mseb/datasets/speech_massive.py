@@ -130,13 +130,17 @@ class SpeechMassiveDataset:
     assert record.partition == self.split
     samples = record.audio["samples"]
     sample_rate = record.audio["sample_rate"]
+    try:
+      speaker_age = int(record.speaker_age)
+    except ValueError:
+      speaker_age = None
     context = types.SoundContextParams(
         id=record.path,
         sample_rate=sample_rate,
         length=len(samples),
         language=locale_by_bcp47[record.locale],
         speaker_id=record.speaker_id,
-        speaker_age=int(record.speaker_age),
+        speaker_age=speaker_age,
         speaker_gender=record.speaker_sex,
         text=record.utt,
         waveform_start_second=0.0,

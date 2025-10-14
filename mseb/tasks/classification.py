@@ -25,6 +25,7 @@ from mseb import task
 from mseb import types
 from mseb.evaluators import classification_evaluator
 import numpy as np
+import tensorflow as tf
 
 
 logger = logging.getLogger(__name__)
@@ -101,17 +102,17 @@ class ClassificationTask(task.MSEBTask):
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Creates/loads weights and instantiates the correct evaluator."""
-    if runner is not None:
-      class_labels, weights = self._create_weights_from_runner(runner)
-    else:
-      try:
-        class_labels, weights = classification_evaluator.load_linear_classifier(
-            self.weights_dir
-        )
-      except FileNotFoundError:
+    try:
+      class_labels, weights = classification_evaluator.load_linear_classifier(
+          self.weights_dir
+      )
+    except tf.errors.NotFoundError:
+      if runner is not None:
+        class_labels, weights = self._create_weights_from_runner(runner)
+      else:
         raise ValueError(
             "Weights not found in cache. Did you run run_task_setup?"
-        ) from FileNotFoundError
+        ) from tf.errors.NotFoundError
 
     if self.task_type == "multi_class":
       self._evaluator = classification_evaluator.ClassificationEvaluator(
