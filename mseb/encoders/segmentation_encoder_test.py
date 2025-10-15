@@ -16,12 +16,14 @@ import os
 import pathlib
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from mseb import types
 from mseb.datasets import simple_voice_questions
 from mseb.encoders import segmentation_encoder
 from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
+import pandas as pd
 
 
 IDF_TABLE = {
@@ -95,7 +97,7 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     self.assertIn('日本', found_terms)
 
 
-class MaxIDFSegmentEncoderFactoryTest(absltest.TestCase):
+class MaxIDFSegmentEncoderFactoryTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -115,13 +117,38 @@ class MaxIDFSegmentEncoderFactoryTest(absltest.TestCase):
     if self.sound_input.context.text:
       self.sound_input.context.text = self.sound_input.context.text.lower()
 
-  def test_factory_creates_and_runs_real_encoder(self):
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'with_dict',
+          'idf_table': IDF_TABLE,
+          'idf_table_path': None,
+      },
+      {
+          'testcase_name': 'with_path',
+          'idf_table': None,
+          'idf_table_path': 'idf_table_path',
+      },
+  )
+  def test_factory_creates_and_runs_real_encoder(
+      self, idf_table, idf_table_path
+  ):
+    if idf_table_path:
+      df = pd.DataFrame(IDF_TABLE.items(), columns=['token', 'idf'])
+      temp_dir = self.create_tempdir()
+      idf_table_path = os.path.join(temp_dir, idf_table_path)
+      self.create_tempfile(
+          file_path=idf_table_path,
+          content=df.to_csv(index=False)
+      )
+
     asr_encoder = whisper_encoder.ForcedAlignmentEncoder(
         model_path='base.en', device='cpu', language='en'
     )
+
     cascade_encoder = segmentation_encoder.create_max_idf_segment_encoder(
         asr_encoder=asr_encoder,
-        idf_table=IDF_TABLE,
+        idf_table=idf_table,
+        idf_table_path=idf_table_path,
         language='en',
         top_k=2
     )
