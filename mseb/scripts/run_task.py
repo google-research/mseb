@@ -21,12 +21,12 @@ run_task --task SVQClustering --encoder spectrogram_25_10_mean
 from typing import Type
 from absl import app
 from absl import flags
+from etils import epath
 from mseb import leaderboard
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
 from mseb.encoders import encoder_registry
-import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
@@ -82,7 +82,7 @@ def main(argv):
       encoder_name=encoder_name, runner=runner, task=task
   )
   if _RESULTS_JSONL.value:
-    with tf.io.gfile.GFile(_RESULTS_JSONL.value, 'w') as f:
+    with epath.Path(_RESULTS_JSONL.value).open('w') as f:
       for result in results:
         f.write(result.to_json() + '\n')
   else:

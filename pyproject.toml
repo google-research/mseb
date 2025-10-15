@@ -21,6 +21,7 @@ dependencies = [
     "apache-beam",
     "datasets",
     "editdistance",
+    "etils",
     "flax>=0.8.2",
     "fvcore",
     "huggingface_hub",

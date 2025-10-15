@@ -20,13 +20,13 @@ import os
 import subprocess
 from typing import Optional
 
+from etils import epath
 import librosa
 from mseb import encoder
 from mseb import types
 import numpy as np
 from scipy.io import wavfile
 import soundfile
-import tensorflow as tf
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def download_from_hf(repo_id: str, target_dir: str, repo_type: str = "dataset"):
   """Clones a repository from Hugging Face if not already present."""
   # Expand the '~' to the user's full home directory path.
   target_dir = os.path.expanduser(target_dir)
-  if tf.io.gfile.exists(os.path.join(target_dir, ".git")):
+  if epath.Path(os.path.join(target_dir, ".git")).exists():
     logger.warning(
         "Repo '%s' already found at %s. Skipping.", repo_id, target_dir
     )

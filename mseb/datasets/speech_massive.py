@@ -16,11 +16,11 @@
 
 import os
 
+from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
 import pandas as pd
-import tensorflow as tf
 
 
 bcp47_by_locale = {
@@ -105,14 +105,16 @@ class SpeechMassiveDataset:
     """
     self._download_and_prepare()
 
-    pattern = os.path.join(
-        self.base_path,
-        self.language,
-        f"{self.split}-?????-of-?????.parquet",
+    parquet_files = tuple(
+        epath.Path(os.path.join(self.base_path, self.language)).glob(
+            f"{self.split}-?????-of-?????.parquet"
+        )
     )
-    parquet_files = tf.io.gfile.glob(pattern)
     if not parquet_files:
-      raise FileNotFoundError(f"No parquet files found in {pattern}")
+      pattern = os.path.join(
+          self.base_path, self.language, f"{self.split}-?????-of-?????.parquet"
+      )
+      raise FileNotFoundError(f"No parquet files found for {pattern}")
 
     dfs = [pd.read_parquet(file) for file in parquet_files]
     df = pd.concat(dfs)

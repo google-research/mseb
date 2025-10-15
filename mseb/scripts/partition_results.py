@@ -27,8 +27,8 @@ from typing import Sequence
 
 from absl import app
 from absl import flags
+from etils import epath
 from mseb import leaderboard
-import tensorflow as tf
 
 
 logger = logging.getLogger(__name__)
@@ -49,14 +49,18 @@ def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  input_files = tf.io.gfile.glob(_INPUT_GLOB.value)
+  input_files = tuple(
+      epath.Path(os.path.dirname(_INPUT_GLOB.value)).glob(
+          os.path.basename(_INPUT_GLOB.value)
+      )
+  )
   if not input_files:
     raise FileNotFoundError(f'No files found matching {_INPUT_GLOB.value}')
 
   def result_iterator():
     decoder = json.JSONDecoder()
     for file_path in input_files:
-      with tf.io.gfile.GFile(file_path, 'r') as f:
+      with epath.Path(file_path).open('r') as f:
         content = f.read().strip()
         pos = 0
         while pos < len(content):
@@ -74,8 +78,8 @@ def main(argv: Sequence[str]) -> None:
   for partition_name, results in partitions.items():
     output_path = os.path.join(_OUTPUT_DIR.value, f'{partition_name}.jsonl')
     logger.info('Writing results to %s', output_path)
-    tf.io.gfile.makedirs(os.path.dirname(output_path))
-    with tf.io.gfile.GFile(output_path, 'w') as f:
+    epath.Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
+    with epath.Path(output_path).open('w') as f:
       leaderboard.write_dataclasses_to_jsonl(results, f)
 
 if __name__ == '__main__':

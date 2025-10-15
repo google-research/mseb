@@ -21,7 +21,7 @@ and reporting the results.
 import collections
 import dataclasses
 import json
-from typing import Any, Callable, Dict, Iterable, Iterator, List, TextIO
+from typing import Any, AnyStr, Callable, Dict, IO, Iterable, Iterator, List
 from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import types
@@ -194,7 +194,7 @@ def partition_leaderboard_results(
 
 def write_dataclasses_to_jsonl(
     results: Iterable[Any],
-    f: TextIO,
+    f: IO[AnyStr],
 ) -> None:
   """Writes an iterable of dataclass objects to a file as JSONL.
 

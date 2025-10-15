@@ -22,12 +22,12 @@ import logging
 import os
 from typing import Mapping, Sequence
 
+from etils import epath
 import jaxtyping
 from mseb import evaluator as evaluator_lib
 from mseb import metrics as metrics_lib
 from mseb import types
 import numpy as np
-import tensorflow as tf
 
 from scann import scann_ops_pybind
 ScannSearcher = scann_ops_pybind.ScannSearcher
@@ -166,12 +166,10 @@ class RetrievalEvaluator:
           embedding.astype(np.float32)
       )
       ranked_doc_scores = [  # pylint: disable=g-complex-comprehension
-          [float(score) for score in scores]
-          for scores in ranked_doc_scores
+          [float(score) for score in scores] for scores in ranked_doc_scores
       ]
       ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
-          [self.id_by_index_id[int(x)] for x in ids]
-          for ids in ranked_index_ids
+          [self.id_by_index_id[int(x)] for x in ids] for ids in ranked_index_ids
       ]
       predictions[sound_id] = tuple(
           zip(ranked_doc_scores[0], ranked_doc_ids[0])
@@ -213,9 +211,7 @@ class RetrievalEvaluatorPartitioned:
   ) -> RetrievalPredictionsCache:
     """Computes the predictions for the given embeddings and reference ids."""
     predictions = {}
-    num_partitions = len(
-        tf.io.gfile.glob(os.path.join(self.index_dir, '[0-9]*'))
-    )
+    num_partitions = len(tuple(epath.Path(self.index_dir).glob('[0-9]*')))
     for partition_id in range(num_partitions):
       logger.info('Processing partition %d/%d', partition_id, num_partitions)
       searcher, id_by_index_id = load_index(
@@ -308,9 +304,9 @@ def save_index(
       relative to scann_base_dir.
   """
   logger.info('Saving ScaNN index to %s', scann_base_dir)
-  tf.io.gfile.makedirs(scann_base_dir)
-  with tf.io.gfile.GFile(
-      os.path.join(scann_base_dir, id_by_index_id_filepath), 'w'
+  epath.Path(scann_base_dir).mkdir(parents=True, exist_ok=True)
+  with epath.Path(os.path.join(scann_base_dir, id_by_index_id_filepath)).open(
+      'w'
   ) as f:
     f.write('\n'.join(id_by_index_id))
   searcher.serialize(scann_base_dir, relative_path=False)
@@ -330,11 +326,19 @@ def load_index(
   Returns:
     A tuple of the searcher of type ScannSearcher and the mapping from index id
     (int) to id (str).
+
+  Raises:
+    FileNotFoundError: If the ScaNN base directory or ID by index ID file is
+    not found.
   """
   logger.info('Loading ScaNN index from %s', scann_base_dir)
-  with tf.io.gfile.GFile(
-      os.path.join(scann_base_dir, id_by_index_id_filepath), 'r'
-  ) as f:
+  ids_path = epath.Path(os.path.join(scann_base_dir, id_by_index_id_filepath))
+  if not epath.Path(scann_base_dir).exists() or not ids_path.exists():
+    raise FileNotFoundError(
+        'ScaNN base directory or ID by index ID file not found:'
+        f' {scann_base_dir}.'
+    )
+  with epath.Path(ids_path).open('r') as f:
     id_by_index_id: Sequence[str] = f.read().splitlines()
   searcher = scann_ops_pybind.load_searcher(scann_base_dir)
   return searcher, id_by_index_id

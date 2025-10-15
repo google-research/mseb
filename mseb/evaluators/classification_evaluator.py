@@ -22,12 +22,12 @@ import logging
 import os
 from typing import Mapping, Sequence
 
+from etils import epath
 import jaxtyping
 from mseb import evaluator as evaluator_lib
 from mseb import types
 import numpy as np
 from sklearn import metrics
-import tensorflow as tf
 
 
 logger = logging.getLogger(__name__)
@@ -482,9 +482,15 @@ def load_linear_classifier(base_dir: str) -> tuple[
   """Loads the linear classifier from a directory."""
   logger.info('Loading weights and bias from %s', base_dir)
 
-  with tf.io.gfile.GFile(os.path.join(base_dir, 'weights.npy'), 'rb') as f:
+  weights_path = epath.Path(os.path.join(base_dir, 'weights.npy'))
+  class_labels_path = epath.Path(os.path.join(base_dir, 'class_labels.txt'))
+  if not weights_path.exists() or not class_labels_path.exists():
+    raise FileNotFoundError(
+        'Weights or class labels not found in directory: %s' % base_dir
+    )
+  with weights_path.open('rb') as f:
     weights = np.load(f)
-  with tf.io.gfile.GFile(os.path.join(base_dir, 'class_labels.txt'), 'r') as f:
+  with class_labels_path.open('r') as f:
     class_labels = f.read().splitlines()
   return class_labels, weights
 
@@ -496,8 +502,8 @@ def save_linear_classifier(
 ):
   """Saves the linear classifier to a directory."""
   logger.info('Saving weights and bias to %s', base_dir)
-  tf.io.gfile.makedirs(base_dir)
-  with tf.io.gfile.GFile(os.path.join(base_dir, 'weights.npy'), 'wb') as f:
+  epath.Path(base_dir).mkdir(parents=True, exist_ok=True)
+  with epath.Path(os.path.join(base_dir, 'weights.npy')).open('wb') as f:
     np.save(f, weights)
-  with tf.io.gfile.GFile(os.path.join(base_dir, 'class_labels.txt'), 'w') as f:
+  with epath.Path(os.path.join(base_dir, 'class_labels.txt')).open('w') as f:
     f.write('\n'.join(class_labels))

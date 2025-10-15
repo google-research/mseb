@@ -20,11 +20,11 @@ from typing import Any, Mapping
 
 import apache_beam as beam
 from array_record.python import array_record_module as array_record
+from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
 import pandas as pd
-import tensorflow as tf
 
 
 LANGUAGES = [
@@ -68,7 +68,7 @@ class _UttLookup:
 
     if path not in self.readers:
       array_record_path = os.path.join(self.base_path, f"{path}.array_record")
-      if not tf.io.gfile.exists(array_record_path):
+      if not epath.Path(array_record_path).exists():
         raise FileNotFoundError(
             f"Array record file not found: {array_record_path}"
         )
@@ -182,7 +182,7 @@ class SimpleVoiceQuestionsDataset:
   def _load_index(self) -> pd.DataFrame:
     """Loads the master index of all unique utterances."""
     utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
-    if not tf.io.gfile.exists(utt_index_path):
+    if not epath.Path(utt_index_path).exists():
       raise FileNotFoundError(f"Master index not found: {utt_index_path}")
     return pd.read_json(utt_index_path, lines=True)
 
@@ -219,7 +219,7 @@ class SimpleVoiceQuestionsDataset:
     """Returns the path to the task file for the given task name."""
     task_filename = f"{task_name}.jsonl"
     task_path = os.path.join(self.base_path, task_filename)
-    if not tf.io.gfile.exists(task_path):
+    if not epath.Path(task_path).exists():
       raise FileNotFoundError(
           f"Task file not found: {task_path}. "
           f"Ensure the task name '{task_name}' is valid."

@@ -25,6 +25,7 @@ from absl import flags
 from absl import logging
 import apache_beam as beam
 from apache_beam.utils import shared
+from etils import epath
 from mseb import encoder as encoder_lib
 from mseb import types
 import tensorflow as tf
@@ -199,21 +200,23 @@ class EncodeDoFn(beam.DoFn):
 
 def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
   """Loads embeddings from TFRecord files into a dict."""
-  logging.info('Loading embeddings from %s', output_prefix + '*')
+  output_pattern = output_prefix + '*'
+  logging.info('Loading embeddings from %s', output_pattern)
   embeddings = {}
-  file_glob = output_prefix + '*'
-  output_files = tf.io.gfile.glob(file_glob)
+  output_files = tuple(
+      epath.Path(os.path.dirname(output_pattern)).glob(
+          f'{os.path.basename(output_pattern)}'
+      )
+  )
   if not output_files:
-    raise FileNotFoundError(f'No files found matching {file_glob}')
+    raise FileNotFoundError(f'No files found matching {output_pattern}')
   for filename in output_files:
     # But don't know how to read back from TFRecord except via tf.data.
     dataset = tf.data.TFRecordDataset(filename)
     for record in dataset:
       embedding: types.MultiModalEmbedding = pickle.loads(record.numpy())
       embeddings[embedding.context.id] = embedding
-  logging.info(
-      'Loaded %d embeddings from %s', len(embeddings), output_prefix + '*'
-  )
+  logging.info('Loaded %d embeddings from %s', len(embeddings), output_pattern)
   return embeddings
 
 
@@ -228,7 +231,7 @@ def save_embeddings(
       num_embeddings, examples_per_shard=examples_per_shard
   )
   logging.info('Saving embeddings to %s', f'{output_prefix}@{num_shards}')
-  tf.io.gfile.makedirs(os.path.dirname(output_prefix))
+  epath.Path(os.path.dirname(output_prefix)).mkdir(parents=True, exist_ok=True)
   embed_it = iter(embeddings.values())
   for shard_id in range(num_shards):
     with tf.io.TFRecordWriter(

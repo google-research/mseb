@@ -17,10 +17,10 @@
 import json
 import os
 
+from etils import epath
 from mseb import dataset
 from mseb import types
 import pandas as pd
-import tensorflow as tf
 
 
 class BirdsetDataset:
@@ -105,12 +105,12 @@ class BirdsetDataset:
     cache_path = os.path.join(self.base_path, cache_filename)
     df = pd.read_parquet(cache_path)
     class_lists_path = os.path.join(self.base_path, "class_lists.json")
-    with tf.io.gfile.GFile(class_lists_path, "r") as f:
+    with epath.Path(class_lists_path).open("r") as f:
       class_lists = json.load(f)
     config_to_class_list_path = os.path.join(
         self.base_path, "config_to_class_list.json"
     )
-    with tf.io.gfile.GFile(config_to_class_list_path, "r") as f:
+    with epath.Path(config_to_class_list_path).open("r") as f:
       config_to_class_list = json.load(f)
     class_list_name = config_to_class_list[self.configuration]
     self._ebird_code_names = class_lists[class_list_name]

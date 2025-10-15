@@ -21,11 +21,11 @@ import os
 from typing import Iterable
 
 from absl import flags
+from etils import epath
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
-import tensorflow as tf
 
 
 _NUM_PARTITIONS = flags.DEFINE_integer(
@@ -71,7 +71,7 @@ class RetrievalTask(task.MSEBTask):
       searcher, id_by_index_id = retrieval_evaluator.load_index(
           self.index_dir, self.id_by_index_id_filepath
       )
-    except tf.errors.NotFoundError:
+    except FileNotFoundError:
       if runner is not None:
         embeddings = runner.run(self.documents(), output_path=self.index_dir)
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
@@ -85,7 +85,7 @@ class RetrievalTask(task.MSEBTask):
         raise ValueError(
             'Index not found in cache directory. Did you create the index by'
             ' running run_task_setup?'
-        ) from tf.errors.NotFoundError
+        ) from FileNotFoundError
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=searcher, id_by_index_id=id_by_index_id
@@ -98,7 +98,7 @@ class RetrievalTask(task.MSEBTask):
       logger.info(
           'Setting up partition %d/%d', partition_id, num_partitions
       )
-      if tf.io.gfile.exists(os.path.join(self.index_dir, str(partition_id))):
+      if epath.Path(os.path.join(self.index_dir, str(partition_id))).exists():
         logger.info(
             'Index partition %d/%d already exists at %s',
             partition_id,
