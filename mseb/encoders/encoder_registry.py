@@ -45,6 +45,12 @@ _WHISPER_MODEL_PATH = flags.DEFINE_string(
     "Path to Whisper model.",
 )
 
+_LANGUAGE = flags.DEFINE_string(
+    "language",
+    "en",
+    "The two-letter ISO code for the input language .",
+)
+
 Encoder = encoder_lib.MultiModalEncoder
 
 
@@ -181,6 +187,15 @@ whisper_base_pooled_max = EncoderMetadata(
     name="whisper_base_pooled_max",
     encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path="base", pooling="max"),
+)
+
+whisper_forced_alignment = EncoderMetadata(
+    name="whisper_forced_alignment",
+    encoder=whisper_encoder.ForcedAlignmentEncoder,
+    params=lambda: dict(
+        model_path=_WHISPER_MODEL_PATH.value,
+        language=_LANGUAGE.value
+    )
 )
 
 wav2vec2_large_960h_lv60_pooled_mean = EncoderMetadata(
