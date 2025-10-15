@@ -210,9 +210,12 @@ def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
   )
   if not output_files:
     raise FileNotFoundError(f'No files found matching {output_pattern}')
-  for filename in output_files:
+  for filename in tqdm(
+      output_files, total=len(output_files), desc='Loading embeddings'
+  ):
     # But don't know how to read back from TFRecord except via tf.data.
-    dataset = tf.data.TFRecordDataset(filename)
+    with tf.device('/CPU:0'):
+      dataset = tf.data.TFRecordDataset(filename)
     for record in dataset:
       embedding: types.MultiModalEmbedding = pickle.loads(record.numpy())
       embeddings[embedding.context.id] = embedding
