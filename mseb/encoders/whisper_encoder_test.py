@@ -18,10 +18,12 @@ from unittest import mock
 
 from absl.testing import absltest
 from mseb import types
-from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
+import pytest
+
+whisper_encoder = pytest.importorskip('mseb.encoders.whisper_encoder')
 
 
 def whisper_cache_context(name: str):
@@ -32,6 +34,8 @@ def whisper_cache_context(name: str):
   return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class SpeechToTextEncoderTest(absltest.TestCase):
 
   def setUp(self):
@@ -96,6 +100,8 @@ class SpeechToTextEncoderTest(absltest.TestCase):
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class ForcedAlignmentEncoder2Test(absltest.TestCase):
 
   def setUp(self):
@@ -131,6 +137,8 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
     npt.assert_equal(result.timestamps.shape[0], result.embedding.shape[0])
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class PooledAudioEncoderTest(absltest.TestCase):
 
   def setUp(self):

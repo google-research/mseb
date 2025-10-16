@@ -14,11 +14,15 @@
 
 from absl.testing import absltest
 from mseb import types
-from mseb.evaluators import reranking_evaluator
 import numpy as np
 import numpy.testing as npt
+import pytest
+
+reranking_evaluator = pytest.importorskip('mseb.evaluators.reranking_evaluator')
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class RerankingEvaluatorTest(absltest.TestCase):
 
   def test_compute_predictions(self):

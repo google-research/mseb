@@ -14,9 +14,13 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from mseb.encoders import encoder_registry
+import pytest
+
+encoder_registry = pytest.importorskip("mseb.encoders.encoder_registry")
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class EncoderRegistryTest(parameterized.TestCase):
 
   @parameterized.parameters(

@@ -29,7 +29,6 @@ dependencies = [
     "jiwer>=2.0,<3.0",
     "librosa",
     "numpy",
-    "openai-whisper",
     "pandas",
     "protobuf",
     "pyarrow",
@@ -43,6 +42,7 @@ dependencies = [
     "tensorflow",
     "tensorflow-datasets",
     "tensorflow_hub",
+    "torch",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`
@@ -62,6 +62,9 @@ dev = [
     "pytest-xdist",
     "pylint>=2.6.0",
     "pyink",
+]
+whisper = [
+    "openai-whisper",
 ]
 
 [tool.pyink]
@@ -84,4 +87,10 @@ build-backend = "flit_core.buildapi"
 exclude = [
   # Do not release tests files on PyPI
   "**/*_test.py",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "optional: marks tests that require optional dependencies",
+    "whisper: marks tests for the whisper optional dependency"
 ]

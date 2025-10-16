@@ -14,16 +14,19 @@
 
 import os
 import pathlib
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from mseb import types
 from mseb.datasets import simple_voice_questions
-from mseb.encoders import segmentation_encoder
 import numpy as np
 import numpy.testing as npt
 import pandas as pd
+import pytest
 
+segmentation_encoder = pytest.importorskip('mseb.encoders.segmentation_encoder')
+whisper_encoder = pytest.importorskip('mseb.encoders.whisper_encoder')
 
 IDF_TABLE = {
     'anatolian': 0.9,
@@ -36,10 +39,21 @@ IDF_TABLE = {
 }
 
 
+def whisper_cache_context(name: str):
+  # Use a unique cache directory for each test to avoid collisions when
+  # running tests in parallel via pytest.
+  original_xdg_cache_home = os.path.join(os.path.expanduser('~'), '.cache')
+  new_xdg_cache_home = os.path.join(original_xdg_cache_home, f'{name}_whisper')
+  return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
+
+
+@pytest.mark.whisper
+@pytest.mark.optional
 class TextSegmenterEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     self.mock_input_embedding = types.SoundEmbedding(
         embedding=np.array(['national', ' labor', ' relations', ' board']),
         timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),
@@ -104,10 +118,13 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     self.assertIn('日本', found_terms)
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class SaliencyCascadeFactoryTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
     )

@@ -19,13 +19,16 @@ import shutil
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
-
 from mseb import dataset
-from mseb.tasks.rerankings.query import svq
+import pytest
+
+svq = pytest.importorskip("mseb.tasks.rerankings.query.svq")
 
 FLAGS = flags.FLAGS
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class SVQEnUsQueryRerankingTest(absltest.TestCase):
 
   def setUp(self):

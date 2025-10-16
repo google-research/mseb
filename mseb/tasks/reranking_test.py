@@ -21,11 +21,15 @@ from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
-from mseb.evaluators import reranking_evaluator
-from mseb.tasks import reranking
 import numpy as np
+import pytest
+
+reranking = pytest.importorskip('mseb.tasks.reranking')
+reranking_evaluator = pytest.importorskip('mseb.evaluators.reranking_evaluator')
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
 class RerankingTest(absltest.TestCase):
 
   def setUp(self):
