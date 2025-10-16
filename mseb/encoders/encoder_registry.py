@@ -29,6 +29,7 @@ from mseb.encoders import gecko_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
+from mseb.encoders import segmentation_encoder
 from mseb.encoders import wav2vec_encoder
 from mseb.encoders import whisper_encoder
 
@@ -48,7 +49,13 @@ _WHISPER_MODEL_PATH = flags.DEFINE_string(
 _LANGUAGE = flags.DEFINE_string(
     "language",
     "en",
-    "The two-letter ISO code for the input language .",
+    "The two-letter ISO code for the input language.",
+)
+
+_IDF_TABLE_PATH = flags.DEFINE_string(
+    "idf_table_path",
+    "idf_table_path",
+    "The path to idf table.",
 )
 
 Encoder = encoder_lib.MultiModalEncoder
@@ -220,6 +227,29 @@ hubert_large_ls960_ft_pooled_mean = EncoderMetadata(
     ),
 )
 
+
+# Segmentation encoders:
+whisper_base_asr_saliency = EncoderMetadata(
+    name="whisper_base_asr_saliency",
+    encoder=segmentation_encoder.create_asr_saliency_cascade,
+    params=lambda: dict(
+        whisper_model_path="base",
+        language=_LANGUAGE.value,
+        top_k=3,
+        idf_table_path=_IDF_TABLE_PATH.value
+    )
+)
+
+whisper_large_asr_saliency = EncoderMetadata(
+    name="whisper_large_asr_saliency",
+    encoder=segmentation_encoder.create_asr_saliency_cascade,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        language=_LANGUAGE.value,
+        top_k=3,
+        idf_table_path=_IDF_TABLE_PATH.value
+    )
+)
 
 
 _REGISTRY: dict[str, EncoderMetadata] = {}
