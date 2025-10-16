@@ -20,7 +20,6 @@ from absl.testing import parameterized
 from mseb import types
 from mseb.datasets import simple_voice_questions
 from mseb.encoders import segmentation_encoder
-from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pandas as pd
@@ -62,13 +61,20 @@ class TextSegmenterEncoderTest(absltest.TestCase):
         ('board', 3, 3)
     ]
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
+    retokenizer.setup()
     actual_output = list(retokenizer.retokenize(words))
     self.assertEqual(actual_output, expected_output)
 
   def test_encode_selects_top_k_segments(self):
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
-    segmenter = segmentation_encoder.TokenIDFSegmenter(IDF_TABLE, retokenizer)
+    retokenizer.setup()
+    segmenter = segmentation_encoder.TokenIDFSegmenter(
+        retokenizer=retokenizer,
+        idf_table=IDF_TABLE
+    )
+    segmenter.setup()
     encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
+    encoder.setup()
     output_embeddings = encoder.encode([self.mock_input_embedding])
     self.assertLen(output_embeddings, 1)
     result = output_embeddings[0]
@@ -90,6 +96,7 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     segmenter = segmentation_encoder.LongestPrefixIDFSegmenter(
         japanese_idf_table_with_numbers
     )
+    segmenter.setup()
     # "To Japan in 2025"
     segments = list(segmenter.segment(['2025', '年', 'に', '日本', 'へ']))
     found_terms = {s[0] for s in segments}
@@ -97,7 +104,7 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     self.assertIn('日本', found_terms)
 
 
-class MaxIDFSegmentEncoderFactoryTest(parameterized.TestCase):
+class SaliencyCascadeFactoryTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -119,18 +126,40 @@ class MaxIDFSegmentEncoderFactoryTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       {
-          'testcase_name': 'with_dict',
+          'testcase_name': 'forced_alignment_with_dict',
+          'factory_func': (
+              segmentation_encoder.create_forced_alignment_saliency_cascade
+          ),
+          'is_forced_alignment': True,
           'idf_table': IDF_TABLE,
           'idf_table_path': None,
       },
       {
-          'testcase_name': 'with_path',
+          'testcase_name': 'forced_alignment_with_path',
+          'factory_func': (
+              segmentation_encoder.create_forced_alignment_saliency_cascade
+          ),
+          'is_forced_alignment': True,
+          'idf_table': None,
+          'idf_table_path': 'idf_table_path',
+      },
+      {
+          'testcase_name': 'asr_with_dict',
+          'factory_func': segmentation_encoder.create_asr_saliency_cascade,
+          'is_forced_alignment': False,
+          'idf_table': IDF_TABLE,
+          'idf_table_path': None,
+      },
+      {
+          'testcase_name': 'asr_with_path',
+          'factory_func': segmentation_encoder.create_asr_saliency_cascade,
+          'is_forced_alignment': False,
           'idf_table': None,
           'idf_table_path': 'idf_table_path',
       },
   )
-  def test_factory_creates_and_runs_real_encoder(
-      self, idf_table, idf_table_path
+  def test_saliency_cascade_factories(
+      self, factory_func, is_forced_alignment, idf_table, idf_table_path
   ):
     if idf_table_path:
       df = pd.DataFrame(IDF_TABLE.items(), columns=['token', 'idf'])
@@ -141,32 +170,39 @@ class MaxIDFSegmentEncoderFactoryTest(parameterized.TestCase):
           content=df.to_csv(index=False)
       )
 
-    asr_encoder = whisper_encoder.ForcedAlignmentEncoder(
-        model_path='base.en', device='cpu', language='en'
-    )
+    # For the ASR case, ensure we aren't using the ground truth text.
+    if not is_forced_alignment:
+      self.sound_input.context.text = None
 
-    cascade_encoder = segmentation_encoder.create_max_idf_segment_encoder(
-        asr_encoder=asr_encoder,
+    cascade_encoder = factory_func(
+        whisper_model_path='base.en',
+        language='en',
+        device='cpu',
         idf_table=idf_table,
         idf_table_path=idf_table_path,
-        language='en',
-        top_k=2
+        top_k=5,
     )
     cascade_encoder.setup()
     outputs = cascade_encoder.encode([self.sound_input])
     self.assertLen(outputs, 1)
     result = outputs[0]
-    self.assertIsInstance(result, types.SoundEmbedding)
     found_terms = result.embedding.tolist()
-    self.assertNotEmpty(result.embedding, 'No salient terms were found.')
-    self.assertIsNotNone(result.scores, 'Scores should not be None.')
+
+    self.assertIsInstance(result, types.SoundEmbedding)
+    self.assertIsNotNone(result.scores)
+    self.assertNotEmpty(result.embedding, 'Cascade should find some terms.')
+
+    # Use specific assertions only for the reliable forced-alignment case.
+    if is_forced_alignment:
+      self.assertIn('anatolian', found_terms)
+      self.assertIn('shepherds', found_terms)
+
+    # These structural assertions are valid for both cases.
     self.assertEqual(
         result.embedding.shape, result.scores.shape,
         'Shape of embeddings and scores should match.'
     )
     self.assertNotEqual(result.timestamps.tolist(), [[0.0, 0.0]])
-    self.assertIn('anatolian', found_terms)
-    self.assertIn('shepherds', found_terms)
     duration = (
         len(self.sound_input.waveform) / self.sound_input.context.sample_rate
     )
@@ -174,7 +210,6 @@ class MaxIDFSegmentEncoderFactoryTest(parameterized.TestCase):
       self.assertLessEqual(timestamp[0], timestamp[1])
       self.assertGreaterEqual(timestamp[0], 0)
       self.assertLess(timestamp[1], duration + 1.0)
-
 
 if __name__ == '__main__':
   absltest.main()

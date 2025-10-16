@@ -39,6 +39,10 @@ def load_idf_table_from_csv(path: str) -> dict[str, float]:
 class RetokenizerBase:
   """Base class for retokenizers."""
 
+  def setup(self):
+    """Initializes heavy resources."""
+    pass
+
   def retokenize(self, words: Sequence[str]) -> Iterator[tuple[str, int, int]]:
     """Retokenizes an input text defined by a sequence of words.
 
@@ -59,9 +63,15 @@ class SpacyRetokenizer(RetokenizerBase):
   """Retokenize using spacy tokenizer."""
 
   def __init__(self, language: str = 'xx'):
-    self.model = spacy.blank(language)
+    self.language = language
+    self.model = None
+
+  def setup(self):
+    if self.model is None:
+      self.model = spacy.blank(self.language)
 
   def _tokenize(self, text: str) -> Iterator[tuple[str, int, int]]:
+    assert self.model is not None, 'setup() must be called before tokenizing.'
     for token in self.model(text):
       yield token.text, token.idx, token.idx + len(token.text) - 1
 
@@ -100,6 +110,10 @@ class NormalizingRetokenizer(RetokenizerBase):
 class SegmenterBase:
   """Base class for segmenters."""
 
+  def setup(self):
+    """Initializes heavy resources."""
+    pass
+
   def segment(
       self, words: Sequence[str]
   ) -> Iterator[tuple[str, float, int, int]]:
@@ -118,12 +132,47 @@ class SegmenterBase:
     raise NotImplementedError()
 
 
-class TokenIDFSegmenter(SegmenterBase):
-  """Implements a token-based IDF segmenter, looking up IDF terms after re-tokenization."""
+class IDFTableSegmenterBase(SegmenterBase):
+  """Base class for segmenters that use an IDF table."""
 
-  def __init__(self, idf_table: dict[str, float], retokenizer: RetokenizerBase):
+  def __init__(
+      self,
+      idf_table: Optional[dict[str, float]] = None,
+      idf_table_path: Optional[str] = None,
+  ):
+    if idf_table is None and idf_table_path is None:
+      raise ValueError(
+          'Either idf_table or idf_table_path is required.'
+      )
+    if idf_table is not None and idf_table_path is not None:
+      raise ValueError(
+          'Provide either idf_table or idf_table_path, not both.'
+      )
+    # Store config, but don't load the table here.
+    self._idf_table_path = idf_table_path
     self.idf_table = idf_table
+
+  def setup(self):
+    """Load the IDF table from path on the worker."""
+    if self._idf_table_path and self.idf_table is None:
+      self.idf_table = load_idf_table_from_csv(self._idf_table_path)
+
+
+class TokenIDFSegmenter(IDFTableSegmenterBase):
+  """Implements a token-based IDF segmenter."""
+
+  def __init__(
+      self,
+      retokenizer: RetokenizerBase,
+      idf_table: Optional[dict[str, float]] = None,
+      idf_table_path: Optional[str] = None,
+  ):
+    super().__init__(idf_table=idf_table, idf_table_path=idf_table_path)
     self.retokenizer = retokenizer
+
+  def setup(self):
+    super().setup()
+    self.retokenizer.setup()
 
   def segment(
       self, words: Sequence[str]
@@ -133,14 +182,26 @@ class TokenIDFSegmenter(SegmenterBase):
         yield word, self.idf_table[word], front, back
 
 
-class LongestPrefixIDFSegmenter(SegmenterBase):
+class LongestPrefixIDFSegmenter(IDFTableSegmenterBase):
   """Represents an IDF term extractor using longest prefix matching."""
 
-  def __init__(self, idf_table: dict[str, float]):
-    string_keyed_idf_table = {str(k): v for k, v in idf_table.items()}
-    self.trie = pygtrie.Trie(string_keyed_idf_table)
+  def __init__(
+      self,
+      idf_table: Optional[dict[str, float]] = None,
+      idf_table_path: Optional[str] = None,
+  ):
+    super().__init__(idf_table=idf_table, idf_table_path=idf_table_path)
+    self.trie = None
+
+  def setup(self):
+    super().setup()
+    if self.trie is None:
+      assert self.idf_table is not None, 'setup() must be called to load table.'
+      string_keyed_idf_table = {str(k): v for k, v in self.idf_table.items()}
+      self.trie = pygtrie.Trie(string_keyed_idf_table)
 
   def _segment_text(self, text: str) -> Iterator[tuple[str, float, int]]:
+    assert self.trie is not None, 'setup() must be called before segmenting.'
     for pos in range(len(text)):
       idf_term = self.trie.longest_prefix(text[pos:])
       if idf_term:
@@ -167,7 +228,7 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
     self.top_k = top_k
 
   def _setup(self):
-    pass
+    self.segmenter.setup()
 
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.SoundEmbedding) for x in batch):
@@ -218,14 +279,14 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
     return outputs
 
 
-def create_max_idf_segment_encoder(
+def _create_saliency_cascade_base(
     asr_encoder: whisper_encoder.Whisper,
     language: str,
-    top_k: int = 1,
-    idf_table: Optional[dict[str, float]] = None,
-    idf_table_path: Optional[str] = None,
+    top_k: int,
+    idf_table: Optional[dict[str, float]],
+    idf_table_path: Optional[str],
 ) -> encoder.CascadeEncoder:
-  """Factory function that assembles a cascaded salient term encoder.
+  """Internal helper to assemble the segmenter and cascade encoder.
 
   This function builds a two-stage encoder:
   1. An ASR encoder (like ForcedAlignmentEncoder) runs to get word timestamps.
@@ -244,27 +305,19 @@ def create_max_idf_segment_encoder(
   Returns:
     A configured CascadeEncoder ready for use.
   """
-  if idf_table is None and idf_table_path is None:
-    raise ValueError(
-        'Either idf_table or idf_table_path must be provided.'
-    )
-
-  if idf_table is not None and idf_table_path is not None:
-    raise ValueError(
-        'Provide either idf_table or idf_table_path, not both.'
-    )
-
-  if idf_table_path:
-    idf_table = load_idf_table_from_csv(idf_table_path)
 
   if language.startswith('ja'):
-    segmenter = LongestPrefixIDFSegmenter(idf_table)
+    segmenter = LongestPrefixIDFSegmenter(
+        idf_table=idf_table, idf_table_path=idf_table_path
+    )
   else:
+    retokenizer = SpacyRetokenizer(
+        language=('xx' if language.startswith('ko') else language)
+    )
     segmenter = TokenIDFSegmenter(
-        idf_table,
-        SpacyRetokenizer(
-            language=('xx' if language.startswith('ko') else language)
-        ),
+        retokenizer=retokenizer,
+        idf_table=idf_table,
+        idf_table_path=idf_table_path,
     )
 
   return encoder.CascadeEncoder(
@@ -272,4 +325,52 @@ def create_max_idf_segment_encoder(
           asr_encoder,
           TextSegmenterEncoder(segmenter, top_k),
       ]
+  )
+
+
+def create_forced_alignment_saliency_cascade(
+    whisper_model_path: str,
+    language: str,
+    device: Optional[str] = None,
+    top_k: int = 1,
+    idf_table: Optional[dict[str, float]] = None,
+    idf_table_path: Optional[str] = None,
+) -> encoder.CascadeEncoder:
+  """Builds a cascade to find salient terms using forced alignment."""
+  asr_encoder = whisper_encoder.ForcedAlignmentEncoder(
+      model_path=whisper_model_path,
+      device=device,
+      language=language,
+  )
+  return _create_saliency_cascade_base(
+      asr_encoder=asr_encoder,
+      language=language,
+      top_k=top_k,
+      idf_table=idf_table,
+      idf_table_path=idf_table_path,
+  )
+
+
+def create_asr_saliency_cascade(
+    whisper_model_path: str,
+    language: str,
+    device: Optional[str] = None,
+    top_k: int = 1,
+    idf_table: Optional[dict[str, float]] = None,
+    idf_table_path: Optional[str] = None,
+) -> encoder.CascadeEncoder:
+  """Builds a cascade to find salient terms by first running ASR."""
+
+  asr_encoder = whisper_encoder.SpeechToTextEncoder(
+      model_path=whisper_model_path,
+      device=device,
+      word_timestamps=True,
+  )
+
+  return _create_saliency_cascade_base(
+      asr_encoder=asr_encoder,
+      language=language,
+      top_k=top_k,
+      idf_table=idf_table,
+      idf_table_path=idf_table_path,
   )
