@@ -236,8 +236,8 @@ class RerankingEvaluator:
               value=sklearn_metrics.average_precision_score(
                   y_true=[
                       compute_word_errors(
-                          truth=text,
-                          hypothesis=candidates.texts[0],
+                          truth=candidates.texts[0],
+                          hypothesis=text,
                           is_english=is_english(candidates.language),
                       )[0]
                       == 0.0
