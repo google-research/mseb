@@ -27,3 +27,4 @@ from .retrievals.document_cross_lang.svq import *
 from .retrievals.document_in_lang.svq import *
 from .retrievals.passage_cross_lang.svq import *
 from .retrievals.passage_in_lang.svq import *
+from .segmentations.salient_term.svq import *
