@@ -28,10 +28,10 @@
 
 """Configuration of Simple Voice Questions (SVQ) tasks for MSEB."""
 
-from flax import core
+import types
 
-config_by_task = core.FrozenDict({
-    'document_retrieval_in_lang': {
+config_by_task = types.MappingProxyType({
+    'document_retrieval_in_lang': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'en',
@@ -44,8 +44,8 @@ config_by_task = core.FrozenDict({
             'sw',
             'te',
         ),
-    },
-    'document_retrieval_cross_lang': {
+    }),
+    'document_retrieval_cross_lang': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'ar',
@@ -63,8 +63,8 @@ config_by_task = core.FrozenDict({
             'te',
             'ur',
         ),
-    },
-    'document_retrieval_in_lang_small': {
+    }),
+    'document_retrieval_in_lang_small': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'en',
@@ -77,8 +77,8 @@ config_by_task = core.FrozenDict({
             'sw',
             'te',
         ),
-    },
-    'document_retrieval_cross_lang_small': {
+    }),
+    'document_retrieval_cross_lang_small': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'ar',
@@ -96,8 +96,8 @@ config_by_task = core.FrozenDict({
             'te',
             'ur',
         ),
-    },
-    'passage_retrieval_in_lang': {
+    }),
+    'passage_retrieval_in_lang': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'en',
@@ -110,8 +110,8 @@ config_by_task = core.FrozenDict({
             'sw',
             'te',
         ),
-    },
-    'passage_retrieval_cross_lang': {
+    }),
+    'passage_retrieval_cross_lang': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM'),
         'languages': (
             'ar',
@@ -129,8 +129,8 @@ config_by_task = core.FrozenDict({
             'te',
             'ur',
         ),
-    },
-    'span_retrieval_in_lang': {
+    }),
+    'span_retrieval_in_lang': types.MappingProxyType({
         'evaluation_metric': 'F1',
         'languages': (
             'en',
@@ -143,41 +143,8 @@ config_by_task = core.FrozenDict({
             'sw',
             'te',
         ),
-    },
-    'span_retrieval_cross_lang': {
-        'evaluation_metric': 'F1',
-        'languages': (
-            'ar',
-            'bn',
-            'fi',
-            'ja',
-            'kn',
-            'ko',
-            'ru',
-            'te',
-            'hi',
-            'gu',
-            'ml',
-            'mr',
-            'ta',
-            'ur',
-        ),
-    },
-    'span_reasoning_in_lang': {
-        'evaluation_metric': 'F1',
-        'languages': (
-            'en',
-            'ar',
-            'bn',
-            'fi',
-            'id',
-            'ko',
-            'ru',
-            'sw',
-            'te',
-        ),
-    },
-    'span_reasoning_cross_lang': {
+    }),
+    'span_retrieval_cross_lang': types.MappingProxyType({
         'evaluation_metric': 'F1',
         'languages': (
             'ar',
@@ -195,8 +162,41 @@ config_by_task = core.FrozenDict({
             'ta',
             'ur',
         ),
-    },
-    'query_reranking': {
+    }),
+    'span_reasoning_in_lang': types.MappingProxyType({
+        'evaluation_metric': 'F1',
+        'languages': (
+            'en',
+            'ar',
+            'bn',
+            'fi',
+            'id',
+            'ko',
+            'ru',
+            'sw',
+            'te',
+        ),
+    }),
+    'span_reasoning_cross_lang': types.MappingProxyType({
+        'evaluation_metric': 'F1',
+        'languages': (
+            'ar',
+            'bn',
+            'fi',
+            'ja',
+            'kn',
+            'ko',
+            'ru',
+            'te',
+            'hi',
+            'gu',
+            'ml',
+            'mr',
+            'ta',
+            'ur',
+        ),
+    }),
+    'query_reranking': types.MappingProxyType({
         'evaluation_metric': ('MRR', 'MRR_STD', 'EM', 'WER', 'QER'),
         'languages': (
             'ar',
@@ -217,5 +217,5 @@ config_by_task = core.FrozenDict({
             'te',
             'ur',
         ),
-    },
+    }),
 })
