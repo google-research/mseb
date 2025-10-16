@@ -88,16 +88,14 @@ class DirectRunner(EncoderRunner):
       batch_size=1,
       num_threads: int = 1,
       output_path: str | None = None,
-      **kwargs
+      **kwargs,
   ):
     super().__init__(**kwargs)
     self._batch_size = batch_size
     self._num_threads = num_threads
     self._output_path = output_path
 
-  def _batch_elements(
-      self, elements: Iterable[types.MultiModalObject]
-  ):
+  def _batch_elements(self, elements: Iterable[types.MultiModalObject]):
     """Yields batches of elements (sounds or texts)."""
     batch = []
     for element in elements:
@@ -257,7 +255,7 @@ class BeamRunner(EncoderRunner):
       runner: beam.runners.PipelineRunner,
       batch_size: int = 1,
       accelerator: str | None = None,
-      **kwargs
+      **kwargs,
   ):
     """Initializes the BeamRunner.
 
