@@ -73,6 +73,326 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
         )
 
 
+class SVQArEgSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ar_eg"
+  metadata = types.TaskMetadata(
+      name="SVQArEgSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ar_eg."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ar-EG"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQArXGulfSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ar_x_gulf"
+  metadata = types.TaskMetadata(
+      name="SVQArXGulfSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ar_x_gulf."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ar-x-gulf"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQArXLevantSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ar_x_levant"
+  metadata = types.TaskMetadata(
+      name="SVQArXLevantSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ar_x_levant."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ar-x-levant"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQArXMaghrebiSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ar_x_maghrebi"
+  metadata = types.TaskMetadata(
+      name="SVQArXMaghrebiSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ar_x_maghrebi."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ar-x-maghrebi"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQBnBdSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "bn_bd"
+  metadata = types.TaskMetadata(
+      name="SVQBnBdSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for bn_bd."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["bn-BD"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQBnInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "bn_in"
+  metadata = types.TaskMetadata(
+      name="SVQBnInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for bn_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["bn-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQEnAuSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "en_au"
+  metadata = types.TaskMetadata(
+      name="SVQEnAuSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for en_au."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["en-AU"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQEnGbSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "en_gb"
+  metadata = types.TaskMetadata(
+      name="SVQEnGbSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for en_gb."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["en-GB"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQEnInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "en_in"
+  metadata = types.TaskMetadata(
+      name="SVQEnInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for en_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["en-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQEnPhSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "en_ph"
+  metadata = types.TaskMetadata(
+      name="SVQEnPhSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for en_ph."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["en-PH"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
 class SVQEnUsSalientTermSegmentation(SVQSalientTermSegmentation):
   locale = "en_us"
   metadata = types.TaskMetadata(
@@ -100,6 +420,454 @@ class SVQEnUsSalientTermSegmentation(SVQSalientTermSegmentation):
       ],
       eval_splits=["test"],
       eval_langs=["en-US"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQFiFiSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "fi_fi"
+  metadata = types.TaskMetadata(
+      name="SVQFiFiSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for fi_fi."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["fi-FI"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQGuInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "gu_in"
+  metadata = types.TaskMetadata(
+      name="SVQGuInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for gu_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["gu-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQHiInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "hi_in"
+  metadata = types.TaskMetadata(
+      name="SVQHiInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for hi_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["hi-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQIdIdSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "id_id"
+  metadata = types.TaskMetadata(
+      name="SVQIdIdSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for id_id."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["id-ID"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQJaJpSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ja_jp"
+  metadata = types.TaskMetadata(
+      name="SVQJaJpSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ja_jp."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ja-JP"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQKnInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "kn_in"
+  metadata = types.TaskMetadata(
+      name="SVQKnInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for kn_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["kn-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQKoKrSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ko_kr"
+  metadata = types.TaskMetadata(
+      name="SVQKoKrSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ko_kr."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ko-KR"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQMlInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ml_in"
+  metadata = types.TaskMetadata(
+      name="SVQMlInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ml_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ml-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQMrInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "mr_in"
+  metadata = types.TaskMetadata(
+      name="SVQMrInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for mr_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["mr-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQRuRuSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ru_ru"
+  metadata = types.TaskMetadata(
+      name="SVQRuRuSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ru_ru."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ru-RU"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQTaInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ta_in"
+  metadata = types.TaskMetadata(
+      name="SVQTaInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ta_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ta-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQTeInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "te_in"
+  metadata = types.TaskMetadata(
+      name="SVQTeInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for te_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["te-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQUrInSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ur_in"
+  metadata = types.TaskMetadata(
+      name="SVQUrInSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ur_in."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ur-IN"],
+      domains=["speech"],
+      task_subtypes=["segmentation"],
+  )
+
+
+class SVQUrPkSalientTermSegmentation(SVQSalientTermSegmentation):
+  locale = "ur_pk"
+  metadata = types.TaskMetadata(
+      name="SVQUrPkSalientTermSegmentation",
+      description=(
+          "Salient term segmentation task on the Simple Voice Questions (SVQ) "
+          "dataset for ur_pk."
+      ),
+      reference="TODO",
+      type="SalientTermSegmentation",
+      category="speech",
+      main_score="NDCG",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          path="https://huggingface.co/datasets/google/svq",
+          revision="1.0.0",
+      ),
+      scores=[
+          segmentation_evaluator.mean_average_precision(),
+          segmentation_evaluator.normalized_discounted_cumulative_gain(),
+          segmentation_evaluator.word_error_rate(),
+          segmentation_evaluator.timestamps_accuracy(),
+          segmentation_evaluator.embeddings_accuracy(),
+          segmentation_evaluator.timestamps_and_embeddings_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["ur-PK"],
       domains=["speech"],
       task_subtypes=["segmentation"],
   )

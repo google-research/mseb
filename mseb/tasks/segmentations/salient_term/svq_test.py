@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import json
 import os
 from unittest import mock
@@ -19,6 +20,7 @@ from unittest import mock
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
+from absl.testing import parameterized
 from mseb import dataset
 from mseb import types
 from mseb.tasks.segmentations.salient_term import svq
@@ -28,7 +30,7 @@ import numpy as np
 FLAGS = flags.FLAGS
 
 
-class SVQSalientTermSegmentationTest(absltest.TestCase):
+class SVQSalientTermSegmentationTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -129,6 +131,26 @@ class SVQSalientTermSegmentationTest(absltest.TestCase):
     self.assertEqual(task.locale, "en_us")
     self.assertEqual(task.metadata.name, "SVQEnUsSalientTermSegmentation")
     self.assertEqual(task.metadata.main_score, "NDCG")
+
+  def test_all_svq_task_configurations(self):
+    task_classes = [
+        obj for _, obj in inspect.getmembers(svq, inspect.isclass)
+        if issubclass(obj, svq.SVQSalientTermSegmentation) and
+        obj is not svq.SVQSalientTermSegmentation
+    ]
+    self.assertNotEmpty(task_classes)
+
+    for task_class in task_classes:
+      with self.subTest(task_name=task_class.__name__):
+        task = task_class()
+        self.assertIsInstance(task.locale, str)
+        self.assertNotEmpty(task.locale)
+        self.assertEqual(task.metadata.name, task_class.__name__)
+        expected_eval_lang = task.locale.replace("_", "-")
+        parts = expected_eval_lang.split("-")
+        if len(parts) == 2:
+          expected_eval_lang = f"{parts[0]}-{parts[1].upper()}"
+        self.assertEqual(task.metadata.eval_langs, [expected_eval_lang])
 
 
 if __name__ == "__main__":
