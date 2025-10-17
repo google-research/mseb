@@ -39,7 +39,7 @@
       <th title="Overall classification accuracy"><a href="#IntentClassification">IntentClassification (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#PassageCrossLangRetrieval">PassageCrossLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#PassageInLangRetrieval">PassageInLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Mean Reciprocal Rank"><a href="#QueryReranking">QueryReranking (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Mean Average Precision"><a href="#QueryReranking">QueryReranking (mean)</a> <span class="sort-icon"></span></th>
       <th title="F1 score"><a href="#SpanCrossLangReasoning">SpanCrossLangReasoning (mean)</a> <span class="sort-icon"></span></th>
       <th title="F1 score"><a href="#SpanInLangReasoning">SpanInLangReasoning (mean)</a> <span class="sort-icon"></span></th>
     </tr>
@@ -159,6 +159,20 @@
     </tr>
     <tr>
      <td>9</td>
+     <td>gemini_embedding_whisper_or_gemini_embedding_no_prompt</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.5992</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>10</td>
      <td>gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -172,7 +186,7 @@
       <td>0.4766</td>
     </tr>
     <tr>
-     <td>10</td>
+     <td>11</td>
      <td>gemini_embedding_with_title_and_context_whisper_or_gemini_embedding</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -186,7 +200,7 @@
       <td>0.4840</td>
     </tr>
     <tr>
-     <td>11</td>
+     <td>12</td>
      <td>gemma_with_title_and_context_transcript_truth</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -200,7 +214,7 @@
       <td>0.6080</td>
     </tr>
     <tr>
-     <td>12</td>
+     <td>13</td>
      <td>gemma_with_title_and_context_whisper</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -214,7 +228,7 @@
       <td>0.5770</td>
     </tr>
     <tr>
-     <td>13</td>
+     <td>14</td>
      <td>hubert_large_ls960_ft_pooled_mean</td>
       <td>N/A</td>
       <td>0.6147</td>
@@ -228,7 +242,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>14</td>
+     <td>15</td>
      <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>N/A</td>
       <td>0.6108</td>
@@ -242,7 +256,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>15</td>
+     <td>16</td>
      <td>wav2vec2-large-960h-lv60_pooled_mean</td>
       <td>N/A</td>
       <td>0.5990</td>
@@ -1393,112 +1407,139 @@
     <tr>
       <th>Metric</th>
       <th>gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</th>
+      <th>gemini_embedding_whisper_or_gemini_embedding_no_prompt</th>
     </tr>
   </thead>
   <tbody>
     <tr>
      <td>SVQArEgQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-EG)</td>
       <td>1.0000</td>
+      <td>0.5751</td>
     </tr>
     <tr>
-     <td>SVQArXGulfQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ar-x-gulf)</td>
+     <td>SVQArXGulfQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-gulf)</td>
       <td>1.0000</td>
+      <td>0.5939</td>
     </tr>
     <tr>
-     <td>SVQArXLevantQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ar-x-levant)</td>
+     <td>SVQArXLevantQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-levant)</td>
       <td>1.0000</td>
+      <td>0.5750</td>
     </tr>
     <tr>
-     <td>SVQArXMaghrebiQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ar-x-maghrebi)</td>
+     <td>SVQArXMaghrebiQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-maghrebi)</td>
       <td>1.0000</td>
+      <td>0.4533</td>
     </tr>
     <tr>
-     <td>SVQBnBdQueryReranking/query_reranking (MRR)<br/>(QueryReranking, bn-BD)</td>
+     <td>SVQBnBdQueryReranking/query_reranking (MAP)<br/>(QueryReranking, bn-BD)</td>
       <td>1.0000</td>
+      <td>0.3666</td>
     </tr>
     <tr>
-     <td>SVQBnInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, bn-IN)</td>
+     <td>SVQBnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, bn-IN)</td>
       <td>1.0000</td>
+      <td>0.3796</td>
     </tr>
     <tr>
-     <td>SVQEnAuQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-AU)</td>
+     <td>SVQEnAuQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-AU)</td>
       <td>1.0000</td>
+      <td>0.8645</td>
     </tr>
     <tr>
-     <td>SVQEnGbQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-GB)</td>
+     <td>SVQEnGbQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-GB)</td>
       <td>1.0000</td>
+      <td>0.7929</td>
     </tr>
     <tr>
-     <td>SVQEnInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-IN)</td>
+     <td>SVQEnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-IN)</td>
       <td>1.0000</td>
+      <td>0.8134</td>
     </tr>
     <tr>
-     <td>SVQEnPhQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-PH)</td>
+     <td>SVQEnPhQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-PH)</td>
       <td>1.0000</td>
+      <td>0.8156</td>
     </tr>
     <tr>
-     <td>SVQEnUsQueryReranking/query_reranking (MRR)<br/>(QueryReranking, en-US)</td>
+     <td>SVQEnUsQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-US)</td>
       <td>1.0000</td>
+      <td>0.8420</td>
     </tr>
     <tr>
-     <td>SVQFiFiQueryReranking/query_reranking (MRR)<br/>(QueryReranking, fi-FI)</td>
+     <td>SVQFiFiQueryReranking/query_reranking (MAP)<br/>(QueryReranking, fi-FI)</td>
       <td>1.0000</td>
+      <td>0.5012</td>
     </tr>
     <tr>
-     <td>SVQGuInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, gu-IN)</td>
+     <td>SVQGuInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, gu-IN)</td>
       <td>1.0000</td>
+      <td>0.5286</td>
     </tr>
     <tr>
-     <td>SVQHiInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, hi-IN)</td>
+     <td>SVQHiInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, hi-IN)</td>
       <td>1.0000</td>
+      <td>0.7024</td>
     </tr>
     <tr>
-     <td>SVQIdIdQueryReranking/query_reranking (MRR)<br/>(QueryReranking, id-ID)</td>
+     <td>SVQIdIdQueryReranking/query_reranking (MAP)<br/>(QueryReranking, id-ID)</td>
       <td>1.0000</td>
+      <td>0.7840</td>
     </tr>
     <tr>
-     <td>SVQJaJpQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ja-JP)</td>
+     <td>SVQJaJpQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ja-JP)</td>
       <td>1.0000</td>
+      <td>0.7618</td>
     </tr>
     <tr>
-     <td>SVQKnInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, kn-IN)</td>
+     <td>SVQKnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, kn-IN)</td>
       <td>1.0000</td>
+      <td>0.5732</td>
     </tr>
     <tr>
-     <td>SVQKoKrQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ko-KR)</td>
+     <td>SVQKoKrQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ko-KR)</td>
       <td>1.0000</td>
+      <td>0.7924</td>
     </tr>
     <tr>
-     <td>SVQMlInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ml-IN)</td>
+     <td>SVQMlInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ml-IN)</td>
       <td>1.0000</td>
+      <td>0.1067</td>
     </tr>
     <tr>
-     <td>SVQMrInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, mr-IN)</td>
+     <td>SVQMrInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, mr-IN)</td>
       <td>1.0000</td>
+      <td>0.4862</td>
     </tr>
     <tr>
-     <td>SVQRuRuQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ru-RU)</td>
+     <td>SVQRuRuQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ru-RU)</td>
       <td>1.0000</td>
+      <td>0.8484</td>
     </tr>
     <tr>
-     <td>SVQSwQueryReranking/query_reranking (MRR)<br/>(QueryReranking, sw)</td>
+     <td>SVQSwQueryReranking/query_reranking (MAP)<br/>(QueryReranking, sw)</td>
       <td>1.0000</td>
+      <td>0.4553</td>
     </tr>
     <tr>
-     <td>SVQTaInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ta-IN)</td>
+     <td>SVQTaInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ta-IN)</td>
       <td>1.0000</td>
+      <td>0.5838</td>
     </tr>
     <tr>
-     <td>SVQTeInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, te-IN)</td>
+     <td>SVQTeInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, te-IN)</td>
       <td>1.0000</td>
+      <td>0.3282</td>
     </tr>
     <tr>
-     <td>SVQUrInQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ur-IN)</td>
+     <td>SVQUrInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-IN)</td>
       <td>1.0000</td>
+      <td>0.5452</td>
     </tr>
     <tr>
-     <td>SVQUrPkQueryReranking/query_reranking (MRR)<br/>(QueryReranking, ur-PK)</td>
+     <td>SVQUrPkQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-PK)</td>
       <td>1.0000</td>
+      <td>0.5094</td>
     </tr>
   </tbody>
 </table>
