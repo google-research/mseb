@@ -18,8 +18,8 @@ keywords = []
 dependencies = [
     "array-record",
     "absl-py",
-    "apache-beam",
-    "datasets",
+    "apache-beam==2.68.0",
+    "datasets==4.0.0",
     "editdistance",
     "etils",
     "fvcore",
@@ -33,14 +33,13 @@ dependencies = [
     "protobuf",
     "pyarrow",
     "pygtrie",
-    "scann==1.3.5",
     "scikit-learn",
     "soundfile",
     "spacy",
     "tqdm",
     "transformers",
     "tensorflow",
-    "tensorflow-datasets",
+    "tensorflow-datasets==4.9.9",
     "tensorflow_hub",
     "torch",
 ]
@@ -65,6 +64,9 @@ dev = [
 ]
 whisper = [
     "openai-whisper",
+]
+scann = [
+    "scann==1.3.5",
 ]
 
 [tool.pyink]
@@ -92,5 +94,6 @@ exclude = [
 [tool.pytest.ini_options]
 markers = [
     "optional: marks tests that require optional dependencies",
-    "whisper: marks tests for the whisper optional dependency"
+    "whisper: marks tests for the whisper optional dependency",
+    "scann: marks tests for the scann optional dependency"
 ]

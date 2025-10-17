@@ -18,14 +18,18 @@ import shutil
 
 from absl.testing import absltest
 from mseb import types
-from mseb.evaluators import retrieval_evaluator
 import numpy as np
 import numpy.testing as npt
+import pytest
 
-from scann import scann_ops_pybind
+scann_ops_pybind = pytest.importorskip('scann.scann_ops_pybind')
 ScannSearcher = scann_ops_pybind.ScannSearcher
 
+retrieval_evaluator = pytest.importorskip('mseb.evaluators.retrieval_evaluator')
 
+
+@pytest.mark.scann
+@pytest.mark.optional
 class RetrievalEvaluatorTest(absltest.TestCase):
 
   def test_compute_predictions(self):
@@ -104,6 +108,8 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         raise ValueError(f'Unexpected metric: {score.metric}')
 
 
+@pytest.mark.scann
+@pytest.mark.optional
 class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
 
   def setUp(self):
@@ -197,6 +203,8 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     )
 
 
+@pytest.mark.scann
+@pytest.mark.optional
 class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_get_ranked_doc_ids(self):

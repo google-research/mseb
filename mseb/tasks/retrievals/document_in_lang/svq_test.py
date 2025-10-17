@@ -19,14 +19,16 @@ import shutil
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
-
 from mseb import dataset
-from mseb.tasks.retrievals.document_in_lang import svq
+import pytest
 import tensorflow_datasets as tfds
 
+svq = pytest.importorskip("mseb.tasks.retrievals.document_in_lang.svq")
 FLAGS = flags.FLAGS
 
 
+@pytest.mark.scann
+@pytest.mark.optional
 class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
 
   def setUp(self):
@@ -43,9 +45,7 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
     os.chmod(cache_dir, 0o755)
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
     self.enter_context(
-        flagsaver.flagsaver(
-            (dataset._DATASET_BASEPATH, cache_dir)
-        )
+        flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
     )
 
   def test_svq_document_in_lang_retrieval_documents(self):

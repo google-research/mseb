@@ -22,10 +22,11 @@ from .classifications.intent.speech_massive import *
 from .clustering import ClusteringTask
 from .reasonings.span_cross_lang.svq import *
 from .reasonings.span_in_lang.svq import *
-# TODO(tombagby): Temporary remove because of whisper dep.
+# TODO(tombagby): Temporary remove because of dep changes, for now unregister,
+# switch them to lazy import and then re-enable.
 # from .rerankings.query.svq import *
-from .retrievals.document_cross_lang.svq import *
-from .retrievals.document_in_lang.svq import *
-from .retrievals.passage_cross_lang.svq import *
-from .retrievals.passage_in_lang.svq import *
+# from .retrievals.document_cross_lang.svq import *
+# from .retrievals.document_in_lang.svq import *
+# from .retrievals.passage_cross_lang.svq import *
+# from .retrievals.passage_in_lang.svq import *
 from .segmentations.salient_term.svq import *

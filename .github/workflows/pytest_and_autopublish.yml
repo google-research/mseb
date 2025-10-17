@@ -26,6 +26,10 @@ jobs:
             extras: "dev,whisper"
             marker: "whisper"
 
+          - name: "Scann"
+            extras: "dev,scann"
+            marker: "scann"
+
     name: Pytest (${{ matrix.name }})
 
     steps:
