@@ -16,6 +16,7 @@ import os
 from unittest import mock
 
 from absl.testing import absltest
+from mseb import types
 from mseb.datasets import fsd50k
 import numpy as np
 import pandas as pd
@@ -57,6 +58,7 @@ class FSD50KDatasetTest(absltest.TestCase):
             '/m/02sgy,/m/0342h,/m/0fx80y,/m/04szw,/m/04rlf',
             '/m/02sgy,/m/0342h,/m/0fx80y,/m/04szw,/m/04rlf',
         ],
+        'split': ['test', 'test'],
     }
     pd.DataFrame(eval_data).to_csv(
         os.path.join(labels_dir, 'eval.csv'), index=False
@@ -96,39 +98,35 @@ class FSD50KDatasetTest(absltest.TestCase):
             'Music',
         ],
     )
-    self.assertListEqual(
-        dataset.get_string_labels(0),
-        [
-            'Electric_guitar',
-            'Guitar',
-            'Plucked_string_instrument',
-            'Musical_instrument',
-            'Music',
-        ],
-    )
-    self.assertListEqual(
-        dataset.get_string_labels(1),
-        [
-            'Electric_guitar',
-            'Guitar',
-            'Plucked_string_instrument',
-            'Musical_instrument',
-            'Music',
-        ],
-    )
-    dataset.load_sounds()
+    task_data = dataset.get_task_data()
     self.assertEqual(
-        dataset._metadata['waveform'][0].shape,
-        (16000,),
+        task_data.iloc[0]['labels'],
+        (
+            'Electric_guitar,'
+            'Guitar,'
+            'Plucked_string_instrument,'
+            'Musical_instrument,'
+            'Music'
+        ),
     )
     self.assertEqual(
-        dataset._metadata['waveform'][1].shape,
-        (32000,),
+        task_data.iloc[1]['labels'],
+        (
+            'Electric_guitar,'
+            'Guitar,'
+            'Plucked_string_instrument,'
+            'Musical_instrument,'
+            'Music'
+        ),
     )
+    sound1 = dataset.get_sound(task_data.iloc[0].to_dict())
+    self.assertIsInstance(sound1, types.Sound)
+    self.assertEqual(sound1.context.id, '37199')
+    self.assertLen(sound1.waveform, 16000)
 
-    pd_path = os.path.join(self.testdata_dir.full_path, 'test.parquet')
-    from_cache = pd.read_parquet(pd_path)
-    pd.testing.assert_frame_equal(dataset._metadata, from_cache)
+    sound2 = dataset.get_sound(task_data.iloc[1].to_dict())
+    self.assertEqual(sound2.context.id, '175151')
+    self.assertLen(sound2.waveform, 32000)
 
 if __name__ == '__main__':
   absltest.main()
