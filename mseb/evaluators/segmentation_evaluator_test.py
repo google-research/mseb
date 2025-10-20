@@ -205,6 +205,54 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     self.assertEqual(final_scores[0].metric, "mAP")
     self.assertEqual(final_scores[0].value, 0.0)
 
+  def test_compute_scores_handles_empty_reference_list(self):
+    # The ground truth has no segments.
+    references = [
+        segmentation_evaluator.SegmentationReference("ex1", [])
+    ]
+    # The model predicts two false positives.
+    predictions = {
+        "ex1": types.SoundEmbedding(
+            embedding=np.array(["false", "positive"]),
+            timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),
+            scores=np.array([0.9, 0.8]),
+            context=self.context,
+        )
+    }
+    result = self.evaluator.compute_scores(predictions, references)
+    self.assertLen(result.per_example_scores, 1)
+    scores = result.per_example_scores[0]
+    self.assertEqual(scores.num_reference_segments, 0)
+    self.assertEqual(scores.timestamps_and_embeddings_hits, 0)
+    # Sequence metrics should reflect failure.
+    self.assertEqual(scores.ndcg, 0.0)
+    # The two predicted words are pure insertion errors.
+    self.assertEqual(scores.edit_distance, 2)
+    self.assertEqual(scores.num_reference_words, 0)
+
+  def test_compute_scores_handles_reference_with_empty_strings(self):
+    # The ground truth has a segment, but its label is an empty string.
+    ref_segments = [segmentation_evaluator.Segment("", 1.0, 2.0)]
+    references = [
+        segmentation_evaluator.SegmentationReference("ex1", ref_segments)
+    ]
+    # The model predicts one false positive.
+    predictions = {
+        "ex1": types.SoundEmbedding(
+            embedding=np.array(["prediction"]),
+            timestamps=np.array([[3.0, 4.0]]),
+            scores=np.array([0.9]),
+            context=self.context,
+        )
+    }
+    result = self.evaluator.compute_scores(predictions, references)
+    self.assertLen(result.per_example_scores, 1)
+    scores = result.per_example_scores[0]
+    self.assertEqual(scores.num_reference_segments, 1)
+    self.assertEqual(scores.timestamps_and_embeddings_hits, 0)
+    self.assertEqual(scores.ndcg, 0.0)
+    self.assertEqual(scores.edit_distance, 1)
+    self.assertEqual(scores.num_reference_words, 0)
 
 if __name__ == "__main__":
   absltest.main()

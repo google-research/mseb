@@ -364,24 +364,29 @@ class SegmentationEvaluator:
       # --- Sequence Logic ---
       gt_sentence = " ".join(gt_labels)
       pred_sentence = " ".join(pred_labels)
-      measures = jiwer.compute_measures(gt_sentence, pred_sentence)
-      edit_dist = (
-          measures["substitutions"] +
-          measures["deletions"] +
-          measures["insertions"]
-      )
-      num_ref_words = int(
-          measures["hits"] +
-          measures["substitutions"] +
-          measures["deletions"]
-      )
-      dcg = sum(
-          1.0 / np.log2(i + 2)
-          for i, pl in enumerate(pred_labels)
-          if i < len(gt_labels) and pl == gt_labels[i]
-      )
-      idcg = sum(1.0 / np.log2(i + 2) for i in range(len(gt_labels)))
-      ndcg = dcg / idcg if idcg > 0 else 0.0
+      if not gt_sentence.strip():
+        edit_dist = len(pred_sentence.split())
+        num_ref_words = 0
+        ndcg = 0.0
+      else:
+        measures = jiwer.compute_measures(gt_sentence, pred_sentence)
+        edit_dist = (
+            measures["substitutions"] +
+            measures["deletions"] +
+            measures["insertions"]
+        )
+        num_ref_words = int(
+            measures["hits"] +
+            measures["substitutions"] +
+            measures["deletions"]
+        )
+        dcg = sum(
+            1.0 / np.log2(i + 2)
+            for i, pl in enumerate(pred_labels)
+            if i < len(gt_labels) and pl == gt_labels[i]
+        )
+        idcg = sum(1.0 / np.log2(i + 2) for i in range(len(gt_labels)))
+        ndcg = dcg / idcg if idcg > 0 else 0.0
 
       per_example_scores.append(
           SegmentationScores(
