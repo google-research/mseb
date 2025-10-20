@@ -93,6 +93,7 @@ class ClapEncoderTest(absltest.TestCase):
   def test_audio_encoder_encode(self, mock_model_load, mock_processor_load):
     mock_processor = mock.Mock()
     mock_model = mock.Mock()
+    mock_processor.feature_extractor.sampling_rate = 48000
     mock_processor_load.return_value = mock_processor
     mock_model_load.return_value = mock_model
     # Mock the return value of the processor call
@@ -107,7 +108,7 @@ class ClapEncoderTest(absltest.TestCase):
 
     # Check that the processor was called correctly
     mock_processor.assert_called_once()
-    self.assertEqual(mock_processor.call_args.kwargs["sampling_rate"], [48000])
+    self.assertEqual(mock_processor.call_args.kwargs["sampling_rate"], 48000)
 
     # Check that the model was called
     mock_model.get_audio_features.assert_called_once()
@@ -119,6 +120,62 @@ class ClapEncoderTest(absltest.TestCase):
         (1, self.dummy_embedding_dim)
     )
     self.assertEqual(sound_embedding.context.id, "sound1")
+
+  @mock.patch("mseb.encoders.clap_encoder.encoder.resample_sound")
+  @mock.patch(
+      "mseb.encoders.clap_encoder.transformers.ClapProcessor.from_pretrained"
+  )
+  @mock.patch(
+      "mseb.encoders.clap_encoder.transformers.ClapModel.from_pretrained"
+  )
+  def test_audio_encoder_resamples_input(
+      self,
+      mock_model_load,
+      mock_processor_load,
+      mock_resample_sound
+  ):
+    mock_processor = mock.Mock()
+    mock_processor.feature_extractor.sampling_rate = 48000
+    mock_processor.return_value = {"input_features": torch.randn(1, 1, 1024)}
+    mock_processor_load.return_value = mock_processor
+    mock_model = mock.Mock()
+    mock_model.get_audio_features.return_value = torch.randn(
+        1, self.dummy_embedding_dim
+    )
+    mock_model_load.return_value = mock_model
+    # The resample function should return a sound object
+    mock_resample_sound.return_value = types.Sound(
+        waveform=np.random.randn(48000),
+        context=types.SoundContextParams(
+            id="resampled",
+            sample_rate=48000,
+            length=48000
+        )
+    )
+    bad_sr_context = types.SoundContextParams(
+        id="sound_44k",
+        sample_rate=44100,
+        length=44100
+    )
+    bad_sr_batch = [types.Sound(
+        waveform=np.random.randn(44100),
+        context=bad_sr_context
+    )]
+    audio_encoder = clap_encoder._CLAPAudioEncoder(
+        model_path=self.model_path
+    )
+    audio_encoder.setup()
+    audio_encoder.encode(bad_sr_batch)
+    mock_resample_sound.assert_called_once()
+    self.assertEqual(
+        mock_resample_sound.call_args.kwargs["target_sr"],
+        48000
+    )
+    mock_processor.assert_called_once()
+    self.assertEqual(
+        mock_processor.call_args.kwargs["sampling_rate"],
+        48000
+    )
 
   @mock.patch(
       "mseb.encoders.clap_encoder.transformers.ClapProcessor.from_pretrained"

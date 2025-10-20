@@ -61,12 +61,16 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
       )
 
     sound_batch = cast(Sequence[types.Sound], batch)
-    waveforms = [item.waveform for item in sound_batch]
-    sample_rates = [item.context.sample_rate for item in sound_batch]
+    target_sr = self.processor.feature_extractor.sampling_rate
+    resampled_sound_batch = [
+        encoder.resample_sound(sound_item, target_sr=target_sr)
+        for sound_item in sound_batch
+    ]
+    waveforms = [item.waveform for item in resampled_sound_batch]
 
     inputs = self.processor(
         audios=waveforms,
-        sampling_rate=sample_rates,
+        sampling_rate=target_sr,
         return_tensors="pt",
         padding=True
     )
