@@ -80,7 +80,6 @@ class BirdsetClassification(classification.ClassificationTask):
   def sounds(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
     for _, example in dataset.get_task_data().iterrows():
-      # dataset._get_sound expects a dict, so convert the Series to dict
       yield dataset.get_sound(example)
 
   def examples(

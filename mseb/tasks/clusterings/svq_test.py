@@ -20,7 +20,7 @@ from absl.testing import flagsaver
 from mseb import dataset
 from mseb import runner as runner_lib
 from mseb.encoders import raw_encoder
-from mseb.tasks import clustering
+from mseb.tasks.clusterings import svq
 
 FLAGS = flags.FLAGS
 
@@ -38,7 +38,7 @@ def get_test_encoder():
   )
 
 
-class ClusteringTest(absltest.TestCase):
+class SVQClusteringTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -50,14 +50,14 @@ class ClusteringTest(absltest.TestCase):
 
   def get_testdata_path(self, *args):
     testdata_path = os.path.join(
-        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+        pathlib.Path(os.path.abspath(__file__)).parent.parent.parent, "testdata"
     )
     return os.path.join(testdata_path, *args)
 
   def test_clustering_task(self):
     encoder = get_test_encoder()
     runner = runner_lib.DirectRunner(encoder=encoder)
-    task = clustering.SVQClustering()
+    task = svq.SVQClustering()
     task.setup()
     self.assertEqual(
         task.sub_tasks, ["speaker_gender", "speaker_age", "speaker_id"]

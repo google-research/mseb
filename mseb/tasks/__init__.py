@@ -20,7 +20,8 @@ from mseb.task import get_task_by_name
 from .classifications.birdset.birdset import *
 from .classifications.intent.speech_massive import *
 from .classifications.sound.fsd50k import *
-from .clustering import ClusteringTask
+from .clusterings.birdset import *
+from .clusterings.svq import *
 from .reasonings.span_cross_lang.svq import *
 from .reasonings.span_in_lang.svq import *
 # TODO(tombagby): Temporary remove because of dep changes, for now unregister,
