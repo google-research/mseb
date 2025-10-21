@@ -14,8 +14,8 @@
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
 
 <table class="summary-table">
-  <tr><td>Tasks:</td><td>227</td></tr>
-  <tr><td>Task Types:</td><td>10</td></tr>
+  <tr><td>Tasks:</td><td>252</td></tr>
+  <tr><td>Task Types:</td><td>11</td></tr>
   <tr><td>Languages:</td><td>37</td></tr>
 </table>
 
@@ -40,6 +40,7 @@
       <th title="Mean Reciprocal Rank"><a href="#PassageCrossLangRetrieval">PassageCrossLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#PassageInLangRetrieval">PassageInLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Average Precision"><a href="#QueryReranking">QueryReranking (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Normalized Discounted Cumulative Gain. A metric that evaluates the quality of a sequence by rewarding correct terms found in the correct order."><a href="#SalientTermSegmentation">SalientTermSegmentation (mean)</a> <span class="sort-icon"></span></th>
       <th title="F1 score"><a href="#SpanCrossLangReasoning">SpanCrossLangReasoning (mean)</a> <span class="sort-icon"></span></th>
       <th title="F1 score"><a href="#SpanInLangReasoning">SpanInLangReasoning (mean)</a> <span class="sort-icon"></span></th>
     </tr>
@@ -49,6 +50,7 @@
      <td>1</td>
      <td>perch_logits</td>
       <td>0.5756</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -72,6 +74,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>3</td>
@@ -83,6 +86,7 @@
       <td>0.4429</td>
       <td>0.4503</td>
       <td>0.6777</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -100,10 +104,12 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>5</td>
      <td>gecko_with_title_and_context_transcript_truth_or_gecko</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -118,6 +124,7 @@
     <tr>
      <td>6</td>
      <td>gecko_with_title_and_context_whisper_or_gecko</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -142,6 +149,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>8</td>
@@ -156,6 +164,7 @@
       <td>1.0000</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>9</td>
@@ -167,6 +176,7 @@
       <td>0.8023</td>
       <td>0.5011</td>
       <td>0.6155</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -184,10 +194,12 @@
       <td>0.5992</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>11</td>
      <td>gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -210,6 +222,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
       <td>0.3310</td>
       <td>0.4840</td>
     </tr>
@@ -224,12 +237,14 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
       <td>0.4887</td>
       <td>0.6080</td>
     </tr>
     <tr>
      <td>14</td>
      <td>gemma_with_title_and_context_whisper</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -254,12 +269,14 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>16</td>
      <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>N/A</td>
       <td>0.6108</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -280,6 +297,22 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>18</td>
+     <td>whisper_large_asr_saliency</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.4036</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
@@ -1576,6 +1609,121 @@
      <td>SVQUrPkQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-PK)</td>
       <td>1.0000</td>
       <td>0.5094</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<div class="detail-table-section">
+<h2 id="SalientTermSegmentation">SalientTermSegmentation</h2>
+<div class="table-container">
+<table id="details-table-SalientTermSegmentation" border="1">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>whisper_large_asr_saliency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td>SVQArEgSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-EG)</td>
+      <td>0.3815</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-gulf)</td>
+      <td>0.4231</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-levant)</td>
+      <td>0.4074</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-maghrebi)</td>
+      <td>0.2676</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, bn-BD)</td>
+      <td>0.0520</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, bn-IN)</td>
+      <td>0.0550</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-AU)</td>
+      <td>0.8304</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-GB)</td>
+      <td>0.7527</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-IN)</td>
+      <td>0.7804</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-PH)</td>
+      <td>0.7776</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-US)</td>
+      <td>0.8023</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, fi-FI)</td>
+      <td>0.3769</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, gu-IN)</td>
+      <td>0.1637</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, hi-IN)</td>
+      <td>0.2709</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, id-ID)</td>
+      <td>0.6600</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ja-JP)</td>
+      <td>0.6272</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, kn-IN)</td>
+      <td>0.1227</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ko-KR)</td>
+      <td>0.6598</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ml-IN)</td>
+      <td>0.0020</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, mr-IN)</td>
+      <td>0.1079</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ru-RU)</td>
+      <td>0.6101</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ta-IN)</td>
+      <td>0.2538</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, te-IN)</td>
+      <td>0.0774</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ur-IN)</td>
+      <td>0.3204</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ur-PK)</td>
+      <td>0.3059</td>
     </tr>
   </tbody>
 </table>
