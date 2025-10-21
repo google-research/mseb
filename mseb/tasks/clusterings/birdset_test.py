@@ -61,7 +61,7 @@ class BirdsetClusteringTest(absltest.TestCase):
 
     # Write fake data to temporary files
     fake_parquet_path = os.path.join(
-        self.testdata_dir.full_path, "birdset_HSN_test.parquet"
+        self.testdata_dir.full_path, "birdset_HSN_test_5s.parquet"
     )
     self.fake_df.to_parquet(fake_parquet_path)
 

@@ -56,7 +56,7 @@ class BirdsetClustering(clustering.ClusteringTask):
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
     self._birdset_dataset = birdset.BirdsetDataset(
-        split="test", configuration=self.configuration
+        split="test_5s", configuration=self.configuration
     )
 
   def _task_data(self):
