@@ -25,6 +25,7 @@ import sys
 from typing import Any, Callable
 from absl import flags
 from mseb import encoder as encoder_lib
+from mseb.encoders import clap_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
@@ -248,6 +249,15 @@ whisper_large_asr_saliency = EncoderMetadata(
         language=_LANGUAGE.value,
         top_k=3,
         idf_table_path=_IDF_TABLE_PATH.value
+    )
+)
+
+# Classification encoders:
+laion_clap_encoder = EncoderMetadata(
+    name="laion_clap_encoder",
+    encoder=clap_encoder.ClapEncoder,
+    params=lambda: dict(
+        model_path="laion/clap-htsat-unfused",
     )
 )
 
