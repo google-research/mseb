@@ -33,8 +33,9 @@ class FSD50KTestClassificationTest(absltest.TestCase):
     os.makedirs(labels_dir)
 
     vocab_data = pd.DataFrame({
-        'index': [0, 1, 2], 'mid': ['m0', 'm1', 'm2'],
+        'index': [0, 1, 2],
         'display_name': ['Bark', 'Meow', 'Siren'],
+        'mid': ['m0', 'm1', 'm2'],
     })
     vocab_data.to_csv(
         os.path.join(labels_dir, 'vocabulary.csv'),

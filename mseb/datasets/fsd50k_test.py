@@ -36,7 +36,6 @@ class FSD50KDatasetTest(absltest.TestCase):
     os.makedirs(labels_dir)
     vocab_data = {
         'index': [0, 1, 2, 3, 4],
-        'mid': ['/m/02sgy', '/m/0342h', '/m/0fx80y', '/m/04szw', '/m/04rlf'],
         'display_name': [
             'Electric_guitar',
             'Guitar',
@@ -44,6 +43,7 @@ class FSD50KDatasetTest(absltest.TestCase):
             'Musical_instrument',
             'Music',
         ],
+        'mid': ['/m/02sgy', '/m/0342h', '/m/0fx80y', '/m/04szw', '/m/04rlf'],
     }
     pd.DataFrame(vocab_data).to_csv(
         os.path.join(labels_dir, 'vocabulary.csv'), header=False, index=False

@@ -17,12 +17,11 @@
 import os
 from typing import Any
 
+from absl import logging
 from mseb import dataset
 from mseb import types
 from mseb import utils
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 
 
 class FSD50KDataset:
@@ -42,8 +41,8 @@ class FSD50KDataset:
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
 
-    self._load_vocabulary()
     self._data = self._load_metadata()
+    self._load_vocabulary()
 
   def __len__(self) -> int:
     return len(self._data)
@@ -89,27 +88,71 @@ class FSD50KDataset:
     if not os.path.exists(vocab_path):
       raise FileNotFoundError(f'Vocabulary file not found at {vocab_path}.')
     vocab_df = pd.read_csv(
-        vocab_path, header=None, names=['index', 'mid', 'display_name']
+        vocab_path, header=None, names=['index', 'display_name', 'mid']
     )
     self._class_labels = vocab_df['display_name'].tolist()
     self.label_to_id = {label: i for i, label in enumerate(self._class_labels)}
 
   def _load_csv(self):
-    csv_name = 'eval.csv' if self.split == 'test' else 'dev.csv'
-    df = pd.read_csv(self._path('labels', csv_name))
-    split_value = 'val' if self.split == 'validation' else self.split
-    df = df[df['split'] == split_value]
+    """Loads the appropriate FSD50K metadata CSV for the configured split.
+
+    This method handles the logic for selecting and processing the correct
+    metadata file based on the dataset's split.
+
+    - For the 'test' split, it loads `eval.csv`, which contains only test data.
+    - For the 'validation' split, it loads `dev.csv` and then filters it to
+      only include rows where the 'split' column is marked as 'val'.
+
+    Returns:
+      A pandas DataFrame containing the metadata for the requested split.
+    """
+    if self.split == 'test':
+      # eval.csv is for the 'test' split and has no 'split' column.
+      # We load it directly without filtering.
+      csv_path = self._path('labels', 'eval.csv')
+      df = pd.read_csv(csv_path)
+    elif self.split == 'validation':
+      # dev.csv contains multiple splits, so we must load and then filter it.
+      csv_path = self._path('labels', 'dev.csv')
+      df = pd.read_csv(csv_path)
+      df = df[df['split'] == 'val']
+    else:
+      # This case should not be reached due to the check in __init__
+      raise ValueError(
+          f'Unsupported split {self.split} for _load_csv'
+      )
     return df
 
   def _load_metadata(self) -> pd.DataFrame:
+    """Loads the dataset metadata, utilizing a parquet cache for speed.
+
+    This method first checks for a pre-processed `.parquet` cache file for
+    the specified split. If the cache is found, it's loaded directly for a
+    fast startup.
+
+    If the cache is not found, it triggers a one-time download of the raw
+    dataset from Hugging Face, processes the data via `_load_csv`, and saves
+    the result to a new `.parquet` file to accelerate all future loads.
+
+    Returns:
+      A pandas DataFrame containing the dataset's metadata.
+    """
     cache_path = self._path(f'{self.split}.parquet')
     if os.path.exists(cache_path):
-      parquet_file = pq.ParquetFile(cache_path)
-      batches = list(parquet_file.iter_batches(batch_size=1024))
-      pa_table = pa.Table.from_batches(batches)
-      return pa_table.to_pandas()
+      logging.info(
+          'Loading FSD50K %s split from cache...', self.split
+      )
+      return pd.read_parquet(cache_path)
+    logging.info(
+        'Cache not found. Processing FSD50K %s split from source...'
+    )
     utils.download_from_hf(self.repo_id, self.base_path)
-    return self._load_csv()
+    df = self._load_csv()
+    logging.info(
+        'Saving FSD50K %s split to cache at %s', self.split, cache_path
+    )
+    df.to_parquet(cache_path)
+    return df
 
   def _load_wav_for_row(self, row):
     fname = row['fname']
