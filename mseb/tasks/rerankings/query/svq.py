@@ -115,7 +115,7 @@ class SVQArXGulfQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -142,7 +142,7 @@ class SVQArXLevantQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -169,7 +169,7 @@ class SVQArXMaghrebiQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -196,7 +196,7 @@ class SVQBnBdQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -223,7 +223,7 @@ class SVQBnInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -250,7 +250,7 @@ class SVQEnAuQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -277,7 +277,7 @@ class SVQEnGbQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -304,7 +304,7 @@ class SVQEnInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -331,7 +331,7 @@ class SVQEnPhQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -358,7 +358,7 @@ class SVQEnUsQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -385,7 +385,7 @@ class SVQFiFiQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -412,7 +412,7 @@ class SVQGuInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -439,7 +439,7 @@ class SVQHiInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -466,7 +466,7 @@ class SVQIdIdQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -493,7 +493,7 @@ class SVQJaJpQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -520,7 +520,7 @@ class SVQKnInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -547,7 +547,7 @@ class SVQKoKrQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -574,7 +574,7 @@ class SVQMlInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -601,7 +601,7 @@ class SVQMrInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -628,7 +628,7 @@ class SVQRuRuQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -655,7 +655,7 @@ class SVQSwQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -682,7 +682,7 @@ class SVQTaInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -709,7 +709,7 @@ class SVQTeInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -736,7 +736,7 @@ class SVQUrInQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
@@ -763,7 +763,7 @@ class SVQUrPkQueryReranking(SVQQueryReranking):
       reference='TODO',
       type='QueryReranking',
       category='speech',
-      main_score='MRR',
+      main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
           path='https://huggingface.co/datasets/google/svq',
