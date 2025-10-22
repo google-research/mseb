@@ -14,7 +14,7 @@
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
 
 <table class="summary-table">
-  <tr><td>Tasks:</td><td>252</td></tr>
+  <tr><td>Tasks:</td><td>255</td></tr>
   <tr><td>Task Types:</td><td>11</td></tr>
   <tr><td>Languages:</td><td>37</td></tr>
 </table>
@@ -273,6 +273,21 @@
     </tr>
     <tr>
      <td>16</td>
+     <td>perch_embedding</td>
+      <td>N/A</td>
+      <td>0.3917</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>17</td>
      <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>N/A</td>
       <td>0.6108</td>
@@ -287,7 +302,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>17</td>
+     <td>18</td>
      <td>wav2vec2-large-960h-lv60_pooled_mean</td>
       <td>N/A</td>
       <td>0.5990</td>
@@ -302,7 +317,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>18</td>
+     <td>19</td>
      <td>whisper_large_asr_saliency</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -363,13 +378,36 @@
     <tr>
       <th>Metric</th>
       <th>hubert_large_ls960_ft_pooled_mean</th>
+      <th>perch_embedding</th>
       <th>raw_spectrogram_25ms_10ms_mean</th>
       <th>wav2vec2-large-960h-lv60_pooled_mean</th>
     </tr>
   </thead>
   <tbody>
     <tr>
+     <td>BirdsetClusteringHSN/clustering (VMeasure)<br/>(Clustering, en-US)</td>
+      <td>N/A</td>
+      <td>0.2947</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>BirdsetClusteringNBP/clustering (VMeasure)<br/>(Clustering, en-US)</td>
+      <td>N/A</td>
+      <td>0.5265</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>BirdsetClusteringPOW/clustering (VMeasure)<br/>(Clustering, en-US)</td>
+      <td>N/A</td>
+      <td>0.3539</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
      <td>SVQClustering/speaker_age (VMeasure)<br/>(Clustering, en-US)</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>0.0604</td>
       <td>N/A</td>
@@ -377,11 +415,13 @@
     <tr>
      <td>SVQClustering/speaker_gender (VMeasure)<br/>(Clustering, en-US)</td>
       <td>N/A</td>
+      <td>N/A</td>
       <td>0.0079</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>SVQClustering/speaker_id (VMeasure)<br/>(Clustering, en-US)</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>0.3682</td>
       <td>N/A</td>
@@ -389,468 +429,546 @@
     <tr>
      <td>SVQClusteringArEg/speaker_age (VMeasure)<br/>(Clustering, ar-EG)</td>
       <td>0.8482</td>
+      <td>N/A</td>
       <td>0.9007</td>
       <td>0.8868</td>
     </tr>
     <tr>
      <td>SVQClusteringArEg/speaker_gender (VMeasure)<br/>(Clustering, ar-EG)</td>
       <td>0.0018</td>
+      <td>N/A</td>
       <td>0.0403</td>
       <td>0.0018</td>
     </tr>
     <tr>
      <td>SVQClusteringArEg/speaker_id (VMeasure)<br/>(Clustering, ar-EG)</td>
       <td>0.8330</td>
+      <td>N/A</td>
       <td>0.9359</td>
       <td>0.9359</td>
     </tr>
     <tr>
      <td>SVQClusteringArXGulf/speaker_age (VMeasure)<br/>(Clustering, ar-x-gulf)</td>
       <td>0.8868</td>
+      <td>N/A</td>
       <td>0.9007</td>
       <td>0.8482</td>
     </tr>
     <tr>
      <td>SVQClusteringArXGulf/speaker_gender (VMeasure)<br/>(Clustering, ar-x-gulf)</td>
       <td>0.0018</td>
+      <td>N/A</td>
       <td>0.4208</td>
       <td>0.0986</td>
     </tr>
     <tr>
      <td>SVQClusteringArXGulf/speaker_id (VMeasure)<br/>(Clustering, ar-x-gulf)</td>
       <td>0.8069</td>
+      <td>N/A</td>
       <td>0.8482</td>
       <td>0.8482</td>
     </tr>
     <tr>
      <td>SVQClusteringArXLevant/speaker_age (VMeasure)<br/>(Clustering, ar-x-levant)</td>
       <td>0.9007</td>
+      <td>N/A</td>
       <td>0.7796</td>
       <td>0.9007</td>
     </tr>
     <tr>
      <td>SVQClusteringArXLevant/speaker_gender (VMeasure)<br/>(Clustering, ar-x-levant)</td>
       <td>0.5291</td>
+      <td>N/A</td>
       <td>0.4084</td>
       <td>0.5291</td>
     </tr>
     <tr>
      <td>SVQClusteringArXLevant/speaker_id (VMeasure)<br/>(Clustering, ar-x-levant)</td>
       <td>0.9007</td>
+      <td>N/A</td>
       <td>0.9176</td>
       <td>0.9359</td>
     </tr>
     <tr>
      <td>SVQClusteringArXMaghrebi/speaker_age (VMeasure)<br/>(Clustering, ar-x-maghrebi)</td>
       <td>0.8056</td>
+      <td>N/A</td>
       <td>0.7745</td>
       <td>0.8056</td>
     </tr>
     <tr>
      <td>SVQClusteringArXMaghrebi/speaker_gender (VMeasure)<br/>(Clustering, ar-x-maghrebi)</td>
       <td>0.0371</td>
+      <td>N/A</td>
       <td>0.0986</td>
       <td>0.0371</td>
     </tr>
     <tr>
      <td>SVQClusteringArXMaghrebi/speaker_id (VMeasure)<br/>(Clustering, ar-x-maghrebi)</td>
       <td>0.9359</td>
+      <td>N/A</td>
       <td>0.9690</td>
       <td>0.9690</td>
     </tr>
     <tr>
      <td>SVQClusteringBnBd/speaker_age (VMeasure)<br/>(Clustering, bn-BD)</td>
       <td>0.6555</td>
+      <td>N/A</td>
       <td>0.6628</td>
       <td>0.7208</td>
     </tr>
     <tr>
      <td>SVQClusteringBnBd/speaker_gender (VMeasure)<br/>(Clustering, bn-BD)</td>
       <td>1.0000</td>
+      <td>N/A</td>
       <td>1.0000</td>
       <td>1.0000</td>
     </tr>
     <tr>
      <td>SVQClusteringBnBd/speaker_id (VMeasure)<br/>(Clustering, bn-BD)</td>
       <td>0.7745</td>
+      <td>N/A</td>
       <td>0.7330</td>
       <td>0.8530</td>
     </tr>
     <tr>
      <td>SVQClusteringBnIn/speaker_age (VMeasure)<br/>(Clustering, bn-IN)</td>
       <td>0.6421</td>
+      <td>N/A</td>
       <td>0.8238</td>
       <td>0.6421</td>
     </tr>
     <tr>
      <td>SVQClusteringBnIn/speaker_gender (VMeasure)<br/>(Clustering, bn-IN)</td>
       <td>1.0000</td>
+      <td>N/A</td>
       <td>1.0000</td>
       <td>1.0000</td>
     </tr>
     <tr>
      <td>SVQClusteringBnIn/speaker_id (VMeasure)<br/>(Clustering, bn-IN)</td>
       <td>0.8530</td>
+      <td>N/A</td>
       <td>0.8787</td>
       <td>0.8631</td>
     </tr>
     <tr>
      <td>SVQClusteringEnAu/speaker_age (VMeasure)<br/>(Clustering, en-AU)</td>
       <td>0.8482</td>
+      <td>N/A</td>
       <td>0.9007</td>
       <td>0.8228</td>
     </tr>
     <tr>
      <td>SVQClusteringEnAu/speaker_gender (VMeasure)<br/>(Clustering, en-AU)</td>
       <td>0.0206</td>
+      <td>N/A</td>
       <td>0.3037</td>
       <td>0.0206</td>
     </tr>
     <tr>
      <td>SVQClusteringEnAu/speaker_id (VMeasure)<br/>(Clustering, en-AU)</td>
       <td>0.8868</td>
+      <td>N/A</td>
       <td>0.9007</td>
       <td>0.9690</td>
     </tr>
     <tr>
      <td>SVQClusteringEnGb/speaker_age (VMeasure)<br/>(Clustering, en-GB)</td>
       <td>0.6284</td>
+      <td>N/A</td>
       <td>0.8369</td>
       <td>0.7621</td>
     </tr>
     <tr>
      <td>SVQClusteringEnGb/speaker_gender (VMeasure)<br/>(Clustering, en-GB)</td>
       <td>0.2174</td>
+      <td>N/A</td>
       <td>0.0018</td>
       <td>0.0986</td>
     </tr>
     <tr>
      <td>SVQClusteringEnGb/speaker_id (VMeasure)<br/>(Clustering, en-GB)</td>
       <td>0.9114</td>
+      <td>N/A</td>
       <td>0.7621</td>
       <td>0.7796</td>
     </tr>
     <tr>
      <td>SVQClusteringEnIn/speaker_age (VMeasure)<br/>(Clustering, en-IN)</td>
       <td>0.7905</td>
+      <td>N/A</td>
       <td>0.7448</td>
       <td>0.7145</td>
     </tr>
     <tr>
      <td>SVQClusteringEnIn/speaker_gender (VMeasure)<br/>(Clustering, en-IN)</td>
       <td>0.5291</td>
+      <td>N/A</td>
       <td>0.3063</td>
       <td>0.2895</td>
     </tr>
     <tr>
      <td>SVQClusteringEnIn/speaker_id (VMeasure)<br/>(Clustering, en-IN)</td>
       <td>0.9007</td>
+      <td>N/A</td>
       <td>0.8631</td>
       <td>0.9007</td>
     </tr>
     <tr>
      <td>SVQClusteringEnPh/speaker_age (VMeasure)<br/>(Clustering, en-PH)</td>
       <td>0.8482</td>
+      <td>N/A</td>
       <td>0.8631</td>
       <td>0.9176</td>
     </tr>
     <tr>
      <td>SVQClusteringEnPh/speaker_gender (VMeasure)<br/>(Clustering, en-PH)</td>
       <td>0.1097</td>
+      <td>N/A</td>
       <td>0.1097</td>
       <td>0.1097</td>
     </tr>
     <tr>
      <td>SVQClusteringEnPh/speaker_id (VMeasure)<br/>(Clustering, en-PH)</td>
       <td>0.8868</td>
+      <td>N/A</td>
       <td>0.9359</td>
       <td>0.9690</td>
     </tr>
     <tr>
      <td>SVQClusteringEnUs/speaker_age (VMeasure)<br/>(Clustering, en-US)</td>
       <td>0.6993</td>
+      <td>N/A</td>
       <td>0.6355</td>
       <td>0.7189</td>
     </tr>
     <tr>
      <td>SVQClusteringEnUs/speaker_gender (VMeasure)<br/>(Clustering, en-US)</td>
       <td>0.1214</td>
+      <td>N/A</td>
       <td>0.5061</td>
       <td>0.1117</td>
     </tr>
     <tr>
      <td>SVQClusteringEnUs/speaker_id (VMeasure)<br/>(Clustering, en-US)</td>
       <td>0.8069</td>
+      <td>N/A</td>
       <td>0.9505</td>
       <td>0.8069</td>
     </tr>
     <tr>
      <td>SVQClusteringFiFi/speaker_age (VMeasure)<br/>(Clustering, fi-FI)</td>
       <td>0.5421</td>
+      <td>N/A</td>
       <td>0.5340</td>
       <td>0.6189</td>
     </tr>
     <tr>
      <td>SVQClusteringFiFi/speaker_gender (VMeasure)<br/>(Clustering, fi-FI)</td>
       <td>0.4208</td>
+      <td>N/A</td>
       <td>0.3037</td>
       <td>0.0812</td>
     </tr>
     <tr>
      <td>SVQClusteringFiFi/speaker_id (VMeasure)<br/>(Clustering, fi-FI)</td>
       <td>0.9359</td>
+      <td>N/A</td>
       <td>0.9690</td>
       <td>0.8868</td>
     </tr>
     <tr>
      <td>SVQClusteringGuIn/speaker_age (VMeasure)<br/>(Clustering, gu-IN)</td>
       <td>0.6387</td>
+      <td>N/A</td>
       <td>0.6057</td>
       <td>0.5455</td>
     </tr>
     <tr>
      <td>SVQClusteringGuIn/speaker_gender (VMeasure)<br/>(Clustering, gu-IN)</td>
       <td>0.1263</td>
+      <td>N/A</td>
       <td>0.2746</td>
       <td>0.0000</td>
     </tr>
     <tr>
      <td>SVQClusteringGuIn/speaker_id (VMeasure)<br/>(Clustering, gu-IN)</td>
       <td>0.7624</td>
+      <td>N/A</td>
       <td>0.7919</td>
       <td>0.7330</td>
     </tr>
     <tr>
      <td>SVQClusteringHiIn/speaker_age (VMeasure)<br/>(Clustering, hi-IN)</td>
       <td>0.8158</td>
+      <td>N/A</td>
       <td>0.8238</td>
       <td>0.7740</td>
     </tr>
     <tr>
      <td>SVQClusteringHiIn/speaker_gender (VMeasure)<br/>(Clustering, hi-IN)</td>
       <td>0.6190</td>
+      <td>N/A</td>
       <td>0.0063</td>
       <td>0.2020</td>
     </tr>
     <tr>
      <td>SVQClusteringHiIn/speaker_id (VMeasure)<br/>(Clustering, hi-IN)</td>
       <td>0.7433</td>
+      <td>N/A</td>
       <td>0.8721</td>
       <td>0.8525</td>
     </tr>
     <tr>
      <td>SVQClusteringIdId/speaker_age (VMeasure)<br/>(Clustering, id-ID)</td>
       <td>0.7624</td>
+      <td>N/A</td>
       <td>0.7796</td>
       <td>0.9176</td>
     </tr>
     <tr>
      <td>SVQClusteringIdId/speaker_gender (VMeasure)<br/>(Clustering, id-ID)</td>
       <td>0.2866</td>
+      <td>N/A</td>
       <td>0.1097</td>
       <td>0.0812</td>
     </tr>
     <tr>
      <td>SVQClusteringIdId/speaker_id (VMeasure)<br/>(Clustering, id-ID)</td>
       <td>0.9007</td>
+      <td>N/A</td>
       <td>0.8482</td>
       <td>0.8069</td>
     </tr>
     <tr>
      <td>SVQClusteringJaJp/speaker_age (VMeasure)<br/>(Clustering, ja-JP)</td>
       <td>0.7538</td>
+      <td>N/A</td>
       <td>0.5843</td>
       <td>0.7433</td>
     </tr>
     <tr>
      <td>SVQClusteringJaJp/speaker_gender (VMeasure)<br/>(Clustering, ja-JP)</td>
       <td>0.1010</td>
+      <td>N/A</td>
       <td>0.0403</td>
       <td>0.1010</td>
     </tr>
     <tr>
      <td>SVQClusteringJaJp/speaker_id (VMeasure)<br/>(Clustering, ja-JP)</td>
       <td>0.7039</td>
+      <td>N/A</td>
       <td>0.6628</td>
       <td>0.6478</td>
     </tr>
     <tr>
      <td>SVQClusteringKnIn/speaker_age (VMeasure)<br/>(Clustering, kn-IN)</td>
       <td>0.5611</td>
+      <td>N/A</td>
       <td>0.7547</td>
       <td>0.6421</td>
     </tr>
     <tr>
      <td>SVQClusteringKnIn/speaker_gender (VMeasure)<br/>(Clustering, kn-IN)</td>
       <td>0.2342</td>
+      <td>N/A</td>
       <td>0.1650</td>
       <td>0.2155</td>
     </tr>
     <tr>
      <td>SVQClusteringKnIn/speaker_id (VMeasure)<br/>(Clustering, kn-IN)</td>
       <td>0.7796</td>
+      <td>N/A</td>
       <td>0.8693</td>
       <td>0.7796</td>
     </tr>
     <tr>
      <td>SVQClusteringKoKr/speaker_age (VMeasure)<br/>(Clustering, ko-KR)</td>
       <td>0.8093</td>
+      <td>N/A</td>
       <td>0.7621</td>
       <td>0.7145</td>
     </tr>
     <tr>
      <td>SVQClusteringKoKr/speaker_gender (VMeasure)<br/>(Clustering, ko-KR)</td>
       <td>0.0087</td>
+      <td>N/A</td>
       <td>0.1263</td>
       <td>0.0063</td>
     </tr>
     <tr>
      <td>SVQClusteringKoKr/speaker_id (VMeasure)<br/>(Clustering, ko-KR)</td>
       <td>0.7796</td>
+      <td>N/A</td>
       <td>0.8482</td>
       <td>0.8787</td>
     </tr>
     <tr>
      <td>SVQClusteringMlIn/speaker_age (VMeasure)<br/>(Clustering, ml-IN)</td>
       <td>0.7556</td>
+      <td>N/A</td>
       <td>0.7624</td>
       <td>0.7740</td>
     </tr>
     <tr>
      <td>SVQClusteringMlIn/speaker_gender (VMeasure)<br/>(Clustering, ml-IN)</td>
       <td>0.0371</td>
+      <td>N/A</td>
       <td>0.0290</td>
       <td>0.2746</td>
     </tr>
     <tr>
      <td>SVQClusteringMlIn/speaker_id (VMeasure)<br/>(Clustering, ml-IN)</td>
       <td>0.8868</td>
+      <td>N/A</td>
       <td>0.9359</td>
       <td>0.9359</td>
     </tr>
     <tr>
      <td>SVQClusteringMrIn/speaker_age (VMeasure)<br/>(Clustering, mr-IN)</td>
       <td>0.7796</td>
+      <td>N/A</td>
       <td>0.8583</td>
       <td>0.7145</td>
     </tr>
     <tr>
      <td>SVQClusteringMrIn/speaker_gender (VMeasure)<br/>(Clustering, mr-IN)</td>
       <td>0.4024</td>
+      <td>N/A</td>
       <td>0.2811</td>
       <td>0.1470</td>
     </tr>
     <tr>
      <td>SVQClusteringMrIn/speaker_id (VMeasure)<br/>(Clustering, mr-IN)</td>
       <td>0.7145</td>
+      <td>N/A</td>
       <td>0.8414</td>
       <td>0.7624</td>
     </tr>
     <tr>
      <td>SVQClusteringRuRu/speaker_age (VMeasure)<br/>(Clustering, ru-RU)</td>
       <td>0.8369</td>
+      <td>N/A</td>
       <td>0.8069</td>
       <td>0.8069</td>
     </tr>
     <tr>
      <td>SVQClusteringRuRu/speaker_gender (VMeasure)<br/>(Clustering, ru-RU)</td>
       <td>0.1471</td>
+      <td>N/A</td>
       <td>0.2866</td>
       <td>0.0573</td>
     </tr>
     <tr>
      <td>SVQClusteringRuRu/speaker_id (VMeasure)<br/>(Clustering, ru-RU)</td>
       <td>0.9229</td>
+      <td>N/A</td>
       <td>0.8631</td>
       <td>0.9690</td>
     </tr>
     <tr>
      <td>SVQClusteringSw/speaker_age (VMeasure)<br/>(Clustering, sw)</td>
       <td>0.8056</td>
+      <td>N/A</td>
       <td>0.7239</td>
       <td>0.8210</td>
     </tr>
     <tr>
      <td>SVQClusteringSw/speaker_gender (VMeasure)<br/>(Clustering, sw)</td>
       <td>0.0290</td>
+      <td>N/A</td>
       <td>0.0371</td>
       <td>0.0290</td>
     </tr>
     <tr>
      <td>SVQClusteringSw/speaker_id (VMeasure)<br/>(Clustering, sw)</td>
       <td>0.8937</td>
+      <td>N/A</td>
       <td>0.8228</td>
       <td>0.9176</td>
     </tr>
     <tr>
      <td>SVQClusteringTaIn/speaker_age (VMeasure)<br/>(Clustering, ta-IN)</td>
       <td>0.7239</td>
+      <td>N/A</td>
       <td>0.7239</td>
       <td>0.4926</td>
     </tr>
     <tr>
      <td>SVQClusteringTaIn/speaker_gender (VMeasure)<br/>(Clustering, ta-IN)</td>
       <td>0.1263</td>
+      <td>N/A</td>
       <td>0.2746</td>
       <td>0.0290</td>
     </tr>
     <tr>
      <td>SVQClusteringTaIn/speaker_id (VMeasure)<br/>(Clustering, ta-IN)</td>
       <td>0.8937</td>
+      <td>N/A</td>
       <td>0.8093</td>
       <td>0.8937</td>
     </tr>
     <tr>
      <td>SVQClusteringTeIn/speaker_age (VMeasure)<br/>(Clustering, te-IN)</td>
       <td>0.7919</td>
+      <td>N/A</td>
       <td>0.7905</td>
       <td>0.7624</td>
     </tr>
     <tr>
      <td>SVQClusteringTeIn/speaker_gender (VMeasure)<br/>(Clustering, te-IN)</td>
       <td>0.0063</td>
+      <td>N/A</td>
       <td>0.0063</td>
       <td>0.0063</td>
     </tr>
     <tr>
      <td>SVQClusteringTeIn/speaker_id (VMeasure)<br/>(Clustering, te-IN)</td>
       <td>0.9690</td>
+      <td>N/A</td>
       <td>0.9690</td>
       <td>0.9690</td>
     </tr>
     <tr>
      <td>SVQClusteringUrIn/speaker_age (VMeasure)<br/>(Clustering, ur-IN)</td>
       <td>0.6955</td>
+      <td>N/A</td>
       <td>0.8369</td>
       <td>0.8203</td>
     </tr>
     <tr>
      <td>SVQClusteringUrIn/speaker_gender (VMeasure)<br/>(Clustering, ur-IN)</td>
       <td>0.0371</td>
+      <td>N/A</td>
       <td>0.0986</td>
       <td>0.0063</td>
     </tr>
     <tr>
      <td>SVQClusteringUrIn/speaker_id (VMeasure)<br/>(Clustering, ur-IN)</td>
       <td>0.8228</td>
+      <td>N/A</td>
       <td>0.9316</td>
       <td>0.8203</td>
     </tr>
     <tr>
      <td>SVQClusteringUrPk/speaker_age (VMeasure)<br/>(Clustering, ur-PK)</td>
       <td>0.8530</td>
+      <td>N/A</td>
       <td>0.8530</td>
       <td>0.7621</td>
     </tr>
     <tr>
      <td>SVQClusteringUrPk/speaker_gender (VMeasure)<br/>(Clustering, ur-PK)</td>
       <td>0.0371</td>
+      <td>N/A</td>
       <td>0.2746</td>
       <td>0.0371</td>
     </tr>
     <tr>
      <td>SVQClusteringUrPk/speaker_id (VMeasure)<br/>(Clustering, ur-PK)</td>
       <td>0.8787</td>
+      <td>N/A</td>
       <td>0.7796</td>
       <td>0.8203</td>
     </tr>
