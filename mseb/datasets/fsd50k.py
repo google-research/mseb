@@ -151,7 +151,7 @@ class FSD50KDataset:
     logging.info(
         'Saving FSD50K %s split to cache at %s', self.split, cache_path
     )
-    df.to_parquet(cache_path)
+    df.to_parquet(cache_path, row_group_size=32)
     return df
 
   def _load_wav_for_row(self, row):
