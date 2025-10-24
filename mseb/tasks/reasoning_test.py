@@ -190,6 +190,63 @@ class ReasoningTest(absltest.TestCase):
     self.assertIsNotNone(task._evaluator.span_embeddings_by_sound_id)
     self.assertLen(task._evaluator.span_embeddings_by_sound_id, 2)
 
+  def test_reasoning_task_compute_scores_with_prediction_output(self):
+
+    class MockReasoningTask(reasoning.ReasoningTask):
+
+      @property
+      def embeddings_dir(self) -> str:
+        raise FileNotFoundError()  # setup() logic relies on this exception.
+
+      def sounds(self) -> Iterable[types.Sound]:
+        raise NotImplementedError()
+
+      def examples(
+          self, sub_task: str
+      ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
+        return [
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='utt_11697423627206642872',
+                texts=['ref_1A', 'ref_1B'],
+                reference_answer=reasoning_evaluator.NO_ANSWER_STR,
+            ),
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='utt_15041124811443622614',
+                texts=['ref_2A', 'ref_2B', 'ref_2C'],
+                reference_answer='ref_2A',
+            ),
+        ]
+
+      def span_lists(self) -> Iterable[Sequence[types.Text]]:
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ['test']
+
+    embeddings = {
+        'utt_11697423627206642872': types.ReasoningPrediction(
+            answer='ref_1A',
+            context=types.ReasoningContextParams(
+                id='utt_11697423627206642872',
+            ),
+        ),
+        'utt_15041124811443622614': types.ReasoningPrediction(
+            answer='ref_2A',
+            context=types.ReasoningContextParams(
+                id='utt_15041124811443622614',
+            ),
+        ),
+    }
+
+    task = MockReasoningTask()
+    task.setup()
+    self.assertEqual(task.sub_tasks, ['test'])
+    scores = task.compute_scores(embeddings=embeddings)
+    self.assertLen(scores, 1)
+    self.assertIn('test', scores)
+    self.assertEqual(scores['test'][0].metric, 'GmeanF1')
+
 
 if __name__ == '__main__':
   absltest.main()
