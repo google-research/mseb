@@ -56,7 +56,7 @@ class ReasoningTest(absltest.TestCase):
             reasoning_evaluator.ReasoningSpans(
                 sound_id='utt_11697423627206642872',
                 texts=['ref_1A', 'ref_1B'],
-                reference_answer='No Answer',
+                reference_answer=reasoning_evaluator.NO_ANSWER_STR,
             ),
             reasoning_evaluator.ReasoningSpans(
                 sound_id='utt_15041124811443622614',
@@ -138,7 +138,7 @@ class ReasoningTest(absltest.TestCase):
     scores = task.compute_scores(embeddings=embeddings)
     self.assertLen(scores, 1)
     self.assertIn('test', scores)
-    self.assertEqual(scores['test'][0].metric, 'F1')
+    self.assertEqual(scores['test'][0].metric, 'GmeanF1')
 
   def test_reasoning_task_setup(self):
 
@@ -168,7 +168,7 @@ class ReasoningTest(absltest.TestCase):
         return [
             reasoning_evaluator.ReasoningSpans(
                 sound_id='sound_1',
-                reference_answer='No Answer',
+                reference_answer=reasoning_evaluator.NO_ANSWER_STR,
                 texts=['dummy span 0', 'dummy span 1', 'dummy span 2'],
             ),
             reasoning_evaluator.ReasoningSpans(

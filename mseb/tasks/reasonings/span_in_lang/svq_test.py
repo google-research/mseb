@@ -19,11 +19,14 @@ import shutil
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
-
 from mseb import dataset
+from mseb.evaluators import reasoning_evaluator
 from mseb.tasks.reasonings.span_in_lang import svq
 
 FLAGS = flags.FLAGS
+
+
+NO_ANSWER_STR = reasoning_evaluator.NO_ANSWER_STR
 
 
 class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
@@ -42,9 +45,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     os.chmod(cache_dir, 0o755)
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
     self.enter_context(
-        flagsaver.flagsaver(
-            (dataset._DATASET_BASEPATH, cache_dir)
-        )
+        flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
     )
 
   def test_svq_span_in_lang_reasoning_span_lists(self):
@@ -58,17 +59,13 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     self.assertIsNone(spans[0].context.title)
     self.assertEqual(spans[0].text, "At what temperature does steel melt?")
     self.assertEqual(spans[1].context.id, spans[1].text)
-    self.assertEqual(
-        spans[1].text, "At what temperature does steel melts?"
-    )
+    self.assertEqual(spans[1].text, "At what temperature does steel melts?")
     self.assertEqual(spans[2].context.id, spans[2].text)
     self.assertEqual(spans[2].text, "At what tempo, does shale melt?")
     self.assertEqual(spans[3].context.id, spans[3].text)
     self.assertEqual(spans[3].text, "At what degree does steel liquify?")
     self.assertEqual(spans[4].context.id, spans[4].text)
-    self.assertEqual(
-        spans[4].text, "At what heat intensity does steel melt?"
-    )
+    self.assertEqual(spans[4].text, "At what heat intensity does steel melt?")
 
   def test_svq_span_in_lang_reasoning_sounds(self):
     task = svq.SVQEnUsSpanInLangReasoning()
@@ -92,15 +89,11 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     example = examples[0]
     self.assertEqual(example.sound_id, "utt_11697423627206642872")
     self.assertLen(example.texts, 5)
-    self.assertEqual(
-        example.reference_answer, "above 900 \\u00b0F"
-    )
+    self.assertEqual(example.reference_answer, "above 900 \\u00b0F")
     example = examples[1]
     self.assertEqual(example.sound_id, "utt_15041124811443622614")
     self.assertLen(example.texts, 5)
-    self.assertEqual(
-        example.reference_answer, "No Answer"
-    )
+    self.assertEqual(example.reference_answer, NO_ANSWER_STR)
 
 
 if __name__ == "__main__":

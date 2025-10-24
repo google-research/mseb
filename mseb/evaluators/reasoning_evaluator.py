@@ -28,10 +28,40 @@ from mseb import types
 import numpy as np
 
 
+NO_ANSWER_STR = 'No Answer'
+
+
 def f1(value: float = 0.0, std: float | None = None):
   return types.Score(
       metric='F1',
       description='F1 score',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
+
+
+def gmean_f1(value: float = 0.0, std: float | None = None):
+  """geometric mean of f1('No Answer's) and f1(real answers).
+
+  Motivation:
+    - f1('No Answer's) ~ f1(real answers): same as original f1.
+    - trivial solution (all examples are assigned 'No Answer'): gmean-f1=0 vs
+      f1=p where p is the proportion of 'No Answer' examples (often ~50%, which
+    looks competitive with f1 numbers for gemma).
+
+  Args:
+    value: geometric mean of f1('No Answer's) and f1(real answers)
+    std: standard deviation of geometric mean of f1('No Answer's) and f1(real
+      answers)
+
+  Returns:
+    A types.Score object.
+  """
+  return types.Score(
+      metric='GmeanF1',
+      description='Geometric mean F1 score',
       value=value,
       min=0,
       max=1,
@@ -67,6 +97,8 @@ def normalize_squad(answer: str) -> str:
 
 def compute_f1_score(target: str, prediction: str) -> float:
   """Token-based F1 score used XTREME-UP."""
+  if target == NO_ANSWER_STR or prediction == NO_ANSWER_STR:
+    return float(target == prediction)
   prediction_tokens = prediction.split()
   target_tokens = target.split()
   common = collections.Counter(prediction_tokens) & collections.Counter(
@@ -115,7 +147,7 @@ class ReasoningEvaluator:
     """Computes the best matching span.
 
     If the score of the best span exceeds the no_answer_threshold, the text of
-    the best span is returned. Otherwise, 'No Answer' is returned.
+    the best span is returned. Otherwise, NO_ANSWER_STR is returned.
 
     Args:
       embeddings_by_sound_id: The sound embeddings.
@@ -138,12 +170,12 @@ class ReasoningEvaluator:
         top_span_score, top_span_id = self.predict_fn(scores)
         texts = [text.context.id for text in span_embeddings]
         prediction = (
-            'No Answer'
+            NO_ANSWER_STR
             if top_span_score[0] < self.no_answer_threshold
             else texts[top_span_id[0]]
         )
       else:
-        prediction = 'No Answer'
+        prediction = NO_ANSWER_STR
       predictions[sound_id] = types.ReasoningPrediction(
           answer=prediction,
           context=types.ReasoningContextParams(id=sound_id),
@@ -156,18 +188,43 @@ class ReasoningEvaluator:
       spans_batch: Sequence[ReasoningSpans],
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
-    values_by_metric: dict[str, list[types.WeightedValue]] = {'f1': []}
+    values_by_metric: dict[str, list[types.WeightedValue]] = {
+        'f1': [],
+        'f1_no_answer': [],
+    }
     for spans in spans_batch:
-      values_by_metric['f1'].append(
-          types.WeightedValue(
-              value=compute_f1_score(
-                  spans.reference_answer, predictions[spans.sound_id].answer
-              ),
-              weight=1.0,
-          )
+      f1_value = compute_f1_score(
+          spans.reference_answer, predictions[spans.sound_id].answer
       )
+      if spans.reference_answer == NO_ANSWER_STR:
+        values_by_metric['f1_no_answer'].append(
+            types.WeightedValue(value=f1_value, weight=1.0)
+        )
+      else:
+        values_by_metric['f1'].append(
+            types.WeightedValue(value=f1_value, weight=1.0)
+        )
 
     f1_score = f1(
-        *evaluator.compute_weighted_average_and_std(values_by_metric['f1'])
+        *evaluator.compute_weighted_average_and_std(
+            values_by_metric['f1'] + values_by_metric['f1_no_answer']
+        )
     )
-    return [f1_score]
+    weight = len(values_by_metric['f1']) / (
+        len(values_by_metric['f1']) + len(values_by_metric['f1_no_answer'])
+    )
+    weight_no_answer = 1.0 - weight
+    if values_by_metric['f1']:
+      mean, _ = evaluator.compute_weighted_average_and_std(
+          values_by_metric['f1']
+      )
+    else:
+      mean = 0.0
+    if values_by_metric['f1_no_answer']:
+      mean_no_answer, _ = evaluator.compute_weighted_average_and_std(
+          values_by_metric['f1_no_answer']
+      )
+    else:
+      mean_no_answer = 0.0
+    gmean_f1_score = gmean_f1(mean**weight * mean_no_answer**weight_no_answer)
+    return [gmean_f1_score, f1_score]

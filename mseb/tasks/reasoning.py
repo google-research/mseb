@@ -30,7 +30,7 @@ from mseb.evaluators import reasoning_evaluator
 _REASONING_NO_ANSWER_THRESHOLD = flags.DEFINE_float(
     'reasoning_no_answer_threshold',
     0.8,
-    '"No Answer" threshold for reasoning task.',
+    'NO_ANSWER_STR threshold for reasoning task.',
 )
 
 

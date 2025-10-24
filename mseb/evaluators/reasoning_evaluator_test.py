@@ -82,10 +82,13 @@ class ReasoningEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    npt.assert_equal(len(scores), 1)
-    self.assertIn('F1', scores[0].metric)
+    npt.assert_equal(len(scores), 2)
+    self.assertIn('GmeanF1', scores[0].metric)
     npt.assert_equal(scores[0].value, 2 / 3)
-    npt.assert_equal(scores[0].std, 0)
+    self.assertIsNone(scores[0].std)
+    self.assertIn('F1', scores[1].metric)
+    npt.assert_equal(scores[1].value, 2 / 3)
+    npt.assert_equal(scores[1].std, 0)
 
 
 if __name__ == '__main__':
