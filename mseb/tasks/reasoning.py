@@ -55,7 +55,7 @@ class ReasoningTask(task.MSEBTask):
     """Create the span embeddings cache."""
     embeddings_by_text = {}
     if runner is not None:
-      if runner.encoder_output_type() is not types.ReasoningPrediction:
+      if runner.encoder_output_type() is not types.TextPrediction:
         unique_spans = {}
         for span_list in self.span_lists():
           for span in span_list:
@@ -94,7 +94,7 @@ class ReasoningTask(task.MSEBTask):
       raise ValueError('Evaluator is not initialized. Did you call setup?')
 
     if not isinstance(
-        next(iter(embeddings.values())), types.ReasoningPrediction
+        next(iter(embeddings.values())), types.TextPrediction
     ):
       predictions = self._evaluator.compute_predictions(embeddings)
     else:

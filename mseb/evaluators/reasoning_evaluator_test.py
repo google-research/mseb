@@ -62,7 +62,7 @@ class ReasoningEvaluatorTest(absltest.TestCase):
     )
     self.assertLen(predictions, 1)
     self.assertIn('test', predictions)
-    self.assertEqual(predictions['test'].answer, 'b l a')
+    self.assertEqual(predictions['test'].prediction, 'b l a')
 
   def test_compute_metrics(self):
     evaluator = reasoning_evaluator.ReasoningEvaluator(
@@ -70,8 +70,9 @@ class ReasoningEvaluatorTest(absltest.TestCase):
     )
     scores = evaluator.compute_metrics(
         predictions={
-            'test': types.ReasoningPrediction(
-                answer='b l a', context=types.ReasoningContextParams(id='test')
+            'test': types.TextPrediction(
+                prediction='b l a',
+                context=types.PredictionContextParams(id='test')
             )
         },
         spans_batch=[

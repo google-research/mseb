@@ -112,27 +112,28 @@ class SoundEmbeddingToTextConverter(Converter):
     return outputs
 
 
-class TextEmbeddingToReasoningPredictionConverter(Converter):
-  """Converter between TextEmbedding and ReasoningPrediction objects."""
+class TextEmbeddingToTextPredictionConverter(Converter):
+  """Converter between TextEmbedding and TextPrediction objects."""
 
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.TextEmbedding) for x in batch):
       raise ValueError(
-          'TextEmbeddingToReasoningPredictionConverter only supports a batch of'
+          'TextEmbeddingToTextPredictionConverter only supports a batch of'
           ' all TextEmbedding inputs.'
       )
 
   @final
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
-  ) -> Sequence[types.ReasoningPrediction]:
-    """Converts a batch of TextEmbedding objects to ReasoningPrediction objects."""
+  ) -> Sequence[types.TextPrediction]:
+    """Converts a batch of TextEmbedding objects to TextPrediction objects."""
     outputs = []
     for text_embedding in batch:
       assert isinstance(text_embedding, types.TextEmbedding)
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = text_embedding.embedding
-      outputs.append(types.ReasoningPrediction(
-          answer=str(embedding[0]),
-          context=types.ReasoningContextParams(id=text_embedding.context.id),
+      outputs.append(types.TextPrediction(
+          prediction=str(embedding[0]),
+          context=types.PredictionContextParams(id=text_embedding.context.id),
       ))
     return outputs
+

@@ -225,15 +225,15 @@ class ReasoningTest(absltest.TestCase):
         return ['test']
 
     embeddings = {
-        'utt_11697423627206642872': types.ReasoningPrediction(
-            answer='ref_1A',
-            context=types.ReasoningContextParams(
+        'utt_11697423627206642872': types.TextPrediction(
+            prediction='ref_1A',
+            context=types.PredictionContextParams(
                 id='utt_11697423627206642872',
             ),
         ),
-        'utt_15041124811443622614': types.ReasoningPrediction(
-            answer='ref_2A',
-            context=types.ReasoningContextParams(
+        'utt_15041124811443622614': types.TextPrediction(
+            prediction='ref_2A',
+            context=types.PredictionContextParams(
                 id='utt_15041124811443622614',
             ),
         ),

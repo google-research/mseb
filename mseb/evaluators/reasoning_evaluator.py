@@ -120,7 +120,7 @@ class ReasoningSpans:
   texts: Sequence[str]
 
 
-ReasoningPredictionsCache = Mapping[str, types.ReasoningPrediction]
+ReasoningPredictionsCache = Mapping[str, types.TextPrediction]
 
 
 class ReasoningEvaluator:
@@ -176,9 +176,9 @@ class ReasoningEvaluator:
         )
       else:
         prediction = NO_ANSWER_STR
-      predictions[sound_id] = types.ReasoningPrediction(
-          answer=prediction,
-          context=types.ReasoningContextParams(id=sound_id),
+      predictions[sound_id] = types.TextPrediction(
+          prediction=prediction,
+          context=types.PredictionContextParams(id=sound_id),
       )
     return predictions
 
@@ -194,7 +194,7 @@ class ReasoningEvaluator:
     }
     for spans in spans_batch:
       f1_value = compute_f1_score(
-          spans.reference_answer, predictions[spans.sound_id].answer
+          spans.reference_answer, predictions[spans.sound_id].prediction
       )
       if spans.reference_answer == NO_ANSWER_STR:
         values_by_metric['f1_no_answer'].append(
