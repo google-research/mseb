@@ -23,6 +23,7 @@ dependencies = [
     "editdistance",
     "etils",
     "fvcore",
+    "google-genai",
     "huggingface_hub",
     "jax",
     "jaxtyping",

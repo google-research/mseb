@@ -27,6 +27,7 @@ from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import clap_encoder
 from mseb.encoders import gecko_encoder
+from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
@@ -39,6 +40,19 @@ _GECKO_MODEL_PATH = flags.DEFINE_string(
     "@gecko/gecko-1b-i18n-cpu/2",
     # "@gecko/gecko-1b-i18n-tpu/2",
     "Path to Gecko model.",
+)
+
+_GEMINI_EMBEDDING_MODEL_PATH = flags.DEFINE_string(
+    "gemini_embedding_model_path",
+    "gemini-embedding-001",
+    "Path to Gemini embedding model.",
+)
+
+_GEMINI_EMBEDDING_TASK_TYPE = flags.DEFINE_string(
+    "gemini_embedding_task_type",
+    None,
+    "Task type for Gemini embedding model. One of: None, RETRIEVAL_DOCUMENT,"
+    " RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION, CLUSTERING",
 )
 
 _WHISPER_MODEL_PATH = flags.DEFINE_string(
@@ -225,6 +239,115 @@ hubert_large_ls960_ft_pooled_mean = EncoderMetadata(
         transform_fn=lambda x: x,
         pooling="mean",
         device=None,
+    ),
+)
+
+gemini_embedding_text = EncoderMetadata(
+    name="gemini_embedding_text",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder,
+    params=lambda: dict(
+        model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_transcript_truth = EncoderMetadata(
+    name="gemini_embedding_transcript_truth",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_transcript_truth_or_gemini_embedding = EncoderMetadata(
+    name="gemini_embedding_transcript_truth_or_gemini_embedding",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingTranscriptTruthOrGeminiEmbeddingEncoder,
+    params=lambda: dict(
+        model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt = EncoderMetadata(
+    name="gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingTranscriptTruthOrGeminiEmbeddingEncoder,
+    params=lambda: dict(
+        model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        query_normalizer=None,
+        query_prompt_template=None,
+        query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        document_normalizer=None,
+        document_prompt_template=None,
+        document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding = EncoderMetadata(
+    name="gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingWithTitleAndContextTranscriptTruthOrGeminiEmbeddingEncoder,
+    params=lambda: dict(
+        model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_whisper = EncoderMetadata(
+    name="gemini_embedding_whisper",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        gemini_embedding_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_whisper_or_gemini_embedding = EncoderMetadata(
+    name="gemini_embedding_whisper_or_gemini_embedding",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingWhisperOrGeminiEmbeddingEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_whisper_or_gemini_embedding_no_prompt = EncoderMetadata(
+    name="gemini_embedding_whisper_or_gemini_embedding_no_prompt",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingWhisperOrGeminiEmbeddingEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        query_normalizer=None,
+        query_prompt_template=None,
+        query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        document_normalizer=None,
+        document_prompt_template=None,
+        document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_with_title_and_context_whisper = EncoderMetadata(
+    name="gemini_embedding_with_title_and_context_whisper",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        gemini_embedding_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+    ),
+)
+
+gemini_embedding_with_title_and_context_whisper_or_gemini_embedding = EncoderMetadata(
+    name="gemini_embedding_with_title_and_context_whisper_or_gemini_embedding",
+    encoder=gemini_embedding_encoder.GeminiEmbeddingWithTitleAndContextWhisperOrGeminiEmbeddingEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+        query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
 )
 
