@@ -299,6 +299,7 @@ class BeamRunner(EncoderRunner):
             EncodeDoFn(self._encoder, batch_size=self._batch_size)
         ).with_resource_hints(**resource_hints)
         | 'Serialize' >> beam.Map(pickle.dumps)
+        | 'Reshuffle' >> beam.Reshuffle()  # Avoid fusing with write.
         # Using TFRecord because it's available as standard beam io.
         | 'WriteTFRecord'
         >> beam.io.tfrecordio.WriteToTFRecord(
