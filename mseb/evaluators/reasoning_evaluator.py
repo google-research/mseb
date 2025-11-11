@@ -29,6 +29,7 @@ import numpy as np
 
 
 NO_ANSWER_STR = 'No Answer'
+INVALID_ANSWER_STR = ''
 
 
 def f1(value: float = 0.0, std: float | None = None):
@@ -97,6 +98,8 @@ def normalize_squad(answer: str) -> str:
 
 def compute_f1_score(target: str, prediction: str) -> float:
   """Token-based F1 score used XTREME-UP."""
+  if prediction == INVALID_ANSWER_STR:
+    return 0.0
   if target == NO_ANSWER_STR or prediction == NO_ANSWER_STR:
     return float(target == prediction)
   prediction_tokens = prediction.split()

@@ -23,6 +23,58 @@ import numpy.testing as npt
 
 class ReasoningEvaluatorTest(absltest.TestCase):
 
+  def test_compute_f1_score(self):
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target='b l a', prediction='b l a'
+        ),
+        1.0,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target='b l a', prediction='b l i'
+        ),
+        2 / 3,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target='b l a', prediction='x y z'
+        ),
+        0.0,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target='b l a', prediction=reasoning_evaluator.NO_ANSWER_STR
+        ),
+        0.0,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target=reasoning_evaluator.NO_ANSWER_STR, prediction='b l a'
+        ),
+        0.0,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target=reasoning_evaluator.NO_ANSWER_STR,
+            prediction=reasoning_evaluator.NO_ANSWER_STR,
+        ),
+        1.0,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            'b l a', prediction=reasoning_evaluator.INVALID_ANSWER_STR
+        ),
+        0.0,
+    )
+    self.assertEqual(
+        reasoning_evaluator.compute_f1_score(
+            target=reasoning_evaluator.NO_ANSWER_STR,
+            prediction=reasoning_evaluator.INVALID_ANSWER_STR,
+        ),
+        0.0,
+    )
+
   def test_compute_predictions(self):
     evaluator = reasoning_evaluator.ReasoningEvaluator(
         span_embeddings_by_sound_id={
