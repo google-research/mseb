@@ -20,7 +20,7 @@ from typing import Callable
 from mseb import encoder
 from mseb import types
 from mseb.encoders import converter
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder_lib
+from mseb.encoders import text_encoder_with_prompt as prompt_encoder_lib
 from mseb.encoders import whisper_encoder
 
 
@@ -48,7 +48,7 @@ def GeckoTranscriptTruthEncoder(
       encoders=[
           converter.SoundToSoundEmbeddingConverter(),
           converter.SoundEmbeddingToTextConverter(),
-          text_encoder_lib.GeckoTextEncoder(
+          prompt_encoder_lib.GeckoTextEncoder(
               model_path=model_path,
               normalizer=normalizer,
               prompt_template=prompt_template,
@@ -72,7 +72,7 @@ def GeckoTranscriptTruthOrGeckoEncoder(
       normalizer=query_normalizer,
       prompt_template=query_prompt_template,
   )
-  text_encoder = text_encoder_lib.GeckoTextEncoder(
+  text_encoder = prompt_encoder_lib.GeckoTextEncoder(
       model_path=gecko_model_path,
       normalizer=document_normalizer,
       prompt_template=document_prompt_template,
@@ -100,7 +100,7 @@ def GeckoWithTitleAndContextTranscriptTruthOrGeckoEncoder(
       normalizer=query_normalizer,
       prompt_template=query_prompt_template,
   )
-  text_encoder = text_encoder_lib.GeckoTextEncoder(
+  text_encoder = prompt_encoder_lib.GeckoTextEncoder(
       model_path=gecko_model_path,
       normalizer=document_normalizer,
       prompt_template=document_prompt_template,
@@ -140,7 +140,7 @@ def GeckoWhisperEncoder(
       encoders=[
           whisper_encoder.SpeechToTextEncoder(model_path=whisper_model_path),
           converter.SoundEmbeddingToTextConverter(),
-          text_encoder_lib.GeckoTextEncoder(
+          prompt_encoder_lib.GeckoTextEncoder(
               model_path=gecko_model_path,
               normalizer=normalizer,
               prompt_template=prompt_template,
@@ -166,7 +166,7 @@ def GeckoWhisperOrGeckoEncoder(
       normalizer=query_normalizer,
       prompt_template=query_prompt_template,
   )
-  text_encoder = text_encoder_lib.GeckoTextEncoder(
+  text_encoder = prompt_encoder_lib.GeckoTextEncoder(
       model_path=gecko_model_path,
       normalizer=document_normalizer,
       prompt_template=document_prompt_template,
@@ -210,7 +210,7 @@ def GeckoWithTitleAndContextWhisperEncoder(
               )
           ),
           converter.SoundEmbeddingToTextConverter(),
-          text_encoder_lib.GeckoTextEncoder(
+          prompt_encoder_lib.GeckoTextEncoder(
               model_path=gecko_model_path,
               normalizer=normalizer,
               prompt_template=prompt_template,
@@ -236,7 +236,7 @@ def GeckoWithTitleAndContextWhisperOrGeckoEncoder(
       normalizer=query_normalizer,
       prompt_template=query_prompt_template,
   )
-  text_encoder = text_encoder_lib.GeckoTextEncoder(
+  text_encoder = prompt_encoder_lib.GeckoTextEncoder(
       model_path=gecko_model_path,
       normalizer=document_normalizer,
       prompt_template=document_prompt_template,

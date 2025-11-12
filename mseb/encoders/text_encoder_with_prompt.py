@@ -12,28 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Normalized text encoders with prompt."""
+"""Multi-modal encoders with prompt."""
 
 import re
-from typing import Callable, Sequence, final
+from typing import Callable, Optional, Sequence, Tuple, final
 
 import jaxtyping
 from mseb import encoder
 from mseb import types
+from mseb import utils
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as tf_hub
 
 
-class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
-  """Defines the interface for encoding normalized text prompt into embeddings.
+class TextEncoderWithPrompt(encoder.MultiModalEncoder):
+  """Defines the interface for encoding text and sound into embeddings using a prompt.
 
-  This abstract class provides a standardized structure for text encoders
+  This abstract class provides a standardized structure for encoders
   within the MSEB benchmark. It's designed for lazy loading of models, making it
   suitable for large-scale, distributed processing environments.
 
   Subclasses are responsible for implementing the model loading logic (`setup`).
   """
+
+  # String to use for the `text`` field in the prompt template when encoding
+  # audio.
+  TEXT_FOR_AUDIO = '(in following audio file)'
 
   def __init__(
       self,
@@ -43,8 +48,9 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
     """Initializes the encoder with configuration.
 
     All subclasses of this class are expected to load the model in `_setup` and
-    set `text_encode_fn` that takes a sequence of string prompts and returns a
-    sequence of embeddings (2d np.ndarray or sequence of 1d np.ndarray).
+    set `prompt_encode_fn` that takes a sequence of multimodal prompts and
+    returns a sequence of embeddings (2d np.ndarray or sequence of 1d
+    np.ndarray).
 
     Args:
       normalizer: A function that normalizes the text before encoding. This is
@@ -55,9 +61,9 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
     super().__init__()
     self.normalizer = normalizer
     self.prompt_template = prompt_template
-    self.text_encode_fn: (
+    self.prompt_encode_fn: (
         Callable[
-            [Sequence[str]],
+            [Sequence[Tuple[str, Optional[bytes]]]],
             jaxtyping.Float[jaxtyping.Array, 'N D']
             | jaxtyping.Shaped[np.ndarray, 'N']
             | Sequence[
@@ -70,10 +76,13 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
 
   @final
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not all(isinstance(x, types.Text) for x in batch):
+    if not all(
+        any(isinstance(x, type) for type in [types.Text, types.Sound])
+        for x in batch
+    ):
       raise ValueError(
-          'NormalizedTextEncoderWithPrompt only supports a batch of all Text'
-          ' inputs.'
+          'TextEncoderWithPrompt only supports a batch of Text or'
+          ' Sound inputs.'
       )
 
   def _get_normalized_text_prompt(
@@ -102,37 +111,58 @@ class NormalizedTextEncoderWithPrompt(encoder.MultiModalEncoder):
   @final
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
-  ) -> Sequence[types.TextEmbedding]:
-    """Encodes a batch of text sources."""
+  ) -> Sequence[types.TextEmbedding | types.SoundEmbedding]:
+    """Encodes a batch of text or audio sources."""
     prompt_batch = []
     for example in batch:
       if isinstance(example, types.TextWithTitleAndContext):
-        prompt = self._get_normalized_text_prompt(
+        prompt_text = self._get_normalized_text_prompt(
             example.text, title=example.title_text, context=example.context_text
         )
+        prompt_audio = None
       elif isinstance(example, types.Text):
-        prompt = self._get_normalized_text_prompt(example.text)
+        prompt_text = self._get_normalized_text_prompt(example.text)
+        prompt_audio = None
+      elif isinstance(example, types.SoundWithTitleAndContext):
+        prompt_text = self._get_normalized_text_prompt(
+            self.TEXT_FOR_AUDIO,
+            title=example.title_text,
+            context=example.context_text,
+        )
+        prompt_audio = utils.sound_to_wav_bytes(example)
+      elif isinstance(example, types.Sound):
+        prompt_text = self._get_normalized_text_prompt(self.TEXT_FOR_AUDIO)
+        prompt_audio = utils.sound_to_wav_bytes(example)
       else:
-        raise ValueError('Unexpected text input type.')
-      prompt_batch.append(prompt)
+        raise ValueError('Unexpected input type.')
+      prompt_batch.append((prompt_text, prompt_audio))
 
-    assert self.text_encode_fn is not None
-    embeddings_batch = self.text_encode_fn(prompt_batch)
+    assert self.prompt_encode_fn is not None
+    embeddings_batch = self.prompt_encode_fn(prompt_batch)
 
     outputs = []
-    for embeddings, text in zip(embeddings_batch, batch):
-      assert isinstance(text, types.Text)
-      outputs.append(
-          types.TextEmbedding(
-              embedding=np.expand_dims(embeddings, axis=0),
-              spans=np.array([[0, len(text.text)]]),
-              context=text.context,
-          )
-      )
+    for embeddings, example in zip(embeddings_batch, batch):
+      assert isinstance(example, types.Text) or isinstance(example, types.Sound)
+      if isinstance(example, types.Text):
+        outputs.append(
+            types.TextEmbedding(
+                embedding=np.expand_dims(embeddings, axis=0),
+                spans=np.array([[0, len(example.text)]]),
+                context=example.context,
+            )
+        )
+      if isinstance(example, types.Sound):
+        outputs.append(
+            types.SoundEmbedding(
+                embedding=np.expand_dims(embeddings, axis=0),
+                timestamps=np.array([[0, len(example.waveform)]]),
+                context=example.context,
+            )
+        )
     return outputs
 
 
-class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
+class GeckoTextEncoder(TextEncoderWithPrompt):
   """Text encoder with Gecko model."""
 
   def __init__(
@@ -161,13 +191,13 @@ class GeckoTextEncoder(NormalizedTextEncoderWithPrompt):
   def _setup(self):
     """Loads the Gecko model."""
     gecko_model = tf_hub.load(self.model_path)
-    self.text_encode_fn = lambda x: gecko_model.signatures['serving_default'](
-        tf.constant(x)
+    self.prompt_encode_fn = lambda x: gecko_model.signatures['serving_default'](
+        tf.constant(x[0])
     )['encodings'].numpy()
 
 
 # For testing only.
-class MockTextEncoder(NormalizedTextEncoderWithPrompt):
+class MockTextEncoder(TextEncoderWithPrompt):
 
   def _setup(self):
-    self.text_encode_fn = lambda prompts: np.zeros((len(prompts), 3))
+    self.prompt_encode_fn = lambda prompts: np.zeros((len(prompts), 3))

@@ -18,17 +18,15 @@ from unittest import mock
 
 from absl.testing import absltest
 from mseb import types
-from mseb.encoders import normalized_text_encoder_with_prompt
+from mseb.encoders import text_encoder_with_prompt
 import numpy as np
 
 
 logger = logging.getLogger(__name__)
 
 
-class MockNormalizedTextEncoderWithPrompt(
-    normalized_text_encoder_with_prompt.NormalizedTextEncoderWithPrompt
-):
-  """A concrete implementation of NormalizedTextEncoderWithPrompt.
+class MockTextEncoderWithPrompt(text_encoder_with_prompt.TextEncoderWithPrompt):
+  """A concrete implementation of TextEncoderWithPrompt.
 
   For testing purposes.
   """
@@ -38,21 +36,21 @@ class MockNormalizedTextEncoderWithPrompt(
 
   def __init__(
       self,
-      text_encode_fn: Callable[[str], np.ndarray] | None = None,
+      prompt_encode_fn: Callable[[str], np.ndarray] | None = None,
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str | None = None,
   ):
     super().__init__(normalizer, prompt_template)
-    if text_encode_fn is not None:
-      self.text_encode_fn = text_encode_fn
+    if prompt_encode_fn is not None:
+      self.prompt_encode_fn = prompt_encode_fn
     else:
-      self.text_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
+      self.prompt_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
 
 
-class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
+class TextEncoderWithPromptTest(absltest.TestCase):
 
   def test_check_input_types_does_not_raise_error_for_text_inputs(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt()
+    mock_encoder = MockTextEncoderWithPrompt()
     mock_encoder._check_input_types([
         types.Text(
             text="This is a text.", context=types.TextContextParams(id="id1")
@@ -63,43 +61,44 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
         ),
     ])
 
-  def test_check_input_types_raises_error_for_non_text_inputs(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt()
-    with self.assertRaises(ValueError):
-      mock_encoder._check_input_types([
-          types.Text(
-              text="This is a text.", context=types.TextContextParams(id="text")
-          ),
-          types.Sound(
-              waveform=np.array([1.0, 2.0, 3.0, 4.0]),
-              context=types.SoundContextParams(
-                  sample_rate=2, length=4, id="sound"
-              ),
-          ),
-      ])
+  def test_check_input_types_does_not_raise_error_for_text_and_sound_inputs(
+      self,
+  ):
+    mock_encoder = MockTextEncoderWithPrompt()
+    mock_encoder._check_input_types([
+        types.Text(
+            text="This is a text.", context=types.TextContextParams(id="text")
+        ),
+        types.Sound(
+            waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+            context=types.SoundContextParams(
+                sample_rate=2, length=4, id="sound"
+            ),
+        ),
+    ])
 
   def test_get_normalized_text_prompt_with_normalizer(self):
     self.assertEqual(
-        MockNormalizedTextEncoderWithPrompt(
+        MockTextEncoderWithPrompt(
             normalizer=lambda x: x.lower()
         )._get_normalized_text_prompt("This is a text."),
         "this is a text.",
     )
     self.assertEqual(
-        MockNormalizedTextEncoderWithPrompt(
+        MockTextEncoderWithPrompt(
             prompt_template="task: search result | query: {text}",
         )._get_normalized_text_prompt("This is a text."),
         "task: search result | query: This is a text.",
     )
     self.assertEqual(
-        MockNormalizedTextEncoderWithPrompt(
+        MockTextEncoderWithPrompt(
             normalizer=lambda x: x.lower(),
             prompt_template="title: {title} | context: {text}",
         )._get_normalized_text_prompt("This is ANOTHER text."),
         "title: None | context: this is another text.",
     )
     self.assertEqual(
-        MockNormalizedTextEncoderWithPrompt(
+        MockTextEncoderWithPrompt(
             normalizer=lambda x: x.lower(),
             prompt_template="title: {title} | context: {text}",
         )._get_normalized_text_prompt("This is ANOTHER text.", title="Title"),
@@ -107,11 +106,13 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
     )
 
   def test_normalizer_is_applied_to_text(self):
-    mock_encoder = MockNormalizedTextEncoderWithPrompt(
+    mock_encoder = MockTextEncoderWithPrompt(
         normalizer=lambda x: x.lower(),
         prompt_template="title: {title} | context: {text}",
     )
-    mock_encoder.text_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
+    mock_encoder.prompt_encode_fn = mock.MagicMock(
+        return_value=np.zeros((10, 8))
+    )
     _ = mock_encoder.encode([
         types.TextWithTitleAndContext(
             text="This is a text.",
@@ -123,9 +124,9 @@ class NormalizedTextEncoderWithPromptTest(absltest.TestCase):
             context=types.TextContextParams(id="id2"),
         ),
     ])
-    _ = mock_encoder.text_encode_fn.assert_called_once_with([
-        "title: None | context: this is a text.",
-        "title: abc | context: this is another text.",
+    _ = mock_encoder.prompt_encode_fn.assert_called_once_with([
+        ("title: None | context: this is a text.", None),
+        ("title: abc | context: this is another text.", None),
     ])
 
 

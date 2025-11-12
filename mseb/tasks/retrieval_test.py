@@ -20,7 +20,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
+from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 import numpy as np
 import pytest
 
@@ -156,7 +156,7 @@ class RetrievalTest(absltest.TestCase):
     )
     task = MockRetrievalTask()
     task.setup(
-        runner=runner_lib.DirectRunner(encoder=text_encoder.MockTextEncoder())
+        runner=runner_lib.DirectRunner(encoder=prompt_encoder.MockTextEncoder())
     )
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.searcher)

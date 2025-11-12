@@ -18,13 +18,13 @@ import functools
 import logging
 import os
 import re
-from typing import Callable, Sequence
+from typing import Callable, Optional, Sequence, Tuple
 
 from google import genai
 from mseb import encoder
 from mseb import types
 from mseb.encoders import converter
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder_lib
+from mseb.encoders import text_encoder_with_prompt as prompt_encoder_lib
 from mseb.encoders import whisper_encoder
 import numpy as np
 import tensorflow as tf
@@ -32,7 +32,7 @@ import tensorflow as tf
 
 
 def encoder_genai(  # pylint: disable=invalid-name
-    input_texts: Sequence[str],
+    inputs: Sequence[Tuple[str | Optional[bytes]]],
     *,
     model_name: str,
     client: genai.Client,
@@ -41,16 +41,14 @@ def encoder_genai(  # pylint: disable=invalid-name
   """Encodes input texts using Gemini embedding model via GenAI API."""
   response = client.models.embed_content(
       model=model_name,
-      contents=input_texts,
+      contents=[input[0] for input in inputs],
       config=genai.types.EmbedContentConfig(task_type=task_type),
   )
   embeddings = [x.values for x in response.embeddings]
   return np.array(embeddings)
 
 
-class GeminiEmbeddingTextEncoder(
-    text_encoder_lib.NormalizedTextEncoderWithPrompt
-):
+class GeminiEmbeddingTextEncoder(prompt_encoder_lib.TextEncoderWithPrompt):
   """Gemini embedding text encoder."""
 
   def __init__(
@@ -86,7 +84,7 @@ class GeminiEmbeddingTextEncoder(
 
     if not os.environ.get('GEMINI_API_KEY'):
       raise ValueError('Environment variable GEMINI_API_KEY is not set.')
-    self.text_encode_fn = functools.partial(
+    self.prompt_encode_fn = functools.partial(
         encoder_genai,
         model_name=self.model_path,
         client=genai.Client(),

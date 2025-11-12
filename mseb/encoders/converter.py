@@ -137,3 +137,29 @@ class TextEmbeddingToTextPredictionConverter(Converter):
       ))
     return outputs
 
+
+class TextToTextPredictionConverter(Converter):
+  """Converter between Text and TextPrediction objects."""
+
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    if not all(isinstance(x, types.Text) for x in batch):
+      raise ValueError(
+          'TextEmbeddingToTextPredictionConverter only supports a batch of'
+          ' all Text inputs.'
+      )
+
+  @final
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.TextPrediction]:
+    """Converts a batch of TextEmbedding objects to TextPrediction objects."""
+    outputs = []
+    for text in batch:
+      assert isinstance(text, types.Text)
+      outputs.append(types.TextPrediction(
+          prediction=text.text,
+          context=types.PredictionContextParams(id=text.context.id),
+      ))
+    return outputs
+
+

@@ -29,9 +29,9 @@ from mseb.encoders import clap_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import hf_sound_encoder
-from mseb.encoders import normalized_text_encoder_with_prompt as text_encoder
 from mseb.encoders import raw_encoder
 from mseb.encoders import segmentation_encoder
+from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 from mseb.encoders import wav2vec_encoder
 from mseb.encoders import whisper_encoder
 
@@ -93,7 +93,7 @@ class EncoderMetadata:
 
 gecko_text = EncoderMetadata(
     name="gecko_text",
-    encoder=text_encoder.GeckoTextEncoder,
+    encoder=prompt_encoder.GeckoTextEncoder,
     params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
 )
 

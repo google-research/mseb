@@ -36,7 +36,7 @@ class GeminiEmbeddingTextEncoderTest(absltest.TestCase):
     enc = gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
         model_path='dummy_model_path'
     )
-    enc.text_encode_fn = lambda prompts: np.zeros((len(prompts), 3072))
+    enc.prompt_encode_fn = lambda prompts: np.zeros((len(prompts), 3072))
     enc._is_setup = True
 
     context = types.TextContextParams(id='id', title='This is the title.')
@@ -58,13 +58,13 @@ class GeminiEmbeddingTextEncoderTest(absltest.TestCase):
         normalizer=lambda x: x.lower(),
         prompt_template='title: {title} | text: {text}',
     )
-    enc.text_encode_fn = lambda prompts: [
+    enc.prompt_encode_fn = lambda prompts: [
         {
             'title: None | text: this is a text.': np.zeros((3072,)),
             'title: this is another title. | text: this is another text.': (
                 np.ones((3072,))
             ),
-        }[x]
+        }[x[0]]
         for x in prompts
     ]
     enc._is_setup = True
@@ -96,11 +96,11 @@ class GeminiEmbeddingTextEncoderTest(absltest.TestCase):
         normalizer=lambda x: x,
         prompt_template='title: {title} | text: {text}',
     )
-    enc1.text_encode_fn = lambda prompts: [
+    enc1.prompt_encode_fn = lambda prompts: [
         {
             'title: None | text: This is a text.': np.zeros((3072,)) + 0,
             'title: Abc | text: This is another text.': np.zeros((3072,)) + 1,
-        }[x]
+        }[x[0]]
         for x in prompts
     ]
     enc1._is_setup = True
@@ -119,7 +119,7 @@ class GeminiEmbeddingTextEncoderTest(absltest.TestCase):
     enc2 = gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
         model_path='dummy_model_path', normalizer=None, prompt_template=None
     )
-    enc2.text_encode_fn = enc1.text_encode_fn
+    enc2.prompt_encode_fn = enc1.prompt_encode_fn
     enc2._is_setup = True
     outputs_batch2 = enc2.encode([
         types.Text(
@@ -162,7 +162,7 @@ class GeminiEmbeddingTranscriptTruthEncoderTest(absltest.TestCase):
     enc = gemini_embedding_encoder.GeminiEmbeddingTranscriptTruthEncoder(
         model_path='dummy_model_path'
     )
-    enc._encoders[-1].text_encode_fn = lambda prompts: np.zeros(
+    enc._encoders[-1].prompt_encode_fn = lambda prompts: np.zeros(
         (len(prompts), 3072)
     )
     enc._encoders[-1]._is_setup = True
@@ -190,7 +190,7 @@ class GeminiEmbeddingTranscriptTruthEncoderTest(absltest.TestCase):
     enc = gemini_embedding_encoder.GeminiEmbeddingTranscriptTruthEncoder(
         model_path='dummy_model_path'
     )
-    enc._encoders[-1].text_encode_fn = lambda prompts: np.zeros(
+    enc._encoders[-1].prompt_encode_fn = lambda prompts: np.zeros(
         (len(prompts), 3072)
     )
     enc._encoders[-1]._is_setup = True
@@ -222,7 +222,7 @@ class GeminiEmbeddingTranscriptTruthEncoderTest(absltest.TestCase):
         model_path='gemini-embedding-001'
     )
     enc._setup()
-    self.assertIsNotNone(enc.text_encode_fn)
+    self.assertIsNotNone(enc.prompt_encode_fn)
     outputs_batch = enc.encode([
         types.TextWithTitleAndContext(
             text='This is a text.',
