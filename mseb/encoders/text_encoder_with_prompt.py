@@ -191,9 +191,9 @@ class GeckoTextEncoder(TextEncoderWithPrompt):
   def _setup(self):
     """Loads the Gecko model."""
     gecko_model = tf_hub.load(self.model_path)
-    self.prompt_encode_fn = lambda x: gecko_model.signatures['serving_default'](
-        tf.constant(x[0])
-    )['encodings'].numpy()
+    self.prompt_encode_fn = lambda batch: gecko_model.signatures[
+        'serving_default'
+    ](tf.constant([x[0] for x in batch]))['encodings'].numpy()
 
 
 # For testing only.
