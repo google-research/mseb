@@ -31,6 +31,7 @@ class EncoderRegistryTest(parameterized.TestCase):
       encoder_registry.whisper_base_pooled_max,
       encoder_registry.whisper_forced_alignment,
       encoder_registry.laion_clap_encoder,
+      encoder_registry.gemma_with_title_and_context,
   )
   def test_load_encoder(self, meta):
     encoder = meta.load()
