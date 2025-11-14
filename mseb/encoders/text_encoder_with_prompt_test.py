@@ -18,6 +18,7 @@ from unittest import mock
 
 from absl.testing import absltest
 from mseb import types
+from mseb.encoders import prompt as prompt_lib
 from mseb.encoders import text_encoder_with_prompt
 import numpy as np
 
@@ -40,7 +41,9 @@ class MockTextEncoderWithPrompt(text_encoder_with_prompt.TextEncoderWithPrompt):
       normalizer: Callable[[str], str] | None = None,
       prompt_template: str | None = None,
   ):
-    super().__init__(normalizer, prompt_template)
+    super().__init__(
+        normalizer, prompt=prompt_lib.DefaultPrompt(prompt_template)
+    )
     if prompt_encode_fn is not None:
       self.prompt_encode_fn = prompt_encode_fn
     else:

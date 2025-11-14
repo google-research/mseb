@@ -15,12 +15,13 @@
 """Multi-modal encoders with prompt."""
 
 import re
-from typing import Callable, Optional, Sequence, Tuple, final
+from typing import Callable, final, Optional, Sequence, Tuple
 
 import jaxtyping
 from mseb import encoder
 from mseb import types
 from mseb import utils
+from mseb.encoders import prompt as prompt_lib
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as tf_hub
@@ -43,7 +44,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
   def __init__(
       self,
       normalizer: Callable[[str], str] | None = None,
-      prompt_template: str | None = None,
+      prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
   ):
     """Initializes the encoder with configuration.
 
@@ -56,11 +57,12 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       normalizer: A function that normalizes the text before encoding. This is
         useful for removing special characters or formatting the text for better
         encoding results.
-      prompt_template: Format of the prompt to be used for encoding.
+      prompt: Prompt object definiing the prompt template and reponse format to
+        be used for encoding.
     """
     super().__init__()
     self.normalizer = normalizer
-    self.prompt_template = prompt_template
+    self.prompt = prompt
     self.prompt_encode_fn: (
         Callable[
             [Sequence[Tuple[str, Optional[bytes]]]],
@@ -89,10 +91,11 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       self, text: str, title: str | None = None, context: str | None = None
   ) -> str:
     """Returns the prompt to be used for encoding."""
+    prompt_template = self.prompt.GetPromptTemplate()
     if self.normalizer is not None:
       text = self.normalizer(text)
 
-    if self.prompt_template is None:
+    if prompt_template is None:
       return text
 
     if title is not None:
@@ -103,10 +106,10 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       context = context if self.normalizer is None else self.normalizer(context)
     else:
       context = 'None'
-    prompt = self.prompt_template.format(
+    text_prompt = prompt_template.format(
         text=text, title=title, context=context
     )
-    return prompt
+    return text_prompt
 
   @final
   def _encode(
@@ -138,7 +141,10 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       prompt_batch.append((prompt_text, prompt_audio))
 
     assert self.prompt_encode_fn is not None
-    embeddings_batch = self.prompt_encode_fn(prompt_batch)
+    response_batch = self.prompt_encode_fn(prompt_batch)
+    embeddings_batch = [
+        self.prompt.ProcessResponse(response) for response in response_batch
+    ]
 
     outputs = []
     for embeddings, example in zip(embeddings_batch, batch):
@@ -185,7 +191,9 @@ class GeckoTextEncoder(TextEncoderWithPrompt):
         prompt is of the form: 'task: search result | query: {text}' for queries
         and 'title: {title} | text: {text}' for documents".
     """
-    super().__init__(normalizer, prompt_template)
+    super().__init__(
+        normalizer, prompt=prompt_lib.DefaultPrompt(prompt_template)
+    )
     self.model_path = model_path
 
   def _setup(self):

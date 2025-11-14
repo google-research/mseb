@@ -24,6 +24,7 @@ from google import genai
 from mseb import encoder
 from mseb import types
 from mseb.encoders import converter
+from mseb.encoders import prompt as prompt_lib
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder_lib
 from mseb.encoders import whisper_encoder
 import numpy as np
@@ -75,7 +76,9 @@ class GeminiEmbeddingTextEncoder(prompt_encoder_lib.TextEncoderWithPrompt):
         RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
         CLASSIFICATION, CLUSTERING.
     """
-    super().__init__(normalizer, prompt_template)
+    super().__init__(
+        normalizer, prompt=prompt_lib.DefaultPrompt(prompt_template)
+    )
     self.model_path = model_path
     self.task_type = task_type
 
