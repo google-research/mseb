@@ -29,6 +29,7 @@ from mseb.encoders import clap_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import hf_sound_encoder
+from mseb.encoders import prompt_registry
 from mseb.encoders import raw_encoder
 from mseb.encoders import segmentation_encoder
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder
