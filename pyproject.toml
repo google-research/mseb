@@ -36,7 +36,6 @@ dependencies = [
     "pygtrie",
     "scikit-learn",
     "soundfile",
-    "spacy",
     "tqdm",
     "transformers",
     "tensorflow",
@@ -68,6 +67,9 @@ whisper = [
 ]
 scann = [
     "scann==1.3.5",
+]
+spacy = [
+    "spacy",
 ]
 
 [tool.pyink]

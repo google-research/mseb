@@ -47,13 +47,48 @@ def whisper_cache_context(name: str):
   return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
 
 
-@pytest.mark.whisper
+@pytest.mark.segmentation
 @pytest.mark.optional
 class TextSegmenterEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
     self.enter_context(whisper_cache_context(self.__class__.__name__))
+    self.mock_input_embedding = types.SoundEmbedding(
+        embedding=np.array(['national', ' labor', ' relations', ' board']),
+        timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),
+        context=types.SoundContextParams(
+            id='test_utt',
+            sample_rate=16000,
+            length=32000,
+            language='en',
+            text='dummy'
+        )
+    )
+
+  def test_longest_prefix_segmenter_handles_numeric_keys_from_table(self):
+    japanese_idf_table_with_numbers = {
+        '日本': 4.5,      # "Japan"
+        2025: 1.8,        # A numeric token that pandas would read as a number
+        '東京': 3.2,      # "Tokyo"
+    }
+    segmenter = segmentation_encoder.LongestPrefixIDFSegmenter(
+        japanese_idf_table_with_numbers
+    )
+    segmenter.setup()
+    # "To Japan in 2025"
+    segments = list(segmenter.segment(['2025', '年', 'に', '日本', 'へ']))
+    found_terms = {s[0] for s in segments}
+    self.assertIn('2025', found_terms)
+    self.assertIn('日本', found_terms)
+
+
+@pytest.mark.segmentation
+@pytest.mark.optional
+class SpacyTextSegmenterEncoderTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
     self.mock_input_embedding = types.SoundEmbedding(
         embedding=np.array(['national', ' labor', ' relations', ' board']),
         timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),
@@ -101,24 +136,8 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     npt.assert_array_equal(result.scores, expected_scores)
     npt.assert_array_equal(result.timestamps, expected_timestamps)
 
-  def test_longest_prefix_segmenter_handles_numeric_keys_from_table(self):
-    japanese_idf_table_with_numbers = {
-        '日本': 4.5,      # "Japan"
-        2025: 1.8,        # A numeric token that pandas would read as a number
-        '東京': 3.2,      # "Tokyo"
-    }
-    segmenter = segmentation_encoder.LongestPrefixIDFSegmenter(
-        japanese_idf_table_with_numbers
-    )
-    segmenter.setup()
-    # "To Japan in 2025"
-    segments = list(segmenter.segment(['2025', '年', 'に', '日本', 'へ']))
-    found_terms = {s[0] for s in segments}
-    self.assertIn('2025', found_terms)
-    self.assertIn('日本', found_terms)
 
-
-@pytest.mark.whisper
+@pytest.mark.segmentation
 @pytest.mark.optional
 class SaliencyCascadeFactoryTest(parameterized.TestCase):
 

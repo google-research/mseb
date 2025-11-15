@@ -30,6 +30,10 @@ jobs:
             extras: "dev,scann"
             marker: "scann"
 
+          - name: "Segmentation"
+            extras: "dev,spacy,whisper"
+            marker: "segmentation"
+
     name: Pytest (${{ matrix.name }})
 
     steps:
@@ -42,6 +46,10 @@ jobs:
         # cache-dependency-path: '**/pyproject.toml'
 
     - run: pip --version
+    # Pre-install cpu torch deps.
+    - run: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    # Switch to cpu tensorflow deps.
+    - run: sed -i 's/"tensorflow"/"tensorflow-cpu"/g' pyproject.toml
 
     - name: Install dependencies for ${{ matrix.name }}
       run: pip install -e .[${{ matrix.extras }}]
