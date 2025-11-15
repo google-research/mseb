@@ -20,15 +20,18 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 import numpy as np
 import pytest
 
+text_encoder_with_prompt = pytest.importorskip(
+    'mseb.encoders.text_encoder_with_prompt'
+)
+prompt_encoder = text_encoder_with_prompt
 retrieval = pytest.importorskip('mseb.tasks.retrieval')
 retrieval_evaluator = pytest.importorskip('mseb.evaluators.retrieval_evaluator')
 
 
-@pytest.mark.scann
+@pytest.mark.gecko
 @pytest.mark.optional
 class RetrievalTest(absltest.TestCase):
 

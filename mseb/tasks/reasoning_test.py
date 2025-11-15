@@ -19,12 +19,18 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 from mseb.evaluators import reasoning_evaluator
 from mseb.tasks import reasoning
 import numpy as np
+import pytest
+
+text_encoder_with_prompt = pytest.importorskip(
+    'mseb.encoders.text_encoder_with_prompt'
+)
 
 
+@pytest.mark.gecko
+@pytest.mark.optional
 class ReasoningTest(absltest.TestCase):
 
   def setUp(self):
@@ -184,7 +190,9 @@ class ReasoningTest(absltest.TestCase):
 
     task = MockReasoningTask()
     task.setup(
-        runner=runner_lib.DirectRunner(encoder=prompt_encoder.MockTextEncoder())
+        runner=runner_lib.DirectRunner(
+            encoder=text_encoder_with_prompt.MockTextEncoder()
+        )
     )
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.span_embeddings_by_sound_id)

@@ -20,15 +20,17 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 import numpy as np
 import pytest
 
+text_encoder_with_prompt = pytest.importorskip(
+    'mseb.encoders.text_encoder_with_prompt'
+)
 reranking = pytest.importorskip('mseb.tasks.reranking')
 reranking_evaluator = pytest.importorskip('mseb.evaluators.reranking_evaluator')
 
 
-@pytest.mark.whisper
+@pytest.mark.gecko
 @pytest.mark.optional
 class RerankingTest(absltest.TestCase):
 
@@ -209,7 +211,9 @@ class RerankingTest(absltest.TestCase):
     )
     task = MockRerankingTask()
     task.setup(
-        runner=runner_lib.DirectRunner(encoder=prompt_encoder.MockTextEncoder())
+        runner=runner_lib.DirectRunner(
+            encoder=text_encoder_with_prompt.MockTextEncoder()
+        )
     )
     self.assertIsNotNone(task._evaluator)
     self.assertIsNotNone(task._evaluator.candidate_embeddings_by_sound_id)

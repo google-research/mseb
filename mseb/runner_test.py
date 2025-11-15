@@ -17,10 +17,16 @@ from os import path
 from absl.testing import absltest
 from mseb import runner as runner_lib
 from mseb import types
-from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 import numpy as np
+import pytest
+
+text_encoder_with_prompt = pytest.importorskip(
+    'mseb.encoders.text_encoder_with_prompt'
+)
 
 
+@pytest.mark.gecko
+@pytest.mark.optional
 class RunnerTest(absltest.TestCase):
 
   def test_save_and_load_embeddings(self):
@@ -65,7 +71,9 @@ class RunnerTest(absltest.TestCase):
     )
 
   def test_encoder_output_type(self):
-    runner = runner_lib.DirectRunner(encoder=prompt_encoder.MockTextEncoder())
+    runner = runner_lib.DirectRunner(
+        encoder=text_encoder_with_prompt.MockTextEncoder()
+    )
     self.assertEqual(runner.encoder_output_type(),
                      types.TextEmbedding | types.SoundEmbedding)
 

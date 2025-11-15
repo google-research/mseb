@@ -40,7 +40,6 @@ dependencies = [
     "transformers",
     "tensorflow",
     "tensorflow-datasets==4.9.9",
-    "tensorflow_hub",
     "torch",
 ]
 
@@ -70,6 +69,9 @@ scann = [
 ]
 spacy = [
     "spacy",
+]
+tf_hub = [
+    "tensorflow-hub",
 ]
 
 [tool.pyink]

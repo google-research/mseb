@@ -19,9 +19,12 @@ from unittest import mock
 from absl.testing import absltest
 from mseb import types
 from mseb.encoders import prompt as prompt_lib
-from mseb.encoders import text_encoder_with_prompt
 import numpy as np
+import pytest
 
+text_encoder_with_prompt = pytest.importorskip(
+    "mseb.encoders.text_encoder_with_prompt"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +53,8 @@ class MockTextEncoderWithPrompt(text_encoder_with_prompt.TextEncoderWithPrompt):
       self.prompt_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
 
 
+@pytest.mark.gecko  # Added this for Gecko-related tests to be skipped properly.
+@pytest.mark.optional
 class TextEncoderWithPromptTest(absltest.TestCase):
 
   def test_check_input_types_does_not_raise_error_for_text_inputs(self):
