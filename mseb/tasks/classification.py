@@ -107,11 +107,15 @@ class ClassificationTask(task.MSEBTask):
       )
     except FileNotFoundError:
       if runner is not None:
-        class_labels, weights = self._create_weights_from_runner(runner)
+        if runner.encoder_output_type() is not types.TextPrediction:
+          class_labels, weights = self._create_weights_from_runner(runner)
+        else:
+          class_labels = list(self.class_labels())
+          weights = None
       else:
-        raise ValueError(
-            "Weights not found in cache. Did you run run_task_setup?"
-        ) from FileNotFoundError
+        class_labels = list(self.class_labels())
+        weights = None
+        logger.error("Weights not found in cache. Did you run run_task_setup?")
 
     if self.task_type == "multi_class":
       self._evaluator = classification_evaluator.ClassificationEvaluator(
@@ -136,16 +140,30 @@ class ClassificationTask(task.MSEBTask):
     if self._evaluator is None:
       raise ValueError("Evaluator is not initialized. Did you call setup?")
 
-    embeddings_with_bias = {}
-    for k, v in embeddings.items():
-      embedding_array = classification_evaluator.get_embedding_array(v)
-      embeddings_with_bias[k] = dataclasses.replace(
-          v,
-          embedding=np.pad(
-              embedding_array, ((0, 0), (0, 1)), "constant", constant_values=1.0
-          ),
-      )
-    predictions = self._evaluator.compute_predictions(embeddings_with_bias)
+    if isinstance(next(iter(embeddings.values())), types.TextPrediction):
+      predictions = {}
+      for k, v in embeddings.items():
+        predictions[k] = np.array(
+            object=[
+                1.0 if x == getattr(v, "prediction", "") else 0.0
+                for x in self.class_labels()
+            ]
+        )
+    else:
+      embeddings_with_bias = {}
+      for k, v in embeddings.items():
+        embedding_array = classification_evaluator.get_embedding_array(v)
+        embeddings_with_bias[k] = dataclasses.replace(
+            v,
+            embedding=np.pad(
+                embedding_array,
+                ((0, 0), (0, 1)),
+                "constant",
+                constant_values=1.0,
+            ),
+        )
+      predictions = self._evaluator.compute_predictions(embeddings_with_bias)
+
     return self._compute_metrics(predictions)
 
   def _compute_metrics(

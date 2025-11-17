@@ -255,7 +255,7 @@ class ClassificationTest(absltest.TestCase):
     self.assertEqual(tuple(loaded_labels), class_labels)
     np.testing.assert_allclose(loaded_weights, weights)
 
-  def test_compute_metrics(self):
+  def test_compute_scores(self):
 
     class MockMultiClassTask(classification.ClassificationTask):
       @property
@@ -284,18 +284,87 @@ class ClassificationTest(absltest.TestCase):
 
     # Setup the task with a dummy evaluator.
     task = MockMultiClassTask()
-    weights = np.array([[1.0, 0.0], [0.0, 1.0]])
+    weights = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
     task._evaluator = classification_evaluator.ClassificationEvaluator(
         class_labels=list(task.class_labels()), weights=weights
     )
 
     # Mock predictions where the correct class has the highest score.
-    predictions = {
-        "utt_1": np.array([0.9, 0.1]),  # Correctly predicts label_1
-        "utt_2": np.array([0.2, 0.8]),  # Correctly predicts label_2
+    embeddings = {
+        "utt_1": types.SoundEmbedding(
+            embedding=np.array([[0.9, 0.1]]),  # Correctly predicts label_1
+            context=types.SoundContextParams(
+                id="utt_1",
+                sample_rate=16000,
+                length=1,
+            ),
+            timestamps=np.zeros((1, 2)),
+        ),
+        "utt_2": types.SoundEmbedding(
+            embedding=np.array([[0.2, 0.8]]),  # Correctly predicts label_2
+            context=types.SoundContextParams(
+                id="utt_2",
+                sample_rate=16000,
+                length=1,
+            ),
+            timestamps=np.zeros((1, 2)),
+        ),
     }
 
-    metrics = task._compute_metrics(predictions)
+    metrics = task.compute_scores(embeddings)
+    self.assertIn("test", metrics)
+    accuracy_score = next(
+        s for s in metrics["test"] if s.metric == "Accuracy"
+    )
+    self.assertAlmostEqual(accuracy_score.value, 1.0)
+
+  def test_compute_scores_with_prediction_output(self):
+
+    class MockMultiClassTask(classification.ClassificationTask):
+      @property
+      def task_type(self) -> str:
+        return "multi_class"
+
+      def sounds(self) -> Iterable[types.Sound]:
+        raise NotImplementedError()
+
+      def class_labels(self) -> Iterable[str]:
+        return ["label_1", "label_2"]
+
+      def examples(self, sub_task: str):
+        return [
+            classification_evaluator.ClassificationReference(
+                example_id="utt_1", label_id="label_1"
+            ),
+            classification_evaluator.ClassificationReference(
+                example_id="utt_2", label_id="label_2"
+            ),
+        ]
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ["test"]
+
+    # Setup the task with a dummy evaluator.
+    task = MockMultiClassTask()
+    weights = None
+    task._evaluator = classification_evaluator.ClassificationEvaluator(
+        class_labels=list(task.class_labels()), weights=weights
+    )
+
+    # Mock predictions where the correct class has the highest score.
+    embeddings = {
+        "utt_1": types.TextPrediction(
+            context=types.PredictionContextParams(id="utt_1"),
+            prediction="label_1",
+        ),
+        "utt_2": types.TextPrediction(
+            context=types.PredictionContextParams(id="utt_2"),
+            prediction="label_2",
+        ),
+    }
+
+    metrics = task.compute_scores(embeddings)
     self.assertIn("test", metrics)
     accuracy_score = next(
         s for s in metrics["test"] if s.metric == "Accuracy"
