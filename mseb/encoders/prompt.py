@@ -117,3 +117,48 @@ If the question IS NOT answerable:
         key_to_value_map=dict({self.NO_ANSWER_STR: self.NO_ANSWER_STR}),
         invalid_response_value=self.INVALID_ANSWER_STR,
     )
+
+
+class ClassificationPrompt(Prompt):
+  """A prompt for the classification task."""
+
+  PROMPT_TEMPLATE = """
+**Task: Intent Classification**
+
+**Goal:** Classify the provided text into one of the following intent classes:
+  {class_labels}
+
+*Input:** You will receive a query.
+ * "query": The query being issued (string).
+
+**Output:** You will produce a single JSON object as a plain text string (no markup). The structure depends on answerability:
+ * "answer": (string) The intent class of the query.
+
+**Important Considerations:**
+* **Exact Matches:** The ouput should match exactly one of the intent class names. Do not rephrase or summarize.
+* **No Other Output:** The output should only contain the intent class name.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+
+{{{{"query": {{text}}}}}}
+"""
+  INVALID_ANSWER_STR = ''
+
+  def __init__(
+      self, class_labels: Sequence[str], prompt_template: str = PROMPT_TEMPLATE
+  ):
+    print(class_labels)
+    self.prompt_template = prompt_template.format(
+        class_labels=json.dumps(class_labels)
+    )
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> Any:
+    assert isinstance(response, str)
+    return ProcessJsonResponse(
+        response,
+        keys=['answer'],
+        key_to_value_map=None,
+        invalid_response_value=self.INVALID_ANSWER_STR,
+    )
