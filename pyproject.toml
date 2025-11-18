@@ -18,7 +18,7 @@ keywords = []
 dependencies = [
     "array-record",
     "absl-py",
-    "apache-beam==2.68.0",
+    "apache-beam",
     "datasets==4.0.0",
     "editdistance",
     "etils",
