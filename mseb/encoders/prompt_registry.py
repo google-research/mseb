@@ -58,6 +58,12 @@ intent_classification = PromptMetadata(
     },
 )
 
+retrieval = PromptMetadata(
+    name="retrieval",
+    prompt=prompt_lib.RetrievalPrompt,
+    params=lambda: {},
+)
+
 
 _REGISTRY: dict[str, PromptMetadata] = {}
 

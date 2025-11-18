@@ -128,7 +128,7 @@ class ClassificationPrompt(Prompt):
 **Goal:** Classify the provided text into one of the following intent classes:
   {class_labels}
 
-*Input:** You will receive a query.
+**Input:** You will receive a query.
  * "query": The query being issued (string).
 
 **Output:** You will produce a single JSON object as a plain text string (no markup). The structure depends on answerability:
@@ -146,7 +146,6 @@ class ClassificationPrompt(Prompt):
   def __init__(
       self, class_labels: Sequence[str], prompt_template: str = PROMPT_TEMPLATE
   ):
-    print(class_labels)
     self.prompt_template = prompt_template.format(
         class_labels=json.dumps(class_labels)
     )
@@ -162,3 +161,42 @@ class ClassificationPrompt(Prompt):
         key_to_value_map=None,
         invalid_response_value=self.INVALID_ANSWER_STR,
     )
+
+
+class RetrievalPrompt(Prompt):
+  """A prompt for the retrieval task."""
+
+  PROMPT_TEMPLATE = """
+**Task: DocumentRetrieval**
+
+**Goal:** Given a query, find the most relevant document from the provided documents.
+
+*Input:** You will receive a query and a list of documents.
+ * "query": The query being issued (string).
+ * "documents": The list of documents. Each document is represented as a JSON object with the following fields:
+  * "id": (string) The unique identifier of the document.
+  * "text": (string) The text of the document.
+
+*Output:** You will produce a list of document ids ordered from most to least relevant, each document id on a new line.
+
+**Important Considerations:**
+* Relevance should be determined based on the text of the document and the query.
+* All documents should be considered: the ranklist produced should contain all document ids.
+* **Exact Matches:** The ouput should contain document ids that match exactly ones provided.
+* **No Other Output:** The output should only contain the ranked list of document ids.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+
+{{"query": {text}, "documents": {context}}}
+"""
+
+  def __init__(
+      self, prompt_template: str = PROMPT_TEMPLATE
+  ):
+    self.prompt_template = prompt_template
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> Any:
+    assert isinstance(response, str)
+    return response
