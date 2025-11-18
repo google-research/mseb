@@ -257,10 +257,12 @@ class SpeechToTextWithTitleAndContextEncoder(MultiModalEncoder):
     self.speech_to_text_encoder = speech_to_text_encoder
 
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not all(isinstance(x, types.SoundWithTitleAndContext) for x in batch):
+    if not all(
+        isinstance(x, types.SoundWithTitleAndContext) for x in batch
+    ) and not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError(
           "SpeechToTextWithTitleAndContextEncoder only supports a batch of all"
-          " SoundWithTitleAndContext inputs."
+          " SoundWithTitleAndContext or all Sound inputs."
       )
 
   def _setup(self):
@@ -268,9 +270,14 @@ class SpeechToTextWithTitleAndContextEncoder(MultiModalEncoder):
 
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
-  ) -> Sequence[types.SoundEmbeddingWithTitleAndContext]:
+  ) -> Sequence[types.SoundEmbeddingWithTitleAndContext | types.SoundEmbedding]:
     """Encodes a batch of sound sources into embeddings and timestamps."""
     sound_batch = []
+    if not all(isinstance(x, types.SoundWithTitleAndContext) for x in batch):
+      for x in self.speech_to_text_encoder.encode(batch):
+        assert isinstance(x, types.SoundEmbedding)
+        sound_batch.append(x)
+      return sound_batch
     for example in batch:
       assert isinstance(example, types.SoundWithTitleAndContext)
       sound_batch.append(types.Sound(example.waveform, example.context))
