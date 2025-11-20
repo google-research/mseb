@@ -18,6 +18,7 @@ import os
 from typing import Any
 
 from absl import logging
+from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
@@ -85,11 +86,12 @@ class FSD50KDataset:
 
   def _load_vocabulary(self) -> None:
     vocab_path = self._path('labels', 'vocabulary.csv')
-    if not os.path.exists(vocab_path):
+    if not epath.Path(vocab_path).exists():
       raise FileNotFoundError(f'Vocabulary file not found at {vocab_path}.')
-    vocab_df = pd.read_csv(
-        vocab_path, header=None, names=['index', 'display_name', 'mid']
-    )
+    with epath.Path(vocab_path).open('r') as f:
+      vocab_df = pd.read_csv(
+          f, header=None, names=['index', 'display_name', 'mid']
+      )
     self._class_labels = vocab_df['display_name'].tolist()
     self.label_to_id = {label: i for i, label in enumerate(self._class_labels)}
 
@@ -110,11 +112,13 @@ class FSD50KDataset:
       # eval.csv is for the 'test' split and has no 'split' column.
       # We load it directly without filtering.
       csv_path = self._path('labels', 'eval.csv')
-      df = pd.read_csv(csv_path)
+      with epath.Path(csv_path).open('r') as f:
+        df = pd.read_csv(f)
     elif self.split == 'validation':
       # dev.csv contains multiple splits, so we must load and then filter it.
       csv_path = self._path('labels', 'dev.csv')
-      df = pd.read_csv(csv_path)
+      with epath.Path(csv_path).open('r') as f:
+        df = pd.read_csv(f)
       df = df[df['split'] == 'val']
     else:
       # This case should not be reached due to the check in __init__
@@ -138,11 +142,12 @@ class FSD50KDataset:
       A pandas DataFrame containing the dataset's metadata.
     """
     cache_path = self._path(f'{self.split}.parquet')
-    if os.path.exists(cache_path):
+    if epath.Path(cache_path).exists():
       logging.info(
           'Loading FSD50K %s split from cache...', self.split
       )
-      return pd.read_parquet(cache_path)
+      with epath.Path(cache_path).open('rb') as f:
+        return pd.read_parquet(f)
     logging.info(
         'Cache not found. Processing FSD50K %s split from source...'
     )
@@ -157,7 +162,8 @@ class FSD50KDataset:
   def _load_wav_for_row(self, row):
     fname = row['fname']
     clip_path = self._path('clips', self._clip_dir, f'{fname}.wav')
-    clip_bytes = open(clip_path, 'rb').read()
+    with epath.Path(clip_path).open('rb') as f:
+      clip_bytes = f.read()
     waveform, sr = utils.wav_bytes_to_waveform(clip_bytes)
     return waveform, sr
 
