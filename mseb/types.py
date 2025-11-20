@@ -52,6 +52,7 @@ class TextContextParams:
   id: str  # Identifier for the text example unique within the dataset.
   title: Optional[str] = None
   context: Optional[str] = None
+  text: Optional[str] = None
 
 
 @dataclasses.dataclass

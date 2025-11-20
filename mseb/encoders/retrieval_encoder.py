@@ -1,0 +1,98 @@
+# Copyright 2025 The MSEB Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Retrieval-based encoder for MultiModalObjects.
+
+We support both non-partitioned and partitioned indexes. Note that the
+implementation for partitioned indexes is inefficient because it reloads the
+different partitions for each batch.
+"""
+
+import json
+from typing import Sequence
+
+import jaxtyping
+from mseb import encoder
+from mseb import task as task_lib
+from mseb import types
+from mseb.evaluators import retrieval_evaluator
+from mseb.tasks import retrieval as retrieval_task
+
+
+class RetrievalEncoder(encoder.MultiModalEncoder):
+  """Encoder that uses a retrieval model."""
+
+  def __init__(self, top_k: int = 10):
+    super().__init__()
+    self._top_k = top_k
+    self._task: retrieval_task.RetrievalTask | None = None
+    self._text_by_id: dict[str, str] | None = None
+
+  def set_task(self, task: task_lib.MSEBTask):
+    assert isinstance(task, retrieval_task.RetrievalTask)
+    self._task = task
+
+  def _setup(self):
+    if self._task is None:
+      raise ValueError('RetrievalEncoder requires a RetrievalTask.')
+    if self._task.evaluator.top_k < self._top_k:
+      raise ValueError(
+          'RetrievalEncoder requires a retriever with top_k >= %d, but got %d.'
+          % (self._top_k, self._task.evaluator.top_k)
+      )
+    self._text_by_id = {}
+    for document in self._task.documents():
+      self._text_by_id[document.context.id] = document.text
+
+  def _check_input_types(
+      self, inputs: Sequence[types.MultiModalObject]
+  ) -> None:
+    if not all(isinstance(x, types.TextEmbedding) for x in inputs):
+      raise ValueError(
+          'RetrievalEncoder only supports a batch of TextEmbedding inputs.'
+      )
+
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.TextWithTitleAndContext]:
+    embeddings_by_id = {}
+    for x in batch:
+      assert isinstance(x, types.TextEmbedding)
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = x.embedding
+      embeddings_by_id[x.context.id] = types.TextEmbedding(
+          embedding=embedding, spans=x.spans, context=x.context
+      )
+    assert self._task is not None
+    predictions: retrieval_evaluator.RetrievalPredictionsCache = (
+        self._task.evaluator.compute_predictions(embeddings_by_id)
+    )
+    outputs = []
+    assert self._text_by_id is not None
+    for x in batch:
+      retrieved_doc_ids = retrieval_evaluator.get_ranked_doc_ids(
+          predictions[x.context.id], self._top_k
+      )
+      retrieved_docs = [
+          {'id': doc_id, 'text': self._text_by_id[doc_id]}
+          for doc_id in retrieved_doc_ids
+      ]
+      assert isinstance(x, types.TextEmbedding)
+      output = types.TextWithTitleAndContext(
+          text=x.context.text,
+          title_text=None,
+          context=x.context,
+          context_text='\n'.join(json.dumps(item) for item in retrieved_docs),
+      )
+      outputs.append(output)
+    return outputs

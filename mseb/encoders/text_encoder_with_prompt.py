@@ -14,6 +14,7 @@
 
 """Multi-modal encoders with prompt."""
 
+import dataclasses
 import re
 from typing import Callable, final, Optional, Sequence, Tuple
 
@@ -154,7 +155,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
             types.TextEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
                 spans=np.array([[0, len(example.text)]]),
-                context=example.context,
+                context=dataclasses.replace(example.context, text=example.text),
             )
         )
       if isinstance(example, types.Sound):

@@ -209,13 +209,13 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_get_ranked_doc_ids(self):
     predictions_1 = [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')]
-    ranked_doc_ids_1 = retrieval_evaluator._get_ranked_doc_ids(
+    ranked_doc_ids_1 = retrieval_evaluator.get_ranked_doc_ids(
         predictions_1, top_k=2
     )
     self.assertSequenceEqual(ranked_doc_ids_1, ['bli', 'bla'])
 
     predictions_2 = [(0.5, 'bli'), (0.25, 'bla'), (1.0, 'blu')]
-    ranked_doc_ids_2 = retrieval_evaluator._get_ranked_doc_ids(
+    ranked_doc_ids_2 = retrieval_evaluator.get_ranked_doc_ids(
         predictions_2, top_k=2
     )
     self.assertSequenceEqual(ranked_doc_ids_2, ['blu', 'bli'])

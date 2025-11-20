@@ -55,6 +55,12 @@ class RetrievalTask(task.MSEBTask):
     self._evaluator = None
 
   @property
+  def evaluator(self) -> retrieval_evaluator.RetrievalEvaluator:
+    if self._evaluator is None:
+      raise ValueError('Evaluator is not initialized. Did you call setup?')
+    return self._evaluator
+
+  @property
   def index_dir(self) -> str:
     """The directory where the index is stored."""
     return os.path.join(task.TASK_CACHE_BASEPATH.value, 'retrievals')
@@ -136,12 +142,24 @@ class RetrievalTask(task.MSEBTask):
   ) -> dict[str, list[types.Score]]:
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
-    scores = {}
 
+    if not isinstance(
+        next(iter(embeddings.values())), types.TextPrediction
+    ):
+      predictions = self._evaluator.compute_predictions(embeddings)
+    else:
+      predictions = {}
+      for sound_id, example in embeddings.items():
+        assert isinstance(example, types.TextPrediction)
+        predictions[sound_id] = [
+            # Assign pseudo-scores to preserve the predicted ranking.
+            (1 / n, p) for n, p in enumerate(example.prediction.split('\n'), 1)
+        ]
+
+    scores = {}
     for sub_task in self.sub_tasks:
       scores[sub_task] = self._evaluator.compute_metrics(
-          self._evaluator.compute_predictions(embeddings),
-          tuple(self.examples(sub_task)),
+          predictions, tuple(self.examples(sub_task))
       )
     return scores
 

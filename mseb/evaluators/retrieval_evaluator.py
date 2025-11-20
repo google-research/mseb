@@ -67,7 +67,7 @@ class RetrievalReferenceId:
 RetrievalPredictionsCache = Mapping[str, Sequence[tuple[float, str]]]
 
 
-def _get_ranked_doc_ids(
+def get_ranked_doc_ids(
     score_and_doc_ids: Sequence[tuple[float, str]], top_k: int
 ) -> Sequence[str]:
   """Sorts and deduplicates predictions and returns the topk ranked doc ids.
@@ -86,7 +86,10 @@ def _get_ranked_doc_ids(
   )
   ranked_doc_ids = [doc_id for _, doc_id in ranked_score_and_doc_ids]
   ranked_doc_ids = [doc_id for doc_id, _ in itertools.groupby(ranked_doc_ids)]
-  assert len(ranked_doc_ids) == len(set(ranked_doc_ids))
+  if len(ranked_doc_ids) != len(set(ranked_doc_ids)):
+    logger.warning(
+        'Duplicate doc ids found in ranked doc ids: %s', ranked_doc_ids
+    )
   return ranked_doc_ids[:top_k]
 
 
@@ -108,7 +111,7 @@ def _compute_metrics(
   """
   values_by_metric = {'mrr': [], 'em': []}
   for reference_id in reference_ids:
-    ranked_doc_ids = _get_ranked_doc_ids(
+    ranked_doc_ids = get_ranked_doc_ids(
         predictions[reference_id.sound_id], top_k
     )
     values_by_metric['mrr'].append(
@@ -341,4 +344,5 @@ def load_index(
   with epath.Path(ids_path).open('r') as f:
     id_by_index_id: Sequence[str] = f.read().splitlines()
   searcher = scann_ops_pybind.load_searcher(scann_base_dir)
+  logger.info('Loaded ScaNN index with %d documents.', len(id_by_index_id))
   return searcher, id_by_index_id
