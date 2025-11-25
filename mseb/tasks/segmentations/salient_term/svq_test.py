@@ -84,7 +84,7 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
     self.mock_get_sound = self.enter_context(
         mock.patch(
             "mseb.datasets.simple_voice_questions."
-            "SimpleVoiceQuestionsDataset.get_sound_by_id"
+            "SimpleVoiceQuestionsDataset.get_sound"
         )
     )
     self.mock_get_sound.return_value = types.Sound(
@@ -101,9 +101,9 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
     sounds = list(task.sounds())
 
     self.assertLen(sounds, 3)
-    self.mock_get_sound.assert_any_call("en_us_001")
-    self.mock_get_sound.assert_any_call("en_us_002")
-    self.mock_get_sound.assert_any_call("en_us_003_no_gt")
+    self.mock_get_sound.assert_any_call({"utt_id": "en_us_001"})
+    self.mock_get_sound.assert_any_call({"utt_id": "en_us_002"})
+    self.mock_get_sound.assert_any_call({"utt_id": "en_us_003_no_gt"})
 
   def test_svq_salient_term_segmentation_examples(self):
     task = svq.SVQEnUsSalientTermSegmentation()

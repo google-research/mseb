@@ -40,7 +40,7 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for utt_id, record in svq_dataset.utt_id_to_record.items():
       if record["locale"] == self.locale:
-        yield svq_dataset.get_sound_by_id(utt_id)
+        yield svq_dataset.get_sound({"utt_id": utt_id})
 
   def examples(
       self, sub_task: str

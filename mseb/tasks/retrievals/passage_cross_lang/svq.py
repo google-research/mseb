@@ -41,12 +41,12 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
     for example in svq_dataset.get_task_data(
         'passage_retrieval_cross_lang_index',
         dtype={'id': str, 'title': str, 'context': str},
-    ).itertuples():
+    ).to_dict('records'):
       yield types.Text(
-          text=example.context,
+          text=example['context'],
           context=types.TextContextParams(
-              id=example.id,
-              title=example.title,
+              id=example['id'],
+              title=example['title'],
           ),
       )
 
@@ -55,11 +55,11 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
     for example in svq_dataset.get_task_data(
         'passage_retrieval_cross_lang',
         dtype={'locale': str, 'utt_id': str, 'text': str},
-    ).itertuples():
-      if example.locale == self.locale:
-        sound = svq_dataset.get_sound_by_id(example.utt_id)
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
+        sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
         # Add the ground truth query for headroom analysis.
-        sound.context.text = example.text
+        sound.context.text = example['text']
         yield sound
 
   def examples(
@@ -69,10 +69,10 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
     for example in svq_dataset.get_task_data(
         sub_task,
         dtype={'locale': str, 'utt_id': str, 'passage_id': str},
-    ).itertuples():
-      if example.locale == self.locale:
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
-            sound_id=example.utt_id, reference_id=example.passage_id
+            sound_id=example['utt_id'], reference_id=example['passage_id']
         )
 
 

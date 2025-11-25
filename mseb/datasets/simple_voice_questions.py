@@ -24,6 +24,7 @@ from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
+from mseb.datasets import base
 import pandas as pd
 
 
@@ -131,7 +132,7 @@ class ReadTaskData(beam.PTransform):
     )
 
 
-class SimpleVoiceQuestionsDataset:
+class SimpleVoiceQuestionsDataset(base.MsebDataset):
   """Simple Voice Questions (SVQ) dataset.
 
   This class loads the entire corpus of utterances and provides a method
@@ -143,15 +144,8 @@ class SimpleVoiceQuestionsDataset:
       base_path: str | None = None,
       split: str = "all",
   ):
-    if split != "all":
-      raise ValueError(
-          "The 'split' argument is not used for"
-          " SimpleVoiceQuestionsDatasetinitialization. Initialize the dataset"
-          " without a split to load the main corpus, then use the"
-          " `get_task_data('task_name')` method."
-      )
-    self.base_path = dataset.get_base_path(base_path)
-    self.split = split
+    super().__init__(base_path=base_path, split=split)
+    self.base_path = dataset.get_base_path(self.base_path)
     self._index = self._load_index()
     self._utt_lookup = _UttLookup(self.base_path, self._index)
     self.utt_id_to_record = self._index.set_index("utt_id").to_dict("index")
@@ -186,8 +180,9 @@ class SimpleVoiceQuestionsDataset:
       raise FileNotFoundError(f"Master index not found: {utt_index_path}")
     return pd.read_json(utt_index_path, lines=True)
 
-  def get_sound_by_id(self, utt_id: str) -> types.Sound:
+  def get_sound(self, record: Mapping[str, Any]) -> types.Sound:
     """Retrieves a Sound object by its unique utterance ID."""
+    utt_id = record["utt_id"]
     if utt_id not in self.utt_id_to_record:
       raise ValueError(f"Utterance ID '{utt_id}' not found in corpus.")
     record = self.utt_id_to_record[utt_id]
@@ -227,7 +222,7 @@ class SimpleVoiceQuestionsDataset:
     return task_path
 
   def get_task_data(
-      self, task_name: str, dtype: Mapping[str, Any] | None = None
+      self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
   ) -> pd.DataFrame:
     """Loads the task data for the given task name.
 
@@ -241,6 +236,10 @@ class SimpleVoiceQuestionsDataset:
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
+    if not task_name:
+      raise ValueError(
+          "task_name must be specified for SimpleVoiceQuestionsDataset"
+      )
     return pd.read_json(
         self._get_task_path(task_name), lines=True, dtype=dtype
     )

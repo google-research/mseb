@@ -156,7 +156,7 @@ class SaliencyCascadeFactoryTest(parameterized.TestCase):
     dataset = simple_voice_questions.SimpleVoiceQuestionsDataset(
         base_path=self.mini_dataset_path
     )
-    self.sound_input = dataset.get_sound_by_id('utt_6844631007344632667')
+    self.sound_input = dataset.get_sound({'utt_id': 'utt_6844631007344632667'})
     if self.sound_input.context.text:
       self.sound_input.context.text = self.sound_input.context.text.lower()
 

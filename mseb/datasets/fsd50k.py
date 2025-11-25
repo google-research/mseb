@@ -15,17 +15,18 @@
 """FSD50K dataset."""
 
 import os
-from typing import Any
+from typing import Any, Mapping
 
 from absl import logging
 from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
+from mseb.datasets import base
 import pandas as pd
 
 
-class FSD50KDataset:
+class FSD50KDataset(base.MsebDataset):
   """FSD50K dataset loader that works with the Hugging Face repository."""
 
   def __init__(
@@ -37,8 +38,8 @@ class FSD50KDataset:
     if split not in ['validation', 'test']:
       raise ValueError(f'Split must be validation or test, but got {split}.')
 
-    self.base_path = dataset.get_base_path(base_path)
-    self.split = split
+    super().__init__(base_path=base_path, split=split)
+    self.base_path = dataset.get_base_path(self.base_path)
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
 
@@ -81,7 +82,9 @@ class FSD50KDataset:
   def _path(self, *args):
     return os.path.join(self.base_path, *args)
 
-  def get_task_data(self) -> pd.DataFrame:
+  def get_task_data(
+      self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
+  ) -> pd.DataFrame:
     return self._data
 
   def _load_vocabulary(self) -> None:

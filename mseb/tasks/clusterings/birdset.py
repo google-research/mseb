@@ -14,14 +14,13 @@
 
 """Birdset clustering tasks."""
 
-from typing import Iterable, Type
+from typing import Any, Iterable, Type
 
 from mseb import runner as runner_lib
 from mseb import types
 from mseb.datasets import birdset
 from mseb.evaluators import clustering_evaluator
 from mseb.tasks import clustering
-import pandas as pd
 
 
 def _get_birdset_clustering_metadata(configuration: str) -> types.TaskMetadata:
@@ -62,11 +61,11 @@ class BirdsetClustering(clustering.ClusteringTask):
   def _task_data(self):
     return self._birdset_dataset.get_task_data()
 
-  def _get_label(self, example: pd.Series) -> str:
+  def _get_label(self, example: dict[str, Any]) -> str:
     """Get label from example."""
     # Pick only first label from multiple labels.
-    if example.ebird_code_multilabel:
-      return example.ebird_code_multilabel[0]
+    if example["ebird_code_multilabel"]:
+      return example["ebird_code_multilabel"][0]
     return "no_label"
 
   @property
@@ -74,16 +73,16 @@ class BirdsetClustering(clustering.ClusteringTask):
     return ["clustering"]
 
   def sounds(self) -> Iterable[types.Sound]:
-    for _, example in self._task_data().iterrows():
+    for example in self._task_data().to_dict("records"):
       yield self._birdset_dataset.get_sound(example)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     """Get (utt_id, label) examples from Birdset dataset."""
-    for example in self._task_data().itertuples():
+    for example in self._task_data().to_dict("records"):
       yield clustering_evaluator.ClusteringExample(
-          str(example.filepath), self._get_label(example)
+          str(example["filepath"]), self._get_label(example)
       )
 
 

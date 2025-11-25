@@ -98,7 +98,7 @@ def main(_):
     for i, row in enumerate(
         tqdm.tqdm(df_mini.itertuples(), total=len(df_mini))
     ):
-      sound = full_dataset.get_sound_by_id(row.utt_id)
+      sound = full_dataset.get_sound({'utt_id': row.utt_id})
       wav_bytes = utils.sound_to_wav_bytes(sound)
       writer.write(wav_bytes)
       new_indices.append(f'audio/mini_utts:{i}')

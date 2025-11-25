@@ -49,13 +49,13 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
             'page_title': str,
             'passage_text': str,
         },
-    ).itertuples():
-      if example.locale == self.locale:
-        sound = svq_dataset.get_sound_by_id(example.utt_id)
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
+        sound = svq_dataset.get_sound(example)
         yield types.SoundWithTitleAndContext(
             waveform=sound.waveform,
-            title_text=example.page_title,
-            context_text=example.passage_text,
+            title_text=example['page_title'],
+            context_text=example['passage_text'],
             context=sound.context,
         )
 
@@ -71,12 +71,12 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
             'span': str,
             'spans': Sequence[str],
         },
-    ).itertuples():
-      if example.locale == self.locale:
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
         yield reasoning_evaluator.ReasoningSpans(
-            sound_id=example.utt_id,
-            reference_answer=example.span,
-            texts=example.spans,
+            sound_id=example['utt_id'],
+            reference_answer=example['span'],
+            texts=example['spans'],
         )
 
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
@@ -84,14 +84,14 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
     for example in svq_dataset.get_task_data(
         'span_reasoning_cross_lang',
         dtype={'locale': str, 'spans': Sequence[str]},
-    ).itertuples():
-      if example.locale == self.locale:
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
         yield [
             types.Text(
                 text=span,
                 context=types.TextContextParams(id=span),
             )
-            for span in example.spans
+            for span in example['spans']
         ]
 
 
