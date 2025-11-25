@@ -23,6 +23,9 @@ from mseb.evaluators import classification_evaluator
 from mseb.tasks import classification
 import numpy as np
 
+NO_RESPONSE_STR = classification_evaluator.NO_RESPONSE_STR
+INVALID_ANSWER_STR = classification_evaluator.INVALID_ANSWER_STR
+
 
 class ClassificationTest(absltest.TestCase):
 
@@ -339,6 +342,12 @@ class ClassificationTest(absltest.TestCase):
             classification_evaluator.ClassificationReference(
                 example_id="utt_2", label_id="label_2"
             ),
+            classification_evaluator.ClassificationReference(
+                example_id="utt_3", label_id="label_1"
+            ),
+            classification_evaluator.ClassificationReference(
+                example_id="utt_4", label_id="label_2"
+            ),
         ]
 
       @property
@@ -362,6 +371,14 @@ class ClassificationTest(absltest.TestCase):
             context=types.PredictionContextParams(id="utt_2"),
             prediction="label_2",
         ),
+        "utt_3": types.TextPrediction(
+            context=types.PredictionContextParams(id="utt_3"),
+            prediction=NO_RESPONSE_STR,
+        ),
+        "utt_4": types.TextPrediction(
+            context=types.PredictionContextParams(id="utt_4"),
+            prediction=INVALID_ANSWER_STR,
+        ),
     }
 
     metrics = task.compute_scores(embeddings)
@@ -369,7 +386,15 @@ class ClassificationTest(absltest.TestCase):
     accuracy_score = next(
         s for s in metrics["test"] if s.metric == "Accuracy"
     )
-    self.assertAlmostEqual(accuracy_score.value, 1.0)
+    self.assertAlmostEqual(accuracy_score.value, 0.5)
+    invalid_rate_score = next(
+        s for s in metrics["test"] if s.metric == "InvalidResultRate"
+    )
+    self.assertAlmostEqual(invalid_rate_score.value, 0.25)
+    no_result_rate_score = next(
+        s for s in metrics["test"] if s.metric == "MissingResultRate"
+    )
+    self.assertAlmostEqual(no_result_rate_score.value, 0.25)
 
 if __name__ == "__main__":
   absltest.main()

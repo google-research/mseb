@@ -87,10 +87,16 @@ class ClassificationEvaluatorTest(absltest.TestCase):
         classification_evaluator.ClassificationReference('ex2', 'dog'),
     ]
     results = evaluator.compute_metrics(scores, references)
-    # For a perfect score, all metrics should be 1.0
-    for score in results:
+    # For a perfect score, all non-error metrics should be 1.0
+    for score in results[:-2]:
       self.assertAlmostEqual(
           score.value, 1.0,
+          msg=f'Metric {score.metric} failed.'
+      )
+    # Invalid and no result rates should be 0.0
+    for score in results[-2:]:
+      self.assertAlmostEqual(
+          score.value, 0.0,
           msg=f'Metric {score.metric} failed.'
       )
 
@@ -139,6 +145,29 @@ class ClassificationEvaluatorTest(absltest.TestCase):
     # Balanced accuracy = (1.0 + 0.0) / 2 = 0.5
     # (Note: scikit-learn averages recall over all PRESENT classes)
     self.assertAlmostEqual(results['Balanced Accuracy'], 0.5)
+
+  def test_compute_metrics_invalid_and_no_result_rates(self):
+    evaluator = classification_evaluator.ClassificationEvaluator(
+        class_labels=self.class_labels, weights=self.embedding_table
+    )
+    scores = {
+        'ex1': np.array([0.0, 0.0, 0.0, 1.0, 0.0]),
+        'ex2': np.array([0.0, 0.0, 0.0, 0.0, 1.0]),
+        'ex3': np.array([0.0, 0.0, 0.0, 0.0, 1.0]),
+        'ex4': np.array([0.0, 0.0, 0.0, 0.0, 1.0]),
+    }
+    references = [
+        classification_evaluator.ClassificationReference('ex1', 'cat'),
+        classification_evaluator.ClassificationReference('ex2', 'dog'),
+        classification_evaluator.ClassificationReference('ex3', 'bird'),
+        classification_evaluator.ClassificationReference('ex4', 'bird'),
+    ]
+    results = {
+        s.metric: s.value for s in evaluator.compute_metrics(scores, references)
+    }
+    self.assertAlmostEqual(results['Accuracy'], 0.0)
+    self.assertAlmostEqual(results['InvalidResultRate'], 0.25)
+    self.assertAlmostEqual(results['MissingResultRate'], 0.75)
 
   def test_multimodality_with_text_embeddings(self):
     evaluator = classification_evaluator.ClassificationEvaluator(

@@ -146,7 +146,7 @@ class ClassificationTask(task.MSEBTask):
         predictions[k] = np.array(
             object=[
                 1.0 if x == getattr(v, "prediction", "") else 0.0
-                for x in self.class_labels()
+                for x in self._evaluator.get_extended_class_labels()
             ]
         )
     else:

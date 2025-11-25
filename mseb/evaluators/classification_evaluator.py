@@ -26,11 +26,15 @@ from etils import epath
 import jaxtyping
 from mseb import evaluator as evaluator_lib
 from mseb import types
+from mseb.evaluators import reasoning_evaluator
 import numpy as np
 from sklearn import metrics
 
 
 logger = logging.getLogger(__name__)
+
+INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
 
 
 def accuracy(value: float = 0.0) -> types.Score:
@@ -161,6 +165,28 @@ def subset_accuracy(value: float = 0.0) -> types.Score:
   )
 
 
+def invalid_result_rate(value: float = 0.0) -> types.Score:
+  """Creates a Score object for invalid result rate."""
+  return types.Score(
+      metric='InvalidResultRate',
+      description='Invalid result rate',
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
+def no_result_rate(value: float = 0.0) -> types.Score:
+  """Creates a Score object for no result rate."""
+  return types.Score(
+      metric='MissingResultRate',
+      description='Missing result rate',
+      value=value,
+      min=0.0,
+      max=1.0,
+  )
+
+
 @dataclasses.dataclass
 class ClassificationReference:
   """A generic ground-truth reference for a classification task."""
@@ -240,12 +266,21 @@ class ClassificationEvaluator:
           top_k_value, num_classes, top_k_value
       )
     self.weights = weights
+    self.extended_class_labels = list(class_labels)
+    self.extended_class_labels.extend([
+        INVALID_ANSWER_STR,
+        NO_RESPONSE_STR,
+    ])
     self.id_by_label = {
-        label: label_id for label_id, label in enumerate(class_labels)
+        label: label_id
+        for label_id, label in enumerate(self.extended_class_labels)
     }
     self.distance_fn = distance_fn
     self.predict_fn = predict_fn
     self.top_k_value = top_k_value
+
+  def get_extended_class_labels(self) -> list[str]:
+    return self.extended_class_labels
 
   def compute_predictions(
       self,
@@ -296,7 +331,8 @@ class ClassificationEvaluator:
     Args:
       scores: A mapping from a unique example ID to its corresponding raw
         prediction score vector. Each score vector should be a 1D numpy array
-        of shape `[num_classes]`.
+        of shape `[num_classes]` (or `[num_classes + 2]' when handling invalid
+        and missing results).
       references: A sequence of `ClassificationReference` objects, where each
         object contains the ground-truth `example_id` and `label_id`.
 
@@ -332,6 +368,12 @@ class ClassificationEvaluator:
         labels=list(self.id_by_label.values()),
         zero_division=0
     )
+    invalid_result = np.mean(
+        np.array(y_pred_labels) == self.id_by_label[INVALID_ANSWER_STR]
+    )
+    no_result = np.mean(
+        np.array(y_pred_labels) == self.id_by_label[NO_RESPONSE_STR]
+    )
 
     return [
         accuracy(acc),
@@ -340,6 +382,8 @@ class ClassificationEvaluator:
         weighted_precision(prec),
         weighted_recall(rec),
         weighted_f1(f1),
+        invalid_result_rate(invalid_result),
+        no_result_rate(no_result),
     ]
 
 
@@ -372,6 +416,9 @@ class MultiLabelClassificationEvaluator:
         label_id: i for i, label_id in enumerate(id_by_class_index)
     }
     self.distance_fn = distance_fn
+
+  def get_extended_class_labels(self) -> list[str]:
+    raise NotImplementedError
 
   def compute_predictions(
       self, embeddings_by_id: types.MultiModalEmbeddingCache
