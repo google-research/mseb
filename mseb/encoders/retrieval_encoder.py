@@ -20,11 +20,11 @@ different partitions for each batch.
 """
 
 import json
+import logging
 from typing import Sequence
 
 import jaxtyping
 from mseb import encoder
-from mseb import task as task_lib
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval as retrieval_task
@@ -33,27 +33,42 @@ from mseb.tasks import retrieval as retrieval_task
 class RetrievalEncoder(encoder.MultiModalEncoder):
   """Encoder that uses a retrieval model."""
 
-  def __init__(self, top_k: int = 10):
+  def __init__(self, top_k: int = 10, id_by_index_id_filepath: str = 'ids.txt'):
     super().__init__()
     self._top_k = top_k
-    self._task: retrieval_task.RetrievalTask | None = None
+    self._id_by_index_id_filepath = id_by_index_id_filepath
+    self._index_dir: str | None = None
+    self._evaluator: (
+        retrieval_evaluator.RetrievalEvaluator
+        | retrieval_evaluator.RetrievalEvaluatorPartitioned
+    ) | None = None
     self._text_by_id: dict[str, str] | None = None
 
-  def set_task(self, task: task_lib.MSEBTask):
-    assert isinstance(task, retrieval_task.RetrievalTask)
-    self._task = task
+  def set_task(self, task: retrieval_task.RetrievalTask) -> None:
+    self._index_dir = task.index_dir
+    # TODO(heigold): We would like to move it to _setup because the mapping can
+    # be large, but task.documents, let alone task, isn't pickleable.
+    self._text_by_id = {}
+    for document in task.documents():
+      self._text_by_id[document.context.id] = document.text
+    logging.info(
+        'Created text_by_id mapping for %d documents.', len(self._text_by_id)
+    )
 
   def _setup(self):
-    if self._task is None:
-      raise ValueError('RetrievalEncoder requires a RetrievalTask.')
-    if self._task.evaluator.top_k < self._top_k:
-      raise ValueError(
-          'RetrievalEncoder requires a retriever with top_k >= %d, but got %d.'
-          % (self._top_k, self._task.evaluator.top_k)
+    if retrieval_task._NUM_PARTITIONS.value == 1:  # pylint: disable=protected-access
+      searcher, id_by_index_id = retrieval_evaluator.load_index(
+          self._index_dir, self._id_by_index_id_filepath
       )
-    self._text_by_id = {}
-    for document in self._task.documents():
-      self._text_by_id[document.context.id] = document.text
+      self._evaluator = retrieval_evaluator.RetrievalEvaluator(
+          searcher=searcher,
+          id_by_index_id=id_by_index_id,
+          top_k=self._top_k,
+      )
+    else:
+      self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
+          index_dir=self._index_dir, top_k=self._top_k
+      )
 
   def _check_input_types(
       self, inputs: Sequence[types.MultiModalObject]
@@ -73,9 +88,9 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
       embeddings_by_id[x.context.id] = types.TextEmbedding(
           embedding=embedding, spans=x.spans, context=x.context
       )
-    assert self._task is not None
+    assert self._evaluator is not None
     predictions: retrieval_evaluator.RetrievalPredictionsCache = (
-        self._task.evaluator.compute_predictions(embeddings_by_id)
+        self._evaluator.compute_predictions(embeddings_by_id)
     )
     outputs = []
     assert self._text_by_id is not None

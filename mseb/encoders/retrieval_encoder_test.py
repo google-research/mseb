@@ -95,9 +95,11 @@ class RetrievalEncoderTest(absltest.TestCase):
 
     encoder = retrieval_encoder.RetrievalEncoder(top_k=2)
     encoder.set_task(task)
-    self.assertIsNotNone(encoder._task)
-    encoder.setup()
+    self.assertIsNotNone(encoder._index_dir)
     self.assertIsNotNone(encoder._text_by_id)
+    self.assertLen(encoder._text_by_id, 4)
+    encoder.setup()
+    self.assertIsNotNone(encoder._evaluator)
 
     embeddings = encoder.encode([
         types.TextEmbedding(
@@ -112,7 +114,6 @@ class RetrievalEncoderTest(absltest.TestCase):
         ),
     ])
     self.assertLen(embeddings, 2)
-    print('DEBUG_embeddings: ', embeddings)
     embedding_0 = embeddings[0]
     self.assertIsInstance(embedding_0, types.TextWithTitleAndContext)
     self.assertEqual(embedding_0.text, 'blu text')
@@ -167,9 +168,11 @@ class RetrievalEncoderTest(absltest.TestCase):
 
     encoder = retrieval_encoder.RetrievalEncoder(top_k=2)
     encoder.set_task(task)
-    self.assertIsNotNone(encoder._task)
-    encoder.setup()
+    self.assertIsNotNone(encoder._index_dir)
     self.assertIsNotNone(encoder._text_by_id)
+    self.assertLen(encoder._text_by_id, 4)
+    encoder.setup()
+    self.assertIsNotNone(encoder._evaluator)
 
     embeddings = encoder.encode([
         types.TextEmbedding(
