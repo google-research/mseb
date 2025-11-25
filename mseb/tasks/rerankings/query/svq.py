@@ -43,11 +43,11 @@ class SVQQueryReranking(reranking.RerankingTask):
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         'query_reranking', dtype={'locale': str, 'utt_id': str, 'text': str}
-    ).itertuples():
-      if example.locale == self.locale:
-        sound = svq_dataset.get_sound_by_id(example.utt_id)
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
+        sound = svq_dataset.get_sound(example)
         # Add the ground truth query for headroom analysis.
-        sound.context.text = example.candidates[0]
+        sound.context.text = example['candidates'][0]
         yield sound
 
   def examples(
@@ -57,26 +57,26 @@ class SVQQueryReranking(reranking.RerankingTask):
     for example in svq_dataset.get_task_data(
         sub_task,
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
-    ).itertuples():
-      if example.locale == self.locale:
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
         yield reranking_evaluator.RerankingCandidates(
-            sound_id=example.utt_id,
-            texts=example.candidates,
-            language=example.locale,
+            sound_id=example['utt_id'],
+            texts=example['candidates'],
+            language=example['locale'],
         )
 
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         'query_reranking', dtype={'locale': str, 'candidates': Sequence[str]}
-    ).itertuples():
-      if example.locale == self.locale:
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
         yield [
             types.Text(
                 text=candidate,
                 context=types.TextContextParams(id=candidate),
             )
-            for candidate in example.candidates
+            for candidate in example['candidates']
         ]
 
 

@@ -46,17 +46,17 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
 
   def sounds(self) -> Iterable[types.Sound]:
     dataset = speech_massive.SpeechMassiveDataset(language=self.locale)
-    for example in dataset.get_task_data().itertuples():
+    for example in dataset.get_task_data().to_dict("records"):
       yield dataset.get_sound(example)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[classification_evaluator.ClassificationReference]:
     dataset = speech_massive.SpeechMassiveDataset(language=self.locale)
-    for example in dataset.get_task_data().itertuples():
+    for example in dataset.get_task_data().to_dict("records"):
       yield classification_evaluator.ClassificationReference(
-          example_id=example.path,
-          label_id=example.intent_str,
+          example_id=example["path"],
+          label_id=example["intent_str"],
       )
 
   def class_labels(self) -> Iterable[str]:

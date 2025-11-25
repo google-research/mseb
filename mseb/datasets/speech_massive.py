@@ -15,11 +15,13 @@
 """Speech-MASSIVE dataset."""
 
 import os
+from typing import Any, Mapping
 
 from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
+from mseb.datasets import base
 import pandas as pd
 
 
@@ -40,7 +42,7 @@ bcp47_by_locale = {
 locale_by_bcp47 = {v: k for k, v in bcp47_by_locale.items()}
 
 
-class SpeechMassiveDataset:
+class SpeechMassiveDataset(base.MsebDataset):
   """SpeechMassive dataset."""
 
   def __init__(
@@ -60,10 +62,10 @@ class SpeechMassiveDataset:
         richer 'FBK-MT/Speech-MASSIVE' version, but the original
         'speechcolab/massive' is also supported.
     """
-    self.base_path = dataset.get_base_path(base_path)
+    super().__init__(base_path=base_path, split=split)
+    self.base_path = dataset.get_base_path(self.base_path)
     self.repo_id = repo_id
     self.language = bcp47_by_locale.get(language, language)
-    self.split = split
     self._data = self._load_data()
 
   @property
@@ -126,25 +128,25 @@ class SpeechMassiveDataset:
     df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
     return df
 
-  def get_sound(self, record: pd.Series) -> types.Sound:
+  def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Converts a single row of the dataset to a Sound object."""
-    assert record.locale == self.language
-    assert record.partition == self.split
-    samples = record.audio["samples"]
-    sample_rate = record.audio["sample_rate"]
+    assert record["locale"] == self.language
+    assert record["partition"] == self.split
+    samples = record["audio"]["samples"]
+    sample_rate = record["audio"]["sample_rate"]
     try:
-      speaker_age = int(record.speaker_age)
+      speaker_age = int(record["speaker_age"])
     except ValueError:
       speaker_age = None
     context = types.SoundContextParams(
-        id=record.path,
+        id=record["path"],
         sample_rate=sample_rate,
         length=len(samples),
-        language=locale_by_bcp47[record.locale],
-        speaker_id=record.speaker_id,
+        language=locale_by_bcp47[record["locale"]],
+        speaker_id=record["speaker_id"],
         speaker_age=speaker_age,
-        speaker_gender=record.speaker_sex,
-        text=record.utt,
+        speaker_gender=record["speaker_sex"],
+        text=record["utt"],
         waveform_start_second=0.0,
         waveform_end_second=len(samples) / sample_rate
         if sample_rate > 0
@@ -152,8 +154,14 @@ class SpeechMassiveDataset:
     )
     return types.Sound(waveform=samples, context=context)
 
-  def get_task_data(self) -> pd.DataFrame:
+  def get_task_data(
+      self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
+  ) -> pd.DataFrame:
     r"""Returns the entire dataset as a DataFrame.
+
+    Args:
+      task_name: The name of the task.
+      dtype: The data types of the columns.
 
     Attributes with example values:
     id                           2205

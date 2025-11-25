@@ -46,8 +46,8 @@ class SVQClustering(clustering.ClusteringTask):
     return ['speaker_gender', 'speaker_age', 'speaker_id']
 
   def sounds(self) -> Iterable[types.Sound]:
-    for example in self._task_data().itertuples():
-      yield self._svq_dataset.get_sound_by_id(example.utt_id)
+    for example in self._task_data().to_dict('records'):
+      yield self._svq_dataset.get_sound(example)
 
   def sounds_beam(self):
     sounds = self._svq_dataset.get_task_sounds_beam('utt_index')
@@ -61,9 +61,9 @@ class SVQClustering(clustering.ClusteringTask):
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     """Get (utt_id, label) examples from svq dataset."""
-    for example in self._task_data().itertuples():
+    for example in self._task_data().to_dict('records'):
       yield clustering_evaluator.ClusteringExample(
-          example.utt_id, getattr(example, sub_task)
+          example['utt_id'], example[sub_task]
       )
 
 

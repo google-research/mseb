@@ -79,14 +79,14 @@ class BirdsetClassification(classification.ClassificationTask):
 
   def sounds(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
-    for _, example in dataset.get_task_data().iterrows():
+    for example in dataset.get_task_data().to_dict("records"):
       yield dataset.get_sound(example)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[classification_evaluator.MultiLabelClassificationReference]:
     dataset = self._get_dataset()
-    for _, example in dataset.get_task_data().iterrows():
+    for example in dataset.get_task_data().to_dict("records"):
       yield classification_evaluator.MultiLabelClassificationReference(
           example_id=str(example["filepath"]),
           label_ids=list(example["ebird_code_multilabel"]),
@@ -150,4 +150,3 @@ class BirdsetXCMClassification(BirdsetClassification):
 class BirdsetXCLClassification(BirdsetClassification):
   configuration = "XCL"
   metadata = _get_birdset_metadata(configuration)
-
