@@ -16,14 +16,16 @@
 
 import json
 import os
+from typing import Any, Mapping
 
 from etils import epath
 from mseb import dataset
 from mseb import types
+from mseb.datasets import base
 import pandas as pd
 
 
-class BirdsetDataset:
+class BirdsetDataset(base.MsebDataset):
   """Birdset dataset for bird sound classification.
 
   This class loads the Birdset, a large-scale collection of bird sound
@@ -50,9 +52,8 @@ class BirdsetDataset:
       raise ValueError(
           f"Split must be 'train', 'test', or 'test_5s', but got '{split}'."
       )
-
-    self.base_path = dataset.get_base_path(base_path)
-    self.split = split
+    super().__init__(base_path=base_path, split=split)
+    self.base_path = dataset.get_base_path(self.base_path)
     self.configuration = configuration
     self._native_sr = 32_000
     self._ebird_code_names: list[str] | None = None
@@ -121,19 +122,21 @@ class BirdsetDataset:
     )
     return df
 
-  def get_task_data(self) -> pd.DataFrame:
+  def get_task_data(
+      self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
+  ) -> pd.DataFrame:
     """Returns the entire dataset as a DataFrame."""
     return self._data
 
-  def get_sound(self, record: pd.Series) -> types.Sound:
+  def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Creates a Sound object from the HF dataset record."""
-    audio_data = record.audio
+    audio_data = record["audio"]
     waveform = audio_data["waveform"]
     sr = audio_data["sample_rate"]
-    text_label = ",".join(record.ebird_code_multilabel)
+    text_label = ",".join(record["ebird_code_multilabel"])
 
     context = types.SoundContextParams(
-        id=str(record.filepath),
+        id=str(record["filepath"]),
         sample_rate=sr,
         length=len(waveform),
         language=None,

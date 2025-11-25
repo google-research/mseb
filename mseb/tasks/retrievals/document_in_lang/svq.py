@@ -49,11 +49,11 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     for example in svq_dataset.get_task_data(
         'document_retrieval_in_lang',
         dtype={'locale': str, 'utt_id': str, 'text': str},
-    ).itertuples():
-      if example.locale == self.locale:
-        sound = svq_dataset.get_sound_by_id(example.utt_id)
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
+        sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
         # Add the ground truth query for headroom analysis.
-        sound.context.text = example.text
+        sound.context.text = example['text']
         yield sound
 
   def examples(
@@ -62,10 +62,10 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     svq_dataset = svq.SimpleVoiceQuestionsDataset()
     for example in svq_dataset.get_task_data(
         sub_task, dtype={'locale': str, 'utt_id': str, 'page_title': str}
-    ).itertuples():
-      if example.locale == self.locale:
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(
-            sound_id=example.utt_id, reference_id=example.page_title
+            sound_id=example['utt_id'], reference_id=example['page_title']
         )
 
   def documents(self) -> Iterable[types.Text]:

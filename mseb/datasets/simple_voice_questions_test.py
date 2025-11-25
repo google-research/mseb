@@ -39,7 +39,7 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
 
     self.assertLen(dataset, 4)
 
-    sound1 = dataset.get_sound_by_id("utt_14868079180393484423")
+    sound1 = dataset.get_sound({"utt_id": "utt_14868079180393484423"})
     self.assertEqual(sound1.context.id, "utt_14868079180393484423")
     self.assertEqual(sound1.context.speaker_id, "speaker_14224269439222776736")
     self.assertEqual(sound1.context.speaker_age, 40)
