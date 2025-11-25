@@ -68,6 +68,30 @@ class PromptTest(absltest.TestCase):
         self.INVALID_ANSWER_STR,
     )
 
+  def test_classification_prompt(self):
+    class_labels = ["Paris", "London", "New York"]
+    prompt = prompt_lib.ClassificationPrompt(class_labels=class_labels)
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "answer": "Paris",
+            })
+        ),
+        "Paris",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "answer": "Munich",
+            })
+        ),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse("invalid json"),
+        self.INVALID_ANSWER_STR,
+    )
+
 
 if __name__ == "__main__":
   absltest.main()

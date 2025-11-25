@@ -146,6 +146,7 @@ class ClassificationPrompt(Prompt):
   def __init__(
       self, class_labels: Sequence[str], prompt_template: str = PROMPT_TEMPLATE
   ):
+    self.class_labels = list(class_labels)
     self.prompt_template = prompt_template.format(
         class_labels=json.dumps(class_labels)
     )
@@ -155,12 +156,15 @@ class ClassificationPrompt(Prompt):
 
   def ProcessResponse(self, response: Any) -> Any:
     assert isinstance(response, str)
-    return ProcessJsonResponse(
+    result = ProcessJsonResponse(
         response,
         keys=['answer'],
         key_to_value_map=None,
         invalid_response_value=self.INVALID_ANSWER_STR,
     )
+    if result not in self.class_labels:
+      return self.INVALID_ANSWER_STR
+    return result
 
 
 class RetrievalPrompt(Prompt):
