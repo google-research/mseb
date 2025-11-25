@@ -30,6 +30,7 @@ import numpy as np
 
 NO_ANSWER_STR = 'No Answer'
 INVALID_ANSWER_STR = ''
+NO_RESPONSE_STR = 'NO_RESPONSE'
 
 
 def f1(value: float = 0.0, std: float | None = None):
@@ -230,4 +231,42 @@ class ReasoningEvaluator:
     else:
       mean_no_answer = 0.0
     gmean_f1_score = gmean_f1(mean**weight * mean_no_answer**weight_no_answer)
-    return [gmean_f1_score, f1_score]
+    invalid_result_rate, invalid_result_rate_std = (
+        evaluator.compute_weighted_average_and_std([
+            types.WeightedValue(
+                value=float(
+                    predictions[spans.sound_id].prediction == INVALID_ANSWER_STR
+                ),
+                weight=1.0,
+            )
+            for spans in spans_batch
+        ])
+    )
+    invalid_result_score = types.Score(
+        metric='InvalidResultRate',
+        description='Invalid result rate',
+        value=invalid_result_rate,
+        min=0,
+        max=1,
+        std=invalid_result_rate_std,
+    )
+    no_result_rate, no_result_rate_std = (
+        evaluator.compute_weighted_average_and_std([
+            types.WeightedValue(
+                value=float(
+                    predictions[spans.sound_id].prediction == NO_RESPONSE_STR
+                ),
+                weight=1.0,
+            )
+            for spans in spans_batch
+        ])
+    )
+    no_result_score = types.Score(
+        metric='MissingResultRate',
+        description='Missing result rate',
+        value=no_result_rate,
+        min=0,
+        max=1,
+        std=no_result_rate_std,
+    )
+    return [gmean_f1_score, f1_score, invalid_result_score, no_result_score]

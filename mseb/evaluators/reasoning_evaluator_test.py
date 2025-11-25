@@ -125,7 +125,7 @@ class ReasoningEvaluatorTest(absltest.TestCase):
             'test': types.TextPrediction(
                 prediction='b l a',
                 context=types.PredictionContextParams(id='test')
-            )
+            ),
         },
         spans_batch=[
             reasoning_evaluator.ReasoningSpans(
@@ -135,13 +135,61 @@ class ReasoningEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    npt.assert_equal(len(scores), 2)
+    npt.assert_equal(len(scores), 4)
     self.assertIn('GmeanF1', scores[0].metric)
     npt.assert_equal(scores[0].value, 2 / 3)
     self.assertIsNone(scores[0].std)
     self.assertIn('F1', scores[1].metric)
     npt.assert_equal(scores[1].value, 2 / 3)
     npt.assert_equal(scores[1].std, 0)
+    self.assertIn('InvalidResultRate', scores[2].metric)
+    npt.assert_equal(scores[2].value, 0)
+    npt.assert_equal(scores[2].std, 0)
+    self.assertIn('MissingResultRate', scores[3].metric)
+    npt.assert_equal(scores[3].value, 0)
+    npt.assert_equal(scores[3].std, 0)
+
+  def test_compute_metrics_invalid_and_missing_answers(self):
+    evaluator = reasoning_evaluator.ReasoningEvaluator(
+        span_embeddings_by_sound_id={}
+    )
+    scores = evaluator.compute_metrics(
+        predictions={
+            'test': types.TextPrediction(
+                prediction=reasoning_evaluator.INVALID_ANSWER_STR,
+                context=types.PredictionContextParams(id='test')
+            ),
+            'test2': types.TextPrediction(
+                prediction=reasoning_evaluator.NO_RESPONSE_STR,
+                context=types.PredictionContextParams(id='test')
+            ),
+        },
+        spans_batch=[
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='test',
+                texts=['b l i', 'b l a', 'x y z'],
+                reference_answer='b l i',
+            ),
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='test2',
+                texts=['b l i', 'b l a', 'x y z'],
+                reference_answer='b l i',
+            ),
+        ],
+    )
+    npt.assert_equal(len(scores), 4)
+    self.assertIn('GmeanF1', scores[0].metric)
+    npt.assert_equal(scores[0].value, 0)
+    self.assertIsNone(scores[0].std)
+    self.assertIn('F1', scores[1].metric)
+    npt.assert_equal(scores[1].value, 0)
+    npt.assert_equal(scores[1].std, 0)
+    self.assertIn('InvalidResultRate', scores[2].metric)
+    npt.assert_equal(scores[2].value, 0.5)
+    npt.assert_equal(scores[2].std, 0.5)
+    self.assertIn('MissingResultRate', scores[3].metric)
+    npt.assert_equal(scores[3].value, 0.5)
+    npt.assert_equal(scores[3].std, 0.5)
 
 
 if __name__ == '__main__':
