@@ -28,6 +28,7 @@ from mseb import encoder as encoder_lib
 from mseb.encoders import clap_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
+from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import prompt_registry
 from mseb.encoders import raw_encoder
@@ -35,6 +36,12 @@ from mseb.encoders import segmentation_encoder
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 from mseb.encoders import wav2vec_encoder
 from mseb.encoders import whisper_encoder
+
+_PROMPT_NAME = flags.DEFINE_string(
+    "prompt_name",
+    "reasoning",
+    "Name of the prompt to use for LLM-based encoders.",
+)
 
 _GECKO_MODEL_PATH = flags.DEFINE_string(
     "gecko_model_path",
@@ -54,6 +61,12 @@ _GEMINI_EMBEDDING_TASK_TYPE = flags.DEFINE_string(
     None,
     "Task type for Gemini embedding model. One of: None, RETRIEVAL_DOCUMENT,"
     " RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION, CLUSTERING",
+)
+
+_HF_LLM_MODEL_PATH = flags.DEFINE_string(
+    "hf_llm_model_path",
+    "google/gemma-3n-E2B-it",
+    "Path to HF LLM model.",
 )
 
 _WHISPER_MODEL_PATH = flags.DEFINE_string(
@@ -352,6 +365,77 @@ gemini_embedding_with_title_and_context_whisper_or_gemini_embedding = EncoderMet
     ),
 )
 
+
+hf_llm_with_title_and_context = EncoderMetadata(
+    name="hf_llm_with_title_and_context",
+    encoder=hf_llm_encoder.HFLLMWithTitleAndContextEncoder,
+    params=lambda: dict(
+        model_path=_HF_LLM_MODEL_PATH.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+)
+
+hf_llm_with_title_and_context_transcript_truth = EncoderMetadata(
+    name="hf_llm_with_title_and_context_transcript_truth",
+    encoder=hf_llm_encoder.HFLLMWithTitleAndContextTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_path=_HF_LLM_MODEL_PATH.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+)
+
+hf_llm_with_title_and_context_whisper = EncoderMetadata(
+    name="hf_llm_with_title_and_context_whisper",
+    encoder=hf_llm_encoder.HFLLMWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        model_path=_HF_LLM_MODEL_PATH.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+)
+
+hf_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
+    name="hf_llm_rag_gemini_embedding_transcript_truth",
+    encoder=hf_llm_encoder.RagHFLLMWithTitleAndContextTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_path=_HF_LLM_MODEL_PATH.value,
+        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
+            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+            normalizer=None,
+            prompt_template="task: search result | query: {text}",
+            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        ),
+    ),
+)
+
+hf_llm_rag_gemini_embedding_whisper = EncoderMetadata(
+    name="hf_llm_rag_gemini_embedding_whisper",
+    encoder=hf_llm_encoder.RagHFLLMWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        hf_llm_model_path=_HF_LLM_MODEL_PATH.value,
+        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
+            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+            normalizer=None,
+            prompt_template="task: search result | query: {text}",
+            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        ),
+    ),
+)
+
+hf_llm_rag_gemini_embedding = EncoderMetadata(
+    name="hf_llm_rag_gemini_embedding",
+    encoder=hf_llm_encoder.RagHFLLMWithTitleAndContextEncoder,
+    params=lambda: dict(
+        model_path=_HF_LLM_MODEL_PATH.value,
+        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
+            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+            normalizer=None,
+            prompt_template="task: search result | query: {text}",
+            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        ),
+    ),
+)
 
 # Segmentation encoders:
 whisper_base_asr_saliency = EncoderMetadata(
