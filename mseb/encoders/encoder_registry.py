@@ -201,6 +201,12 @@ raw_encoder_25ms_10ms = EncoderMetadata(
     },
 )
 
+whisper_speech_to_text = EncoderMetadata(
+    name="whisper_speech_to_text",
+    encoder=whisper_encoder.SpeechToTextEncoder,
+    params=lambda: dict(model_path=_WHISPER_MODEL_PATH.value),
+)
+
 whisper_base_speech_to_text = EncoderMetadata(
     name="whisper_base_speech_to_text",
     encoder=whisper_encoder.SpeechToTextEncoder,

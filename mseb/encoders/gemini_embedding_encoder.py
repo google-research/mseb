@@ -25,6 +25,7 @@ from mseb import encoder
 from mseb import types
 from mseb.encoders import converter
 from mseb.encoders import prompt as prompt_lib
+from mseb.encoders import retrieval_encoder
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder_lib
 from mseb.encoders import whisper_encoder
 import numpy as np
@@ -344,4 +345,89 @@ def GeminiEmbeddingWithTitleAndContextWhisperOrGeminiEmbeddingEncoder(
           types.SoundWithTitleAndContext: sound_encoder,
           types.Text: text_encoder,
       }
+  )
+
+
+def RetrievalGeminiEmbeddingTranscriptTruthEncoder(
+    model_path: str,
+    normalizer: Callable[[str], str] | None = None,
+    prompt_template: str = 'task: search result | query: {text}',
+    task_type: str | None = None,
+    top_k: int = 10,
+) -> encoder.CascadeEncoder:
+  """Topk documents of a cascaded transcript truth and Gemini embedding encoder.
+
+  Args:
+    model_path: The Gemini embedding model name or path.
+    normalizer: A function that normalizes the text before encoding. This is
+      useful for removing special characters or formatting the text for better
+      encoding results.
+    prompt_template: Format of the prompt to be used for Gemini embedding, see
+      go/gem-embed-text-user-card ("How to Use") for more details. For example,
+      'task: search result | query: {text}' for queries and
+      'title: {title} | text: {text}' for documents".
+    task_type: Task type for Gemini embedding model. One of: None,
+      RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION,
+      CLUSTERING.
+    top_k: Number of top documents to retrieve.
+
+  Returns:
+    An encoder that returns the topk documents of a cascaded transcript truth
+    and Gemini embedding encoder.
+  """
+  return encoder.CascadeEncoder(
+      encoders=[
+          converter.SoundToSoundEmbeddingConverter(),
+          converter.SoundEmbeddingToTextConverter(),
+          GeminiEmbeddingTextEncoder(
+              model_path=model_path,
+              normalizer=normalizer,
+              prompt_template=prompt_template,
+              task_type=task_type,
+          ),
+          retrieval_encoder.RetrievalEncoder(top_k=top_k),
+      ]
+  )
+
+
+def RetrievalGeminiEmbeddingWhisperEncoder(
+    whisper_model_path: str,
+    gemini_embedding_model_path: str,
+    normalizer: Callable[[str], str] | None = None,
+    prompt_template: str = 'task: search result | query: {text}',
+    gemini_embedding_task_type: str | None = None,
+    top_k: int = 10,
+) -> encoder.CascadeEncoder:
+  """Topk documents of a cascaded Whisper and Gemini embedding encoder.
+
+  Args:
+    whisper_model_path: A serializable string (e.g., a GCS path or Hub ID)
+      pointing to the Whisper model to be loaded in setup().
+    gemini_embedding_model_path: The Gemini embedding model name or path.
+    normalizer: A function that normalizes the text before encoding. This is
+      useful for removing special characters or formatting the text for better
+      encoding results.
+    prompt_template: Format of the prompt to be used for Gemini embedding, see
+      go/gem-embed-text-user-card (How to Use) for more details.
+    gemini_embedding_task_type: Task type for Gemini embedding model. One of:
+      None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
+      CLASSIFICATION, CLUSTERING.
+    top_k: Number of top documents to retrieve.
+
+  Returns:
+    An encoder that returns the topk documents of a cascaded transcript truth
+    and Gemini embedding encoder.
+  """
+  return encoder.CascadeEncoder(
+      encoders=[
+          whisper_encoder.SpeechToTextEncoder(model_path=whisper_model_path),
+          converter.SoundEmbeddingToTextConverter(),
+          GeminiEmbeddingTextEncoder(
+              model_path=gemini_embedding_model_path,
+              normalizer=normalizer,
+              prompt_template=prompt_template,
+              task_type=gemini_embedding_task_type,
+          ),
+          retrieval_encoder.RetrievalEncoder(top_k=top_k),
+      ]
   )
