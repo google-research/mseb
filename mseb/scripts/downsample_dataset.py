@@ -41,6 +41,7 @@ _OUTPUT_DIR = flags.DEFINE_string(
 _NUM_SAMPLES = flags.DEFINE_integer(
     "num_samples", 100, "The number of samples to downsample to."
 )
+_SPLIT = flags.DEFINE_string("split", None, "The split to use for the dataset.")
 
 
 def main(_):
@@ -52,7 +53,10 @@ def main(_):
   dataset_class = getattr(module, class_name)
 
   # Instantiate the dataset.
-  dataset: base.MsebDataset = dataset_class(split="test")
+  kwargs = {}
+  if _SPLIT.value:
+    kwargs["split"] = _SPLIT.value
+  dataset: base.MsebDataset = dataset_class(**kwargs)
 
   # Get the task data.
   print(f"Getting task data for task: {_TASK_NAME.value}")
