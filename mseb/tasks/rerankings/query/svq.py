@@ -28,6 +28,9 @@ class SVQQueryReranking(reranking.RerankingTask):
 
   locale: str | None = None
 
+  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
   @property
   def embeddings_dir(self) -> str:
     assert self.locale is not None
@@ -40,7 +43,7 @@ class SVQQueryReranking(reranking.RerankingTask):
     return ['query_reranking']
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'query_reranking', dtype={'locale': str, 'utt_id': str, 'text': str}
     ).to_dict('records'):
@@ -53,7 +56,7 @@ class SVQQueryReranking(reranking.RerankingTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         sub_task,
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
@@ -66,7 +69,7 @@ class SVQQueryReranking(reranking.RerankingTask):
         )
 
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'query_reranking', dtype={'locale': str, 'candidates': Sequence[str]}
     ).to_dict('records'):

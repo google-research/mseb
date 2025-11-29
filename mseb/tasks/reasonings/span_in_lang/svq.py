@@ -28,6 +28,9 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
 
   locale: str | None = None
 
+  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
   @property
   def embeddings_dir(self) -> str:
     assert self.locale is not None
@@ -40,7 +43,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
     return ['span_reasoning_in_lang']
 
   def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'span_reasoning_in_lang',
         dtype={
@@ -62,7 +65,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         sub_task,
         dtype={
@@ -80,7 +83,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
         )
 
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'span_reasoning_in_lang', dtype={'locale': str, 'spans': Sequence[str]}
     ).to_dict('records'):

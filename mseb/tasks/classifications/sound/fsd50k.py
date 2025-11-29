@@ -30,6 +30,9 @@ class FSD50KClassification(classification.ClassificationTask):
 
   split: str | None = None
 
+  def _get_dataset(self):
+    return fsd50k.FSD50KDataset(split=self.split)
+
   @property
   def task_type(self) -> str:
     return "multi_label"
@@ -44,7 +47,7 @@ class FSD50KClassification(classification.ClassificationTask):
     return fsd_dataset.class_labels
 
   def sounds(self) -> Iterable[types.Sound]:
-    fsd_dataset = fsd50k.FSD50KDataset(split=self.split)
+    fsd_dataset = self._get_dataset()
     for record in fsd_dataset.get_task_data().to_dict("records"):
       yield fsd_dataset.get_sound(record)
 
@@ -52,7 +55,7 @@ class FSD50KClassification(classification.ClassificationTask):
     if self.split is None:
       raise ValueError("`split` must be set by a concrete task subclass.")
 
-    fsd_dataset = fsd50k.FSD50KDataset(split=self.split)
+    fsd_dataset = self._get_dataset()
     for _, record in enumerate(fsd_dataset.get_task_data().to_dict("records")):
       example_id = str(record["fname"])
       label_ids = record["labels"].split(",")

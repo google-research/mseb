@@ -29,6 +29,15 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
 
   locale: str | None = None
 
+  def _get_svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
+  def _get_wikipedia_dataset(self):
+    return tfds.load(
+        f'wikipedia/20190301.{self.language}',
+        split='train',
+    )
+
   @property
   def index_dir(self) -> str:
     return os.path.join(
@@ -45,7 +54,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     return ['document_retrieval_in_lang']
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
         'document_retrieval_in_lang',
         dtype={'locale': str, 'utt_id': str, 'text': str},
@@ -59,7 +68,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
         sub_task, dtype={'locale': str, 'utt_id': str, 'page_title': str}
     ).to_dict('records'):
@@ -69,10 +78,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
         )
 
   def documents(self) -> Iterable[types.Text]:
-    ds = tfds.load(
-        f'wikipedia/20190301.{self.language}',
-        split='train',
-    )
+    ds = self._get_wikipedia_dataset()
     for example in ds.as_numpy_iterator():
       title = example['title'].decode('utf-8')
       yield types.Text(

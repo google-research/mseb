@@ -30,10 +30,13 @@ class SVQClustering(clustering.ClusteringTask):
   _svq_dataset: svq.SimpleVoiceQuestionsDataset
   locale: str | None = None
 
+  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
-    self._svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    self._svq_dataset = self._get_dataset()
 
   def _task_data(self):
     df = self._svq_dataset.get_task_data('utt_index')

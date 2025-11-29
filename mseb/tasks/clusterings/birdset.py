@@ -51,12 +51,15 @@ class BirdsetClustering(clustering.ClusteringTask):
   _birdset_dataset: birdset.BirdsetDataset
   configuration: str = "HSN"
 
+  def _get_dataset(self) -> birdset.BirdsetDataset:
+    return birdset.BirdsetDataset(
+        split="test_5s", configuration=self.configuration
+    )
+
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
-    self._birdset_dataset = birdset.BirdsetDataset(
-        split="test_5s", configuration=self.configuration
-    )
+    self._birdset_dataset = self._get_dataset()
 
   def _task_data(self):
     return self._birdset_dataset.get_task_data()

@@ -28,6 +28,9 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
 
   locale: str | None = None
 
+  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
   @property
   def index_dir(self) -> str:
     return os.path.join(super().index_dir, 'svq_passage_retrieval_cross_lang')
@@ -37,7 +40,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
     return ['passage_retrieval_cross_lang']
 
   def documents(self) -> Iterable[types.Text]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'passage_retrieval_cross_lang_index',
         dtype={'id': str, 'title': str, 'context': str},
@@ -51,7 +54,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
       )
 
   def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'passage_retrieval_cross_lang',
         dtype={'locale': str, 'utt_id': str, 'text': str},
@@ -65,7 +68,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         sub_task,
         dtype={'locale': str, 'utt_id': str, 'passage_id': str},

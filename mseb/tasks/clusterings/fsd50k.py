@@ -29,12 +29,15 @@ class FSD50KClustering(clustering.ClusteringTask):
   split: str | None = None
   _fsd_dataset: fsd50k.FSD50KDataset
 
+  def _get_dataset(self) -> fsd50k.FSD50KDataset:
+    if self.split is None:
+      raise ValueError("`split` must be set by a concrete task subclass.")
+    return fsd50k.FSD50KDataset(split=self.split)
+
   def setup(
       self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
   ):
-    if self.split is None:
-      raise ValueError("`split` must be set by a concrete task subclass.")
-    self._fsd_dataset = fsd50k.FSD50KDataset(split=self.split)
+    self._fsd_dataset = self._get_dataset()
 
   @property
   def sub_tasks(self) -> list[str]:

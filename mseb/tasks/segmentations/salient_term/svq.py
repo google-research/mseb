@@ -27,6 +27,9 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
 
   locale: str | None = None
 
+  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
   @property
   def sub_tasks(self) -> list[str]:
     return ["salient_term"]
@@ -37,7 +40,7 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
           "`locale` must be set by a concrete task subclass."
       )
 
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for utt_id, record in svq_dataset.utt_id_to_record.items():
       if record["locale"] == self.locale:
         yield svq_dataset.get_sound({"utt_id": utt_id})
@@ -50,7 +53,7 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
           "`locale` must be set by a concrete task subclass."
       )
 
-    svq_dataset = svq.SimpleVoiceQuestionsDataset()
+    svq_dataset = self._get_dataset()
     for utt_id, record in svq_dataset.utt_id_to_record.items():
       if record["locale"] == self.locale:
         terms = record.get("topk_salient_terms")
