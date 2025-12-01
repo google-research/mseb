@@ -46,6 +46,11 @@ _FILTER_KEY = flags.DEFINE_string("filter_key", None, "The key to filter on.")
 _FILTER_VALUE_REGEX = flags.DEFINE_string(
     "filter_value_regex", None, "The regex to filter on."
 )
+_KWARGS = flags.DEFINE_multi_string(
+    "kwargs",
+    [],
+    "Additional keyword arguments to pass to the dataset constructor.",
+)
 
 
 def main(_):
@@ -60,6 +65,9 @@ def main(_):
   kwargs = {}
   if _SPLIT.value:
     kwargs["split"] = _SPLIT.value
+  for kwarg in _KWARGS.value:
+    key, value = kwarg.split("=", 1)
+    kwargs[key] = value
   dataset: base.MsebDataset = dataset_class(**kwargs)
 
   # Get the task data.
@@ -107,8 +115,11 @@ def main(_):
 
   # Construct the output filename suffix.
   output_suffix = ""
+  for kwarg in _KWARGS.value:
+    key, value = kwarg.split("=", 1)
+    output_suffix += f"_{key}_{value}"
   if _FILTER_KEY.value and _FILTER_VALUE_REGEX.value:
-    output_suffix = f"_{_FILTER_KEY.value}_{_FILTER_VALUE_REGEX.value}"
+    output_suffix += f"_{_FILTER_KEY.value}_{_FILTER_VALUE_REGEX.value}"
 
   # Save the data to a parquet file.
   output_filename = f"{class_name}_{_TASK_NAME.value}{output_suffix}.parquet"
