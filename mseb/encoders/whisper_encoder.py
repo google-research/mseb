@@ -36,13 +36,17 @@ class Whisper(encoder.MultiModalEncoder):
   ):
     super().__init__()
     self.model_path = model_path
-    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    self.device = device if device else default_device
     self.model = None
+    self.device = device
 
   def _setup(self):
     """Loads the Whisper model."""
-    self.model = whisper.load_model(self.model_path, device=self.device)
+    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = self.device if self.device else default_device
+    logging.info(
+        'Loading Whisper model from %s on device %s', self.model_path, device
+    )
+    self.model = whisper.load_model(self.model_path, device=device)
 
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):

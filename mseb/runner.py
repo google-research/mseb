@@ -293,7 +293,7 @@ class BeamRunner(EncoderRunner):
     pipeline = beam.Pipeline(runner=self._runner)
     _ = (
         pipeline
-        | 'ReadExamples' >> beam.Create(elements)
+        | 'ReadExamples' >> beam.Create(elements, reshuffle=True)
         | 'Encode'
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)
