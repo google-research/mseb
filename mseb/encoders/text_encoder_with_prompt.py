@@ -15,6 +15,7 @@
 """Multi-modal encoders with prompt."""
 
 import dataclasses
+import json
 import re
 from typing import Callable, final, Optional, Sequence, Tuple
 
@@ -148,14 +149,21 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
     ]
 
     outputs = []
-    for embeddings, example in zip(embeddings_batch, batch):
+    for embeddings, example, response in zip(
+        embeddings_batch, batch, response_batch
+    ):
+      if isinstance(response, str):
+        debug_text = json.dumps({'model_response': response})
+      else:
+        debug_text = None
       assert isinstance(example, types.Text) or isinstance(example, types.Sound)
       if isinstance(example, types.Text):
         outputs.append(
             types.TextEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
                 spans=np.array([[0, len(example.text)]]),
-                context=dataclasses.replace(example.context, text=example.text),
+                context=dataclasses.replace(example.context, text=example.text,
+                                            debug_text=debug_text),
             )
         )
       if isinstance(example, types.Sound):
@@ -163,7 +171,10 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
             types.SoundEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
                 timestamps=np.array([[0, len(example.waveform)]]),
-                context=example.context,
+                context=dataclasses.replace(
+                    example.context,
+                    debug_text=debug_text,
+                ),
             )
         )
     return outputs

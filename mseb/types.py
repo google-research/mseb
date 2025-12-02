@@ -53,6 +53,7 @@ class TextContextParams:
   title: Optional[str] = None
   context: Optional[str] = None
   text: Optional[str] = None
+  debug_text: Optional[str] = None  # Text for debugging purposes.
 
 
 @dataclasses.dataclass
@@ -86,6 +87,7 @@ class SoundContextParams:
   # slice of sound segment is `[start:end]`. Defaults to the
   # maximum float32 value to signify "to the end of the waveform."
   waveform_end_second: float = np.finfo(np.float32).max
+  debug_text: Optional[str] = None  # Text for debugging purposes.
 
 
 @dataclasses.dataclass
@@ -165,6 +167,7 @@ class TextEmbedding:
 class PredictionContextParams:
   """Parameters for a reasoning example."""
   id: str  # Identifier for the task example unique within the dataset.
+  debug_text: Optional[str] = None  # Text for debugging purposes.
 
 
 @dataclasses.dataclass

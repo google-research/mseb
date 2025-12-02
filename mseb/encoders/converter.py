@@ -101,12 +101,18 @@ class SoundEmbeddingToTextConverter(Converter):
             text=str(embedding[0]),
             title_text=sound_embedding.title_text,
             context_text=sound_embedding.context_text,
-            context=types.TextContextParams(id=sound_embedding.context.id),
+            context=types.TextContextParams(
+                id=sound_embedding.context.id,
+                debug_text=sound_embedding.context.debug_text,
+            ),
         )
       else:
         text = types.Text(
             text=str(embedding[0]),
-            context=types.TextContextParams(id=sound_embedding.context.id),
+            context=types.TextContextParams(
+                id=sound_embedding.context.id,
+                debug_text=sound_embedding.context.debug_text,
+            ),
         )
       outputs.append(text)
     return outputs
@@ -131,10 +137,15 @@ class TextEmbeddingToTextPredictionConverter(Converter):
     for text_embedding in batch:
       assert isinstance(text_embedding, types.TextEmbedding)
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = text_embedding.embedding
-      outputs.append(types.TextPrediction(
-          prediction=str(embedding[0]),
-          context=types.PredictionContextParams(id=text_embedding.context.id),
-      ))
+      outputs.append(
+          types.TextPrediction(
+              prediction=str(embedding[0]),
+              context=types.PredictionContextParams(
+                  id=text_embedding.context.id,
+                  debug_text=text_embedding.context.debug_text,
+              ),
+          )
+      )
     return outputs
 
 
@@ -156,10 +167,12 @@ class TextToTextPredictionConverter(Converter):
     outputs = []
     for text in batch:
       assert isinstance(text, types.Text)
-      outputs.append(types.TextPrediction(
-          prediction=text.text,
-          context=types.PredictionContextParams(id=text.context.id),
-      ))
+      outputs.append(
+          types.TextPrediction(
+              prediction=text.text,
+              context=types.PredictionContextParams(
+                  id=text.context.id, debug_text=text.context.debug_text
+              ),
+          )
+      )
     return outputs
-
-
