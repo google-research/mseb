@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Any, Mapping, Optional, Sequence
 
+from mseb.evaluators import classification_evaluator
 from mseb.evaluators import reasoning_evaluator
 
 
@@ -73,6 +74,7 @@ class ReasoningPrompt(Prompt):
 
   NO_ANSWER_STR = reasoning_evaluator.NO_ANSWER_STR
   INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
   PROMPT_TEMPLATE = """
 **Task: Answerability Determination and Exact Answer Extraction**
 
@@ -111,6 +113,8 @@ If the question IS NOT answerable:
 
   def ProcessResponse(self, response: Any) -> Any:
     assert isinstance(response, str)
+    if response == self.NO_RESPONSE_STR:
+      return self.NO_RESPONSE_STR
     return ProcessJsonResponse(
         response,
         keys=['answer'],
@@ -141,12 +145,13 @@ class ClassificationPrompt(Prompt):
 
 {{{{"query": {{text}}}}}}
 """
-  INVALID_ANSWER_STR = ''
+  INVALID_ANSWER_STR = classification_evaluator.INVALID_ANSWER_STR
+  NO_RESPONSE_STR = classification_evaluator.NO_RESPONSE_STR
 
   def __init__(
       self, class_labels: Sequence[str], prompt_template: str = PROMPT_TEMPLATE
   ):
-    self.class_labels = list(class_labels)
+    self.class_labels = set(class_labels)
     self.prompt_template = prompt_template.format(
         class_labels=json.dumps(class_labels)
     )
@@ -156,6 +161,60 @@ class ClassificationPrompt(Prompt):
 
   def ProcessResponse(self, response: Any) -> Any:
     assert isinstance(response, str)
+    if response == self.NO_RESPONSE_STR:
+      return self.NO_RESPONSE_STR
+    result = ProcessJsonResponse(
+        response,
+        keys=['answer'],
+        key_to_value_map=None,
+        invalid_response_value=self.INVALID_ANSWER_STR,
+    )
+    if result not in self.class_labels:
+      return self.INVALID_ANSWER_STR
+    return result
+
+
+class SoundClassificationPrompt(Prompt):
+  """A prompt for the sound classification tasks."""
+  PROMPT_TEMPLATE = """
+**Task: {Sound_Name} Classification**
+
+**Goal:** Classify the provided audio clip into one of the following {sound_name} classes:
+  {class_labels}
+
+**Input:** You will receive an audio clip containing the recording of a {sound_name} {{text}}.
+
+**Output:** You will produce a single JSON object as a plain text string (no markup). The structure depends on answerability:
+ * "answer": (string) The ${sound_name} class of the audio clip.
+
+**Important Considerations:**
+* Class names are descriptive.
+* **Exact Matches:** The ouput should match exactly one of the {sound_name} class names. Do not rephrase or summarize.
+* **No Other Output:** The output should only contain the {sound_name} class name.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+"""
+  INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
+
+  def __init__(
+      self, class_labels: Sequence[str],
+      sound_name: str = 'Sound',
+      prompt_template: str = PROMPT_TEMPLATE
+  ):
+    self.class_labels = set(class_labels)
+    self.prompt_template = prompt_template.format(
+        Sound_Name=sound_name,
+        sound_name=sound_name.lower(),
+        class_labels=json.dumps(class_labels)
+    )
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> Any:
+    assert isinstance(response, str)
+    if response == self.NO_RESPONSE_STR:
+      return self.NO_RESPONSE_STR
     result = ProcessJsonResponse(
         response,
         keys=['answer'],

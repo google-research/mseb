@@ -16,12 +16,14 @@ import json
 
 from absl.testing import absltest
 from mseb.encoders import prompt as prompt_lib
+from mseb.evaluators import reasoning_evaluator
 
 
 class PromptTest(absltest.TestCase):
 
-  NO_ANSWER_STR = "No answer"
-  INVALID_ANSWER_STR = ""
+  NO_ANSWER_STR = reasoning_evaluator.NO_ANSWER_STR
+  INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
 
   def test_process_json_response(self):
     self.assertEqual(
@@ -68,9 +70,8 @@ class PromptTest(absltest.TestCase):
         self.INVALID_ANSWER_STR,
     )
 
-  def test_classification_prompt(self):
-    class_labels = ["Paris", "London", "New York"]
-    prompt = prompt_lib.ClassificationPrompt(class_labels=class_labels)
+  def test_reasoning_prompt(self):
+    prompt = prompt_lib.ReasoningPrompt()
     self.assertEqual(
         prompt.ProcessResponse(
             json.dumps({
@@ -82,14 +83,18 @@ class PromptTest(absltest.TestCase):
     self.assertEqual(
         prompt.ProcessResponse(
             json.dumps({
-                "answer": "Munich",
+                self.NO_ANSWER_STR: "Munich",
             })
         ),
-        self.INVALID_ANSWER_STR,
+        self.NO_ANSWER_STR,
     )
     self.assertEqual(
         prompt.ProcessResponse("invalid json"),
         self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(self.NO_RESPONSE_STR),
+        self.NO_RESPONSE_STR,
     )
 
 

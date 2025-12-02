@@ -25,6 +25,7 @@ import sys
 from typing import Any, Callable
 from mseb.encoders import prompt as prompt_lib
 from mseb.tasks.classifications.intent import speech_massive
+from mseb.tasks.classifications.sound import fsd50k
 
 
 @dataclasses.dataclass(frozen=True)
@@ -55,6 +56,14 @@ intent_classification = PromptMetadata(
         "class_labels": list(
             speech_massive.SpeechMassiveIntentClassification().class_labels()
         )
+    },
+)
+
+sound_classification = PromptMetadata(
+    name="sound_classification",
+    prompt=prompt_lib.SoundClassificationPrompt,
+    params=lambda: {
+        "class_labels": fsd50k.FSD50KClassification().class_labels()
     },
 )
 

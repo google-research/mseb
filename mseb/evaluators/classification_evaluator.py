@@ -418,7 +418,7 @@ class MultiLabelClassificationEvaluator:
     self.distance_fn = distance_fn
 
   def get_extended_class_labels(self) -> list[str]:
-    raise NotImplementedError
+    return list(self.id_by_class_index)
 
   def compute_predictions(
       self, embeddings_by_id: types.MultiModalEmbeddingCache
