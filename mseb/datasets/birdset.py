@@ -37,8 +37,8 @@ class BirdsetDataset(base.MsebDataset):
   def __init__(
       self,
       base_path: str | None = None,
-      split: str = "test",
-      configuration: str = "AWC",
+      split: str = "test_5s",
+      configuration: str = "NBP",
   ):
     """Initializes the dataset for a specific split and configuration.
 
