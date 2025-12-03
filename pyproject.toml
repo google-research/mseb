@@ -30,6 +30,7 @@ dependencies = [
     "jiwer>=2.0,<3.0",
     "librosa",
     "numpy",
+    "openai",
     "pandas",
     "protobuf",
     "pyarrow",

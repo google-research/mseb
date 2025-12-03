@@ -30,6 +30,7 @@ from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
+from mseb.encoders import openai_llm_encoder
 from mseb.encoders import prompt_registry
 from mseb.encoders import raw_encoder
 from mseb.encoders import segmentation_encoder
@@ -67,6 +68,24 @@ _HF_LLM_MODEL_PATH = flags.DEFINE_string(
     "hf_llm_model_path",
     "google/gemma-3n-E2B-it",
     "Path to HF LLM model.",
+)
+
+_OPENAI_API_KEY = flags.DEFINE_string(
+    "openai_api_key",
+    "",
+    "API key for OpenAI API.",
+)
+
+_OPENAI_SERVER_URL = flags.DEFINE_string(
+    "openai_server_url",
+    "https://generativelanguage.googleapis.com/v1beta/openai/",
+    "URL of OpenAI API server.",
+)
+
+_OPENAI_MODEL_NAME = flags.DEFINE_string(
+    "openai_model_name",
+    "gemini-2.5-flash-lite",
+    "Name of the OpenAI API model.",
 )
 
 _WHISPER_MODEL_PATH = flags.DEFINE_string(
@@ -434,6 +453,89 @@ hf_llm_rag_gemini_embedding = EncoderMetadata(
     encoder=hf_llm_encoder.RagHFLLMWithTitleAndContextEncoder,
     params=lambda: dict(
         model_path=_HF_LLM_MODEL_PATH.value,
+        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
+            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+            normalizer=None,
+            prompt_template="task: search result | query: {text}",
+            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        ),
+    ),
+)
+
+openai_llm_with_title_and_context = EncoderMetadata(
+    name="openai_llm_with_title_and_context",
+    encoder=openai_llm_encoder.OpenAILLMWithTitleAndContextEncoder,
+    params=lambda: dict(
+        model_name=_OPENAI_MODEL_NAME.value,
+        server_url=_OPENAI_SERVER_URL.value,
+        api_key=_OPENAI_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+)
+
+openai_llm_with_title_and_context_transcript_truth = EncoderMetadata(
+    name="openai_llm_with_title_and_context_transcript_truth",
+    encoder=openai_llm_encoder.OpenAILLMWithTitleAndContextTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_name=_OPENAI_MODEL_NAME.value,
+        server_url=_OPENAI_SERVER_URL.value,
+        api_key=_OPENAI_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+)
+
+openai_llm_with_title_and_context_whisper = EncoderMetadata(
+    name="openai_llm_with_title_and_context_whisper",
+    encoder=openai_llm_encoder.OpenAILLMWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        llm_model_name=_OPENAI_MODEL_NAME.value,
+        llm_server_url=_OPENAI_SERVER_URL.value,
+        llm_api_key=_OPENAI_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+)
+
+openai_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
+    name="openai_llm_rag_gemini_embedding_transcript_truth",
+    encoder=openai_llm_encoder.RagOpenAILLMWithTitleAndContextTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_name=_OPENAI_MODEL_NAME.value,
+        server_url=_OPENAI_SERVER_URL.value,
+        api_key=_OPENAI_API_KEY.value,
+        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
+            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+            normalizer=None,
+            prompt_template="task: search result | query: {text}",
+            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        ),
+    ),
+)
+
+openai_llm_rag_gemini_embedding_whisper = EncoderMetadata(
+    name="openai_llm_rag_gemini_embedding_whisper",
+    encoder=openai_llm_encoder.RagOpenAILLMWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        llm_model_name=_OPENAI_MODEL_NAME.value,
+        llm_server_url=_OPENAI_SERVER_URL.value,
+        llm_api_key=_OPENAI_API_KEY.value,
+        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
+            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
+            normalizer=None,
+            prompt_template="task: search result | query: {text}",
+            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
+        ),
+    ),
+)
+
+openai_llm_rag_gemini_embedding = EncoderMetadata(
+    name="openai_llm_rag_gemini_embedding",
+    encoder=openai_llm_encoder.RagOpenAILLMWithTitleAndContextEncoder,
+    params=lambda: dict(
+        model_name=_OPENAI_MODEL_NAME.value,
+        server_url=_OPENAI_SERVER_URL.value,
+        api_key=_OPENAI_API_KEY.value,
         rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
             model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
             normalizer=None,
