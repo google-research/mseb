@@ -17,6 +17,7 @@
 from typing import Any, Mapping
 
 from etils import epath
+from mseb import dataset
 from mseb import types
 from mseb.datasets import base
 import pandas as pd
@@ -29,22 +30,24 @@ class ParquetDataset(base.MsebDataset):
       self,
       dataset_name: str,
       task_name: str,
-      base_path: str,
+      filename: str,
       split: str = 'test',
+      base_path: str | None = None,
   ):
     """Initializes the ParquetDataset.
 
     Args:
       dataset_name: The name of the original dataset.
       task_name: The name of the task.
-      base_path: The directory containing the Parquet file.
+      filename: The name of the parquet file.
       split: The dataset split (e.g., 'test').
+      base_path: The base path where the dataset is stored.
     """
+    base_path = dataset.get_base_path(base_path)
     super().__init__(base_path=base_path, split=split)
     self.dataset_name = dataset_name
     self.task_name = task_name
-    parquet_filename = f'{self.dataset_name}_{self.task_name}.parquet'
-    self.parquet_path = epath.Path(self.base_path) / parquet_filename
+    self.parquet_path = epath.Path(self.base_path) / filename
     self._data = self._load_data()
 
   @property

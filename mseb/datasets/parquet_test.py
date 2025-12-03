@@ -52,7 +52,7 @@ class ParquetDatasetTest(absltest.TestCase):
     })
 
     # Save the DataFrame to a parquet file.
-    self.parquet_filename = f'{self.dataset_name}_{self.task_name}.parquet'
+    self.parquet_filename = 'test_data.parquet'
     self.parquet_path = os.path.join(self.base_path, self.parquet_filename)
     df.to_parquet(self.parquet_path)
 
@@ -65,6 +65,7 @@ class ParquetDatasetTest(absltest.TestCase):
     dataset = parquet.ParquetDataset(
         dataset_name=self.dataset_name,
         task_name=self.task_name,
+        filename=self.parquet_filename,
         base_path=self.base_path,
     )
     self.assertLen(dataset, self.num_samples)
@@ -74,6 +75,7 @@ class ParquetDatasetTest(absltest.TestCase):
     dataset = parquet.ParquetDataset(
         dataset_name=self.dataset_name,
         task_name=self.task_name,
+        filename=self.parquet_filename,
         base_path=self.base_path,
     )
     task_data = dataset.get_task_data(self.task_name)
@@ -85,6 +87,7 @@ class ParquetDatasetTest(absltest.TestCase):
     dataset = parquet.ParquetDataset(
         dataset_name=self.dataset_name,
         task_name=self.task_name,
+        filename=self.parquet_filename,
         base_path=self.base_path,
     )
     task_data = dataset.get_task_data(self.task_name)
