@@ -47,7 +47,13 @@ class ParquetDataset(base.MsebDataset):
     super().__init__(base_path=base_path, split=split)
     self.dataset_name = dataset_name
     self.task_name = task_name
-    self.parquet_path = epath.Path(self.base_path) / filename
+
+    assert self.base_path is not None
+    if self.base_path.startswith('https://'):
+      # For https://, we can't use epath.Path, so we just concatenate.
+      self.parquet_path = self.base_path.rstrip('/') + '/' + filename
+    else:
+      self.parquet_path = epath.Path(self.base_path) / filename
     self._data = self._load_data()
 
   @property
@@ -71,8 +77,6 @@ class ParquetDataset(base.MsebDataset):
 
   def _load_data(self) -> pd.DataFrame:
     """Loads the data from the Parquet file."""
-    if not self.parquet_path.exists():
-      raise FileNotFoundError(f'Parquet file not found at: {self.parquet_path}')
     return pd.read_parquet(self.parquet_path)
 
   def get_task_data(
