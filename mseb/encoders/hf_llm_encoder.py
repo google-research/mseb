@@ -122,8 +122,6 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
           {'type': 'audio', 'path': tmp_wavefile.name}
       )
 
-    print(f'messages: {messages}')
-
     input_ids = processor.apply_chat_template(  # pylint: disable=attribute-error
         messages,
         add_generation_prompt=True,
