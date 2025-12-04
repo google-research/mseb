@@ -16,6 +16,7 @@ keywords = []
 # pip dependencies of the project
 # Installed locally with `pip install -e .`
 dependencies = [
+    "accelerate",
     "array-record",
     "absl-py",
     "apache-beam",
