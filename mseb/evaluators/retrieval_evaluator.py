@@ -29,7 +29,7 @@ from mseb import metrics as metrics_lib
 from mseb import types
 import numpy as np
 
-from scann import scann_ops_pybind
+from scann.scann_ops.py import scann_ops_pybind
 ScannSearcher = scann_ops_pybind.ScannSearcher
 
 
