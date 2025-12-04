@@ -197,19 +197,22 @@ class SoundClassificationPrompt(Prompt):
   PROMPT_TEMPLATE = """
 **Task: {Sound_Name} Classification**
 
-**Goal:** Classify the provided audio clip into one of the following {sound_name} classes:
+**Goal:** Classify the provided audio clip into the following {sound_name} classes:
   {class_labels}
 
 **Input:** You will receive an audio clip containing the recording of a {sound_name} {{text}}.
 
-**Output:** You will produce a single JSON object as a plain text string (no markup). The structure depends on answerability:
- * "answer": (string) The ${sound_name} class of the audio clip.
+**Output:** For each {sound_name} class that correctly describes the audio clip, you will produce a single JSON object as a plain text string (no markup).
+Up to {max_num_labels} JSON objects can be output.
+Each JSON object should be produced on a new line.
+Each JSON object should have the following structure:
+ * "answer": (string) The {sound_name} class of the audio clip.
 
 **Important Considerations:**
 * Class names are descriptive.
-* **Exact Matches:** The ouput should match exactly one of the {sound_name} class names. Do not rephrase or summarize.
-* **No Other Output:** The output should only contain the {sound_name} class name.
-* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+* **Exact Matches:** Each ouput should match exactly one of the {sound_name} class names. Do not rephrase or summarize.
+* **No Other Output:** Each output should only contain the {sound_name} class name.
+* **Plain Text JSON Output:** Each output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
 """
   INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
   NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
@@ -217,13 +220,15 @@ class SoundClassificationPrompt(Prompt):
   def __init__(
       self, class_labels: Sequence[str],
       sound_name: str = 'Sound',
-      prompt_template: str = PROMPT_TEMPLATE
+      prompt_template: str = PROMPT_TEMPLATE,
+      max_num_labels: int = 5,
   ):
     self.class_labels = set(class_labels)
     self.prompt_template = prompt_template.format(
         Sound_Name=sound_name,
         sound_name=sound_name.lower(),
-        class_labels=json.dumps(class_labels)
+        class_labels=json.dumps(class_labels),
+        max_num_labels=max_num_labels,
     )
 
   def GetPromptTemplate(self) -> str:
@@ -233,15 +238,20 @@ class SoundClassificationPrompt(Prompt):
     assert isinstance(response, str)
     if response == self.NO_RESPONSE_STR:
       return self.NO_RESPONSE_STR
-    result = ProcessJsonResponse(
-        response,
-        keys=['answer'],
-        key_to_value_map=None,
-        invalid_response_value=self.INVALID_ANSWER_STR,
-    )
-    if result not in self.class_labels:
+    lines = response.split('\n')
+    results = []
+    for line in lines:
+      result = ProcessJsonResponse(
+          line,
+          keys=['answer'],
+          key_to_value_map=None,
+          invalid_response_value=self.INVALID_ANSWER_STR,
+      )
+      if result in self.class_labels:
+        results.append(result)
+    if not results:
       return self.INVALID_ANSWER_STR
-    return result
+    return '\n'.join(results)
 
 
 class RetrievalPrompt(Prompt):

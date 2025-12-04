@@ -132,5 +132,48 @@ class PromptTest(absltest.TestCase):
         self.NO_RESPONSE_STR,
     )
 
+  def test_sound_classification_prompt(self):
+    prompt = prompt_lib.SoundClassificationPrompt(
+        class_labels=["label_1", "label_2"]
+    )
+    self.assertIsInstance(prompt.GetPromptTemplate(), str)
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "answer": "label_1",
+            })
+        ),
+        "label_1",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            "\n".join([
+                json.dumps({
+                    "answer": "label_1",
+                }),
+                json.dumps({
+                    "answer": "label_2",
+                }),
+                "invalid json",
+            ])
+        ),
+        "label_1\nlabel_2",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "answer": "label_3",
+            })
+        ),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            self.NO_RESPONSE_STR
+        ),
+        self.NO_RESPONSE_STR,
+    )
+
+
 if __name__ == "__main__":
   absltest.main()

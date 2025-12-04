@@ -396,5 +396,47 @@ class ClassificationTest(absltest.TestCase):
     )
     self.assertAlmostEqual(no_result_rate_score.value, 0.25)
 
+  def test_compute_scores_from_text_prediction_multi_label(self):
+
+    class MockMultiLabelTask(classification.ClassificationTask):
+      @property
+      def task_type(self) -> str:
+        return "multi_label"
+
+      def sounds(self) -> Iterable[types.Sound]:
+        raise NotImplementedError()
+
+      def class_labels(self) -> Iterable[str]:
+        return ["label_1", "label_2"]
+
+      def examples(self, sub_task: str):
+        return [
+            classification_evaluator.MultiLabelClassificationReference(
+                example_id="utt_1", label_ids=["label_1", "label_2"]
+            )
+        ]
+
+      @property
+      def sub_tasks(self) -> list[str]:
+        return ["test"]
+
+    task = MockMultiLabelTask(
+        multi_label_threshold=0.4
+    )
+    task.setup()
+
+    embeddings = {
+        "utt_1": types.TextPrediction(
+            context=types.PredictionContextParams(id="utt_1"),
+            prediction="label_1\nlabel_2",
+        ),
+    }
+
+    scores = task.compute_scores(embeddings=embeddings)
+    self.assertIn("test", scores)
+    map_score = next(s for s in scores["test"] if s.metric == "mAP")
+    # Since scores will be high for both correct labels, mAP should be 1.0
+    self.assertAlmostEqual(map_score.value, 1.0)
+
 if __name__ == "__main__":
   absltest.main()

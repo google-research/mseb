@@ -143,9 +143,11 @@ class ClassificationTask(task.MSEBTask):
     if isinstance(next(iter(embeddings.values())), types.TextPrediction):
       predictions = {}
       for k, v in embeddings.items():
+        assert isinstance(v, types.TextPrediction)
+        predicted_labels = set(v.prediction.split("\n"))
         predictions[k] = np.array(
             object=[
-                1.0 if x == getattr(v, "prediction", "") else 0.0
+                1.0 if x in predicted_labels else 0.0
                 for x in self._evaluator.get_extended_class_labels()
             ]
         )
