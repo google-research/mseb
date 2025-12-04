@@ -96,6 +96,18 @@ class ParquetDatasetTest(absltest.TestCase):
     self.assertEqual(sound.context.sample_rate, self.sample_rate)
     self.assertLen(sound.waveform, self.sample_rate)
 
+  def test_parquet_dataset_sampling(self):
+    """Tests if the ParquetDataset can be sampled correctly."""
+    sample_n = 3
+    dataset = parquet.ParquetDataset(
+        dataset_name=self.dataset_name,
+        task_name=self.task_name,
+        filename=self.parquet_filename,
+        base_path=self.base_path,
+        sample_n=sample_n,
+    )
+    self.assertLen(dataset, sample_n)
+
 
 if __name__ == '__main__':
   absltest.main()

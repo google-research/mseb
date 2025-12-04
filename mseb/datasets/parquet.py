@@ -33,6 +33,7 @@ class ParquetDataset(base.MsebDataset):
       filename: str,
       split: str = 'test',
       base_path: str | None = None,
+      sample_n: int | None = None,
   ):
     """Initializes the ParquetDataset.
 
@@ -42,6 +43,7 @@ class ParquetDataset(base.MsebDataset):
       filename: The name of the parquet file.
       split: The dataset split (e.g., 'test').
       base_path: The base path where the dataset is stored.
+      sample_n: The number of examples to sample from the dataset.
     """
     base_path = dataset.get_base_path(base_path)
     super().__init__(base_path=base_path, split=split)
@@ -55,6 +57,8 @@ class ParquetDataset(base.MsebDataset):
     else:
       self.parquet_path = epath.Path(self.base_path) / filename
     self._data = self._load_data()
+    if sample_n:
+      self._data = self._data.sample(n=sample_n)
 
   @property
   def metadata(self) -> types.DatasetMetadata:
