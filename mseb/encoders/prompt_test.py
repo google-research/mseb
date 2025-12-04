@@ -97,6 +97,40 @@ class PromptTest(absltest.TestCase):
         self.NO_RESPONSE_STR,
     )
 
+  def test_segmentation_prompt(self):
+    prompt = prompt_lib.SegmentationPrompt()
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "term": "Paris",
+                "start_time": 0.0,
+                "end_time": 1.0,
+            })
+        ),
+        json.dumps({
+            "term": "Paris",
+            "start_time": 0.0,
+            "end_time": 1.0,
+        }),
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "term": "Paris",
+                "start_time": 0.0,
+                "end_time": "1.0",
+            })
+        ),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse("invalid json"),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(self.NO_RESPONSE_STR),
+        self.NO_RESPONSE_STR,
+    )
 
 if __name__ == "__main__":
   absltest.main()

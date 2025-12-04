@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from absl.testing import absltest
 from mseb import types
 from mseb.evaluators import segmentation_evaluator
@@ -76,6 +78,99 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     self.assertEqual(scores.edit_distance, 0.0)
     self.assertEqual(scores.num_reference_words, 2)
     self.assertLen(result.all_predictions_for_map, 2)
+
+  def test_compute_scores_from_text_prediction(self):
+    references = [
+        segmentation_evaluator.SegmentationReference(
+            "ex1",
+            [
+                segmentation_evaluator.Segment("dog", 0.5, 1.0),
+            ],
+        ),
+        segmentation_evaluator.SegmentationReference(
+            "ex2",
+            [
+                segmentation_evaluator.Segment("dog", 0.5, 1.0),
+                segmentation_evaluator.Segment("cat", 2.0, 2.5),
+            ],
+        ),
+    ]
+    predictions = {
+        "ex1": types.TextPrediction(
+            prediction=json.dumps({
+                "term": "dog",
+                "start_time": 0.5,
+                "end_time": 1.0,
+            }),
+            context=types.PredictionContextParams(id="ex1"),
+        ),
+        "ex2": types.TextPrediction(
+            prediction=json.dumps([
+                {
+                    "term": "dog",
+                    "start_time": 0.5,
+                    "end_time": 1.0,
+                },
+                {
+                    "term": "cat",
+                    "start_time": 2.0,
+                    "end_time": 2.5,
+                },
+            ]),
+            context=types.PredictionContextParams(id="ex2"),
+        ),
+    }
+
+    result = self.evaluator.compute_scores(predictions, references)
+    scores = result.per_example_scores[0]
+
+    self.assertEqual(scores.num_reference_segments, 1)
+    self.assertEqual(scores.timestamps_and_embeddings_hits, 1)
+    self.assertEqual(scores.timestamps_hits, 1)
+    self.assertEqual(scores.embeddings_hits, 1)
+    self.assertEqual(scores.ndcg, 1.0)
+    self.assertEqual(scores.edit_distance, 0.0)
+    self.assertEqual(scores.num_reference_words, 1)
+    self.assertEqual(scores.num_invalid_results, 0)
+    self.assertEqual(scores.num_missing_results, 0)
+
+    scores_ex2 = result.per_example_scores[1]
+    self.assertEqual(scores_ex2.num_reference_segments, 2)
+    self.assertEqual(scores_ex2.timestamps_and_embeddings_hits, 2)
+    self.assertEqual(scores_ex2.timestamps_hits, 2)
+    self.assertEqual(scores_ex2.embeddings_hits, 2)
+    self.assertEqual(scores_ex2.ndcg, 1.0)
+    self.assertEqual(scores_ex2.edit_distance, 0.0)
+    self.assertEqual(scores_ex2.num_reference_words, 2)
+    self.assertEqual(scores_ex2.num_invalid_results, 0)
+    self.assertEqual(scores_ex2.num_missing_results, 0)
+
+  def test_compute_scores_from_text_prediction_with_invalid_and_missing_results(
+      self,
+  ):
+    references = [
+        segmentation_evaluator.SegmentationReference(
+            "ex1", [segmentation_evaluator.Segment("dog", 0.5, 1.0)],
+        ),
+        segmentation_evaluator.SegmentationReference(
+            "ex2", [segmentation_evaluator.Segment("cat", 2.0, 2.5)],
+        ),
+    ]
+    predictions = {
+        "ex1": types.TextPrediction(
+            prediction=segmentation_evaluator.INVALID_ANSWER_STR,
+            context=types.PredictionContextParams(id="ex1"),
+        ),
+        "ex2": types.TextPrediction(
+            prediction=segmentation_evaluator.NO_RESPONSE_STR,
+            context=types.PredictionContextParams(id="ex2"),
+        ),
+    }
+    result = self.evaluator.compute_scores(predictions, references)
+    self.assertEqual(result.per_example_scores[0].num_invalid_results, 1)
+    self.assertEqual(result.per_example_scores[0].num_missing_results, 0)
+    self.assertEqual(result.per_example_scores[1].num_invalid_results, 0)
+    self.assertEqual(result.per_example_scores[1].num_missing_results, 1)
 
   def test_compute_scores_imperfect_sequence_and_match(self):
     ref_segments = [
@@ -147,6 +242,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
                 ndcg=0.5,
                 edit_distance=2,
                 num_reference_words=2,
+                num_invalid_results=0,
+                num_missing_results=0,
             ),
             segmentation_evaluator.SegmentationScores(
                 timestamps_hits=1,
@@ -156,6 +253,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
                 ndcg=1.0,
                 edit_distance=0,
                 num_reference_words=2,
+                num_invalid_results=0,
+                num_missing_results=0,
             ),
         ],
         all_predictions_for_map=[
@@ -191,6 +290,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
         segmentation_evaluator.normalized_discounted_cumulative_gain(0.75),
         segmentation_evaluator.word_error_rate(0.5),
         segmentation_evaluator.mean_average_precision(5.0 / 6.0),
+        segmentation_evaluator.invalid_result_rate(0.0),
+        segmentation_evaluator.missing_result_rate(0.0),
     ]
     self._assert_scores(final_scores, expected_scores)
 

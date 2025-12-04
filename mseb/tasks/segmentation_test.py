@@ -127,6 +127,9 @@ class SegmentationTaskTest(absltest.TestCase):
         # Order metrics (perfect order)
         segmentation_evaluator.normalized_discounted_cumulative_gain(1.0),
         segmentation_evaluator.word_error_rate(0.0),
+        # Invalid and missing result metrics (0%)
+        segmentation_evaluator.invalid_result_rate(0.0),
+        segmentation_evaluator.missing_result_rate(0.0),
         # Ranking metric (perfect ranking)
         segmentation_evaluator.mean_average_precision(1.0),
     ]

@@ -69,6 +69,24 @@ def ProcessJsonResponse(
   return invalid_response_value
 
 
+def ValidateJson(
+    response: str,
+    expected_types: Mapping[str, Any],
+) -> bool:
+  """Validates the json response."""
+  try:
+    result = json.loads(response)
+    for key, expected_type in expected_types.items():
+      if key not in result:
+        return False
+      if not isinstance(result[key], type(expected_type)):
+        return False
+    return True
+  except json.JSONDecodeError:
+    logging.warning('Failed to parse json: %s', response)
+  return False
+
+
 class ReasoningPrompt(Prompt):
   """A prompt for the reasoning task."""
 
@@ -263,3 +281,45 @@ class RetrievalPrompt(Prompt):
   def ProcessResponse(self, response: Any) -> Any:
     assert isinstance(response, str)
     return response
+
+
+class SegmentationPrompt(Prompt):
+  """A prompt for the segmentation task."""
+
+  PROMPT_TEMPLATE = """
+**Task: Salient Term Segmentation**
+
+**Goal:** Given a query, return the most salient term from the query.
+
+**Input:** You will receive a audio query.
+
+**Output:** You will produce a single JSON object as a plain text string (no markup). The structure is as follows:
+ * "term": (string) The salient term from the query.
+ * "start_time": (float) start time of the term in seconds.
+ * "end_time": (float) end time of the term in seconds.
+
+**Important Considerations:**
+* A term must consist of just one word.
+* A term is a salient term if it is a topic or a concept that is relevant to the query.
+* A term is salient if it would appear in a relatively small number of wikipedia articles.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+"""
+  INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
+
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
+    self.prompt_template = prompt_template
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> Any:
+    assert isinstance(response, str)
+    if response == self.NO_RESPONSE_STR:
+      return self.NO_RESPONSE_STR
+    if ValidateJson(
+        response,
+        {'term': str(), 'start_time': float(), 'end_time': float()},
+    ):
+      return response
+    return self.INVALID_ANSWER_STR

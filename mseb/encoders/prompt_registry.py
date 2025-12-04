@@ -73,6 +73,11 @@ retrieval = PromptMetadata(
     params=lambda: {},
 )
 
+segmentation = PromptMetadata(
+    name="segmentation",
+    prompt=prompt_lib.SegmentationPrompt,
+    params=lambda: {},
+)
 
 _REGISTRY: dict[str, PromptMetadata] = {}
 

@@ -16,13 +16,16 @@
 
 import collections
 import dataclasses
-from typing import Sequence
+import json
+from typing import Sequence, Tuple
 
 import jiwer
 from mseb import types
 import numpy as np
 from sklearn import metrics
 
+INVALID_ANSWER_STR = ""
+NO_RESPONSE_STR = "NO_RESPONSE"
 
 _METRIC_DESCRIPTIONS: dict[str, str] = {
     "TimestampsAccuracy": (
@@ -65,6 +68,14 @@ _METRIC_DESCRIPTIONS: dict[str, str] = {
     "WordErrorRate": (
         "Word Error Rate (WER) between the predicted and reference sequences. "
         "Lower is better."
+    ),
+    "InvalidResultRate": (
+        "The percentage of examples that have an invalid segmentation result. "
+        "Lower is better."
+    ),
+    "MissingResultRate": (
+        "The percentage of examples that have no segmentation result. Lower is"
+        " better."
     ),
 }
 
@@ -172,6 +183,26 @@ def word_error_rate(value: float = 0.0) -> types.Score:
   )
 
 
+def invalid_result_rate(value: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="InvalidResultRate",
+      description=_METRIC_DESCRIPTIONS["InvalidResultRate"],
+      value=value,
+      min=0.0,
+      max=1.0
+  )
+
+
+def missing_result_rate(value: float = 0.0) -> types.Score:
+  return types.Score(
+      metric="MissingResultRate",
+      description=_METRIC_DESCRIPTIONS["MissingResultRate"],
+      value=value,
+      min=0.0,
+      max=1.0
+  )
+
+
 @dataclasses.dataclass(frozen=True)
 class Segment:
   embedding: str
@@ -195,6 +226,8 @@ class SegmentationScores:
   ndcg: float
   edit_distance: float
   num_reference_words: int
+  num_invalid_results: int
+  num_missing_results: int
 
 
 @dataclasses.dataclass
@@ -248,6 +281,66 @@ class SegmentationEvaluator:
       raise ValueError("Time tolerance `tau` cannot be negative.")
     self.tau = tau
 
+  def get_segments(
+      self,
+      prediction_obj: types.SoundEmbedding | types.TextPrediction,
+  ) -> Tuple[list[Segment], bool, bool, bool]:
+    """Extracts segments from a SoundEmbedding or TextPrediction."""
+    pred_segments: list[Segment] = []
+    has_scores = False
+    has_invalid_result = False
+    has_missing_result = False
+    if isinstance(prediction_obj, types.SoundEmbedding):
+      embeds = prediction_obj.embedding
+      scores = prediction_obj.scores
+      timestamps = prediction_obj.timestamps
+      if len(embeds) != len(timestamps) or (
+          scores is not None and len(embeds) != len(scores)
+      ):
+        raise ValueError(
+            f"Inconsistent lengths in example '{prediction_obj.context.id}'."
+        )
+      for i in range(len(embeds)):
+        confidence = scores[i] if scores is not None else 1.0
+        seg = Segment(
+            str(embeds[i]), timestamps[i, 0], timestamps[i, 1], confidence
+        )
+        pred_segments.append(seg)
+      has_scores = scores is not None
+    elif isinstance(prediction_obj, types.TextPrediction):
+      if prediction_obj.prediction == NO_RESPONSE_STR:
+        has_missing_result = True
+      elif prediction_obj.prediction == INVALID_ANSWER_STR:
+        has_invalid_result = True
+      else:
+        prediction = json.loads(prediction_obj.prediction)
+        if isinstance(prediction, list):
+          pred_segments.extend(
+              [Segment(
+                  embedding=pred_segment["term"],
+                  start_time=pred_segment["start_time"],
+                  end_time=pred_segment["end_time"],
+                  confidence=1.0,
+              ) for pred_segment in prediction]
+          )
+        else:
+          pred_segments.append(
+              Segment(
+                  embedding=prediction["term"],
+                  start_time=prediction["start_time"],
+                  end_time=prediction["end_time"],
+                  confidence=1.0,
+              )
+          )
+    else:
+      raise TypeError(
+          "Evaluator expected a SoundEmbedding or TextPrediction for "
+          " but received a "
+          f"{type(prediction_obj).__name__}."
+      )
+
+    return pred_segments, has_scores, has_invalid_result, has_missing_result
+
   def compute_scores(
       self,
       predictions: types.MultiModalEmbeddingCache,
@@ -284,31 +377,12 @@ class SegmentationEvaluator:
         gts_for_map[ref.example_id].append(seg)
 
       prediction_obj = predictions.get(ref.example_id)
-      pred_segments = []
-      if prediction_obj:
-        if not isinstance(prediction_obj, types.SoundEmbedding):
-          raise TypeError(
-              "Evaluator expected a SoundEmbedding for example_id "
-              f"'{ref.example_id}', but received a "
-              f"{type(prediction_obj).__name__}."
-          )
-        embeds = prediction_obj.embedding
-        scores = prediction_obj.scores
-        timestamps = prediction_obj.timestamps
-        if len(embeds) != len(timestamps) or (
-            scores is not None and len(embeds) != len(scores)
-        ):
-          raise ValueError(
-              f"Inconsistent lengths in example '{ref.example_id}'."
-          )
-        for i in range(len(embeds)):
-          confidence = scores[i] if scores is not None else 1.0
-          seg = Segment(
-              str(embeds[i]), timestamps[i, 0], timestamps[i, 1], confidence
-          )
-          pred_segments.append(seg)
-          if scores is not None:
-            all_preds_for_map.append((ref.example_id, seg))
+      pred_segments, has_scores, has_invalid_result, has_missing_result = (
+          self.get_segments(prediction_obj)
+      )
+      if has_scores:
+        for seg in pred_segments:
+          all_preds_for_map.append((ref.example_id, seg))
 
       pred_labels = [seg.embedding.lower() for seg in pred_segments]
 
@@ -397,6 +471,8 @@ class SegmentationEvaluator:
               ndcg=ndcg,
               edit_distance=edit_dist,
               num_reference_words=num_ref_words,
+              num_invalid_results=int(has_invalid_result),
+              num_missing_results=int(has_missing_result),
           )
       )
     return SegmentationScoringResult(
@@ -453,6 +529,13 @@ class SegmentationEvaluator:
       emb_acc = total_emb_hits / total_ref_segments
       ts_emb_acc = total_ts_emb_hits / total_ref_segments
 
+      ir_rate = sum(
+          s.num_invalid_results for s in result.per_example_scores
+      ) / len(result.per_example_scores)
+      mr_rate = sum(
+          s.num_missing_results for s in result.per_example_scores
+      ) / len(result.per_example_scores)
+
       final_scores.extend([
           timestamps_and_embeddings_hits(
               float(total_ts_emb_hits),
@@ -472,6 +555,8 @@ class SegmentationEvaluator:
           embeddings_accuracy(float(emb_acc)),
           normalized_discounted_cumulative_gain(float(mean_ndcg)),
           word_error_rate(corpus_wer),
+          invalid_result_rate(ir_rate),
+          missing_result_rate(mr_rate),
       ])
 
     # --- Calculate Dataset-Level mAP ---

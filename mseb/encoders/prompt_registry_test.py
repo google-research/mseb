@@ -22,6 +22,7 @@ class PromptRegistryTest(parameterized.TestCase):
   @parameterized.parameters(
       prompt_registry.reasoning,
       prompt_registry.intent_classification,
+      prompt_registry.segmentation,
   )
   def test_load_encoder(self, meta):
     prompt = meta.load()
