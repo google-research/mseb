@@ -58,7 +58,7 @@ class ParquetDataset(base.MsebDataset):
       self.parquet_path = epath.Path(self.base_path) / filename
     self._data = self._load_data()
     if sample_n:
-      self._data = self._data.sample(n=sample_n)
+      self._data = self._data.sample(n=sample_n, random_state=42)
 
   @property
   def metadata(self) -> types.DatasetMetadata:
