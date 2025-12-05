@@ -27,6 +27,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
   """Speech Massive intent classification task."""
 
   locale: str | None = None
+  filename: str | None = None
 
   @property
   def task_type(self) -> str:
@@ -45,7 +46,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
     return ["intent_classification"]
 
   def _get_dataset(self) -> speech_massive.SpeechMassiveDataset:
-    return speech_massive.SpeechMassiveDataset(language=self.locale)
+    return speech_massive.SpeechMassiveDataset(filename=self.filename)
 
   def sounds(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
@@ -129,6 +130,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
 
 class SpeechMassiveArSaIntentClassification(SpeechMassiveIntentClassification):
   locale = "ar_sa"
+  filename = "ar-SA/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveArSaIntentClassification",
       description="Intent classification task.",
@@ -158,6 +160,7 @@ class SpeechMassiveArSaIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveDeDeIntentClassification(SpeechMassiveIntentClassification):
   locale = "de_de"
+  filename = "de-DE/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveDeDeIntentClassification",
       description="Intent classification task.",
@@ -187,6 +190,7 @@ class SpeechMassiveDeDeIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveEsEsIntentClassification(SpeechMassiveIntentClassification):
   locale = "es_es"
+  filename = "es-ES/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveEsEsIntentClassification",
       description="Intent classification task.",
@@ -216,6 +220,7 @@ class SpeechMassiveEsEsIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveFrFrIntentClassification(SpeechMassiveIntentClassification):
   locale = "fr_fr"
+  filename = "fr-FR/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveFrFrIntentClassification",
       description="Intent classification task.",
@@ -245,6 +250,7 @@ class SpeechMassiveFrFrIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveHuHuIntentClassification(SpeechMassiveIntentClassification):
   locale = "hu_hu"
+  filename = "hu-HU/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveHuHuIntentClassification",
       description="Intent classification task.",
@@ -274,6 +280,7 @@ class SpeechMassiveHuHuIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveKoKrIntentClassification(SpeechMassiveIntentClassification):
   locale = "ko_kr"
+  filename = "ko-KR/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveKoKrIntentClassification",
       description="Intent classification task.",
@@ -303,6 +310,7 @@ class SpeechMassiveKoKrIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveNlNlIntentClassification(SpeechMassiveIntentClassification):
   locale = "nl_nl"
+  filename = "nl-NL/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveNlNlIntentClassification",
       description="Intent classification task.",
@@ -332,6 +340,7 @@ class SpeechMassiveNlNlIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassivePlPlIntentClassification(SpeechMassiveIntentClassification):
   locale = "pl_pl"
+  filename = "pl-PL/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassivePlPlIntentClassification",
       description="Intent classification task.",
@@ -361,6 +370,7 @@ class SpeechMassivePlPlIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassivePtPtIntentClassification(SpeechMassiveIntentClassification):
   locale = "pt_pt"
+  filename = "pt-PT/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassivePtPtIntentClassification",
       description="Intent classification task.",
@@ -390,6 +400,7 @@ class SpeechMassivePtPtIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveRuRuIntentClassification(SpeechMassiveIntentClassification):
   locale = "ru_ru"
+  filename = "ru-RU/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveRuRuIntentClassification",
       description="Intent classification task.",
@@ -419,6 +430,7 @@ class SpeechMassiveRuRuIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveTrTrIntentClassification(SpeechMassiveIntentClassification):
   locale = "tr_tr"
+  filename = "tr-TR/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveTrTrIntentClassification",
       description="Intent classification task.",
@@ -448,6 +460,7 @@ class SpeechMassiveTrTrIntentClassification(SpeechMassiveIntentClassification):
 
 class SpeechMassiveViVnIntentClassification(SpeechMassiveIntentClassification):
   locale = "vi_vn"
+  filename = "vi-VN/test-?????-of-?????.parquet"
   metadata = types.TaskMetadata(
       name="SpeechMassiveViVnIntentClassification",
       description="Intent classification task.",

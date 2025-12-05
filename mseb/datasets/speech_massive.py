@@ -47,25 +47,23 @@ class SpeechMassiveDataset(base.MsebDataset):
 
   def __init__(
       self,
-      language: str,
-      split: str = "test",
+      filename: str,
       base_path: str | None = None,
       repo_id: str = "FBK-MT/Speech-MASSIVE-test",
   ):
-    """Initializes the dataset for a specific language and split.
+    """Initializes the dataset for a specific file pattern.
 
     Args:
-      language: The language code (e.g., 'de-DE').
-      split: The dataset split to load (e.g., 'test').
+      filename: The file name relative to the base path.
       base_path: The root directory to store/find the dataset.
       repo_id: The Hugging Face repository ID to download from. Defaults to the
         richer 'FBK-MT/Speech-MASSIVE' version, but the original
         'speechcolab/massive' is also supported.
     """
-    super().__init__(base_path=base_path, split=split)
+    super().__init__(base_path=base_path, split="no_used")
     self.base_path = dataset.get_base_path(self.base_path)
     self.repo_id = repo_id
-    self.language = bcp47_by_locale.get(language, language)
+    self.filename = filename
     self._data = self._load_data()
 
   @property
@@ -107,31 +105,30 @@ class SpeechMassiveDataset(base.MsebDataset):
     """
     self._download_and_prepare()
 
+    parquet_path = os.path.join(self.base_path, self.filename)
     parquet_files = tuple(
-        epath.Path(os.path.join(self.base_path, self.language)).glob(
-            f"{self.split}-?????-of-?????.parquet"
+        epath.Path(os.path.dirname(parquet_path)).glob(
+            os.path.basename(parquet_path)
         )
     )
     if not parquet_files:
-      pattern = os.path.join(
-          self.base_path, self.language, f"{self.split}-?????-of-?????.parquet"
-      )
-      raise FileNotFoundError(f"No parquet files found for {pattern}")
+      raise FileNotFoundError(f"No parquet files found for {parquet_path}")
 
     dfs = [pd.read_parquet(file) for file in parquet_files]
     df = pd.concat(dfs)
 
     def _wav_bytes_to_waveform(x):
-      samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
-      return {"samples": samples, "sample_rate": sample_rate, "path": x["path"]}
+      if "bytes" in x:
+        samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
+        return {"samples": samples, "sample_rate": sample_rate}
+      else:
+        return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
 
     df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
     return df
 
   def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Converts a single row of the dataset to a Sound object."""
-    assert record["locale"] == self.language
-    assert record["partition"] == self.split
     samples = record["audio"]["samples"]
     sample_rate = record["audio"]["sample_rate"]
     try:

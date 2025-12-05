@@ -83,7 +83,8 @@ class SpeechMassiveTest(absltest.TestCase):
   @mock.patch("mseb.utils.download_from_hf")
   def test_loading_and_parsing(self, _):
     dataset = speech_massive.SpeechMassiveDataset(
-        base_path=self.testdata_dir.full_path, language="de-DE", split="test"
+        base_path=self.testdata_dir.full_path,
+        filename="de-DE/test-00000-of-00001.parquet",
     )
 
     self.assertLen(dataset, 1)
@@ -104,7 +105,8 @@ class SpeechMassiveTest(absltest.TestCase):
   @mock.patch("mseb.utils.download_from_hf")
   def test_get_sound(self, _):
     dataset = speech_massive.SpeechMassiveDataset(
-        base_path=self.testdata_dir.full_path, language="de-DE", split="test"
+        base_path=self.testdata_dir.full_path,
+        filename="de-DE/test-?????-of-?????.parquet",
     )
     record = dataset.get_task_data().iloc[0]
     sound = dataset.get_sound(record)
