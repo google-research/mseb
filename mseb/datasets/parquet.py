@@ -102,6 +102,12 @@ class ParquetDataset(base.MsebDataset):
 
   def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Retrieves a Sound object from a record (row) of the dataset."""
+    if 'audio' not in record:
+      record = (
+          self._data.loc[self._data['utt_id'] == record['utt_id']]
+          .iloc[0]
+          .to_dict()
+      )
     audio_data = record['audio']
     waveform = audio_data['waveform']
     sample_rate = audio_data['sample_rate']
