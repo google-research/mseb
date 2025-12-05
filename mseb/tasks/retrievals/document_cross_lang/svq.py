@@ -17,6 +17,7 @@
 import os
 from typing import Iterable
 
+from mseb import task as task_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
@@ -37,9 +38,7 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
 
   @property
   def index_dir(self) -> str:
-    return os.path.join(
-        super().index_dir, 'svq_en_document_retrieval_in_lang'
-    )
+    return os.path.join(super().index_dir, 'svq_en_document_retrieval_in_lang')
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -49,12 +48,16 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
     svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
         'document_retrieval_cross_lang',
-        dtype={'locale': str, 'utt_id': str, 'text': str},
+        dtype={
+            'locale': str,
+            'utt_id': str,
+            task_lib.TRANSCRIPT_KEY.value: str,
+        },
     ).to_dict('records'):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
         # Add the ground truth query for headroom analysis.
-        sound.context.text = example['text']
+        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
         yield sound
 
   def examples(

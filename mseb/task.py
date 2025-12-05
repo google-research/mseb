@@ -30,6 +30,17 @@ TASK_CACHE_BASEPATH = flags.DEFINE_string(
     "Base path for the task cache.",
 )
 
+TRANSCRIPT_KEY = flags.DEFINE_string(
+    "transcript_key",
+    "text",
+    "Key to use for the transcript in the task data.",
+)
+
+CONTEXT_KEY = flags.DEFINE_string(
+    "context_key",
+    "passage_text",
+    "Key to use for the context in the task data.",
+)
 
 logger = logging.getLogger(__name__)
 

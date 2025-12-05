@@ -17,6 +17,7 @@
 import os
 from typing import Iterable, Sequence
 
+from mseb import task as task_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reranking_evaluator
@@ -45,12 +46,16 @@ class SVQQueryReranking(reranking.RerankingTask):
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
-        'query_reranking', dtype={'locale': str, 'utt_id': str, 'text': str}
+        'query_reranking',
+        dtype={
+            'locale': str,
+            'utt_id': str,
+            task_lib.TRANSCRIPT_KEY.value: str,
+        },
     ).to_dict('records'):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound(example)
-        # Add the ground truth query for headroom analysis.
-        sound.context.text = example['candidates'][0]
+        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
         yield sound
 
   def examples(
