@@ -299,11 +299,14 @@ class SegmentationPrompt(Prompt):
   PROMPT_TEMPLATE = """
 **Task: Salient Term Segmentation**
 
-**Goal:** Given a query, return the most salient term from the query.
+**Goal:** Given a query, return the top-{top_k} most salient terms from the query.
 
-**Input:** You will receive a audio query.
+**Input:** You will receive an audio query.
 
-**Output:** You will produce a single JSON object as a plain text string (no markup). The structure is as follows:
+**Output:** For each of the top-{top_k} most salient terms in the query, you will produce a single JSON object as a plain text string (no markup).
+Up to {top_k} JSON objects can be output.
+Each JSON object should be produced on a new line.
+Each JSON object should have the following structure:
  * "term": (string) The salient term from the query.
  * "start_time": (float) start time of the term in seconds.
  * "end_time": (float) end time of the term in seconds.
@@ -317,8 +320,8 @@ class SegmentationPrompt(Prompt):
   INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
   NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
 
-  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
-    self.prompt_template = prompt_template
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE, top_k: int = 3):
+    self.prompt_template = prompt_template.format(top_k=top_k)
 
   def GetPromptTemplate(self) -> str:
     return self.prompt_template
@@ -327,9 +330,16 @@ class SegmentationPrompt(Prompt):
     assert isinstance(response, str)
     if response == self.NO_RESPONSE_STR:
       return self.NO_RESPONSE_STR
-    if ValidateJson(
-        response,
-        {'term': str(), 'start_time': float(), 'end_time': float()},
-    ):
-      return response
-    return self.INVALID_ANSWER_STR
+    lines = response.split('\n')
+    results = []
+    for line in lines:
+      if ValidateJson(
+          line,
+          {'term': str(), 'start_time': float(), 'end_time': float()},
+      ):
+        result = json.loads(line)
+        results.append(result)
+    if not results:
+      return self.INVALID_ANSWER_STR
+    return json.dumps(results)
+

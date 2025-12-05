@@ -107,11 +107,41 @@ class PromptTest(absltest.TestCase):
                 "end_time": 1.0,
             })
         ),
-        json.dumps({
+        json.dumps([{
             "term": "Paris",
             "start_time": 0.0,
             "end_time": 1.0,
-        }),
+        }]),
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            "\n".join([
+                json.dumps({
+                    "term": "Paris",
+                    "start_time": 0.0,
+                    "end_time": 1.0,
+                }),
+                json.dumps({
+                    "term": "Munich",
+                    "start_time": 2.0,
+                    "end_time": 3.0,
+                }),
+                "invalid json",
+                json.dumps({"term": "London "})
+            ])
+        ),
+        json.dumps([
+            {
+                "term": "Paris",
+                "start_time": 0.0,
+                "end_time": 1.0,
+            },
+            {
+                "term": "Munich",
+                "start_time": 2.0,
+                "end_time": 3.0,
+            },
+        ]),
     )
     self.assertEqual(
         prompt.ProcessResponse(
