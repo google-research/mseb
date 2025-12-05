@@ -34,6 +34,7 @@ class ParquetDataset(base.MsebDataset):
       split: str = 'test',
       base_path: str | None = None,
       sample_n: int | None = None,
+      id_key: str = 'id',
   ):
     """Initializes the ParquetDataset.
 
@@ -44,9 +45,11 @@ class ParquetDataset(base.MsebDataset):
       split: The dataset split (e.g., 'test').
       base_path: The base path where the dataset is stored.
       sample_n: The number of examples to sample from the dataset.
+      id_key: The key to use for the Sound ID.
     """
     base_path = dataset.get_base_path(base_path)
     super().__init__(base_path=base_path, split=split)
+    self.id_key = id_key
     self.dataset_name = dataset_name
     self.task_name = task_name
 
@@ -113,7 +116,7 @@ class ParquetDataset(base.MsebDataset):
     sample_rate = audio_data['sample_rate']
 
     context = types.SoundContextParams(
-        id=str(record.get('id', 'id_not_found')),
+        id=str(record.get(self.id_key, 'id_not_found')),
         sample_rate=sample_rate,
         length=len(waveform),
     )
