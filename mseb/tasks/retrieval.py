@@ -16,6 +16,7 @@
 
 import abc
 import itertools
+import json
 import logging
 import os
 from typing import Iterable
@@ -151,10 +152,11 @@ class RetrievalTask(task.MSEBTask):
       predictions = {}
       for sound_id, example in embeddings.items():
         assert isinstance(example, types.TextPrediction)
-        predictions[sound_id] = [
-            # Assign pseudo-scores to preserve the predicted ranking.
-            (1 / n, p) for n, p in enumerate(example.prediction.split('\n'), 1)
-        ]
+        # Assign pseudo-scores to preserve the predicted ranking.
+        preds = []
+        for n, p in enumerate(example.prediction.split('\n'), 1):
+          preds.append((1 / n, json.loads(p)['id']))
+        predictions[sound_id] = preds
 
     scores = {}
     for sub_task in self.sub_tasks:
