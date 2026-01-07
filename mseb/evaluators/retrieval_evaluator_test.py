@@ -96,7 +96,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 2)
+    self.assertLen(scores, 4)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -104,6 +104,12 @@ class RetrievalEvaluatorTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'InvalidResultRate':
+        npt.assert_equal(score.value, 0.0)
+        npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'NoResultRate':
+        npt.assert_equal(score.value, 0.0)
+        npt.assert_equal(score.std, 0.0)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 
@@ -159,7 +165,7 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 2)
+    self.assertLen(scores, 4)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -167,6 +173,12 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'InvalidResultRate':
+        npt.assert_equal(score.value, 0.0)
+        npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'NoResultRate':
+        npt.assert_equal(score.value, 0.0)
+        npt.assert_equal(score.std, 0.0)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 
@@ -235,7 +247,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 2)
+    self.assertLen(scores, 4)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -243,6 +255,12 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'InvalidResultRate':
+        npt.assert_equal(score.value, 0.0)
+        npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'NoResultRate':
+        npt.assert_equal(score.value, 0.0)
+        npt.assert_equal(score.std, 0.0)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 

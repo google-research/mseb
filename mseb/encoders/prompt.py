@@ -257,6 +257,8 @@ Each JSON object should have the following structure:
 class RetrievalPrompt(Prompt):
   """A prompt for the retrieval task."""
 
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
+  INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
   PROMPT_TEMPLATE = """
 **Task: DocumentRetrieval**
 
@@ -268,7 +270,7 @@ class RetrievalPrompt(Prompt):
   * "id": (string) The unique identifier of the document.
   * "text": (string) The text of the document.
 
-*Output:** You will produce a list of document ids ordered from most to least relevant, each document id on a new line.
+*Output:** You will produce a list of document ids ordered from most to least relevant.
 
 **Important Considerations:**
 * Relevance should be determined based on the text of the document and the query.
@@ -280,17 +282,29 @@ class RetrievalPrompt(Prompt):
 {{"query": {text}, "documents": {context}}}
 """
 
-  def __init__(
-      self, prompt_template: str = PROMPT_TEMPLATE
-  ):
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
     self.prompt_template = prompt_template
 
   def GetPromptTemplate(self) -> str:
     return self.prompt_template
 
-  def ProcessResponse(self, response: Any) -> Any:
+  def ProcessResponse(self, response: Any) -> str:
     assert isinstance(response, str)
-    return response
+    if response != self.NO_RESPONSE_STR:
+      try:
+        result = json.loads(response)
+        if not isinstance(result, list):
+          raise ValueError('Result is not a list of strings: %s' % result)
+        for item in result:
+          if not isinstance(item, str):
+            raise ValueError('Item is not a string: %s' % item)
+        result = [{'id': item} for item in result]
+      except (json.JSONDecodeError, ValueError):
+        logging.warning('Invalid response format/type: %s', response)
+        return self.INVALID_ANSWER_STR
+    else:
+      return self.NO_RESPONSE_STR
+    return json.dumps(result)
 
 
 class SegmentationPrompt(Prompt):
@@ -342,4 +356,3 @@ Each JSON object should have the following structure:
     if not results:
       return self.INVALID_ANSWER_STR
     return json.dumps(results)
-

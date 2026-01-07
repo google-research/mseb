@@ -97,6 +97,36 @@ class PromptTest(absltest.TestCase):
         self.NO_RESPONSE_STR,
     )
 
+  def test_retrieval_prompt(self):
+    prompt = prompt_lib.RetrievalPrompt()
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps([
+                "english--7143613423291663770-hardneg-1",
+                "english-4979886021869611788-hardneg-4",
+                "english-6037841464917965779-hardneg-1",
+            ])
+        ),
+        json.dumps([
+            {"id": "english--7143613423291663770-hardneg-1"},
+            {"id": "english-4979886021869611788-hardneg-4"},
+            {"id": "english-6037841464917965779-hardneg-1"},
+        ]),
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps(
+                "english--7143613423291663770-hardneg-1\n"
+                "english-4979886021869611788-hardneg-4\n"
+                "english-6037841464917965779-hardneg-1"
+            )
+        ),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(self.NO_RESPONSE_STR), self.NO_RESPONSE_STR
+    )
+
   def test_segmentation_prompt(self):
     prompt = prompt_lib.SegmentationPrompt()
     self.assertEqual(

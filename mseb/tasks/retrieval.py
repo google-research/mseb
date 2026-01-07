@@ -23,6 +23,7 @@ from typing import Iterable
 
 from absl import flags
 from etils import epath
+from mseb import encoder as encoder_lib
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
@@ -35,6 +36,8 @@ _NUM_PARTITIONS = flags.DEFINE_integer(
     'Number of partitions to use for the retrieval task.',
 )
 
+NO_RESPONSE_STR = encoder_lib.NO_RESPONSE_STR
+INVALID_ANSWER_STR = encoder_lib.INVALID_ANSWER_STR
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +105,7 @@ class RetrievalTask(task.MSEBTask):
       self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None
   ):
     for partition_id in range(num_partitions):
-      logger.info(
-          'Setting up partition %d/%d', partition_id, num_partitions
-      )
+      logger.info('Setting up partition %d/%d', partition_id, num_partitions)
       if epath.Path(os.path.join(self.index_dir, str(partition_id))).exists():
         logger.info(
             'Index partition %d/%d already exists at %s',
@@ -144,19 +145,22 @@ class RetrievalTask(task.MSEBTask):
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
 
-    if not isinstance(
-        next(iter(embeddings.values())), types.TextPrediction
-    ):
+    if not isinstance(next(iter(embeddings.values())), types.TextPrediction):
       predictions = self._evaluator.compute_predictions(embeddings)
     else:
       predictions = {}
       for sound_id, example in embeddings.items():
         assert isinstance(example, types.TextPrediction)
-        # Assign pseudo-scores to preserve the predicted ranking.
-        preds = []
-        for n, p in enumerate(example.prediction.split('\n'), 1):
-          preds.append((1 / n, json.loads(p)['id']))
-        predictions[sound_id] = preds
+        if example.prediction == NO_RESPONSE_STR:
+          predictions[sound_id] = NO_RESPONSE_STR
+        elif example.prediction == INVALID_ANSWER_STR:
+          predictions[sound_id] = INVALID_ANSWER_STR
+        else:
+          predictions[sound_id] = [
+              # Assign pseudo-scores to preserve the predicted ranking.
+              (item.get('score', 1 / n), item['id'])
+              for n, item in enumerate(json.loads(example.prediction), 1)
+          ]
 
     scores = {}
     for sub_task in self.sub_tasks:

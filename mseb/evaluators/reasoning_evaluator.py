@@ -23,14 +23,15 @@ import string
 from typing import Mapping, Sequence
 
 import jaxtyping
+from mseb import encoder
 from mseb import evaluator
 from mseb import types
 import numpy as np
 
 
 NO_ANSWER_STR = 'No Answer'
-INVALID_ANSWER_STR = ''
-NO_RESPONSE_STR = 'NO_RESPONSE'
+INVALID_ANSWER_STR = encoder.INVALID_ANSWER_STR
+NO_RESPONSE_STR = encoder.NO_RESPONSE_STR
 
 
 def f1(value: float = 0.0, std: float | None = None):

@@ -16,14 +16,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import dataclasses
 import itertools
 import logging
 import os
-from typing import Mapping, Sequence
+from typing import Any, Mapping
 
 from etils import epath
 import jaxtyping
+from mseb import encoder as encoder_lib
 from mseb import evaluator as evaluator_lib
 from mseb import metrics as metrics_lib
 from mseb import types
@@ -32,8 +34,10 @@ import numpy as np
 from scann.scann_ops.py import scann_ops_pybind
 ScannSearcher = scann_ops_pybind.ScannSearcher
 
-
 logger = logging.getLogger(__name__)
+
+NO_RESPONSE_STR = encoder_lib.NO_RESPONSE_STR
+INVALID_ANSWER_STR = encoder_lib.INVALID_ANSWER_STR
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -64,7 +68,16 @@ class RetrievalReferenceId:
   reference_id: str
 
 
-RetrievalPredictionsCache = Mapping[str, Sequence[tuple[float, str]]]
+RetrievalPredictionsCache = Mapping[str, Sequence[tuple[float, str]] | str]
+
+
+def as_retrieval_prediction(prediction: Any) -> Sequence[tuple[float, str]]:
+  """Checks and returns a prediction to a sequence of tuples of score and doc id."""
+  assert isinstance(prediction, Sequence)
+  assert all(isinstance(x, tuple) and len(x) == 2 for x in prediction)
+  assert all(isinstance(x[0], float) for x in prediction)
+  assert all(isinstance(x[1], str) for x in prediction)
+  return prediction
 
 
 def get_ranked_doc_ids(
@@ -109,23 +122,36 @@ def _compute_metrics(
     A list of Score objects containing the final, aggregated scores, including
     mean reciprocal rank (MRR) and exact match (EM).
   """
-  values_by_metric = {'mrr': [], 'em': []}
+  values_by_metric = {'mrr': [], 'em': [], 'invalid': [], 'no_response': []}
   for reference_id in reference_ids:
-    ranked_doc_ids = get_ranked_doc_ids(
-        predictions[reference_id.sound_id], top_k
-    )
-    values_by_metric['mrr'].append(
-        types.WeightedValue(
-            value=metrics_lib.compute_reciprocal_rank(
-                reference_id.reference_id, ranked_doc_ids
-            )
-        )
-    )
-    values_by_metric['em'].append(
-        types.WeightedValue(
-            value=float(reference_id.reference_id == ranked_doc_ids[0])
-        )
-    )
+    prediction = predictions[reference_id.sound_id]
+    if prediction not in (NO_RESPONSE_STR, INVALID_ANSWER_STR):
+      ranked_doc_ids = get_ranked_doc_ids(
+          as_retrieval_prediction(prediction), top_k
+      )
+      values_by_metric['mrr'].append(
+          types.WeightedValue(
+              value=metrics_lib.compute_reciprocal_rank(
+                  reference_id.reference_id, ranked_doc_ids
+              )
+          )
+      )
+      values_by_metric['em'].append(
+          types.WeightedValue(
+              value=float(reference_id.reference_id == ranked_doc_ids[0])
+          )
+      )
+      values_by_metric['invalid'].append(types.WeightedValue(value=0.0))
+      values_by_metric['no_response'].append(types.WeightedValue(value=0.0))
+    else:
+      values_by_metric['mrr'].append(types.WeightedValue(value=0.0))
+      values_by_metric['em'].append(types.WeightedValue(value=0.0))
+      values_by_metric['invalid'].append(
+          types.WeightedValue(value=float(prediction == INVALID_ANSWER_STR))
+      )
+      values_by_metric['no_response'].append(
+          types.WeightedValue(value=float(prediction == NO_RESPONSE_STR))
+      )
 
   mrr_score = mrr(
       *evaluator_lib.compute_weighted_average_and_std(values_by_metric['mrr'])
@@ -133,7 +159,30 @@ def _compute_metrics(
   em_score = em(
       *evaluator_lib.compute_weighted_average_and_std(values_by_metric['em'])
   )
-  return [mrr_score, em_score]
+  invalid_result_rate = evaluator_lib.compute_weighted_average_and_std(
+      values_by_metric['invalid']
+  )
+  invalid_result_score = types.Score(
+      metric='InvalidResultRate',
+      description='Invalid result rate',
+      value=invalid_result_rate[0],
+      min=0,
+      max=1,
+      std=invalid_result_rate[1],
+  )
+  no_result_rate = evaluator_lib.compute_weighted_average_and_std(
+      values_by_metric['no_response']
+  )
+  no_result_score = types.Score(
+      metric='NoResultRate',
+      description='No result rate',
+      value=no_result_rate[0],
+      min=0,
+      max=1,
+      std=no_result_rate[1],
+  )
+
+  return [mrr_score, em_score, invalid_result_score, no_result_score]
 
 
 class RetrievalEvaluator:
@@ -177,7 +226,7 @@ class RetrievalEvaluator:
       predictions[sound_id] = tuple(
           zip(ranked_doc_scores[0], ranked_doc_ids[0])
       )
-    return predictions
+    return predictions  # pytype: disable=bad-return-type
 
   def compute_metrics(
       self,
@@ -237,7 +286,7 @@ class RetrievalEvaluatorPartitioned:
         else:
           predictions[sound_id].extend(predictions_for_sound_id)
 
-    return predictions
+    return predictions  # pytype: disable=bad-return-type
 
   def compute_metrics(
       self,

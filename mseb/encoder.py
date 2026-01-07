@@ -23,6 +23,10 @@ from mseb import types
 import numpy as np
 
 
+INVALID_ANSWER_STR = ""
+NO_RESPONSE_STR = "NO_RESPONSE"
+
+
 def resample_sound(
     sound: types.Sound,
     target_sr: int,

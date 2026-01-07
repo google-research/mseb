@@ -27,7 +27,6 @@ from mseb.encoders import prompt as prompt_lib
 from mseb.encoders import retrieval_encoder
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 from mseb.encoders import whisper_encoder
-from mseb.evaluators import reasoning_evaluator
 import numpy as np
 
 _GEMINI_API_KEY = flags.DEFINE_string(
@@ -40,7 +39,7 @@ _GEMINI_API_KEY = flags.DEFINE_string(
 class GemmaTextEncoder(prompt_encoder.TextEncoderWithPrompt):
   """Text encoder with Gemma model."""
 
-  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
+  NO_RESPONSE_STR = encoder.NO_RESPONSE_STR
 
   def __init__(
       self,
