@@ -176,3 +176,52 @@ class TextToTextPredictionConverter(Converter):
           )
       )
     return outputs
+
+
+class SoundToTextWithTitleAndContextConverter(Converter):
+  """Converter between Sound and TextWithTitleAndContext objects."""
+
+  @final
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError(
+          'SoundToSoundEmbeddingConverter only supports a batch of all'
+          ' Sound inputs.'
+      )
+
+  @final
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.TextWithTitleAndContext]:
+    """Converts a batch of Sound objects to TextWithTitleAndContext objects."""
+    outputs = []
+    for sound in batch:
+      if isinstance(sound, types.SoundWithTitleAndContext):
+        text = types.TextWithTitleAndContext(
+            text=sound.context.text,
+            title_text=sound.title_text,
+            context_text=sound.context_text,
+            context=types.TextContextParams(
+                id=sound.context.id,
+                text=sound.context.text,
+                debug_text=sound.context.debug_text,
+            ),
+        )
+      elif isinstance(sound, types.Sound):
+        text = types.TextWithTitleAndContext(
+            text=sound.context.text,
+            title_text=None,
+            context_text=None,
+            context=types.TextContextParams(
+                id=sound.context.id,
+                text=sound.context.text,
+                debug_text=sound.context.debug_text,
+            ),
+        )
+      else:
+        raise ValueError(
+            'SoundToTextWithTitleAndContextConverter only supports Sound or'
+            ' SoundWithTitleAndContext inputs.'
+        )
+      outputs.append(text)
+    return outputs

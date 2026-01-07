@@ -67,6 +67,12 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+        if retrieval.RETRIEVED_ITEMS_KEY.value:
+          sound = types.SoundWithTitleAndContext(
+              waveform=sound.waveform,
+              context=sound.context,
+              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+          )
         yield sound
 
   def examples(

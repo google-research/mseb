@@ -33,6 +33,11 @@ _REASONING_NO_ANSWER_THRESHOLD = flags.DEFINE_float(
     'NO_ANSWER_STR threshold for reasoning task.',
 )
 
+CONTEXT_KEY = flags.DEFINE_string(
+    'context_key',
+    'passage_text',
+    'Key to use for the context in the task data.',
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +54,7 @@ class ReasoningTask(task.MSEBTask):
     """The directory where the span embeddings cache is stored."""
     return os.path.join(task.TASK_CACHE_BASEPATH.value, 'reasonings')
 
-  def setup(
-      self, runner: runner_lib.EncoderRunner | None = None
-  ):
+  def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the span embeddings cache."""
     embeddings_by_text = {}
     if runner is not None:
@@ -93,9 +96,7 @@ class ReasoningTask(task.MSEBTask):
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
 
-    if not isinstance(
-        next(iter(embeddings.values())), types.TextPrediction
-    ):
+    if not isinstance(next(iter(embeddings.values())), types.TextPrediction):
       predictions = self._evaluator.compute_predictions(embeddings)
     else:
       predictions = embeddings

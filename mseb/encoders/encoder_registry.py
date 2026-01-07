@@ -27,6 +27,7 @@ from typing import Any, Callable
 from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import clap_encoder
+from mseb.encoders import converter
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import gemma_encoder
@@ -459,6 +460,22 @@ gemma_rag_gemini_embedding_transcript_truth = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+)
+
+gemma_rag_retrieved_items = EncoderMetadata(
+    name="gemma_rag_retrieved_items",
+    encoder=lambda model_path: encoder_lib.CascadeEncoder(
+        encoders=[
+            converter.SoundToTextWithTitleAndContextConverter(),
+            gemma_encoder.GemmaTextEncoder(
+                model_path=model_path,
+                normalizer=None,
+                prompt=gemma_encoder.prompt_lib.RetrievalPrompt(),
+            ),
+            converter.TextEmbeddingToTextPredictionConverter(),
+        ]
+    ),
+    params=lambda: dict(model_path=_GEMMA_URL.value),
 )
 
 gemma_rag_gemini_embedding_whisper = EncoderMetadata(

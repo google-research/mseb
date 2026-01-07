@@ -36,6 +36,12 @@ _NUM_PARTITIONS = flags.DEFINE_integer(
     'Number of partitions to use for the retrieval task.',
 )
 
+RETRIEVED_ITEMS_KEY = flags.DEFINE_string(
+    'retrieved_items_key',
+    None,
+    'Key to use for the retrieved items.',
+)
+
 NO_RESPONSE_STR = encoder_lib.NO_RESPONSE_STR
 INVALID_ANSWER_STR = encoder_lib.INVALID_ANSWER_STR
 

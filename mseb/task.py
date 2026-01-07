@@ -36,11 +36,6 @@ TRANSCRIPT_KEY = flags.DEFINE_string(
     "Key to use for the transcript in the task data.",
 )
 
-CONTEXT_KEY = flags.DEFINE_string(
-    "context_key",
-    "passage_text",
-    "Key to use for the context in the task data.",
-)
 
 logger = logging.getLogger(__name__)
 

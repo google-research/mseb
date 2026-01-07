@@ -17,7 +17,6 @@
 import os
 from typing import Iterable, Sequence
 
-from mseb import task as task_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reasoning_evaluator
@@ -51,7 +50,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
             'locale': str,
             'utt_id': str,
             'page_title': str,
-            task_lib.CONTEXT_KEY.value: str,
+            reasoning.CONTEXT_KEY.value: str,
         },
     ).to_dict('records'):
       if example['locale'] == self.locale:
@@ -59,7 +58,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
         yield types.SoundWithTitleAndContext(
             waveform=sound.waveform,
             title_text=example['page_title'],
-            context_text=example[task_lib.CONTEXT_KEY.value],
+            context_text=example[reasoning.CONTEXT_KEY.value],
             context=sound.context,
         )
 

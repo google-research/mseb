@@ -58,6 +58,12 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
         sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
         # Add the ground truth query for headroom analysis.
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+        if retrieval.RETRIEVED_ITEMS_KEY.value:
+          sound = types.SoundWithTitleAndContext(
+              waveform=sound.waveform,
+              context=sound.context,
+              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+          )
         yield sound
 
   def examples(
