@@ -32,6 +32,28 @@ retrieval_evaluator = pytest.importorskip('mseb.evaluators.retrieval_evaluator')
 @pytest.mark.optional
 class RetrievalEvaluatorTest(absltest.TestCase):
 
+  def test_compute_recall_at_k(self):
+    reference = 'bla'
+    predicted_neighbors = ['bli', 'bla', 'blu']
+    self.assertEqual(
+        retrieval_evaluator.compute_recall_at_k(
+            reference, predicted_neighbors, k=1
+        ),
+        0.0,
+    )
+    self.assertEqual(
+        retrieval_evaluator.compute_recall_at_k(
+            reference, predicted_neighbors, k=2
+        ),
+        1.0,
+    )
+    self.assertEqual(
+        retrieval_evaluator.compute_recall_at_k(
+            reference, predicted_neighbors, k=3
+        ),
+        1.0,
+    )
+
   def test_compute_predictions(self):
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
     searcher = (
@@ -96,7 +118,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 4)
+    self.assertLen(scores, 6)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -104,6 +126,12 @@ class RetrievalEvaluatorTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'RecallAt10':
+        npt.assert_equal(score.value, (1.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'RecallAtInf':
+        npt.assert_equal(score.value, (1.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.0)
       elif score.metric == 'InvalidResultRate':
         npt.assert_equal(score.value, 0.0)
         npt.assert_equal(score.std, 0.0)
@@ -165,7 +193,7 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 4)
+    self.assertLen(scores, 6)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -173,6 +201,12 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'RecallAt10':
+        npt.assert_equal(score.value, (1.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'RecallAtInf':
+        npt.assert_equal(score.value, (1.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.0)
       elif score.metric == 'InvalidResultRate':
         npt.assert_equal(score.value, 0.0)
         npt.assert_equal(score.std, 0.0)
@@ -221,15 +255,11 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_get_ranked_doc_ids(self):
     predictions_1 = [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')]
-    ranked_doc_ids_1 = retrieval_evaluator.get_ranked_doc_ids(
-        predictions_1, top_k=2
-    )
+    ranked_doc_ids_1 = retrieval_evaluator.get_ranked_doc_ids(predictions_1)[:2]
     self.assertSequenceEqual(ranked_doc_ids_1, ['bli', 'bla'])
 
     predictions_2 = [(0.5, 'bli'), (0.25, 'bla'), (1.0, 'blu')]
-    ranked_doc_ids_2 = retrieval_evaluator.get_ranked_doc_ids(
-        predictions_2, top_k=2
-    )
+    ranked_doc_ids_2 = retrieval_evaluator.get_ranked_doc_ids(predictions_2)[:2]
     self.assertSequenceEqual(ranked_doc_ids_2, ['blu', 'bli'])
 
   def test_compute_metrics(self):
@@ -247,7 +277,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 4)
+    self.assertLen(scores, 6)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -255,6 +285,12 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'RecallAt10':
+        npt.assert_equal(score.value, (1.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'RecallAtInf':
+        npt.assert_equal(score.value, (1.0 + 1.0) / 2)
+        npt.assert_equal(score.std, 0.0)
       elif score.metric == 'InvalidResultRate':
         npt.assert_equal(score.value, 0.0)
         npt.assert_equal(score.std, 0.0)

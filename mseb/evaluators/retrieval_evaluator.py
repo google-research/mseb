@@ -62,6 +62,16 @@ def em(value: float = 0.0, std: float | None = None):
   )
 
 
+def compute_recall_at_k(
+    reference: str, predicted_neighbors: Sequence[str], k: int = 10
+) -> float:
+  """Computes the recall at k."""
+  for neighbor in predicted_neighbors[:k]:
+    if reference == neighbor:
+      return 1.0
+  return 0.0
+
+
 @dataclasses.dataclass
 class RetrievalReferenceId:
   sound_id: str
@@ -81,14 +91,13 @@ def as_retrieval_prediction(prediction: Any) -> Sequence[tuple[float, str]]:
 
 
 def get_ranked_doc_ids(
-    score_and_doc_ids: Sequence[tuple[float, str]], top_k: int
+    score_and_doc_ids: Sequence[tuple[float, str]],
 ) -> Sequence[str]:
   """Sorts and deduplicates predictions and returns the topk ranked doc ids.
 
   Args:
     score_and_doc_ids: A sequence of tuples, where each tuple contains a
       predicted document ID and its corresponding score.
-    top_k: The number of top doc ids to keep.
 
   Returns:
     A sequence of predicted document IDs, sorted in descending order of score
@@ -103,7 +112,7 @@ def get_ranked_doc_ids(
     logger.warning(
         'Duplicate doc ids found in ranked doc ids: %s', ranked_doc_ids
     )
-  return ranked_doc_ids[:top_k]
+  return ranked_doc_ids
 
 
 def _compute_metrics(
@@ -122,17 +131,22 @@ def _compute_metrics(
     A list of Score objects containing the final, aggregated scores, including
     mean reciprocal rank (MRR) and exact match (EM).
   """
-  values_by_metric = {'mrr': [], 'em': [], 'invalid': [], 'no_response': []}
+  values_by_metric = {
+      'mrr': [],
+      'em': [],
+      'recall_at_k': [],
+      'recall_at_inf': [],
+      'invalid': [],
+      'no_response': [],
+  }
   for reference_id in reference_ids:
     prediction = predictions[reference_id.sound_id]
     if prediction not in (NO_RESPONSE_STR, INVALID_ANSWER_STR):
-      ranked_doc_ids = get_ranked_doc_ids(
-          as_retrieval_prediction(prediction), top_k
-      )
+      ranked_doc_ids = get_ranked_doc_ids(as_retrieval_prediction(prediction))
       values_by_metric['mrr'].append(
           types.WeightedValue(
               value=metrics_lib.compute_reciprocal_rank(
-                  reference_id.reference_id, ranked_doc_ids
+                  reference_id.reference_id, ranked_doc_ids[:top_k]
               )
           )
       )
@@ -141,11 +155,29 @@ def _compute_metrics(
               value=float(reference_id.reference_id == ranked_doc_ids[0])
           )
       )
+      values_by_metric['recall_at_k'].append(
+          types.WeightedValue(
+              value=compute_recall_at_k(
+                  reference_id.reference_id, ranked_doc_ids, k=top_k
+              )
+          )
+      )
+      values_by_metric['recall_at_inf'].append(
+          types.WeightedValue(
+              value=compute_recall_at_k(
+                  reference_id.reference_id,
+                  ranked_doc_ids,
+                  k=len(ranked_doc_ids),
+              )
+          )
+      )
       values_by_metric['invalid'].append(types.WeightedValue(value=0.0))
       values_by_metric['no_response'].append(types.WeightedValue(value=0.0))
     else:
       values_by_metric['mrr'].append(types.WeightedValue(value=0.0))
       values_by_metric['em'].append(types.WeightedValue(value=0.0))
+      values_by_metric['recall_at_k'].append(types.WeightedValue(value=0.0))
+      values_by_metric['recall_at_inf'].append(types.WeightedValue(value=0.0))
       values_by_metric['invalid'].append(
           types.WeightedValue(value=float(prediction == INVALID_ANSWER_STR))
       )
@@ -158,6 +190,28 @@ def _compute_metrics(
   )
   em_score = em(
       *evaluator_lib.compute_weighted_average_and_std(values_by_metric['em'])
+  )
+  recall_at_k = evaluator_lib.compute_weighted_average_and_std(
+      values_by_metric['recall_at_k']
+  )
+  recall_at_k_score = types.Score(
+      metric=f'RecallAt{top_k}',
+      description=f'Recall at {top_k}',
+      value=recall_at_k[0],
+      min=0,
+      max=1,
+      std=recall_at_k[1],
+  )
+  recall_at_inf = evaluator_lib.compute_weighted_average_and_std(
+      values_by_metric['recall_at_inf']
+  )
+  recall_at_inf_score = types.Score(
+      metric='RecallAtInf',
+      description='Recall at Inf',
+      value=recall_at_inf[0],
+      min=0,
+      max=1,
+      std=recall_at_inf[1],
   )
   invalid_result_rate = evaluator_lib.compute_weighted_average_and_std(
       values_by_metric['invalid']
@@ -182,7 +236,14 @@ def _compute_metrics(
       std=no_result_rate[1],
   )
 
-  return [mrr_score, em_score, invalid_result_score, no_result_score]
+  return [
+      mrr_score,
+      em_score,
+      recall_at_k_score,
+      recall_at_inf_score,
+      invalid_result_score,
+      no_result_score,
+  ]
 
 
 class RetrievalEvaluator:

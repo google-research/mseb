@@ -96,8 +96,8 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     assert self._text_by_id is not None
     for x in batch:
       retrieved_doc_ids = retrieval_evaluator.get_ranked_doc_ids(
-          predictions[x.context.id], self._top_k
-      )
+          predictions[x.context.id]
+      )[: self._top_k]
       retrieved_docs = [
           {'id': doc_id, 'text': self._text_by_id[doc_id]}
           for doc_id in retrieved_doc_ids
