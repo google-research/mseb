@@ -19,9 +19,10 @@ implementation for partitioned indexes is inefficient because it reloads the
 different partitions for each batch.
 """
 
+import functools
 import json
 import logging
-from typing import Sequence
+from typing import Callable, Iterable, Sequence
 
 import jaxtyping
 from mseb import encoder
@@ -42,20 +43,22 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
         retrieval_evaluator.RetrievalEvaluator
         | retrieval_evaluator.RetrievalEvaluatorPartitioned
     ) | None = None
+    self._documents: Callable[[], Iterable[types.Text]] | None = None
     self._text_by_id: dict[str, str] | None = None
 
   def set_task(self, task: retrieval_task.RetrievalTask) -> None:
     self._index_dir = task.index_dir
-    # TODO(heigold): We would like to move it to _setup because the mapping can
-    # be large, but task.documents, let alone task, isn't pickleable.
+    self._documents = functools.partial(
+        task.documents_generator, task.get_documents_source()
+    )
+
+  def _setup(self):
     self._text_by_id = {}
-    for document in task.documents():
+    for document in self._documents():
       self._text_by_id[document.context.id] = document.text
     logging.info(
         'Created text_by_id mapping for %d documents.', len(self._text_by_id)
     )
-
-  def _setup(self):
     if retrieval_task._NUM_PARTITIONS.value == 1:  # pylint: disable=protected-access
       searcher, id_by_index_id = retrieval_evaluator.load_index(
           self._index_dir, self._id_by_index_id_filepath

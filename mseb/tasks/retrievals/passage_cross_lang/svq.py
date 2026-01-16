@@ -15,7 +15,7 @@
 """SVQ passage cross-lang retrieval tasks."""
 
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 from mseb import task as task_lib
 from mseb import types
@@ -40,8 +40,11 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
   def sub_tasks(self) -> list[str]:
     return ['passage_retrieval_cross_lang']
 
-  def documents(self) -> Iterable[types.Text]:
-    svq_dataset = self._get_dataset()
+  def get_documents_source(self) -> svq.SimpleVoiceQuestionsDataset:
+    return self._get_dataset()
+
+  @staticmethod
+  def documents_generator(svq_dataset: Any) -> Iterable[types.Text]:
     for example in svq_dataset.get_task_data(
         'passage_retrieval_cross_lang_index',
         dtype={'id': str, 'title': str, 'context': str},
@@ -66,7 +69,6 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
     ).to_dict('records'):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
-        # Add the ground truth query for headroom analysis.
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
         if retrieval.RETRIEVED_ITEMS_KEY.value:
           sound = types.SoundWithTitleAndContext(
@@ -81,8 +83,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
-        sub_task,
-        dtype={'locale': str, 'utt_id': str, 'passage_id': str},
+        sub_task, dtype={'locale': str, 'utt_id': str, 'passage_id': str}
     ).to_dict('records'):
       if example['locale'] == self.locale:
         yield retrieval_evaluator.RetrievalReferenceId(

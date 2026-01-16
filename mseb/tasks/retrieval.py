@@ -19,7 +19,7 @@ import itertools
 import json
 import logging
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 from absl import flags
 from etils import epath
@@ -186,6 +186,16 @@ class RetrievalTask(task.MSEBTask):
   def sub_tasks(self) -> list[str]:
     """Get the list of sub-tasks for the retrieval task."""
 
-  @abc.abstractmethod
   def documents(self) -> Iterable[types.Text]:
     """Get the list of documents for the retrieval task."""
+    return self.documents_generator(self.get_documents_source())
+
+  @abc.abstractmethod
+  def get_documents_source(self) -> Any:
+    """Get the source of the documents for the retrieval task."""
+
+  @staticmethod
+  @abc.abstractmethod
+  def documents_generator(documents_source: Any) -> Iterable[types.Text]:
+    """Get the list of documents for the retrieval task."""
+    raise NotImplementedError

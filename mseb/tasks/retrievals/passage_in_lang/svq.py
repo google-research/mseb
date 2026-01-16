@@ -15,7 +15,7 @@
 """SVQ passage in-lang retrieval tasks."""
 
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 from mseb import task as task_lib
 from mseb import types
@@ -40,8 +40,11 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def sub_tasks(self) -> list[str]:
     return ['passage_retrieval_in_lang']
 
-  def documents(self) -> Iterable[types.Text]:
-    svq_dataset = self._get_dataset()
+  def get_documents_source(self) -> svq.SimpleVoiceQuestionsDataset:
+    return self._get_dataset()
+
+  @staticmethod
+  def documents_generator(svq_dataset: Any) -> Iterable[types.Text]:
     for example in svq_dataset.get_task_data(
         'passage_retrieval_in_lang_index',
         dtype={'id': str, 'title': str, 'context': str},

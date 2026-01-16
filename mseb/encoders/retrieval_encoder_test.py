@@ -42,7 +42,12 @@ class MockRetrievalTask(retrieval_task.RetrievalTask):
         'svq_passage_retrieval_in_lang',
     )
 
-  def documents(self):
+  def get_documents_source(self):
+    return
+
+  @staticmethod
+  def documents_generator(not_used):
+    del not_used
     return [
         types.Text(
             text='bli text',
@@ -96,10 +101,11 @@ class RetrievalEncoderTest(absltest.TestCase):
     encoder = retrieval_encoder.RetrievalEncoder(top_k=2)
     encoder.set_task(task)
     self.assertIsNotNone(encoder._index_dir)
-    self.assertIsNotNone(encoder._text_by_id)
-    self.assertLen(encoder._text_by_id, 4)
+    self.assertIsNotNone(encoder._documents)
+    self.assertIsNone(encoder._text_by_id)
     encoder.setup()
     self.assertIsNotNone(encoder._evaluator)
+    self.assertLen(encoder._text_by_id, 4)
 
     embeddings = encoder.encode([
         types.TextEmbedding(
@@ -169,9 +175,10 @@ class RetrievalEncoderTest(absltest.TestCase):
     encoder = retrieval_encoder.RetrievalEncoder(top_k=2)
     encoder.set_task(task)
     self.assertIsNotNone(encoder._index_dir)
+    self.assertIsNotNone(encoder._documents)
+    encoder.setup()
     self.assertIsNotNone(encoder._text_by_id)
     self.assertLen(encoder._text_by_id, 4)
-    encoder.setup()
     self.assertIsNotNone(encoder._evaluator)
 
     embeddings = encoder.encode([

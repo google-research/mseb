@@ -15,7 +15,7 @@
 """SVQ document cross-lang retrieval tasks."""
 
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 from mseb import task as task_lib
 from mseb import types
@@ -32,9 +32,6 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
 
   def _get_svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
-
-  def _get_wikipedia_dataset(self):
-    return tfds.load('wikipedia/20190301.en', split='train')
 
   @property
   def index_dir(self) -> str:
@@ -78,8 +75,12 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
             sound_id=example['utt_id'], reference_id=example['page_title']
         )
 
-  def documents(self) -> Iterable[types.Text]:
-    ds = self._get_wikipedia_dataset()
+  def get_documents_source(self) -> str:
+    return tfds.load('wikipedia/20190301.en', split='train')
+
+  @staticmethod
+  def documents(wikipedia_dataset: Any) -> Iterable[types.Text]:
+    ds = tfds.load(wikipedia_dataset, split='train')
     for example in ds.as_numpy_iterator():
       title = example['title'].decode('utf-8')
       yield types.Text(

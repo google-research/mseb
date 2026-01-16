@@ -82,8 +82,13 @@ class RetrievalTest(absltest.TestCase):
             ),
         ]
 
-      def documents(self) -> Iterable[types.Text]:
-        raise NotImplementedError()
+      def get_documents_source(self):
+        return
+
+      @staticmethod
+      def documents_generator(not_used) -> Iterable[types.Text]:
+        del not_used
+        return []
 
       @property
       def sub_tasks(self) -> list[str]:
@@ -128,7 +133,12 @@ class RetrievalTest(absltest.TestCase):
 
     class MockRetrievalTask(retrieval.RetrievalTask):
 
-      def documents(self) -> Iterable[types.Text]:
+      def get_documents_source(self):
+        return
+
+      @staticmethod
+      def documents_generator(not_used) -> Iterable[types.Text]:
+        del not_used
         return [
             types.Text(
                 text='dummy text',
