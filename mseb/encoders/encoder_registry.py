@@ -115,6 +115,12 @@ _IDF_TABLE_PATH = flags.DEFINE_string(
     "The path to idf table.",
 )
 
+_RETRIEVAL_TOP_K = flags.DEFINE_integer(
+    "retrieval_top_k",
+    100,
+    "The number of top k retrieved items for retrieval encoders.",
+)
+
 Encoder = encoder_lib.MultiModalEncoder
 
 
@@ -433,7 +439,7 @@ retrieval_gemini_embedding_transcript_truth = EncoderMetadata(
     params=lambda: dict(
         model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
         task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
-        top_k=100,
+        top_k=_RETRIEVAL_TOP_K.value,
     ),
 )
 
