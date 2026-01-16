@@ -170,7 +170,9 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
         outputs.append(
             types.SoundEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
-                timestamps=np.array([[0, len(example.waveform)]]),
+                timestamps=np.array(
+                    [[0, len(example.waveform) / example.context.sample_rate]]
+                ),
                 context=dataclasses.replace(
                     example.context,
                     debug_text=debug_text,

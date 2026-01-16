@@ -462,6 +462,21 @@ gemma_rag_gemini_embedding_transcript_truth = EncoderMetadata(
     ),
 )
 
+audio_gemma_rag_retrieved_items = EncoderMetadata(
+    name="audio_gemma_rag_retrieved_items",
+    encoder=lambda model_path: encoder_lib.CascadeEncoder(
+        encoders=[
+            gemma_encoder.GemmaTextEncoder(
+                model_path=model_path,
+                normalizer=None,
+                prompt=gemma_encoder.prompt_lib.RetrievalPrompt(),
+            ),
+            converter.TextEmbeddingToTextPredictionConverter(),
+        ]
+    ),
+    params=lambda: dict(model_path=_GEMMA_URL.value),
+)
+
 gemma_rag_retrieved_items = EncoderMetadata(
     name="gemma_rag_retrieved_items",
     encoder=lambda model_path: encoder_lib.CascadeEncoder(

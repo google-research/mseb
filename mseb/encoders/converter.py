@@ -122,10 +122,13 @@ class TextEmbeddingToTextPredictionConverter(Converter):
   """Converter between TextEmbedding and TextPrediction objects."""
 
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not all(isinstance(x, types.TextEmbedding) for x in batch):
+    if not all(
+        isinstance(x, (types.TextEmbedding, types.SoundEmbedding))
+        for x in batch
+    ):
       raise ValueError(
           'TextEmbeddingToTextPredictionConverter only supports a batch of'
-          ' all TextEmbedding inputs.'
+          ' all TextEmbedding or SoundEmbedding inputs.'
       )
 
   @final
@@ -135,7 +138,9 @@ class TextEmbeddingToTextPredictionConverter(Converter):
     """Converts a batch of TextEmbedding objects to TextPrediction objects."""
     outputs = []
     for text_embedding in batch:
-      assert isinstance(text_embedding, types.TextEmbedding)
+      assert isinstance(
+          text_embedding, (types.TextEmbedding, types.SoundEmbedding)
+      )
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = text_embedding.embedding
       outputs.append(
           types.TextPrediction(
