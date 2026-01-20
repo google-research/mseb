@@ -76,10 +76,10 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
         )
 
   def get_documents_source(self) -> str:
-    return tfds.load('wikipedia/20190301.en', split='train')
+    return 'wikipedia/20190301.en'
 
   @staticmethod
-  def documents(wikipedia_dataset: Any) -> Iterable[types.Text]:
+  def documents_generator(wikipedia_dataset: Any) -> Iterable[types.Text]:
     ds = tfds.load(wikipedia_dataset, split='train')
     for example in ds.as_numpy_iterator():
       title = example['title'].decode('utf-8')
