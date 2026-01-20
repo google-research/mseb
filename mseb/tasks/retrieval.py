@@ -42,6 +42,13 @@ RETRIEVED_ITEMS_KEY = flags.DEFINE_string(
     'Key to use for the retrieved items.',
 )
 
+INDEX_DIR = flags.DEFINE_string(
+    'index_dir',
+    None,
+    'If set, directory to use for the index. Overwrites the task-specific'
+    ' default index dir.',
+)
+
 NO_RESPONSE_STR = encoder_lib.NO_RESPONSE_STR
 INVALID_ANSWER_STR = encoder_lib.INVALID_ANSWER_STR
 
@@ -83,19 +90,17 @@ class RetrievalTask(task.MSEBTask):
       self.setup_unpartitioned(runner)
 
   def setup_unpartitioned(self, runner: runner_lib.EncoderRunner | None = None):
+    index_dir = INDEX_DIR.value or self.index_dir
     try:
       searcher, id_by_index_id = retrieval_evaluator.load_index(
-          self.index_dir, self.id_by_index_id_filepath
+          index_dir, self.id_by_index_id_filepath
       )
     except FileNotFoundError:
       if runner is not None:
-        embeddings = runner.run(self.documents(), output_path=self.index_dir)
+        embeddings = runner.run(self.documents(), output_path=index_dir)
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
         retrieval_evaluator.save_index(
-            searcher,
-            id_by_index_id,
-            self.index_dir,
-            self.id_by_index_id_filepath,
+            searcher, id_by_index_id, index_dir, self.id_by_index_id_filepath
         )
       else:
         raise ValueError(
@@ -110,14 +115,15 @@ class RetrievalTask(task.MSEBTask):
   def setup_partitioned(
       self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None
   ):
+    index_dir = INDEX_DIR.value or self.index_dir
     for partition_id in range(num_partitions):
       logger.info('Setting up partition %d/%d', partition_id, num_partitions)
-      if epath.Path(os.path.join(self.index_dir, str(partition_id))).exists():
+      if epath.Path(os.path.join(index_dir, str(partition_id))).exists():
         logger.info(
             'Index partition %d/%d already exists at %s',
             partition_id,
             num_partitions,
-            os.path.join(self.index_dir, str(partition_id)),
+            os.path.join(index_dir, str(partition_id)),
         )
         continue
       elif runner is not None:
@@ -125,13 +131,13 @@ class RetrievalTask(task.MSEBTask):
             itertools.islice(
                 self.documents(), partition_id, None, num_partitions
             ),
-            output_path=os.path.join(self.index_dir, str(partition_id)),
+            output_path=os.path.join(index_dir, str(partition_id)),
         )
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
         retrieval_evaluator.save_index(
             searcher,
             id_by_index_id,
-            os.path.join(self.index_dir, str(partition_id)),
+            os.path.join(index_dir, str(partition_id)),
             self.id_by_index_id_filepath,
         )
       else:
@@ -142,7 +148,7 @@ class RetrievalTask(task.MSEBTask):
         ) from FileNotFoundError
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
-        index_dir=self.index_dir
+        index_dir=index_dir
     )
 
   def compute_scores(

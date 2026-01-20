@@ -47,7 +47,7 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     self._text_by_id: dict[str, str] | None = None
 
   def set_task(self, task: retrieval_task.RetrievalTask) -> None:
-    self._index_dir = task.index_dir
+    self._index_dir = retrieval_task.INDEX_DIR.value or task.index_dir
     self._documents = functools.partial(
         task.documents_generator, task.get_documents_source()
     )
