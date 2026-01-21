@@ -14,11 +14,17 @@
 
 """MSEB types."""
 
+import abc
 import dataclasses
-from typing import Mapping, Optional
+import json
+import logging
+from typing import Any, Mapping, Optional, Sequence
 
 import jaxtyping
 import numpy as np
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -181,6 +187,98 @@ class TextPrediction:
   def size_bytes(self) -> int:
     """Returns the size of the answer in bytes."""
     return len(self.prediction.encode("utf-8"))
+
+
+LLM_INVALID_ANSWER_STR = ""
+LLM_NO_RESPONSE_STR = "NO_RESPONSE"
+
+
+class RetrievalPrediction(abc.ABC):
+  """A class to represent a valid or invalid retrieval prediction."""
+
+  NO_RESPONSE_STR = LLM_NO_RESPONSE_STR
+  INVALID_ANSWER_STR = LLM_INVALID_ANSWER_STR
+
+  @abc.abstractmethod
+  def to_json(self) -> str:
+    """Returns the string/JSON representation of the prediction."""
+    raise NotImplementedError()
+
+  @staticmethod
+  def from_json(serialized: str) -> "RetrievalPrediction":
+    if serialized == RetrievalPrediction.NO_RESPONSE_STR:
+      return NoResponseRetrievalPrediction()
+    elif serialized == RetrievalPrediction.INVALID_ANSWER_STR:
+      return InvalidAnswerRetrievalPrediction()
+    else:
+      return ValidRetrievalPrediction(json.loads(serialized))
+
+
+class ValidRetrievalPrediction(RetrievalPrediction):
+  """A class to represent a valid retrieval prediction."""
+
+  def __init__(self, items: Sequence[Mapping[str, Any]]):
+    """Initializes a valid retrieval prediction.
+
+    Args:
+      items: The items to be returned as the prediction. Each item is a mapping
+        that must contain an 'id' key and optionally 'score' and 'text' keys.
+    """
+    super().__init__()
+    self.items = items
+
+  def to_json(self) -> str:
+    return json.dumps(self.items)
+
+  def normalize(self, *, k: int | None = None):
+    """Normalizes the prediction.
+
+    This function sorts the items in the prediction by score in descending
+    order, and truncates the sequence to the top k items if k is provided. If
+    duplicate document IDs are present, only the last occurrence is kept.
+
+    Args:
+      k: The number of top items to return after sorting. If None, all items are
+        kept.
+    """
+
+    items = {x["id"]: x for x in self.items}
+    if len(items) < len(self.items):
+      logger.warning(
+          "Duplicate doc ids found in predictions: %s",
+          self.items,
+      )
+    items = sorted(items.values(), key=lambda x: x["score"], reverse=True)
+    if k is not None:
+      items = items[:k]
+    self.items = items
+
+  def merge(self, other: "ValidRetrievalPrediction", *, k: int | None = None):
+    """Merges the other prediction with the current one.
+
+    Args:
+      other: The other (partial) prediction.
+      k: The number of top items to return after merging. If None, all merged
+        items are returned.
+    """
+
+    items = [item for item in self.items]
+    for item in other.items:
+      items.append(item)
+    self.items = items
+    self.normalize(k=k)
+
+
+class InvalidAnswerRetrievalPrediction(RetrievalPrediction):
+
+  def to_json(self) -> str:
+    return RetrievalPrediction.INVALID_ANSWER_STR
+
+
+class NoResponseRetrievalPrediction(RetrievalPrediction):
+
+  def to_json(self) -> str:
+    return RetrievalPrediction.NO_RESPONSE_STR
 
 
 @dataclasses.dataclass

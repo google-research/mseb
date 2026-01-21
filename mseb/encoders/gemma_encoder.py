@@ -22,6 +22,7 @@ from typing import Callable, Optional, Tuple
 from absl import flags
 from google import genai
 from mseb import encoder
+from mseb import types
 from mseb.encoders import converter
 from mseb.encoders import prompt as prompt_lib
 from mseb.encoders import retrieval_encoder
@@ -39,7 +40,7 @@ _GEMINI_API_KEY = flags.DEFINE_string(
 class GemmaTextEncoder(prompt_encoder.TextEncoderWithPrompt):
   """Text encoder with Gemma model."""
 
-  NO_RESPONSE_STR = encoder.NO_RESPONSE_STR
+  NO_RESPONSE_STR = types.LLM_NO_RESPONSE_STR
 
   def __init__(
       self,

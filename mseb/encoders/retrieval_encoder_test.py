@@ -125,14 +125,16 @@ class RetrievalEncoderTest(absltest.TestCase):
     self.assertEqual(embedding_0.text, 'blu text')
     self.assertEqual(
         embedding_0.context_text,
-        '{"id": "blu", "text": "blu text"}\n{"id": "blo", "text": "blo text"}',
+        '[{"id": "blu", "score": 32.0, "text": "blu text"}, {"id": "blo",'
+        ' "score": 26.0, "text": "blo text"}]',
     )
     embedding_1 = embeddings[1]
     self.assertIsInstance(embedding_1, types.TextWithTitleAndContext)
     self.assertEqual(embedding_1.text, 'blo text')
     self.assertEqual(
         embedding_1.context_text,
-        '{"id": "blu", "text": "blu text"}\n{"id": "blo", "text": "blo text"}',
+        '[{"id": "blu", "score": 32.0, "text": "blu text"}, {"id": "blo",'
+        ' "score": 26.0, "text": "blo text"}]',
     )
 
   def test_encode_with_partitioned_index(self):
@@ -199,14 +201,16 @@ class RetrievalEncoderTest(absltest.TestCase):
     self.assertEqual(embedding_0.text, 'blu text')
     self.assertEqual(
         embedding_0.context_text,
-        '{"id": "blu", "text": "blu text"}\n{"id": "blo", "text": "blo text"}',
+        '[{"id": "blu", "score": 32.0, "text": "blu text"}, {"id": "blo",'
+        ' "score": 26.0, "text": "blo text"}]',
     )
     embedding_1 = embeddings[1]
     self.assertIsInstance(embedding_1, types.TextWithTitleAndContext)
     self.assertEqual(embedding_1.text, 'blo text')
     self.assertEqual(
         embedding_1.context_text,
-        '{"id": "blu", "text": "blu text"}\n{"id": "blo", "text": "blo text"}',
+        '[{"id": "blu", "score": 32.0, "text": "blu text"}, {"id": "blo",'
+        ' "score": 26.0, "text": "blo text"}]',
     )
 
 

@@ -18,14 +18,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import dataclasses
-import itertools
 import logging
 import os
-from typing import Any, Mapping
+from typing import Mapping
 
 from etils import epath
 import jaxtyping
-from mseb import encoder as encoder_lib
 from mseb import evaluator as evaluator_lib
 from mseb import metrics as metrics_lib
 from mseb import types
@@ -35,9 +33,6 @@ from scann.scann_ops.py import scann_ops_pybind
 ScannSearcher = scann_ops_pybind.ScannSearcher
 
 logger = logging.getLogger(__name__)
-
-NO_RESPONSE_STR = encoder_lib.NO_RESPONSE_STR
-INVALID_ANSWER_STR = encoder_lib.INVALID_ANSWER_STR
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -78,41 +73,7 @@ class RetrievalReferenceId:
   reference_id: str
 
 
-RetrievalPredictionsCache = Mapping[str, Sequence[tuple[float, str]] | str]
-
-
-def as_retrieval_prediction(prediction: Any) -> Sequence[tuple[float, str]]:
-  """Checks and returns a prediction to a sequence of tuples of score and doc id."""
-  assert isinstance(prediction, Sequence)
-  assert all(isinstance(x, tuple) and len(x) == 2 for x in prediction)
-  assert all(isinstance(x[0], float) for x in prediction)
-  assert all(isinstance(x[1], str) for x in prediction)
-  return prediction
-
-
-def get_ranked_doc_ids(
-    score_and_doc_ids: Sequence[tuple[float, str]],
-) -> Sequence[str]:
-  """Sorts and deduplicates predictions and returns the topk ranked doc ids.
-
-  Args:
-    score_and_doc_ids: A sequence of tuples, where each tuple contains a
-      predicted document ID and its corresponding score.
-
-  Returns:
-    A sequence of predicted document IDs, sorted in descending order of score
-    and truncated to `top_k`.
-  """
-  ranked_score_and_doc_ids = sorted(
-      score_and_doc_ids, key=lambda x: x[0], reverse=True
-  )
-  ranked_doc_ids = [doc_id for _, doc_id in ranked_score_and_doc_ids]
-  ranked_doc_ids = [doc_id for doc_id, _ in itertools.groupby(ranked_doc_ids)]
-  if len(ranked_doc_ids) != len(set(ranked_doc_ids)):
-    logger.warning(
-        'Duplicate doc ids found in ranked doc ids: %s', ranked_doc_ids
-    )
-  return ranked_doc_ids
+RetrievalPredictionsCache = Mapping[str, types.RetrievalPrediction]
 
 
 def _compute_metrics(
@@ -141,12 +102,13 @@ def _compute_metrics(
   }
   for reference_id in reference_ids:
     prediction = predictions[reference_id.sound_id]
-    if prediction not in (NO_RESPONSE_STR, INVALID_ANSWER_STR):
-      ranked_doc_ids = get_ranked_doc_ids(as_retrieval_prediction(prediction))
+    if isinstance(prediction, types.ValidRetrievalPrediction):
+      prediction.normalize(k=top_k)
+      ranked_doc_ids = [x['id'] for x in prediction.items]
       values_by_metric['mrr'].append(
           types.WeightedValue(
               value=metrics_lib.compute_reciprocal_rank(
-                  reference_id.reference_id, ranked_doc_ids[:top_k]
+                  reference_id.reference_id, ranked_doc_ids
               )
           )
       )
@@ -179,10 +141,18 @@ def _compute_metrics(
       values_by_metric['recall_at_k'].append(types.WeightedValue(value=0.0))
       values_by_metric['recall_at_inf'].append(types.WeightedValue(value=0.0))
       values_by_metric['invalid'].append(
-          types.WeightedValue(value=float(prediction == INVALID_ANSWER_STR))
+          types.WeightedValue(
+              value=float(
+                  isinstance(prediction, types.InvalidAnswerRetrievalPrediction)
+              )
+          )
       )
       values_by_metric['no_response'].append(
-          types.WeightedValue(value=float(prediction == NO_RESPONSE_STR))
+          types.WeightedValue(
+              value=float(
+                  isinstance(prediction, types.NoResponseRetrievalPrediction)
+              )
+          )
       )
 
   mrr_score = mrr(
@@ -284,9 +254,10 @@ class RetrievalEvaluator:
       ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
           [self.id_by_index_id[int(x)] for x in ids] for ids in ranked_index_ids
       ]
-      predictions[sound_id] = tuple(
-          zip(ranked_doc_scores[0], ranked_doc_ids[0])
-      )
+      predictions[sound_id] = types.ValidRetrievalPrediction([
+          {'id': i, 'score': s}
+          for s, i in zip(ranked_doc_scores[0], ranked_doc_ids[0])
+      ])
     return predictions  # pytype: disable=bad-return-type
 
   def compute_metrics(
@@ -343,9 +314,12 @@ class RetrievalEvaluatorPartitioned:
           predictions_for_sound_id,
       ) in predictions_for_partition.items():
         if sound_id not in predictions:
-          predictions[sound_id] = list(predictions_for_sound_id)
-        else:
-          predictions[sound_id].extend(predictions_for_sound_id)
+          predictions[sound_id] = types.ValidRetrievalPrediction([])
+        assert isinstance(predictions[sound_id], types.ValidRetrievalPrediction)
+        assert isinstance(
+            predictions_for_sound_id, types.ValidRetrievalPrediction
+        )
+        predictions[sound_id].merge(predictions_for_sound_id)
 
     return predictions  # pytype: disable=bad-return-type
 

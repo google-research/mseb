@@ -20,7 +20,6 @@ different partitions for each batch.
 """
 
 import functools
-import json
 import logging
 from typing import Callable, Iterable, Sequence
 
@@ -98,19 +97,19 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     outputs = []
     assert self._text_by_id is not None
     for x in batch:
-      retrieved_doc_ids = retrieval_evaluator.get_ranked_doc_ids(
-          predictions[x.context.id]
-      )[: self._top_k]
-      retrieved_docs = [
-          {'id': doc_id, 'text': self._text_by_id[doc_id]}
-          for doc_id in retrieved_doc_ids
-      ]
+      prediction = predictions[x.context.id]
+      assert isinstance(prediction, types.ValidRetrievalPrediction)
+      prediction = types.ValidRetrievalPrediction([
+          {**item, 'text': self._text_by_id[item['id']]}
+          for item in prediction.items
+      ])
+      prediction.normalize(k=self._top_k)
       assert isinstance(x, types.TextEmbedding)
       output = types.TextWithTitleAndContext(
           text=x.context.text,
           title_text=None,
           context=x.context,
-          context_text='\n'.join(json.dumps(item) for item in retrieved_docs),
+          context_text=prediction.to_json(),
       )
       outputs.append(output)
     return outputs

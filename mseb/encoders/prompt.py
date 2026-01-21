@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Any, Mapping, Optional, Sequence
 
+from mseb import types
 from mseb.evaluators import classification_evaluator
 from mseb.evaluators import reasoning_evaluator
 
@@ -298,13 +299,15 @@ class RetrievalPrompt(Prompt):
         for item in result:
           if not isinstance(item, str):
             raise ValueError('Item is not a string: %s' % item)
-        result = [{'id': item} for item in result]
+        result = types.ValidRetrievalPrediction(
+            [{'id': item} for item in result]
+        )
       except (json.JSONDecodeError, ValueError):
         logging.warning('Invalid response format/type: %s', response)
-        return self.INVALID_ANSWER_STR
+        return types.InvalidAnswerRetrievalPrediction().to_json()
     else:
-      return self.NO_RESPONSE_STR
-    return json.dumps(result)
+      return types.NoResponseRetrievalPrediction().to_json()
+    return result.to_json()
 
 
 class SegmentationPrompt(Prompt):

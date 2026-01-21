@@ -244,5 +244,120 @@ class TaskMetadataTest(parameterized.TestCase):
       types.TaskMetadata(**params)
 
 
+class RetrievalPredictionTest(parameterized.TestCase):
+
+  def test_valid_retrieval_prediction_init(self):
+    prediction = types.ValidRetrievalPrediction([
+        {"id": "bli", "score": 1.0},
+        {"id": "bla", "score": 0.5},
+        {"id": "blo", "score": 0.25},
+    ])
+    self.assertSequenceEqual(
+        prediction.items,
+        [
+            {"id": "bli", "score": 1.0},
+            {"id": "bla", "score": 0.5},
+            {"id": "blo", "score": 0.25},
+        ],
+    )
+
+  def test_invalid_answer_retrieval_prediction_init(self):
+    prediction = types.InvalidAnswerRetrievalPrediction()
+    self.assertEqual(
+        prediction.to_json(), types.RetrievalPrediction.INVALID_ANSWER_STR
+    )
+
+  def test_no_response_retrieval_prediction_init(self):
+    prediction = types.NoResponseRetrievalPrediction()
+    self.assertEqual(
+        prediction.to_json(), types.RetrievalPrediction.NO_RESPONSE_STR
+    )
+
+  def test_valid_retrieval_prediction_to_json(self):
+    prediction = types.ValidRetrievalPrediction([
+        {"id": "bli", "score": 1.0},
+        {"id": "bla", "score": 0.5},
+        {"id": "blo", "score": 0.25},
+    ])
+    self.assertEqual(
+        prediction.to_json(),
+        '[{"id": "bli", "score": 1.0}, {"id": "bla", "score": 0.5}, {"id":'
+        ' "blo", "score": 0.25}]',
+    )
+
+  def test_invalid_answer_retrieval_prediction_to_json(self):
+    prediction = types.InvalidAnswerRetrievalPrediction()
+    self.assertEqual(
+        prediction.to_json(),
+        types.RetrievalPrediction.INVALID_ANSWER_STR,
+    )
+
+  def test_no_response_retrieval_prediction_to_json(self):
+    prediction = types.NoResponseRetrievalPrediction()
+    self.assertEqual(
+        prediction.to_json(),
+        types.RetrievalPrediction.NO_RESPONSE_STR,
+    )
+
+  def test_valid_retrieval_prediction_from_json(self):
+    prediction = types.ValidRetrievalPrediction.from_json(
+        '[{"id": "bli", "score": 1.0}, {"id": "bla", "score": 0.5}, {"id":'
+        ' "blo", "score": 0.25}]',
+    )
+    self.assertEqual(
+        prediction.items,
+        [
+            {"id": "bli", "score": 1.0},
+            {"id": "bla", "score": 0.5},
+            {"id": "blo", "score": 0.25},
+        ],
+    )
+
+  def test_no_response_retrieval_prediction_from_json(self):
+    prediction = types.NoResponseRetrievalPrediction.from_json(
+        types.RetrievalPrediction.NO_RESPONSE_STR
+    )
+    self.assertEqual(
+        prediction.to_json(), types.RetrievalPrediction.NO_RESPONSE_STR
+    )
+
+  def test_invalid_answer_retrieval_prediction_from_json(self):
+    prediction = types.InvalidAnswerRetrievalPrediction.from_json(
+        types.RetrievalPrediction.INVALID_ANSWER_STR
+    )
+    self.assertEqual(
+        prediction.to_json(), types.RetrievalPrediction.INVALID_ANSWER_STR
+    )
+
+  def test_valid_retrieval_prediction_normalize(self):
+    prediction = types.ValidRetrievalPrediction([
+        {"id": "blo", "score": 0.25},
+        {"id": "bli", "score": 1.0},
+        {"id": "bla", "score": 0.5},
+    ])
+    prediction.normalize(k=2)
+    self.assertSequenceEqual(
+        prediction.items,
+        [{"id": "bli", "score": 1.0}, {"id": "bla", "score": 0.5}],
+    )
+
+  def test_valid_retrieval_prediction_merge(self):
+    prediction_1 = types.ValidRetrievalPrediction([
+        {"id": "bli", "score": 1.0},
+        {"id": "bla", "score": 0.5},
+        {"id": "blo", "score": 0.25},
+    ])
+    prediction_2 = types.ValidRetrievalPrediction([
+        {"id": "blu", "score": 1.0},
+        {"id": "bla", "score": 0.5},
+        {"id": "blo", "score": 0.25},
+    ])
+    prediction_1.merge(prediction_2, k=2)
+    self.assertSequenceEqual(
+        prediction_1.items,
+        [{"id": "bli", "score": 1.0}, {"id": "blu", "score": 1.0}],
+    )
+
+
 if __name__ == "__main__":
   absltest.main()

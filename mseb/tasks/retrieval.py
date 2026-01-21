@@ -16,7 +16,6 @@
 
 import abc
 import itertools
-import json
 import logging
 import os
 from typing import Any, Iterable
@@ -163,16 +162,20 @@ class RetrievalTask(task.MSEBTask):
       predictions = {}
       for sound_id, example in embeddings.items():
         assert isinstance(example, types.TextPrediction)
-        if example.prediction == NO_RESPONSE_STR:
-          predictions[sound_id] = NO_RESPONSE_STR
-        elif example.prediction == INVALID_ANSWER_STR:
-          predictions[sound_id] = INVALID_ANSWER_STR
-        else:
-          predictions[sound_id] = [
-              # Assign pseudo-scores to preserve the predicted ranking.
-              (item.get('score', 1 / n), item['id'])
-              for n, item in enumerate(json.loads(example.prediction), 1)
-          ]
+        prediction = retrieval_evaluator.RetrievalPrediction.from_json(
+            example.prediction
+        )
+        # If score is not present, assign pseudo-scores to preserve the
+        # predicted ranking.
+        if prediction.is_regular and any(
+            'score' not in item for item in prediction.items
+        ):
+          items = []
+          for n, item in enumerate(prediction.items, 1):
+            item['score'] = item.get('score', 1 / n)
+            items.append(item)
+          prediction = retrieval_evaluator.RetrievalPrediction(items)
+        predictions[sound_id] = prediction
 
     scores = {}
     for sub_task in self.sub_tasks:

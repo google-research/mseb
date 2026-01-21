@@ -96,8 +96,14 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         },
     )
     self.assertLen(predictions, 2)
-    self.assertSequenceEqual(predictions['1'], [(32.0, 'blu'), (26.0, 'blo')])
-    self.assertSequenceEqual(predictions['2'], [(32.0, 'blu'), (26.0, 'blo')])
+    self.assertSequenceEqual(
+        predictions['1'].items,
+        [{'id': 'blu', 'score': 32.0}, {'id': 'blo', 'score': 26.0}],
+    )
+    self.assertSequenceEqual(
+        predictions['2'].items,
+        [{'id': 'blu', 'score': 32.0}, {'id': 'blo', 'score': 26.0}],
+    )
 
   def test_compute_metrics(self):
     evaluator = retrieval_evaluator.RetrievalEvaluator(
@@ -106,8 +112,16 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     )
     scores = evaluator.compute_metrics(
         predictions={
-            '1': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')],
-            '2': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blu')],
+            '1': types.ValidRetrievalPrediction([
+                {'id': 'bli', 'score': 1.0},
+                {'id': 'bla', 'score': 0.5},
+                {'id': 'blo', 'score': 0.25},
+            ]),
+            '2': types.ValidRetrievalPrediction([
+                {'id': 'bli', 'score': 1.0},
+                {'id': 'bla', 'score': 0.5},
+                {'id': 'blu', 'score': 0.25},
+            ]),
         },
         reference_ids=[
             retrieval_evaluator.RetrievalReferenceId(
@@ -181,8 +195,16 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     )
     scores = evaluator.compute_metrics(
         predictions={
-            '1': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')],
-            '2': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blu')],
+            '1': types.ValidRetrievalPrediction([
+                {'id': 'bli', 'score': 1.0},
+                {'id': 'bla', 'score': 0.5},
+                {'id': 'blu', 'score': 0.25},
+            ]),
+            '2': types.ValidRetrievalPrediction([
+                {'id': 'bli', 'score': 1.0},
+                {'id': 'bla', 'score': 0.5},
+                {'id': 'blu', 'score': 0.25},
+            ]),
         },
         reference_ids=[
             retrieval_evaluator.RetrievalReferenceId(
@@ -240,12 +262,18 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     )
     self.assertLen(predictions, 2)
     self.assertSequenceEqual(
-        predictions['1'],
-        [(32.0, 'blu'), (26.0, 'blo'), (32.0, 'blu'), (26.0, 'blo')],
+        predictions['1'].items,
+        [
+            {'id': 'blu', 'score': 32.0},
+            {'id': 'blo', 'score': 26.0},
+        ],
     )
     self.assertSequenceEqual(
-        predictions['2'],
-        [(32.0, 'blu'), (26.0, 'blo'), (32.0, 'blu'), (26.0, 'blo')],
+        predictions['2'].items,
+        [
+            {'id': 'blu', 'score': 32.0},
+            {'id': 'blo', 'score': 26.0},
+        ],
     )
 
 
@@ -254,19 +282,41 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
 class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_get_ranked_doc_ids(self):
-    predictions_1 = [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')]
-    ranked_doc_ids_1 = retrieval_evaluator.get_ranked_doc_ids(predictions_1)[:2]
-    self.assertSequenceEqual(ranked_doc_ids_1, ['bli', 'bla'])
+    predictions_1 = types.ValidRetrievalPrediction([
+        {'id': 'bli', 'score': 1.0},
+        {'id': 'bla', 'score': 0.5},
+        {'id': 'blo', 'score': 0.25},
+    ])
+    predictions_1.normalize(k=2)
+    self.assertSequenceEqual(
+        predictions_1.items,
+        [{'id': 'bli', 'score': 1.0}, {'id': 'bla', 'score': 0.5}],
+    )
 
-    predictions_2 = [(0.5, 'bli'), (0.25, 'bla'), (1.0, 'blu')]
-    ranked_doc_ids_2 = retrieval_evaluator.get_ranked_doc_ids(predictions_2)[:2]
-    self.assertSequenceEqual(ranked_doc_ids_2, ['blu', 'bli'])
+    predictions_2 = types.ValidRetrievalPrediction([
+        {'id': 'bli', 'score': 0.5},
+        {'id': 'bla', 'score': 0.25},
+        {'id': 'blu', 'score': 1.0},
+    ])
+    predictions_2.normalize(k=2)
+    self.assertSequenceEqual(
+        predictions_2.items,
+        [{'id': 'blu', 'score': 1.0}, {'id': 'bli', 'score': 0.5}],
+    )
 
   def test_compute_metrics(self):
     scores = retrieval_evaluator._compute_metrics(
         predictions={
-            '1': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blo')],
-            '2': [(1.0, 'bli'), (0.5, 'bla'), (0.25, 'blu')],
+            '1': types.ValidRetrievalPrediction([
+                {'id': 'bli', 'score': 1.0},
+                {'id': 'bla', 'score': 0.5},
+                {'id': 'blo', 'score': 0.25},
+            ]),
+            '2': types.ValidRetrievalPrediction([
+                {'id': 'bli', 'score': 1.0},
+                {'id': 'bla', 'score': 0.5},
+                {'id': 'blu', 'score': 0.25},
+            ]),
         },
         reference_ids=[
             retrieval_evaluator.RetrievalReferenceId(
