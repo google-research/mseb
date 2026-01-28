@@ -24,6 +24,25 @@ from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 
 
+_filter_fn_by_sub_task = {
+    'passage_retrieval_cross_lang': lambda x: True,
+    'passage_retrieval_cross_lang:clean': lambda x: x['environment'] == 'clean',
+    'passage_retrieval_cross_lang:media_noise': (
+        lambda x: x['environment'] == 'media_noise'
+    ),
+    'passage_retrieval_cross_lang:traffic_noise': (
+        lambda x: x['environment'] == 'traffic_noise'
+    ),
+    'passage_retrieval_cross_lang:background_speech': (
+        lambda x: x['environment'] == 'background_speech'
+    ),
+}
+
+
+def _base_sub_task(sub_task: str) -> str:
+  return sub_task.split(':')[0]
+
+
 class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
   """SVQ passage cross-lang retrieval."""
 
@@ -38,7 +57,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ['passage_retrieval_cross_lang']
+    return list(_filter_fn_by_sub_task.keys())
 
   def get_documents_source(self) -> svq.SimpleVoiceQuestionsDataset:
     return self._get_dataset()
@@ -74,18 +93,20 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
           sound = types.SoundWithTitleAndContext(
               waveform=sound.waveform,
               context=sound.context,
-              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value),
           )
         yield sound
 
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
+    filter_fn = _filter_fn_by_sub_task[sub_task]
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
-        sub_task, dtype={'locale': str, 'utt_id': str, 'passage_id': str}
+        _base_sub_task(sub_task),
+        dtype={'locale': str, 'utt_id': str, 'passage_id': str},
     ).to_dict('records'):
-      if example['locale'] == self.locale:
+      if example['locale'] == self.locale and filter_fn(example):
         yield retrieval_evaluator.RetrievalReferenceId(
             sound_id=example['utt_id'], reference_id=example['passage_id']
         )

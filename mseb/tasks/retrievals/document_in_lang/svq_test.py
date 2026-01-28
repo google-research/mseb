@@ -51,7 +51,7 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
   def test_svq_document_in_lang_retrieval_documents(self):
     with tfds.testing.mock_data(num_examples=1):
       task = svq.SVQEnUsDocumentInLangRetrieval()
-      self.assertEqual(task.sub_tasks, ["document_retrieval_in_lang"])
+      self.assertEqual(task.sub_tasks[0], "document_retrieval_in_lang")
       for document in task.documents():
         self.assertEqual(document.context.id, "chg dif hhia i e ce")
         self.assertEqual(document.context.id, document.context.title)

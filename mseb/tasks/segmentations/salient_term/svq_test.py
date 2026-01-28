@@ -127,7 +127,7 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
 
   def test_svq_salient_term_segmentation_metadata(self):
     task = svq.SVQEnUsSalientTermSegmentation()
-    self.assertEqual(task.sub_tasks, ["salient_term"])
+    self.assertEqual(task.sub_tasks[0], "salient_term")
     self.assertEqual(task.locale, "en_us")
     self.assertEqual(task.metadata.name, "SVQEnUsSalientTermSegmentation")
     self.assertEqual(task.metadata.main_score, "NDCG")

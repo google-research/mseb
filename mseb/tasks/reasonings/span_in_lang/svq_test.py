@@ -50,7 +50,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
 
   def test_svq_span_in_lang_reasoning_span_lists(self):
     task = svq.SVQEnUsSpanInLangReasoning()
-    self.assertEqual(task.sub_tasks, ["span_reasoning_in_lang"])
+    self.assertEqual(task.sub_tasks[0], "span_reasoning_in_lang")
     span_lists = list(task.span_lists())
     self.assertLen(span_lists, 2)
     spans = span_lists[1]

@@ -24,6 +24,23 @@ from mseb.evaluators import reranking_evaluator
 from mseb.tasks import reranking
 
 
+_filter_fn_by_sub_task = {
+    'query_reranking': lambda x: True,
+    'query_reranking:clean': lambda x: x['environment'] == 'clean',
+    'query_reranking:media_noise': lambda x: x['environment'] == 'media_noise',
+    'query_reranking:traffic_noise': (
+        lambda x: x['environment'] == 'traffic_noise'
+    ),
+    'query_reranking:background_speech': (
+        lambda x: x['environment'] == 'background_speech'
+    ),
+}
+
+
+def _base_sub_task(sub_task: str) -> str:
+  return sub_task.split(':')[0]
+
+
 class SVQQueryReranking(reranking.RerankingTask):
   """SVQ query reranking."""
 
@@ -41,7 +58,7 @@ class SVQQueryReranking(reranking.RerankingTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ['query_reranking']
+    return list(_filter_fn_by_sub_task.keys())
 
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = self._get_dataset()
@@ -61,12 +78,13 @@ class SVQQueryReranking(reranking.RerankingTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
+    filter_fn = _filter_fn_by_sub_task[sub_task]
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
-        sub_task,
+        _base_sub_task(sub_task),
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
     ).to_dict('records'):
-      if example['locale'] == self.locale:
+      if example['locale'] == self.locale and filter_fn(example):
         yield reranking_evaluator.RerankingCandidates(
             sound_id=example['utt_id'],
             texts=example['candidates'],

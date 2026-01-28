@@ -22,6 +22,21 @@ from mseb.evaluators import segmentation_evaluator
 from mseb.tasks import segmentation
 
 
+_filter_fn_by_sub_task = {
+    "salient_term": lambda x: True,
+    "salient_term:clean": lambda x: x["environment"] == "clean",
+    "salient_term:media_noise": lambda x: x["environment"] == "media_noise",
+    "salient_term:traffic_noise": lambda x: x["environment"] == "traffic_noise",
+    "salient_term:background_speech": (
+        lambda x: x["environment"] == "background_speech"
+    ),
+}
+
+
+def _base_sub_task(sub_task: str) -> str:
+  return sub_task.split(":")[0]
+
+
 class SVQSalientTermSegmentation(segmentation.SegmentationTask):
   """Base class for salient term segmentation on the SVQ dataset."""
 
@@ -32,13 +47,11 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ["salient_term"]
+    return list(_filter_fn_by_sub_task.keys())
 
   def sounds(self) -> Iterable[types.Sound]:
     if self.locale is None:
-      raise ValueError(
-          "`locale` must be set by a concrete task subclass."
-      )
+      raise ValueError("`locale` must be set by a concrete task subclass.")
 
     svq_dataset = self._get_dataset()
     for utt_id, record in svq_dataset.utt_id_to_record.items():
@@ -49,13 +62,12 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
       self, sub_task: str
   ) -> Iterable[segmentation_evaluator.SegmentationReference]:
     if self.locale is None:
-      raise ValueError(
-          "`locale` must be set by a concrete task subclass."
-      )
+      raise ValueError("`locale` must be set by a concrete task subclass.")
 
+    filter_fn = _filter_fn_by_sub_task[sub_task]
     svq_dataset = self._get_dataset()
     for utt_id, record in svq_dataset.utt_id_to_record.items():
-      if record["locale"] == self.locale:
+      if record["locale"] == self.locale and filter_fn(record):
         terms = record.get("topk_salient_terms")
         timestamps = record.get("topk_salient_terms_timestamps")
 
@@ -71,8 +83,7 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
             for term, ts in zip(terms, timestamps)
         ]
         yield segmentation_evaluator.SegmentationReference(
-            example_id=utt_id,
-            segments=segments
+            example_id=utt_id, segments=segments
         )
 
 

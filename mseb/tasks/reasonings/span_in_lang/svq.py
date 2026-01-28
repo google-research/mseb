@@ -23,6 +23,25 @@ from mseb.evaluators import reasoning_evaluator
 from mseb.tasks import reasoning
 
 
+_filter_fn_by_sub_task = {
+    'span_reasoning_in_lang': lambda x: True,
+    'span_reasoning_in_lang:clean': lambda x: x['environment'] == 'clean',
+    'span_reasoning_in_lang:media_noise': (
+        lambda x: x['environment'] == 'media_noise'
+    ),
+    'span_reasoning_in_lang:traffic_noise': (
+        lambda x: x['environment'] == 'traffic_noise'
+    ),
+    'span_reasoning_in_lang:background_speech': (
+        lambda x: x['environment'] == 'background_speech'
+    ),
+}
+
+
+def _base_sub_task(sub_task: str) -> str:
+  return sub_task.split(':')[0]
+
+
 class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   """SVQ span in-lang reasoning task."""
 
@@ -40,7 +59,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ['span_reasoning_in_lang']
+    return list(_filter_fn_by_sub_task.keys())
 
   def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
     svq_dataset = self._get_dataset()
@@ -65,9 +84,10 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
+    filter_fn = _filter_fn_by_sub_task[sub_task]
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
-        sub_task,
+        _base_sub_task(sub_task),
         dtype={
             'locale': str,
             'utt_id': str,
@@ -75,7 +95,7 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
             'spans': Sequence[str],
         },
     ).to_dict('records'):
-      if example['locale'] == self.locale:
+      if example['locale'] == self.locale and filter_fn(example):
         yield reasoning_evaluator.ReasoningSpans(
             sound_id=example['utt_id'],
             reference_answer=example['span'],

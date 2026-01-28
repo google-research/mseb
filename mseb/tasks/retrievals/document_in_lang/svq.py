@@ -25,6 +25,25 @@ from mseb.tasks import retrieval
 import tensorflow_datasets as tfds
 
 
+_filter_fn_by_sub_task = {
+    'document_retrieval_in_lang': lambda x: True,
+    'document_retrieval_in_lang:clean': lambda x: x['environment'] == 'clean',
+    'document_retrieval_in_lang:media_noise': (
+        lambda x: x['environment'] == 'media_noise'
+    ),
+    'document_retrieval_in_lang:traffic_noise': (
+        lambda x: x['environment'] == 'traffic_noise'
+    ),
+    'document_retrieval_in_lang:background_speech': (
+        lambda x: x['environment'] == 'background_speech'
+    ),
+}
+
+
+def _base_sub_task(sub_task: str) -> str:
+  return sub_task.split(':')[0]
+
+
 class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   """SVQ document in-lang retrieval."""
 
@@ -46,7 +65,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return ['document_retrieval_in_lang']
+    return list(_filter_fn_by_sub_task.keys())
 
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = self._get_svq_dataset()

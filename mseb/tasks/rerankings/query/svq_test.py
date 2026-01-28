@@ -52,7 +52,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
 
   def test_svq_query_reranking_candidate_lists(self):
     task = svq.SVQEnUsQueryReranking()
-    self.assertEqual(task.sub_tasks, ["query_reranking"])
+    self.assertEqual(task.sub_tasks[0], "query_reranking")
     candidate_lists = list(task.candidate_lists())
     self.assertLen(candidate_lists, 2)
     candidates = candidate_lists[1]

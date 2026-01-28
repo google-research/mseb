@@ -49,7 +49,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
 
   def test_svq_passage_in_lang_retrieval_documents(self):
     task = svq.SVQEnUsPassageInLangRetrieval()
-    self.assertEqual(task.sub_tasks, ["passage_retrieval_in_lang"])
+    self.assertEqual(task.sub_tasks[0], "passage_retrieval_in_lang")
     documents = list(task.documents())
     self.assertLen(documents, 3)
     document = documents[2]
