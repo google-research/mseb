@@ -29,3 +29,12 @@ def compute_reciprocal_rank(
       break
   reciprocal_rank = 1 / rank if rank > 0 else 0
   return reciprocal_rank
+
+
+def compute_exact_match(
+    reference: str, predicted_neighbors: Sequence[str]
+) -> float:
+  """Computes the exact match for the first predicted neighbor."""
+  if predicted_neighbors:
+    return float(reference == predicted_neighbors[0])
+  return 0.0

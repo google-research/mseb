@@ -114,7 +114,9 @@ def _compute_metrics(
       )
       values_by_metric['em'].append(
           types.WeightedValue(
-              value=float(reference_id.reference_id == ranked_doc_ids[0])
+              value=metrics_lib.compute_exact_match(
+                  reference_id.reference_id, ranked_doc_ids
+              )
           )
       )
       values_by_metric['recall_at_k'].append(
@@ -314,12 +316,15 @@ class RetrievalEvaluatorPartitioned:
           predictions_for_sound_id,
       ) in predictions_for_partition.items():
         if sound_id not in predictions:
-          predictions[sound_id] = types.ValidRetrievalPrediction([])
-        assert isinstance(predictions[sound_id], types.ValidRetrievalPrediction)
-        assert isinstance(
-            predictions_for_sound_id, types.ValidRetrievalPrediction
-        )
-        predictions[sound_id].merge(predictions_for_sound_id)
+          predictions[sound_id] = predictions_for_sound_id
+        else:
+          assert isinstance(
+              predictions[sound_id], types.ValidRetrievalPrediction
+          )
+          assert isinstance(
+              predictions_for_sound_id, types.ValidRetrievalPrediction
+          )
+          predictions[sound_id].merge(predictions_for_sound_id)
 
     return predictions  # pytype: disable=bad-return-type
 

@@ -47,6 +47,40 @@ class MetricsTest(parameterized.TestCase):
     )
     self.assertEqual(reciprocal_rank, expected_reciprocal_rank)
 
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="exact_match",
+          reference="reference",
+          predicted_neighbors=["reference", "neighbor1"],
+          expected_exact_match=1.0,
+      ),
+      dict(
+          testcase_name="not_exact_match_but_in_neighbors",
+          reference="reference",
+          predicted_neighbors=["neighbor1", "reference"],
+          expected_exact_match=0.0,
+      ),
+      dict(
+          testcase_name="not_exact_match_and_not_in_neighbors",
+          reference="reference",
+          predicted_neighbors=["neighbor1", "neighbor2"],
+          expected_exact_match=0.0,
+      ),
+      dict(
+          testcase_name="no_neighbors",
+          reference="reference",
+          predicted_neighbors=[],
+          expected_exact_match=0.0,
+      ),
+  )
+  def test_compute_exact_match(
+      self, reference, predicted_neighbors, expected_exact_match
+  ):
+    exact_match = metrics.compute_exact_match(
+        reference=reference, predicted_neighbors=predicted_neighbors
+    )
+    self.assertEqual(exact_match, expected_exact_match)
+
 
 if __name__ == "__main__":
   absltest.main()
