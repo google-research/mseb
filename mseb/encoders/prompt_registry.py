@@ -24,8 +24,9 @@ import inspect
 import sys
 from typing import Any, Callable
 from mseb.encoders import prompt as prompt_lib
-from mseb.tasks.classifications.intent import speech_massive
+from mseb.tasks.classifications.intent import speech_massive as speech_massive_intent
 from mseb.tasks.classifications.sound import fsd50k
+from mseb.tasks.classifications.speaker_gender import speech_massive as speech_massive_speaker_gender
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,7 +55,17 @@ intent_classification = PromptMetadata(
     prompt=prompt_lib.ClassificationPrompt,
     params=lambda: {
         "class_labels": list(
-            speech_massive.SpeechMassiveIntentClassification().class_labels()
+            speech_massive_intent.SpeechMassiveIntentClassification().class_labels()
+        )
+    },
+)
+
+speaker_gender_classification = PromptMetadata(
+    name="speaker_gender_classification",
+    prompt=prompt_lib.SpeakerClassificationPrompt,
+    params=lambda: {
+        "class_labels": list(
+            speech_massive_speaker_gender.SpeechMassiveSpeakerGenderClassification().class_labels()
         )
     },
 )

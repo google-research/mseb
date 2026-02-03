@@ -193,6 +193,34 @@ class ClassificationPrompt(Prompt):
     return result
 
 
+class SpeakerClassificationPrompt(ClassificationPrompt):
+  """A prompt for the speaker classification tasks."""
+
+  PROMPT_TEMPLATE = """
+*Task: Speaker Classification**
+
+**Goal:** Classify the speaker inthe provided audio clip into one of the following classes:
+  {class_labels}
+
+**Input:** You will receive an audio clip containing the recording of a person speaking {{text}}.
+
+**Output:** You will produce a single JSON object as a plain text string (no markup) having the following structure:
+ * "answer": (string) The class label of the speaker in the audio clip.
+
+**Important Considerations:**
+* **Exact Matches:** The ouput should match exactly one of the class names. Do not rephrase or summarize.
+* **No Other Output:** The output should only contain the class name.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+
+{{{{"query": {{text}}}}}}
+"""
+
+  def __init__(
+      self, class_labels: Sequence[str], prompt_template: str = PROMPT_TEMPLATE
+  ):
+    super().__init__(class_labels, prompt_template)
+
+
 class SoundClassificationPrompt(Prompt):
   """A prompt for the sound classification tasks."""
   PROMPT_TEMPLATE = """
