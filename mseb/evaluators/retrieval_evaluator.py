@@ -73,7 +73,7 @@ class RetrievalReferenceId:
   reference_id: str
 
 
-RetrievalPredictionsCache = Mapping[str, types.RetrievalPrediction]
+RetrievalPredictionsCache = Mapping[str, types.ListPrediction]
 
 
 def _compute_metrics(
@@ -102,7 +102,7 @@ def _compute_metrics(
   }
   for reference_id in reference_ids:
     prediction = predictions[reference_id.sound_id]
-    if isinstance(prediction, types.ValidRetrievalPrediction):
+    if isinstance(prediction, types.ValidListPrediction):
       prediction.normalize(k=top_k)
       ranked_doc_ids = [x['id'] for x in prediction.items]
       values_by_metric['mrr'].append(
@@ -145,14 +145,14 @@ def _compute_metrics(
       values_by_metric['invalid'].append(
           types.WeightedValue(
               value=float(
-                  isinstance(prediction, types.InvalidAnswerRetrievalPrediction)
+                  isinstance(prediction, types.InvalidAnswerListPrediction)
               )
           )
       )
       values_by_metric['no_response'].append(
           types.WeightedValue(
               value=float(
-                  isinstance(prediction, types.NoResponseRetrievalPrediction)
+                  isinstance(prediction, types.NoResponseListPrediction)
               )
           )
       )
@@ -256,7 +256,7 @@ class RetrievalEvaluator:
       ranked_doc_ids = [  # pylint: disable=g-complex-comprehension
           [self.id_by_index_id[int(x)] for x in ids] for ids in ranked_index_ids
       ]
-      predictions[sound_id] = types.ValidRetrievalPrediction([
+      predictions[sound_id] = types.ValidListPrediction([
           {'id': i, 'score': s}
           for s, i in zip(ranked_doc_scores[0], ranked_doc_ids[0])
       ])
@@ -319,10 +319,10 @@ class RetrievalEvaluatorPartitioned:
           predictions[sound_id] = predictions_for_sound_id
         else:
           assert isinstance(
-              predictions[sound_id], types.ValidRetrievalPrediction
+              predictions[sound_id], types.ValidListPrediction
           )
           assert isinstance(
-              predictions_for_sound_id, types.ValidRetrievalPrediction
+              predictions_for_sound_id, types.ValidListPrediction
           )
           predictions[sound_id].merge(predictions_for_sound_id)
 

@@ -60,7 +60,7 @@ class SVQQueryReranking(reranking.RerankingTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'query_reranking',
@@ -68,11 +68,22 @@ class SVQQueryReranking(reranking.RerankingTask):
             'locale': str,
             'utt_id': str,
             task_lib.TRANSCRIPT_KEY.value: str,
+            'candidates': Sequence[str],
         },
     ).to_dict('records'):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound(example)
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+        sound = types.SoundWithTitleAndContext(
+            waveform=sound.waveform,
+            context=sound.context,
+            context_text=types.ValidListPrediction(
+                items=[
+                    {'id': i, 'text': c}
+                    for i, c in enumerate(example['candidates'])
+                ]
+            ).to_json(),
+        )
         yield sound
 
   def examples(

@@ -162,19 +162,19 @@ class RetrievalTask(task.MSEBTask):
       predictions = {}
       for sound_id, example in embeddings.items():
         assert isinstance(example, types.TextPrediction)
-        prediction = types.RetrievalPrediction.from_json(
+        prediction = types.ListPrediction.from_json(
             example.prediction
         )
         # If score is not present, assign pseudo-scores to preserve the
         # predicted ranking.
-        if isinstance(prediction, types.ValidRetrievalPrediction) and any(
+        if isinstance(prediction, types.ValidListPrediction) and any(
             'score' not in item for item in prediction.items
         ):
           items = []
           for n, item in enumerate(prediction.items, 1):
             item['score'] = item.get('score', 1 / n)
             items.append(item)
-          prediction = types.ValidRetrievalPrediction(items)
+          prediction = types.ValidListPrediction(items)
         predictions[sound_id] = prediction
 
     scores = {}

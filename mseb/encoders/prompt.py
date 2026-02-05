@@ -158,7 +158,7 @@ class ClassificationPrompt(Prompt):
  * "answer": (string) The intent class of the query.
 
 **Important Considerations:**
-* **Exact Matches:** The ouput should match exactly one of the intent class names. Do not rephrase or summarize.
+* **Exact Matches:** The output should match exactly one of the intent class names. Do not rephrase or summarize.
 * **No Other Output:** The output should only contain the intent class name.
 * **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
 
@@ -239,7 +239,7 @@ Each JSON object should have the following structure:
 
 **Important Considerations:**
 * Class names are descriptive.
-* **Exact Matches:** Each ouput should match exactly one of the {sound_name} class names. Do not rephrase or summarize.
+* **Exact Matches:** Each output should match exactly one of the {sound_name} class names. Do not rephrase or summarize.
 * **No Other Output:** Each output should only contain the {sound_name} class name.
 * **Plain Text JSON Output:** Each output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
 """
@@ -304,7 +304,7 @@ class RetrievalPrompt(Prompt):
 **Important Considerations:**
 * Relevance should be determined based on the text of the document and the query.
 * All documents should be considered: the ranklist produced should contain all document ids.
-* **Exact Matches:** The ouput should contain document ids that match exactly ones provided.
+* **Exact Matches:** The output should contain document ids that match exactly ones provided.
 * **No Other Output:** The output should only contain the ranked list of document ids.
 * **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
 
@@ -327,14 +327,14 @@ class RetrievalPrompt(Prompt):
         for item in result:
           if not isinstance(item, str):
             raise ValueError('Item is not a string: %s' % item)
-        result = types.ValidRetrievalPrediction(
+        result = types.ValidListPrediction(
             [{'id': item} for item in result]
         )
       except (json.JSONDecodeError, ValueError):
         logging.warning('Invalid response format/type: %s', response)
-        return types.InvalidAnswerRetrievalPrediction().to_json()
+        return types.InvalidAnswerListPrediction().to_json()
     else:
-      return types.NoResponseRetrievalPrediction().to_json()
+      return types.NoResponseListPrediction().to_json()
     return result.to_json()
 
 
@@ -415,3 +415,64 @@ class TranscriptionPrompt(Prompt):
 
   def ProcessResponse(self, response: Any) -> str:
     return response
+
+
+class RerankingPrompt(Prompt):
+  """A prompt for the reranking task."""
+
+  NO_RESPONSE_STR = types.LLM_NO_RESPONSE_STR
+  INVALID_ANSWER_STR = types.LLM_INVALID_ANSWER_STR
+  PROMPT_TEMPLATE = """
+**Task: Candidate Reranking**
+
+**Goal:** Find the most accurate transcription of the query from the provided candidates.
+
+*Input:** You will receive a query and a list of candidate transcriptions.
+ * "query": The query being issued (string).
+ * "candidates": The list of candidates. Each candidate is represented as a JSON object with the following fields:
+  * "id": (string) The unique identifier of the candidate.
+  * "text": (string) The text of the candidate.
+
+*Output:** You will produce a list of candidate ids ordered from most to least accurate.
+
+**Important Considerations:**
+* Accuracteness should be determined based on the exact match between the spoken query and the candidate.
+* All candidates should be considered: the ranklist produced should contain all candidate ids.
+* **Exact Matches:** The output should contain candidate ids that match exactly ones provided.
+* **No Other Output:** The output should only contain the ranked list of candidate ids.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+
+{{"query": {text}, "candidates": {context}}}
+"""
+
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
+    self.prompt_template = prompt_template
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> str:
+    assert isinstance(response, str)
+    if response != self.NO_RESPONSE_STR:
+      try:
+        result = json.loads(response)
+        if not isinstance(result, list):
+          raise ValueError('Result is not a list of strings: %s' % result)
+        if not result:
+          raise ValueError('Result is empty')
+        for item in result:
+          if not isinstance(item, str):
+            raise ValueError('Item is not a string: %s' % item)
+          try:
+            _ = int(item)
+          except ValueError as exc:
+            raise ValueError(
+                'Item can not be converted to an integer: %s' % item
+            ) from exc
+        result = types.ValidListPrediction([{'id': item} for item in result])
+      except (json.JSONDecodeError, ValueError):
+        logging.warning('Invalid response format/type: %s', response)
+        return types.InvalidAnswerListPrediction().to_json()
+    else:
+      return types.NoResponseListPrediction().to_json()
+    return result.to_json()

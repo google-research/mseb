@@ -63,15 +63,28 @@ class RerankingEvaluatorTest(absltest.TestCase):
     )
     self.assertLen(predictions, 1)
     self.assertIn('test', predictions)
-    npt.assert_equal(predictions['test'][0], [30.5, 19.5, 8.5])
-    npt.assert_equal(predictions['test'][1], ['b l a', 'b l i', 'x y z'])
+    npt.assert_equal(
+        [item['score'] for item in predictions['test'].items], [30.5, 19.5, 8.5]
+    )
+    npt.assert_equal(
+        [item['text'] for item in predictions['test'].items],
+        ['b l a', 'b l i', 'x y z'],
+    )
 
   def test_compute_metrics(self):
     evaluator = reranking_evaluator.RerankingEvaluator(
         candidate_embeddings_by_sound_id={}, mrr_at_k=2
     )
     scores = evaluator.compute_metrics(
-        predictions={'test': ([1.0, 0.5, 0.0], ['b l a', 'b l i', 'x y z'])},
+        predictions={
+            'test': types.ValidListPrediction(
+                items=[
+                    {'id': 0, 'score': 1.0, 'text': 'b l a'},
+                    {'id': 1, 'score': 0.5, 'text': 'b l i'},
+                    {'id': 2, 'score': 0.0, 'text': 'x y z'},
+                ]
+            )
+        },
         candidates_batch=[
             reranking_evaluator.RerankingCandidates(
                 sound_id='test',
@@ -80,7 +93,7 @@ class RerankingEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    npt.assert_equal(len(scores), 4)
+    npt.assert_equal(len(scores), 6)
     self.assertIn('MAP', scores[0].metric)
     npt.assert_equal(scores[0].value, 1 / 2)
     npt.assert_equal(scores[0].std, 0)
@@ -93,6 +106,12 @@ class RerankingEvaluatorTest(absltest.TestCase):
     self.assertIn('MRR', scores[3].metric)
     npt.assert_equal(scores[3].value, 1 / 2)
     npt.assert_equal(scores[3].std, 0)
+    self.assertIn('InvalidResultRate', scores[4].metric)
+    npt.assert_equal(scores[4].value, 0)
+    npt.assert_equal(scores[4].std, 0)
+    self.assertIn('NoResultRate', scores[5].metric)
+    npt.assert_equal(scores[5].value, 0)
+    npt.assert_equal(scores[5].std, 0)
 
 
 if __name__ == '__main__':

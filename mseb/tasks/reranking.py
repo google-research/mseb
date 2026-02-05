@@ -59,17 +59,19 @@ class RerankingTask(task.MSEBTask):
             os.path.join(self.embeddings_dir, 'embeddings')
         )
       except FileNotFoundError:
-        raise ValueError(
+        logger.warning(
             'Candidate embeddings cache not found in cache directory. Did you'
             ' create the cache by running run_task_setup?'
-        ) from FileNotFoundError
+        )
+        embeddings_by_text = {}
 
     embeddings_by_sound_id = {}
-    for sub_task in self.sub_tasks:
-      for candidates in self.examples(sub_task):
-        embeddings_by_sound_id[candidates.sound_id] = [
-            embeddings_by_text[text] for text in candidates.texts
-        ]
+    if embeddings_by_text:
+      for sub_task in self.sub_tasks:
+        for candidates in self.examples(sub_task):
+          embeddings_by_sound_id[candidates.sound_id] = [
+              embeddings_by_text[text] for text in candidates.texts
+          ]
 
     self._evaluator = reranking_evaluator.RerankingEvaluator(
         candidate_embeddings_by_sound_id=embeddings_by_sound_id
@@ -81,11 +83,20 @@ class RerankingTask(task.MSEBTask):
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
 
+    if not isinstance(next(iter(embeddings.values())), types.TextPrediction):
+      prediction_by_sound_id = self._evaluator.compute_predictions(embeddings)
+    else:
+      prediction_by_sound_id = {}
+      for sound_id, example in embeddings.items():
+        assert isinstance(example, types.TextPrediction)
+        prediction = types.ListPrediction.from_json(example.prediction)
+        prediction_by_sound_id[sound_id] = prediction
+
     scores = {}
     for sub_task in self.sub_tasks:
       scores[sub_task] = self._evaluator.compute_metrics(
-          self._evaluator.compute_predictions(embeddings),
-          tuple(self.examples(sub_task)),
+          predictions=prediction_by_sound_id,
+          candidates_batch=tuple(self.examples(sub_task)),
       )
     return scores
 

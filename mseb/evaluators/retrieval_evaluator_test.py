@@ -112,12 +112,12 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     )
     scores = evaluator.compute_metrics(
         predictions={
-            '1': types.ValidRetrievalPrediction([
+            '1': types.ValidListPrediction([
                 {'id': 'bli', 'score': 1.0},
                 {'id': 'bla', 'score': 0.5},
                 {'id': 'blo', 'score': 0.25},
             ]),
-            '2': types.ValidRetrievalPrediction([
+            '2': types.ValidListPrediction([
                 {'id': 'bli', 'score': 1.0},
                 {'id': 'bla', 'score': 0.5},
                 {'id': 'blu', 'score': 0.25},
@@ -195,12 +195,12 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     )
     scores = evaluator.compute_metrics(
         predictions={
-            '1': types.ValidRetrievalPrediction([
+            '1': types.ValidListPrediction([
                 {'id': 'bli', 'score': 1.0},
                 {'id': 'bla', 'score': 0.5},
                 {'id': 'blu', 'score': 0.25},
             ]),
-            '2': types.ValidRetrievalPrediction([
+            '2': types.ValidListPrediction([
                 {'id': 'bli', 'score': 1.0},
                 {'id': 'bla', 'score': 0.5},
                 {'id': 'blu', 'score': 0.25},
@@ -282,7 +282,7 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
 class RetrievalEvaluatorUtilTest(absltest.TestCase):
 
   def test_get_ranked_doc_ids(self):
-    predictions_1 = types.ValidRetrievalPrediction([
+    predictions_1 = types.ValidListPrediction([
         {'id': 'bli', 'score': 1.0},
         {'id': 'bla', 'score': 0.5},
         {'id': 'blo', 'score': 0.25},
@@ -293,7 +293,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
         [{'id': 'bli', 'score': 1.0}, {'id': 'bla', 'score': 0.5}],
     )
 
-    predictions_2 = types.ValidRetrievalPrediction([
+    predictions_2 = types.ValidListPrediction([
         {'id': 'bli', 'score': 0.5},
         {'id': 'bla', 'score': 0.25},
         {'id': 'blu', 'score': 1.0},
@@ -307,12 +307,12 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
   def test_compute_metrics(self):
     scores = retrieval_evaluator._compute_metrics(
         predictions={
-            '1': types.ValidRetrievalPrediction([
+            '1': types.ValidListPrediction([
                 {'id': 'bli', 'score': 1.0},
                 {'id': 'bla', 'score': 0.5},
                 {'id': 'blo', 'score': 0.25},
             ]),
-            '2': types.ValidRetrievalPrediction([
+            '2': types.ValidListPrediction([
                 {'id': 'bli', 'score': 1.0},
                 {'id': 'bla', 'score': 0.5},
                 {'id': 'blu', 'score': 0.25},

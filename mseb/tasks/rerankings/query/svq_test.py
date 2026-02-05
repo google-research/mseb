@@ -20,6 +20,7 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import dataset
+from mseb import types
 import pytest
 
 svq = pytest.importorskip("mseb.tasks.rerankings.query.svq")
@@ -78,15 +79,33 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     sounds = list(task.sounds())
     self.assertLen(sounds, 2)
     sound = sounds[0]
+    self.assertIsInstance(sound, types.SoundWithTitleAndContext)
     self.assertEqual(sound.context.id, "utt_11697423627206642872")
     self.assertEqual(sound.context.speaker_id, "speaker_5452472707103026757")
     self.assertEqual(sound.context.speaker_age, 27)
     self.assertEqual(sound.context.language, "en_us")
+    self.assertEqual(
+        sound.context_text,
+        '[{"id": 0, "text": "At what temperature does steel melt?"}, {"id": 1,'
+        ' "text": "At what temperature does steel melts?"}, {"id": 2, "text":'
+        ' "At what tempo, does shale melt?"}, {"id": 3, "text": "At what degree'
+        ' does steel liquify?"}, {"id": 4, "text": "At what heat intensity does'
+        ' steel melt?"}]',
+    )
     sound = sounds[1]
+    self.assertIsInstance(sound, types.SoundWithTitleAndContext)
     self.assertEqual(sound.context.id, "utt_15041124811443622614")
     self.assertEqual(sound.context.speaker_id, "speaker_10322347911861405809")
     self.assertEqual(sound.context.speaker_age, 25)
     self.assertEqual(sound.context.language, "en_us")
+    self.assertEqual(
+        sound.context_text,
+        '[{"id": 0, "text": "At what temperature does steel melt?"}, {"id": 1,'
+        ' "text": "At what temperature does steel melts?"}, {"id": 2, "text":'
+        ' "At what tempo, does shale melt?"}, {"id": 3, "text": "At what degree'
+        ' does steel liquify?"}, {"id": 4, "text": "At what heat intensity does'
+        ' steel melt?"}]',
+    )
 
   def test_svq_query_reranking_examples(self):
     task = svq.SVQEnUsQueryReranking()

@@ -96,6 +96,12 @@ transcription = PromptMetadata(
     params=lambda: {},
 )
 
+reranking = PromptMetadata(
+    name="reranking",
+    prompt=prompt_lib.RerankingPrompt,
+    params=lambda: {},
+)
+
 _REGISTRY: dict[str, PromptMetadata] = {}
 
 

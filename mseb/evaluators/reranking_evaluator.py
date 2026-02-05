@@ -80,7 +80,7 @@ class RerankingCandidates:
   language: str  # For text normalization.
 
 
-RerankingPredictionsCache = Mapping[str, tuple[Sequence[float], Sequence[str]]]
+RerankingPredictionsCache = Mapping[str, types.ListPrediction]
 
 
 class RerankingEvaluator:
@@ -137,7 +137,16 @@ class RerankingEvaluator:
       ranked_candidate_texts: Sequence[str] = [
           texts[x] for x in ranked_candidate_ids
       ]
-      predictions[sound_id] = (ranked_candidate_scores, ranked_candidate_texts)
+      predictions[sound_id] = types.ValidListPrediction(
+          items=[
+              {'id': i, 'score': s, 'text': t}
+              for i, s, t in zip(
+                  ranked_candidate_ids,
+                  ranked_candidate_scores,
+                  ranked_candidate_texts,
+              )
+          ]
+      )
     return predictions
 
   def compute_metrics(
@@ -158,58 +167,99 @@ class RerankingEvaluator:
         'mrr': [],
         'wer': [],
         'cer': [],
+        'invalid': [],
+        'no_response': [],
     }
     for candidates in candidates_batch:
-      ranked_candidate_scores, ranked_candidate_texts = predictions[
-          candidates.sound_id
-      ]
+      prediction = predictions[candidates.sound_id]
+      if isinstance(prediction, types.ValidListPrediction):
+        predicted_items = prediction.items
+        for item in predicted_items:
+          item['text'] = item.get('text', candidates.texts[int(item['id'])])
 
-      word_errors, word_errors_weight = metrics.compute_word_errors(
-          truth=candidates.texts[0],
-          hypothesis=ranked_candidate_texts[0],
-          text_transform=text_transform(candidates.language),
-      )
-      values_by_metric['wer'].append(
-          types.WeightedValue(
-              value=word_errors / word_errors_weight,
-              weight=word_errors_weight,
-          )
-      )
-      values_by_metric['cer'].append(
-          types.WeightedValue(
-              value=float(
-                  metrics.compute_word_errors(
-                      truth=candidates.texts[0],
-                      hypothesis=ranked_candidate_texts[0],
-                      text_transform=text_transform(candidates.language),
-                  )[0]
-                  != 0.0
-              )
-          )
-      )
-      values_by_metric['mrr'].append(
-          types.WeightedValue(
-              value=metrics.compute_reciprocal_rank(
-                  candidates.texts[0], ranked_candidate_texts[: self.mrr_at_k]
-              ),
-          )
-      )
-      values_by_metric['map'].append(
-          types.WeightedValue(
-              value=sklearn_metrics.average_precision_score(
-                  y_true=[
-                      metrics.compute_word_errors(
-                          truth=candidates.texts[0],
-                          hypothesis=text,
-                          text_transform=text_transform(candidates.language),
-                      )[0]
-                      == 0.0
-                      for text in ranked_candidate_texts
-                  ],
-                  y_score=ranked_candidate_scores,
-              ),
-          )
-      )
+        word_errors, word_errors_weight = metrics.compute_word_errors(
+            truth=candidates.texts[0],
+            hypothesis=predicted_items[0]['text'],
+            text_transform=text_transform(candidates.language),
+        )
+        values_by_metric['wer'].append(
+            types.WeightedValue(
+                value=word_errors / word_errors_weight,
+                weight=word_errors_weight,
+            )
+        )
+        values_by_metric['cer'].append(
+            types.WeightedValue(
+                value=float(
+                    metrics.compute_word_errors(
+                        truth=candidates.texts[0],
+                        hypothesis=predicted_items[0]['text'],
+                        text_transform=text_transform(candidates.language),
+                    )[0]
+                    != 0.0
+                )
+            )
+        )
+        values_by_metric['mrr'].append(
+            types.WeightedValue(
+                value=metrics.compute_reciprocal_rank(
+                    candidates.texts[0],
+                    [item['text'] for item in predicted_items[: self.mrr_at_k]],
+                ),
+            )
+        )
+        values_by_metric['map'].append(
+            types.WeightedValue(
+                value=sklearn_metrics.average_precision_score(
+                    y_true=[
+                        metrics.compute_word_errors(
+                            truth=candidates.texts[0],
+                            hypothesis=item['text'],
+                            text_transform=text_transform(candidates.language),
+                        )[0]
+                        == 0.0
+                        for item in predicted_items
+                    ],
+                    # If score is not present, assign pseudo-scores to preserve
+                    # the predicted ranking.
+                    y_score=[
+                        item.get('score', 1 / n)
+                        for n, item in enumerate(predicted_items, 1)
+                    ],
+                ),
+            )
+        )
+        values_by_metric['invalid'].append(types.WeightedValue(value=0.0))
+        values_by_metric['no_response'].append(types.WeightedValue(value=0.0))
+      else:
+        word_errors, word_errors_weight = metrics.compute_word_errors(
+            truth=candidates.texts[0],
+            hypothesis='',
+            text_transform=text_transform(candidates.language),
+        )
+        values_by_metric['wer'].append(
+            types.WeightedValue(
+                value=word_errors / word_errors_weight,
+                weight=word_errors_weight,
+            )
+        )
+        values_by_metric['cer'].append(types.WeightedValue(value=1.0))
+        values_by_metric['mrr'].append(types.WeightedValue(value=0.0))
+        values_by_metric['map'].append(types.WeightedValue(value=0.0))
+        values_by_metric['invalid'].append(
+            types.WeightedValue(
+                value=float(
+                    isinstance(prediction, types.InvalidAnswerListPrediction)
+                )
+            )
+        )
+        values_by_metric['no_response'].append(
+            types.WeightedValue(
+                value=float(
+                    isinstance(prediction, types.NoResponseListPrediction)
+                )
+            )
+        )
 
     map_score = map(
         *evaluator.compute_weighted_average_and_std(values_by_metric['map'])
@@ -223,4 +273,33 @@ class RerankingEvaluator:
     cer_score = cer(
         *evaluator.compute_weighted_average_and_std(values_by_metric['cer'])
     )
-    return [map_score, wer_score, cer_score, mrr_score]
+    invalid_result_rate = evaluator.compute_weighted_average_and_std(
+        values_by_metric['invalid']
+    )
+    invalid_result_score = types.Score(
+        metric='InvalidResultRate',
+        description='Invalid result rate',
+        value=invalid_result_rate[0],
+        min=0,
+        max=1,
+        std=invalid_result_rate[1],
+    )
+    no_result_rate = evaluator.compute_weighted_average_and_std(
+        values_by_metric['no_response']
+    )
+    no_result_score = types.Score(
+        metric='NoResultRate',
+        description='No result rate',
+        value=no_result_rate[0],
+        min=0,
+        max=1,
+        std=no_result_rate[1],
+    )
+    return [
+        map_score,
+        wer_score,
+        cer_score,
+        mrr_score,
+        invalid_result_score,
+        no_result_score,
+    ]

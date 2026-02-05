@@ -244,10 +244,10 @@ class TaskMetadataTest(parameterized.TestCase):
       types.TaskMetadata(**params)
 
 
-class RetrievalPredictionTest(parameterized.TestCase):
+class ListPredictionTest(parameterized.TestCase):
 
-  def test_valid_retrieval_prediction_init(self):
-    prediction = types.ValidRetrievalPrediction([
+  def test_valid_list_prediction_init(self):
+    prediction = types.ValidListPrediction([
         {"id": "bli", "score": 1.0},
         {"id": "bla", "score": 0.5},
         {"id": "blo", "score": 0.25},
@@ -261,20 +261,20 @@ class RetrievalPredictionTest(parameterized.TestCase):
         ],
     )
 
-  def test_invalid_answer_retrieval_prediction_init(self):
-    prediction = types.InvalidAnswerRetrievalPrediction()
+  def test_invalid_answer_list_prediction_init(self):
+    prediction = types.InvalidAnswerListPrediction()
     self.assertEqual(
-        prediction.to_json(), types.RetrievalPrediction.INVALID_ANSWER_STR
+        prediction.to_json(), types.ListPrediction.INVALID_ANSWER_STR
     )
 
-  def test_no_response_retrieval_prediction_init(self):
-    prediction = types.NoResponseRetrievalPrediction()
+  def test_no_response_list_prediction_init(self):
+    prediction = types.NoResponseListPrediction()
     self.assertEqual(
-        prediction.to_json(), types.RetrievalPrediction.NO_RESPONSE_STR
+        prediction.to_json(), types.ListPrediction.NO_RESPONSE_STR
     )
 
-  def test_valid_retrieval_prediction_to_json(self):
-    prediction = types.ValidRetrievalPrediction([
+  def test_valid_list_prediction_to_json(self):
+    prediction = types.ValidListPrediction([
         {"id": "bli", "score": 1.0},
         {"id": "bla", "score": 0.5},
         {"id": "blo", "score": 0.25},
@@ -285,22 +285,22 @@ class RetrievalPredictionTest(parameterized.TestCase):
         ' "blo", "score": 0.25}]',
     )
 
-  def test_invalid_answer_retrieval_prediction_to_json(self):
-    prediction = types.InvalidAnswerRetrievalPrediction()
+  def test_invalid_answer_list_prediction_to_json(self):
+    prediction = types.InvalidAnswerListPrediction()
     self.assertEqual(
         prediction.to_json(),
-        types.RetrievalPrediction.INVALID_ANSWER_STR,
+        types.ListPrediction.INVALID_ANSWER_STR,
     )
 
-  def test_no_response_retrieval_prediction_to_json(self):
-    prediction = types.NoResponseRetrievalPrediction()
+  def test_no_response_list_prediction_to_json(self):
+    prediction = types.NoResponseListPrediction()
     self.assertEqual(
         prediction.to_json(),
-        types.RetrievalPrediction.NO_RESPONSE_STR,
+        types.ListPrediction.NO_RESPONSE_STR,
     )
 
-  def test_valid_retrieval_prediction_from_json(self):
-    prediction = types.ValidRetrievalPrediction.from_json(
+  def test_valid_list_prediction_from_json(self):
+    prediction = types.ValidListPrediction.from_json(
         '[{"id": "bli", "score": 1.0}, {"id": "bla", "score": 0.5}, {"id":'
         ' "blo", "score": 0.25}]',
     )
@@ -313,24 +313,24 @@ class RetrievalPredictionTest(parameterized.TestCase):
         ],
     )
 
-  def test_no_response_retrieval_prediction_from_json(self):
-    prediction = types.NoResponseRetrievalPrediction.from_json(
-        types.RetrievalPrediction.NO_RESPONSE_STR
+  def test_no_response_list_prediction_from_json(self):
+    prediction = types.NoResponseListPrediction.from_json(
+        types.ListPrediction.NO_RESPONSE_STR
     )
     self.assertEqual(
-        prediction.to_json(), types.RetrievalPrediction.NO_RESPONSE_STR
+        prediction.to_json(), types.ListPrediction.NO_RESPONSE_STR
     )
 
-  def test_invalid_answer_retrieval_prediction_from_json(self):
-    prediction = types.InvalidAnswerRetrievalPrediction.from_json(
-        types.RetrievalPrediction.INVALID_ANSWER_STR
+  def test_invalid_answer_list_prediction_from_json(self):
+    prediction = types.InvalidAnswerListPrediction.from_json(
+        types.ListPrediction.INVALID_ANSWER_STR
     )
     self.assertEqual(
-        prediction.to_json(), types.RetrievalPrediction.INVALID_ANSWER_STR
+        prediction.to_json(), types.ListPrediction.INVALID_ANSWER_STR
     )
 
-  def test_valid_retrieval_prediction_normalize(self):
-    prediction = types.ValidRetrievalPrediction([
+  def test_valid_list_prediction_normalize(self):
+    prediction = types.ValidListPrediction([
         {"id": "blo", "score": 0.25},
         {"id": "bli", "score": 1.0},
         {"id": "bla", "score": 0.5},
@@ -341,13 +341,13 @@ class RetrievalPredictionTest(parameterized.TestCase):
         [{"id": "bli", "score": 1.0}, {"id": "bla", "score": 0.5}],
     )
 
-  def test_valid_retrieval_prediction_merge(self):
-    prediction_1 = types.ValidRetrievalPrediction([
+  def test_valid_list_prediction_merge(self):
+    prediction_1 = types.ValidListPrediction([
         {"id": "bli", "score": 1.0},
         {"id": "bla", "score": 0.5},
         {"id": "blo", "score": 0.25},
     ])
-    prediction_2 = types.ValidRetrievalPrediction([
+    prediction_2 = types.ValidListPrediction([
         {"id": "blu", "score": 1.0},
         {"id": "bla", "score": 0.5},
         {"id": "blo", "score": 0.25},

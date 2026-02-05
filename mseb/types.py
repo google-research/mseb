@@ -193,8 +193,8 @@ LLM_INVALID_ANSWER_STR = ""
 LLM_NO_RESPONSE_STR = "NO_RESPONSE"
 
 
-class RetrievalPrediction(abc.ABC):
-  """A class to represent a valid or invalid retrieval prediction."""
+class ListPrediction(abc.ABC):
+  """A class to represent a valid or invalid list prediction."""
 
   NO_RESPONSE_STR = LLM_NO_RESPONSE_STR
   INVALID_ANSWER_STR = LLM_INVALID_ANSWER_STR
@@ -205,20 +205,20 @@ class RetrievalPrediction(abc.ABC):
     raise NotImplementedError()
 
   @staticmethod
-  def from_json(serialized: str) -> "RetrievalPrediction":
-    if serialized == RetrievalPrediction.NO_RESPONSE_STR:
-      return NoResponseRetrievalPrediction()
-    elif serialized == RetrievalPrediction.INVALID_ANSWER_STR:
-      return InvalidAnswerRetrievalPrediction()
+  def from_json(serialized: str) -> "ListPrediction":
+    if serialized == ListPrediction.NO_RESPONSE_STR:
+      return NoResponseListPrediction()
+    elif serialized == ListPrediction.INVALID_ANSWER_STR:
+      return InvalidAnswerListPrediction()
     else:
-      return ValidRetrievalPrediction(json.loads(serialized))
+      return ValidListPrediction(json.loads(serialized))
 
 
-class ValidRetrievalPrediction(RetrievalPrediction):
-  """A class to represent a valid retrieval prediction."""
+class ValidListPrediction(ListPrediction):
+  """A class to represent a valid list prediction."""
 
   def __init__(self, items: Sequence[Mapping[str, Any]]):
-    """Initializes a valid retrieval prediction.
+    """Initializes a valid list prediction.
 
     Args:
       items: The items to be returned as the prediction. Each item is a mapping
@@ -253,7 +253,7 @@ class ValidRetrievalPrediction(RetrievalPrediction):
       items = items[:k]
     self.items = items
 
-  def merge(self, other: "ValidRetrievalPrediction", *, k: int | None = None):
+  def merge(self, other: "ValidListPrediction", *, k: int | None = None):
     """Merges the other prediction with the current one.
 
     Args:
@@ -269,16 +269,16 @@ class ValidRetrievalPrediction(RetrievalPrediction):
     self.normalize(k=k)
 
 
-class InvalidAnswerRetrievalPrediction(RetrievalPrediction):
+class InvalidAnswerListPrediction(ListPrediction):
 
   def to_json(self) -> str:
-    return RetrievalPrediction.INVALID_ANSWER_STR
+    return ListPrediction.INVALID_ANSWER_STR
 
 
-class NoResponseRetrievalPrediction(RetrievalPrediction):
+class NoResponseListPrediction(ListPrediction):
 
   def to_json(self) -> str:
-    return RetrievalPrediction.NO_RESPONSE_STR
+    return ListPrediction.NO_RESPONSE_STR
 
 
 @dataclasses.dataclass

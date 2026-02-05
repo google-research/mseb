@@ -98,8 +98,8 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     assert self._text_by_id is not None
     for x in batch:
       prediction = predictions[x.context.id]
-      assert isinstance(prediction, types.ValidRetrievalPrediction)
-      prediction = types.ValidRetrievalPrediction([
+      assert isinstance(prediction, types.ValidListPrediction)
+      prediction = types.ValidListPrediction([
           {**item, 'text': self._text_by_id[item['id']]}
           for item in prediction.items
       ])
