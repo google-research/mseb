@@ -20,6 +20,8 @@ from mseb.task import get_task_by_name
 from .classifications.birdset.birdset import *
 from .classifications.intent.speech_massive import *
 from .classifications.sound.fsd50k import *
+from .classifications.speaker_gender.speech_massive import *
+from .classifications.speaker_gender.svq import *
 from .clusterings.birdset import *
 from .clusterings.fsd50k import *
 from .clusterings.svq import *
