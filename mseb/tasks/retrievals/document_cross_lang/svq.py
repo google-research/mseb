@@ -62,6 +62,19 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
+  def get_documents_source(self) -> str:
+    return 'wikipedia/20190301.en'
+
+  @staticmethod
+  def documents_generator(wikipedia_dataset: Any) -> Iterable[types.Text]:
+    ds = tfds.load(wikipedia_dataset, split='train')
+    for example in ds.as_numpy_iterator():
+      title = example['title'].decode('utf-8')
+      yield types.Text(
+          text=example['text'].decode('utf-8'),
+          context=types.TextContextParams(id=title, title=title),
+      )
+
   def sounds(self) -> Iterable[types.Sound]:
     svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
@@ -74,7 +87,6 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
     ).to_dict('records'):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
-        # Add the ground truth query for headroom analysis.
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
         if retrieval.RETRIEVED_ITEMS_KEY.value:
           sound = types.SoundWithTitleAndContext(
@@ -97,19 +109,6 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
         yield retrieval_evaluator.RetrievalReferenceId(
             sound_id=example['utt_id'], reference_id=example['page_title']
         )
-
-  def get_documents_source(self) -> str:
-    return 'wikipedia/20190301.en'
-
-  @staticmethod
-  def documents_generator(wikipedia_dataset: Any) -> Iterable[types.Text]:
-    ds = tfds.load(wikipedia_dataset, split='train')
-    for example in ds.as_numpy_iterator():
-      title = example['title'].decode('utf-8')
-      yield types.Text(
-          text=example['text'].decode('utf-8'),
-          context=types.TextContextParams(id=title, title=title),
-      )
 
 
 class SVQArEgDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):

@@ -67,40 +67,6 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
-  def sounds(self) -> Iterable[types.Sound]:
-    svq_dataset = self._get_svq_dataset()
-    for example in svq_dataset.get_task_data(
-        'document_retrieval_in_lang',
-        dtype={
-            'locale': str,
-            'utt_id': str,
-            task_lib.TRANSCRIPT_KEY.value: str,
-        },
-    ).to_dict('records'):
-      if example['locale'] == self.locale:
-        sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
-        # Add the ground truth query for headroom analysis.
-        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
-        if retrieval.RETRIEVED_ITEMS_KEY.value:
-          sound = types.SoundWithTitleAndContext(
-              waveform=sound.waveform,
-              context=sound.context,
-              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
-          )
-        yield sound
-
-  def examples(
-      self, sub_task: str
-  ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    svq_dataset = self._get_svq_dataset()
-    for example in svq_dataset.get_task_data(
-        sub_task, dtype={'locale': str, 'utt_id': str, 'page_title': str}
-    ).to_dict('records'):
-      if example['locale'] == self.locale:
-        yield retrieval_evaluator.RetrievalReferenceId(
-            sound_id=example['utt_id'], reference_id=example['page_title']
-        )
-
   def get_documents_source(self) -> str:
     return f'wikipedia/20190301.{self.language}'
 
@@ -113,6 +79,41 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
           text=example['text'].decode('utf-8'),
           context=types.TextContextParams(id=title, title=title),
       )
+
+  def sounds(self) -> Iterable[types.Sound]:
+    svq_dataset = self._get_svq_dataset()
+    for example in svq_dataset.get_task_data(
+        'document_retrieval_in_lang',
+        dtype={
+            'locale': str,
+            'utt_id': str,
+            task_lib.TRANSCRIPT_KEY.value: str,
+        },
+    ).to_dict('records'):
+      if example['locale'] == self.locale:
+        sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
+        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+        if retrieval.RETRIEVED_ITEMS_KEY.value:
+          sound = types.SoundWithTitleAndContext(
+              waveform=sound.waveform,
+              context=sound.context,
+              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value),
+          )
+        yield sound
+
+  def examples(
+      self, sub_task: str
+  ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
+    filter_fn = _filter_fn_by_sub_task[sub_task]
+    svq_dataset = self._get_svq_dataset()
+    for example in svq_dataset.get_task_data(
+        _base_sub_task(sub_task),
+        dtype={'locale': str, 'utt_id': str, 'page_title': str}
+    ).to_dict('records'):
+      if example['locale'] == self.locale and filter_fn(example):
+        yield retrieval_evaluator.RetrievalReferenceId(
+            sound_id=example['utt_id'], reference_id=example['page_title']
+        )
 
 
 class SVQArEgDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
