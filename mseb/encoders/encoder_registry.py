@@ -47,6 +47,12 @@ _PROMPT_NAME = flags.DEFINE_string(
     "Name of the prompt to use for LLM-based encoders.",
 )
 
+_CLAP_MODEL_PATH = flags.DEFINE_string(
+    "clap_model_path",
+    "laion/clap-htsat-unfused",
+    "Path to CLAP model.",
+)
+
 _GECKO_MODEL_PATH = flags.DEFINE_string(
     "gecko_model_path",
     "@gecko/gecko-1b-i18n-cpu/2",
@@ -711,7 +717,7 @@ laion_clap_encoder = EncoderMetadata(
     name="laion_clap_encoder",
     encoder=clap_encoder.ClapEncoder,
     params=lambda: dict(
-        model_path="laion/clap-htsat-unfused",
+        model_path=_CLAP_MODEL_PATH.value,
     )
 )
 
