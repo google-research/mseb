@@ -81,6 +81,30 @@ class MetricsTest(parameterized.TestCase):
     )
     self.assertEqual(exact_match, expected_exact_match)
 
+  def test_compute_word_errors_correct(self):
+    word_errors, word_errors_weight = metrics.compute_word_errors(
+        truth="This is a test.",
+        hypothesis="This is a test.",
+    )
+    self.assertEqual(word_errors, 0.0)
+    self.assertEqual(word_errors_weight, 4.0)
+
+  def test_compute_word_errors_incorrect(self):
+    word_errors, word_errors_weight = metrics.compute_word_errors(
+        truth="This is a test.",
+        hypothesis="This is another test.",
+    )
+    self.assertEqual(word_errors, 1.0)
+    self.assertEqual(word_errors_weight, 4.0)
+
+  def test_compute_word_errors_empty_transcript(self):
+    word_errors, word_errors_weight = metrics.compute_word_errors(
+        truth="This is a test.",
+        hypothesis="",
+    )
+    self.assertEqual(word_errors, 4.0)
+    self.assertEqual(word_errors_weight, 4.0)
+
 
 if __name__ == "__main__":
   absltest.main()

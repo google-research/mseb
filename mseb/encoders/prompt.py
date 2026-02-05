@@ -387,3 +387,31 @@ Each JSON object should have the following structure:
     if not results:
       return self.INVALID_ANSWER_STR
     return json.dumps(results)
+
+
+class TranscriptionPrompt(Prompt):
+  """A prompt for the transcription task."""
+
+  NO_RESPONSE_STR = types.LLM_NO_RESPONSE_STR
+  PROMPT_TEMPLATE = """
+**Task: Speech Transcription**
+
+**Goal:** Provide a high-fidelity transcription of the provided audio clip.
+
+**Input:** You will receive an audio clip containing the recording of spoken text.
+
+**Output:** You will produce a plain text string (no markup) containing the transcription of the audio clip .
+
+**Important Considerations:**
+* **No Other Output:** The output should only contain the transcription.
+* **Plain Text Output:** The output must be a plain text string – no markup of any kind.
+"""
+
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
+    self.prompt_template = prompt_template
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> str:
+    return response

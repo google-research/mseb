@@ -43,6 +43,7 @@ dependencies = [
     "tensorflow",
     "tensorflow-datasets==4.9.9",
     "torch",
+    "whisper",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`

@@ -90,6 +90,12 @@ segmentation = PromptMetadata(
     params=lambda: {},
 )
 
+transcription = PromptMetadata(
+    name="transcription",
+    prompt=prompt_lib.TranscriptionPrompt,
+    params=lambda: {},
+)
+
 _REGISTRY: dict[str, PromptMetadata] = {}
 
 

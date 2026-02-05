@@ -17,10 +17,9 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Dict, Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 import jaxtyping
-import jiwer
 from mseb import evaluator
 from mseb import metrics
 from mseb import types
@@ -71,45 +70,6 @@ def cer(value: float = 0.0, std: float | None = None):
       min=0,
       max=float('inf'),
       std=std,
-  )
-
-
-def _compute_levenshtein_stats(truth: str, hypothesis: str) -> Dict[str, float]:
-  """Wrapper around jiwer library to compute Levenshtein statistics."""
-  try:
-    stats = jiwer.compute_measures(truth=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
-    return {
-        'substitutions': stats['substitutions'],
-        'deletions': stats['deletions'],
-        'insertions': stats['insertions'],
-        'hits': stats['hits'],
-    }
-  except AttributeError:
-    stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
-    return {
-        'substitutions': stats.substitutions,
-        'deletions': stats.deletions,
-        'insertions': stats.insertions,
-        'hits': stats.hits,
-    }
-
-
-def compute_word_errors(
-    truth: str, hypothesis: str, *, is_english: bool
-) -> tuple[float, float]:
-  """Computes the word errors."""
-  text_transform = (
-      english.EnglishTextNormalizer()
-      if is_english
-      else basic.BasicTextNormalizer()
-  )
-
-  stats = _compute_levenshtein_stats(
-      truth=text_transform(truth), hypothesis=text_transform(hypothesis)
-  )
-  return (
-      stats['substitutions'] + stats['deletions'] + stats['insertions'],
-      stats['hits'] + stats['substitutions'] + stats['deletions'],
   )
 
 
@@ -187,8 +147,11 @@ class RerankingEvaluator:
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
 
-    def is_english(language: str) -> bool:
-      return language.split('_')[0].lower() == 'en'
+    def text_transform(language: str) -> Callable[[str], str]:
+      if language.split('_')[0].lower() == 'en':
+        return english.EnglishTextNormalizer()
+      else:
+        return basic.BasicTextNormalizer()
 
     values_by_metric: dict[str, list[types.WeightedValue]] = {
         'map': [],
@@ -201,10 +164,10 @@ class RerankingEvaluator:
           candidates.sound_id
       ]
 
-      word_errors, word_errors_weight = compute_word_errors(
+      word_errors, word_errors_weight = metrics.compute_word_errors(
           truth=candidates.texts[0],
           hypothesis=ranked_candidate_texts[0],
-          is_english=is_english(candidates.language),
+          text_transform=text_transform(candidates.language),
       )
       values_by_metric['wer'].append(
           types.WeightedValue(
@@ -215,10 +178,10 @@ class RerankingEvaluator:
       values_by_metric['cer'].append(
           types.WeightedValue(
               value=float(
-                  compute_word_errors(
+                  metrics.compute_word_errors(
                       truth=candidates.texts[0],
                       hypothesis=ranked_candidate_texts[0],
-                      is_english=is_english(candidates.language),
+                      text_transform=text_transform(candidates.language),
                   )[0]
                   != 0.0
               )
@@ -235,10 +198,10 @@ class RerankingEvaluator:
           types.WeightedValue(
               value=sklearn_metrics.average_precision_score(
                   y_true=[
-                      compute_word_errors(
+                      metrics.compute_word_errors(
                           truth=candidates.texts[0],
                           hypothesis=text,
-                          is_english=is_english(candidates.language),
+                          text_transform=text_transform(candidates.language),
                       )[0]
                       == 0.0
                       for text in ranked_candidate_texts

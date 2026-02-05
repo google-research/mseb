@@ -15,6 +15,10 @@
 """Common metrics for MSEB."""
 
 from collections.abc import Sequence
+from typing import Callable, Mapping
+import jiwer
+# from whisper.normalizers import basic
+# from whisper.normalizers import english
 
 
 def compute_reciprocal_rank(
@@ -38,3 +42,44 @@ def compute_exact_match(
   if predicted_neighbors:
     return float(reference == predicted_neighbors[0])
   return 0.0
+
+
+def _compute_levenshtein_stats(
+    truth: str, hypothesis: str
+) -> Mapping[str, float]:
+  """Wrapper around jiwer library to compute Levenshtein statistics."""
+  try:
+    stats = jiwer.compute_measures(truth=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
+    return {
+        'substitutions': stats['substitutions'],
+        'deletions': stats['deletions'],
+        'insertions': stats['insertions'],
+        'hits': stats['hits'],
+    }
+  except AttributeError:
+    stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
+    return {
+        'substitutions': stats.substitutions,
+        'deletions': stats.deletions,
+        'insertions': stats.insertions,
+        'hits': stats.hits,
+    }
+
+
+def compute_word_errors(
+    truth: str,
+    hypothesis: str,
+    *,
+    text_transform: Callable[[str], str] | None = None
+) -> tuple[float, float]:
+  """Computes the word errors."""
+
+  if text_transform:
+    truth = text_transform(truth)
+    hypothesis = text_transform(hypothesis)
+
+  stats = _compute_levenshtein_stats(truth=truth, hypothesis=hypothesis)
+  return (
+      stats['substitutions'] + stats['deletions'] + stats['insertions'],
+      stats['hits'] + stats['substitutions'] + stats['deletions'],
+  )
