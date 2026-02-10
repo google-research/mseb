@@ -62,11 +62,18 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
             'locale': str,
             'utt_id': str,
             task_lib.TRANSCRIPT_KEY.value: str,
+            transcription.CONTEXTUAL_BIAS_KEY.value: str,
         },
     ).to_dict('records'):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound(example)
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+        if transcription.CONTEXTUAL_BIAS_KEY.value:
+          sound = types.SoundWithTitleAndContext(
+              waveform=sound.waveform,
+              context=sound.context,
+              context_text=example.get(transcription.CONTEXTUAL_BIAS_KEY.value),
+          )
         yield sound
 
   def examples(

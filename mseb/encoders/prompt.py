@@ -455,13 +455,15 @@ class TranscriptionPrompt(Prompt):
 
 **Goal:** Provide a high-fidelity transcription of the provided audio clip.
 
-**Input:** You will receive an audio clip containing the recording of spoken text.
+**Input:** You will receive an audio clip containing the recording of spoken text and optionally a contextual bias.
 
 **Output:** You will produce a plain text string (no markup) containing the transcription of the audio clip .
 
 **Important Considerations:**
 * **No Other Output:** The output should only contain the transcription.
 * **Plain Text Output:** The output must be a plain text string – no markup of any kind.
+
+{{"contextual bias": {context}}}
 """
 
   def __init__(self, prompt_template: str = PROMPT_TEMPLATE):

@@ -17,10 +17,18 @@
 import abc
 from typing import Iterable
 
+from absl import flags
 from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.evaluators import transcription_evaluator
+
+
+CONTEXTUAL_BIAS_KEY = flags.DEFINE_string(
+    'contextual_bias_key',
+    None,
+    'Key to use for the contextual bias.',
+)
 
 
 class TranscriptionTask(task.MSEBTask):
