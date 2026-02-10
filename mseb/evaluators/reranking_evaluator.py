@@ -175,7 +175,10 @@ class RerankingEvaluator:
       if isinstance(prediction, types.ValidListPrediction):
         predicted_items = prediction.items
         for item in predicted_items:
-          item['text'] = item.get('text', candidates.texts[int(item['id'])])
+          try:
+            item['text'] = item.get('text', candidates.texts[int(item['id'])])
+          except IndexError:
+            item['text'] = ''
 
         word_errors, word_errors_weight = metrics.compute_word_errors(
             truth=candidates.texts[0],
