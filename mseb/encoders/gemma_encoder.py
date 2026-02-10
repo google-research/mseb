@@ -1,4 +1,4 @@
-# Copyright 2025 The MSEB Authors.
+# Copyright 2026 The MSEB Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,6 +74,7 @@ class GemmaTextEncoder(prompt_encoder.TextEncoderWithPrompt):
     if self._client is None:
       logging.info('Connecting to Gemma at: %s', self._model_path)
       self._client = genai.Client(api_key=_GEMINI_API_KEY.value)
+      logging.info('Connected to Gemma at: %s', self._model_path)
     self.prompt_encode_fn = lambda prompts: np.array([
         GemmaTextEncoder.get_response(
             prompt,
@@ -108,8 +109,8 @@ class GemmaTextEncoder(prompt_encoder.TextEncoderWithPrompt):
         response = client.models.generate_content(
             model=model_path, contents=prompt_content
         ).text
-      except Exception as _:  # pylint: disable=broad-exception-caught
-        logging.warning('Failed to get prediction, retrying %d', n_try)
+      except Exception as e:  # pylint: disable=broad-exception-caught
+        logging.warning('Failed to get prediction: %s, retrying %d: ', e, n_try)
         time.sleep(int(wait_time * 1.5 ** (n_try + 1)))
         continue
 
