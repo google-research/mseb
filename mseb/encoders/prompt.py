@@ -17,7 +17,7 @@
 import abc
 import json
 import logging
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from mseb import types
 from mseb.evaluators import classification_evaluator
@@ -436,11 +436,12 @@ class RerankingPrompt(Prompt):
 *Output:** You will produce a list of candidate ids ordered from most to least accurate.
 
 **Important Considerations:**
-* Accuracteness should be determined based on the exact match between the spoken query and the candidate.
+* Accuracteness should be determined based on the word error rate between the spoken query and the candidate transcription.
 * All candidates should be considered: the ranklist produced should contain all candidate ids.
 * **Exact Matches:** The output should contain candidate ids that match exactly ones provided.
 * **No Other Output:** The output should only contain the ranked list of candidate ids.
 * **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+* **Example output:** "[0, 3, 1, 2]".
 
 {{"query": {text}, "candidates": {context}}}
 """
@@ -456,22 +457,21 @@ class RerankingPrompt(Prompt):
     if response != self.NO_RESPONSE_STR:
       try:
         result = json.loads(response)
-        if not isinstance(result, list):
-          raise ValueError('Result is not a list of strings: %s' % result)
+        if not isinstance(result, Iterable):
+          raise ValueError('Result is not a list: %s' % result)
         if not result:
           raise ValueError('Result is empty')
         for item in result:
-          if not isinstance(item, str):
-            raise ValueError('Item is not a string: %s' % item)
           try:
             _ = int(item)
-          except ValueError as exc:
+          except (ValueError, TypeError) as exc:
             raise ValueError(
                 'Item can not be converted to an integer: %s' % item
             ) from exc
         result = types.ValidListPrediction([{'id': item} for item in result])
-      except (json.JSONDecodeError, ValueError):
+      except (json.JSONDecodeError, ValueError) as exc:
         logging.warning('Invalid response format/type: %s', response)
+        logging.warning('Error: %s', exc)
         return types.InvalidAnswerListPrediction().to_json()
     else:
       return types.NoResponseListPrediction().to_json()
