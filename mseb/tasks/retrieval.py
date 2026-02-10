@@ -102,10 +102,11 @@ class RetrievalTask(task.MSEBTask):
             searcher, id_by_index_id, index_dir, self.id_by_index_id_filepath
         )
       else:
-        raise ValueError(
+        logger.error(
             'Index not found in cache directory. Did you create the index by'
             ' running run_task_setup?'
-        ) from FileNotFoundError
+        )
+        searcher, id_by_index_id = None, None
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=searcher, id_by_index_id=id_by_index_id
