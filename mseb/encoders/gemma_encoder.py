@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""LLM encoder."""
+"""Gemma LLM encoder."""
 
 import logging
 import re
@@ -185,6 +185,8 @@ def GemmaWithTitleAndContextWhisperEncoder(
     prompt: prompt_lib.Prompt = prompt_lib.ReasoningPrompt(),
     max_num_retry: int = 1,
     wait_time: float = 1.0,
+    whisper_word_timestamps: bool = False,
+    output_json_alignment: bool = False,
 ) -> encoder.CascadeEncoder:
   """Cascaded Whisper and Gemma encoder with title and context.
 
@@ -198,6 +200,9 @@ def GemmaWithTitleAndContextWhisperEncoder(
     prompt: Format of the prompt to be used for Gemma.
     max_num_retry: The maximum number of retries for the model.
     wait_time: The wait time in seconds between retries.
+    whisper_word_timestamps: Whether to output word timestamps from Whisper.
+    output_json_alignment: Whether to output json alignment from Whisper. This
+      is used for the case when the downstream model expects json alignment.
 
   Returns:
     A cascaded Whisper and Gemma encoder with title and context.
@@ -206,10 +211,13 @@ def GemmaWithTitleAndContextWhisperEncoder(
       encoders=[
           encoder.SpeechToTextWithTitleAndContextEncoder(
               speech_to_text_encoder=whisper_encoder.SpeechToTextEncoder(
-                  model_path=whisper_model_path
+                  model_path=whisper_model_path,
+                  word_timestamps=whisper_word_timestamps,
               )
           ),
-          converter.SoundEmbeddingToTextConverter(),
+          converter.SoundEmbeddingToTextConverter(
+              output_json_alignment=output_json_alignment
+          ),
           GemmaTextEncoder(
               model_path=gemma_model_path,
               normalizer=normalizer,

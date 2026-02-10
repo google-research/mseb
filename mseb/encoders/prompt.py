@@ -349,7 +349,7 @@ class SegmentationPrompt(Prompt):
 **Input:** You will receive an audio query.
 
 **Output:** For each of the top-{top_k} most salient terms in the query, you will produce a single JSON object as a plain text string (no markup).
-Up to {top_k} JSON objects can be output.
+Up to {top_k} JSON objects can be output, ordered from most to least salient.
 Each JSON object should be produced on a new line.
 Each JSON object should have the following structure:
  * "term": (string) The salient term from the query.
@@ -361,6 +361,63 @@ Each JSON object should have the following structure:
 * A term is a salient term if it is a topic or a concept that is relevant to the query.
 * A term is salient if it would appear in a relatively small number of wikipedia articles.
 * **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+"""
+  INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
+
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE, top_k: int = 3):
+    self.prompt_template = prompt_template.format(top_k=top_k)
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> Any:
+    assert isinstance(response, str)
+    if response == self.NO_RESPONSE_STR:
+      return self.NO_RESPONSE_STR
+    lines = response.split('\n')
+    results = []
+    for line in lines:
+      if ValidateJson(
+          line,
+          {'term': str(), 'start_time': float(), 'end_time': float()},
+      ):
+        result = json.loads(line)
+        results.append(result)
+    if not results:
+      return self.INVALID_ANSWER_STR
+    return json.dumps(results)
+
+
+class SegmentationFromAlignmentPrompt(Prompt):
+  """A prompt for the segmentation task."""
+
+  PROMPT_TEMPLATE = """
+**Task: Salient Term Segmentation**
+
+**Goal:** Given a query, return the top-{top_k} most salient terms from the query.
+
+**Input:** You will receive the time-aligned transcript of an audio query which has already been transcribed. In the following format:
+  * "alignment": The time-aligned transcript of the query. This is a JSON-encoded list of objects, where each object has the following fields:
+    * "text": (string) The word at this position in the transcript.
+    * "start_time": (float) start time of that word in seconds in the original audio for the query.
+    * "end_time": (float) end time of that word in seconds in the original audio for the query.
+
+**Output:** For each of the top-{top_k} most salient terms in the query, you will produce a single JSON object as a plain text string (no markup).
+Up to {top_k} JSON objects can be output, ordered from most to least salient.
+Each JSON object should be produced on a new line.
+Each JSON object should have the following structure:
+ * "term": (string) The salient term from the query.
+ * "start_time": (float) start time of the term in seconds.
+ * "end_time": (float) end time of the term in seconds.
+
+**Important Considerations:**
+* A term must consist of just one word.
+* A term is a salient term if it is a topic or a concept that is relevant to the query.
+* A term is salient if it would appear in a relatively small number of wikipedia articles.
+* **Plain Text JSON Output:** The output must be a valid JSON string, but it must be a plain text string – no markup of any kind.
+
+{{{{"alignment": {{text}}}}}}
 """
   INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
   NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR

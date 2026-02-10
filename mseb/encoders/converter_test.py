@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from absl.testing import absltest
 from mseb import types
 from mseb.encoders import converter as converter_lib
@@ -93,6 +95,24 @@ class SoundEmbeddingToTextConverterTest(absltest.TestCase):
     self.assertEqual(text.text, "transcript truth")
     self.assertEqual(text.title_text, "title")
     self.assertEqual(text.context_text, "context")
+
+  def test_eval_sound_embedding_with_json_alignment(self):
+    converter = converter_lib.SoundEmbeddingToTextConverter(
+        output_json_alignment=True
+    )
+    converter.setup()
+    context = types.SoundContextParams(sample_rate=2, length=4, id="test")
+    text = converter.encode([
+        types.SoundEmbedding(
+            embedding=np.array(["transcript truth"]),
+            timestamps=np.array([[0.0, 2.0]]),
+            context=context,
+        )
+    ])[0]
+    self.assertIsInstance(text, types.Text)
+    self.assertEqual(text.context.id, "test")
+    self.assertEqual(text.text, json.dumps([{
+        "text": "transcript truth", "start_time": 0.0, "end_time": 2.0}]))
 
 
 class TextEmbeddingToTextPredictionConverterTest(absltest.TestCase):

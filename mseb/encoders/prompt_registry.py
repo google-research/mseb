@@ -90,6 +90,12 @@ segmentation = PromptMetadata(
     params=lambda: {},
 )
 
+segmentation_from_alignment = PromptMetadata(
+    name="segmentation_from_alignment",
+    prompt=prompt_lib.SegmentationFromAlignmentPrompt,
+    params=lambda: {},
+)
+
 transcription = PromptMetadata(
     name="transcription",
     prompt=prompt_lib.TranscriptionPrompt,

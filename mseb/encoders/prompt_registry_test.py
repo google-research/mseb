@@ -24,6 +24,7 @@ class PromptRegistryTest(parameterized.TestCase):
       prompt_registry.intent_classification,
       prompt_registry.speaker_gender_classification,
       prompt_registry.segmentation,
+      prompt_registry.segmentation_from_alignment,
   )
   def test_load_encoder(self, meta):
     prompt = meta.load()

@@ -430,6 +430,18 @@ gemma_with_title_and_context_whisper = EncoderMetadata(
     ),
 )
 
+gemma_with_title_and_context_whisper_alignment = EncoderMetadata(
+    name="gemma_with_title_and_context_whisper_alignment",
+    encoder=gemma_encoder.GemmaWithTitleAndContextWhisperEncoder,
+    params=lambda: dict(
+        whisper_model_path=_WHISPER_MODEL_PATH.value,
+        gemma_model_path=_GEMMA_URL.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+        whisper_word_timestamps=True,
+        output_json_alignment=True,
+    ),
+)
+
 gemma_with_title_and_context = EncoderMetadata(
     name="gemma_with_title_and_context",
     encoder=gemma_encoder.GemmaWithTitleAndContextEncoder,

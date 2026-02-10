@@ -192,6 +192,72 @@ class PromptTest(absltest.TestCase):
         self.NO_RESPONSE_STR,
     )
 
+  def test_segmentation_from_alignment_prompt(self):
+    prompt = prompt_lib.SegmentationFromAlignmentPrompt()
+    print(prompt.GetPromptTemplate())
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "term": "Paris",
+                "start_time": 0.0,
+                "end_time": 1.0,
+            })
+        ),
+        json.dumps([{
+            "term": "Paris",
+            "start_time": 0.0,
+            "end_time": 1.0,
+        }]),
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            "\n".join([
+                json.dumps({
+                    "term": "Paris",
+                    "start_time": 0.0,
+                    "end_time": 1.0,
+                }),
+                json.dumps({
+                    "term": "Munich",
+                    "start_time": 2.0,
+                    "end_time": 3.0,
+                }),
+                "invalid json",
+                json.dumps({"term": "London "})
+            ])
+        ),
+        json.dumps([
+            {
+                "term": "Paris",
+                "start_time": 0.0,
+                "end_time": 1.0,
+            },
+            {
+                "term": "Munich",
+                "start_time": 2.0,
+                "end_time": 3.0,
+            },
+        ]),
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            json.dumps({
+                "term": "Paris",
+                "start_time": 0.0,
+                "end_time": "1.0",
+            })
+        ),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse("invalid json"),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(self.NO_RESPONSE_STR),
+        self.NO_RESPONSE_STR,
+    )
+
   def test_sound_classification_prompt(self):
     prompt = prompt_lib.SoundClassificationPrompt(
         class_labels=["label_1", "label_2"]

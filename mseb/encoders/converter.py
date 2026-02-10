@@ -15,6 +15,7 @@
 """Converter between different types of MultiModalObjects for MSEB encoders."""
 
 from collections.abc import Sequence
+import json
 from typing import final
 
 import jaxtyping
@@ -80,6 +81,10 @@ class SoundToSoundEmbeddingConverter(Converter):
 class SoundEmbeddingToTextConverter(Converter):
   """Converter between different types of MultiModalObjects for MSEB encoders."""
 
+  def __init__(self, output_json_alignment: bool = False):
+    super().__init__()
+    self.output_json_alignment = output_json_alignment
+
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.SoundEmbedding) for x in batch):
       raise ValueError(
@@ -96,9 +101,20 @@ class SoundEmbeddingToTextConverter(Converter):
     for sound_embedding in batch:
       assert isinstance(sound_embedding, types.SoundEmbedding)
       embedding: jaxtyping.Shaped[np.ndarray, '1'] = sound_embedding.embedding
+      if self.output_json_alignment:
+        alignment = list()
+        for word, timestamps in zip(embedding, sound_embedding.timestamps):
+          alignment.append({
+              'text': word,
+              'start_time': timestamps[0],
+              'end_time': timestamps[1],
+          })
+        text = json.dumps(alignment)
+      else:
+        text = str(embedding[0])
       if isinstance(sound_embedding, types.SoundEmbeddingWithTitleAndContext):
         text = types.TextWithTitleAndContext(
-            text=str(embedding[0]),
+            text=text,
             title_text=sound_embedding.title_text,
             context_text=sound_embedding.context_text,
             context=types.TextContextParams(
@@ -108,7 +124,7 @@ class SoundEmbeddingToTextConverter(Converter):
         )
       else:
         text = types.Text(
-            text=str(embedding[0]),
+            text=text,
             context=types.TextContextParams(
                 id=sound_embedding.context.id,
                 debug_text=sound_embedding.context.debug_text,
