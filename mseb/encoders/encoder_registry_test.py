@@ -34,6 +34,7 @@ class EncoderRegistryTest(parameterized.TestCase):
       encoder_registry.gemma_with_title_and_context,
       encoder_registry.hf_llm_with_title_and_context,
       encoder_registry.openai_llm_with_title_and_context,
+      encoder_registry.openai_speech_to_text,
   )
   def test_load_encoder(self, meta):
     encoder = meta.load()

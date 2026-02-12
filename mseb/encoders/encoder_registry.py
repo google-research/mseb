@@ -34,6 +34,7 @@ from mseb.encoders import gemma_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import openai_llm_encoder
+from mseb.encoders import openai_s2t_encoder
 from mseb.encoders import prompt_registry
 from mseb.encoders import raw_encoder
 from mseb.encoders import segmentation_encoder
@@ -101,6 +102,24 @@ _OPENAI_MODEL_NAME = flags.DEFINE_string(
     "openai_model_name",
     "gemini-2.5-flash-lite",
     "Name of the OpenAI API model.",
+)
+
+_OPENAI_S2T_API_KEY = flags.DEFINE_string(
+    "openai_s2t_api_key",
+    "",
+    "API key for OpenAI Audio Transcriptions API.",
+)
+
+_OPENAI_S2T_MODEL_NAME = flags.DEFINE_string(
+    "openai_s2t_model_name",
+    "gpt-4o-transcribe",
+    "Name of the OpenAI Audio Transcriptions API model.",
+)
+
+_OPENAI_S2T_SERVER_URL = flags.DEFINE_string(
+    "openai_s2t_server_url",
+    "https://api.openai.com/v1",
+    "URL of OpenAI S2T API server.",
 )
 
 _WHISPER_MODEL_PATH = flags.DEFINE_string(
@@ -239,6 +258,16 @@ raw_encoder_25ms_10ms = EncoderMetadata(
         "transform_fn": raw_encoder.spectrogram_transform,
         "pooling": "mean",
     },
+)
+
+openai_speech_to_text = EncoderMetadata(
+    name="openai_speech_to_text",
+    encoder=openai_s2t_encoder.OpenAISpeechToTextEncoder,
+    params=lambda: dict(
+        model_name=_OPENAI_S2T_MODEL_NAME.value,
+        api_key=_OPENAI_S2T_API_KEY.value,
+        server_url=_OPENAI_S2T_SERVER_URL.value,
+    ),
 )
 
 whisper_speech_to_text = EncoderMetadata(
