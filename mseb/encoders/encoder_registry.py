@@ -33,6 +33,7 @@ from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import gemma_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
+from mseb.encoders import litellm_s2t_encoder
 from mseb.encoders import openai_llm_encoder
 from mseb.encoders import openai_s2t_encoder
 from mseb.encoders import prompt_registry
@@ -120,6 +121,18 @@ _OPENAI_S2T_SERVER_URL = flags.DEFINE_string(
     "openai_s2t_server_url",
     "https://api.openai.com/v1",
     "URL of OpenAI S2T API server.",
+)
+
+_LITELLM_S2T_API_KEY = flags.DEFINE_string(
+    "litellm_s2t_api_key",
+    "",
+    "API key for LiteLLM Transcriptions API.",
+)
+
+_LITELLM_S2T_MODEL_NAME = flags.DEFINE_string(
+    "litellm_s2t_model_name",
+    "elevenlabs/scribe_v2",
+    "Name of the LiteLLM Transcriptions API model.",
 )
 
 _WHISPER_MODEL_PATH = flags.DEFINE_string(
@@ -258,6 +271,15 @@ raw_encoder_25ms_10ms = EncoderMetadata(
         "transform_fn": raw_encoder.spectrogram_transform,
         "pooling": "mean",
     },
+)
+
+litellm_speech_to_text = EncoderMetadata(
+    name="litellm_speech_to_text",
+    encoder=litellm_s2t_encoder.LiteLLMSpeechToTextEncoder,
+    params=lambda: dict(
+        model_name=_LITELLM_S2T_MODEL_NAME.value,
+        api_key=_LITELLM_S2T_API_KEY.value,
+    ),
 )
 
 openai_speech_to_text = EncoderMetadata(

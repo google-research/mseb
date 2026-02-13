@@ -30,6 +30,7 @@ dependencies = [
     "jaxtyping",
     "jiwer>=2.0,<3.0",
     "librosa",
+    "litellm",
     "numpy",
     "openai",
     "pandas",
