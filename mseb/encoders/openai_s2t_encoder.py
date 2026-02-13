@@ -177,11 +177,17 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       embeddings_list = []
       for word in transcription.words:
         timestamps_list.append([word.start, word.end])
-        embeddings_list.append(word.text)
+        embeddings_list.append(word.word)
       timestamps = np.array(timestamps_list, dtype=float)
       embeddings = np.array(embeddings_list, dtype=object)
     else:
-      timestamps = np.array([[0.0, transcription.duration]], dtype=float)
+      timestamps = np.array(
+          [[
+              sound.context.waveform_start_second,
+              sound.context.waveform_end_second,
+          ]],
+          dtype=float,
+      )
       embeddings = np.array([transcription.text], dtype=object)
 
     return types.SoundEmbedding(
