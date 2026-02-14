@@ -35,4 +35,4 @@ from .reasonings.span_in_lang.svq import *
 # from .retrievals.passage_cross_lang.svq import *
 # from .retrievals.passage_in_lang.svq import *
 from .segmentations.salient_term.svq import *
-# from .transcriptions.speech.svq import *
+from .transcriptions.speech.svq import *
