@@ -37,9 +37,9 @@ def format_value(value) -> str:
 def generate_detail_table(
     data: dict[str, dict[str, float]],
     sorted_names: List[str],
-    task_type: str,
+    main_task_type: str,
     columns: List[str],
-    task_info: dict[str, tuple[str, List[str]]],
+    task_info: dict[str, tuple[str, str, List[str]]],
 ) -> str:
   """Generates an HTML table for individual sub-task results of a task type."""
   # Determine which encoders have any non-"N/A" values for this task type
@@ -57,9 +57,9 @@ def generate_detail_table(
     return ""
 
   html = '<div class="detail-table-section">\n'
-  html += f'<h2 id="{task_type}">{task_type}</h2>\n'
+  html += f'<h2 id="{main_task_type}">{main_task_type}</h2>\n'
   html += '<div class="table-container">\n'
-  html += f'<table id="details-table-{task_type}" border="1">\n'
+  html += f'<table id="details-table-{main_task_type}" border="1">\n'
   html += "  <thead>\n"
   html += "    <tr>\n"
   html += "      <th>Metric</th>\n"
@@ -69,7 +69,7 @@ def generate_detail_table(
   html += "  </thead>\n"
   html += "  <tbody>\n"
   for col in columns:
-    task_type, task_languages = task_info[col]
+    _, task_type, task_languages = task_info[col]
     lang_str = ", ".join(task_languages)
     html += "    <tr>\n"
     html += f"     <td>{col}<br/>({task_type}, {lang_str})</td>\n"
@@ -113,13 +113,16 @@ def generate_html_table(
       data[r.name] = {}
     column_key = f"{r.task_name} ({r.main_score_metric})"
     columns.add(column_key)
-    task_info[column_key] = (r.task_type, r.task_languages)
+
+    main_task_type = r.task_subtypes[0] if r.task_subtypes else r.task_type
+    task_info[column_key] = (main_task_type, r.task_type, r.task_languages)
+
     # We only want to display the main score value
     if r.metric == r.main_score_metric:
       data[r.name][column_key] = r.metric_value
-      scores_by_type[r.name][r.task_type].append(r.metric_value)
-      if r.task_type not in task_type_descriptions:
-        task_type_descriptions[r.task_type] = r.metric_description
+      scores_by_type[r.name][main_task_type].append(r.metric_value)
+      if main_task_type not in task_type_descriptions:
+        task_type_descriptions[main_task_type] = r.metric_description
 
   sorted_names = sorted(data.keys())
 
@@ -129,8 +132,10 @@ def generate_html_table(
     for task_type, scores in type_scores.items():
       mean_scores_by_type[name][task_type] = sum(scores) / len(scores)
 
-  task_types = sorted(list(set(ti[0] for ti in task_info.values())))
-  mean_cols_map = {task_type: f"{task_type} (mean)" for task_type in task_types}
+  main_task_types = sorted(list(set(ti[0] for ti in task_info.values())))
+  mean_cols_map = {
+      task_type: f"{task_type} (mean)" for task_type in main_task_types
+  }
 
   # Main Aggregated Table
   html = '<div class="table-container">\n'
@@ -140,7 +145,7 @@ def generate_html_table(
   html += "    <tr>\n"
   html += "      <th>Rank</th>\n"
   html += "      <th>Encoder Name</th>\n"
-  for task_type in task_types:
+  for task_type in main_task_types:
     description = task_type_descriptions.get(task_type, "")
     html += (
         f'      <th title="{description}"><a'
@@ -155,7 +160,7 @@ def generate_html_table(
   # Sort names by overall mean score (if available) - Assuming a combined mean
   # For now, let's sort by the first mean column
   def get_sort_key(name):
-    first_task_type = task_types[0] if task_types else None
+    first_task_type = main_task_types[0] if main_task_types else None
     return mean_scores_by_type[name].get(first_task_type, -1) * -1  # Descending
 
   sorted_names_by_mean = sorted(sorted_names, key=get_sort_key)
@@ -164,7 +169,7 @@ def generate_html_table(
     html += "    <tr>\n"
     html += f"     <td>{i + 1}</td>\n"
     html += f"     <td>{name}</td>\n"
-    for task_type in task_types:
+    for task_type in main_task_types:
       value = mean_scores_by_type[name].get(task_type, "N/A")
       html += f"      <td>{format_value(value)}</td>\n"
     html += "    </tr>\n"
@@ -176,10 +181,10 @@ def generate_html_table(
   cols_by_type = collections.defaultdict(list)
   sorted_columns = sorted(list(columns))
   for col in sorted_columns:
-    col_task_type, _ = task_info[col]
-    cols_by_type[col_task_type].append(col)
+    main_task_type, _, _ = task_info[col]
+    cols_by_type[main_task_type].append(col)
 
-  for task_type in task_types:
+  for task_type in main_task_types:
     if task_type in cols_by_type:
       html += generate_detail_table(
           data, sorted_names, task_type, cols_by_type[task_type], task_info

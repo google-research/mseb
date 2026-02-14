@@ -75,6 +75,49 @@ class LeaderboardTest(unittest.TestCase):
     new_result = leaderboard.LeaderboardResult.from_json(json_str)
     self.assertEqual(result, new_result)
 
+  def test_flatten_leaderboard_results(self):
+    """Test that flatten_leaderboard_results works correctly."""
+    result = leaderboard.LeaderboardResult(
+        name='test_encoder',
+        sub_task_name='test_sub_task',
+        task_metadata=types.TaskMetadata(
+            name='test_task',
+            description='test description',
+            reference='test reference',
+            type='test type',
+            category='test category',
+            main_score='accuracy',
+            revision='test revision',
+            dataset=types.Dataset(path='test path', revision='test revision'),
+            scores=[
+                types.Score(
+                    metric='accuracy',
+                    description='test description',
+                    value=0.0,
+                    min=0,
+                    max=1,
+                ),
+            ],
+            eval_splits=['test'],
+            eval_langs=['en'],
+            task_subtypes=['test_subtype'],
+        ),
+        scores=[
+            types.Score(
+                metric='accuracy',
+                description='test description',
+                value=0.9,
+                min=0,
+                max=1,
+            ),
+        ],
+    )
+
+    flattened = leaderboard.flatten_leaderboard_results([result.to_json()])
+    self.assertEqual(len(flattened), 1)
+    self.assertEqual(flattened[0].task_subtypes, ['test_subtype'])
+    self.assertEqual(flattened[0].task_type, 'test type')
+
 
 if __name__ == '__main__':
   unittest.main()
