@@ -170,6 +170,7 @@ class EncoderMetadata:
   encoder: Callable[..., encoder_lib.MultiModalEncoder]
   # Lazy evaluation of the encoder parameters so we can use flags.
   params: Callable[[], dict[str, Any]]  # Additional encoder parameters.
+  url: str | None = None  # URL for information about the encoder model.
 
   def load(self) -> Encoder:
     """Loads the encoder."""
@@ -181,18 +182,21 @@ gecko_text = EncoderMetadata(
     name="gecko_text",
     encoder=prompt_encoder.GeckoTextEncoder,
     params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_transcript_truth = EncoderMetadata(
     name="gecko_transcript_truth",
     encoder=gecko_encoder.GeckoTranscriptTruthEncoder,
     params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_transcript_truth_or_gecko = EncoderMetadata(
     name="gecko_transcript_truth_or_gecko",
     encoder=gecko_encoder.GeckoTranscriptTruthOrGeckoEncoder,
     params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_transcript_truth_or_gecko_no_prompt = EncoderMetadata(
@@ -205,12 +209,14 @@ gecko_transcript_truth_or_gecko_no_prompt = EncoderMetadata(
         document_normalizer=None,
         document_prompt_template=None,
     ),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_with_title_and_context_transcript_truth_or_gecko = EncoderMetadata(
     name="gecko_with_title_and_context_transcript_truth_or_gecko",
     encoder=gecko_encoder.GeckoWithTitleAndContextTranscriptTruthOrGeckoEncoder,
     params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_whisper = EncoderMetadata(
@@ -220,6 +226,7 @@ gecko_whisper = EncoderMetadata(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
     ),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_whisper_or_gecko = EncoderMetadata(
@@ -229,6 +236,7 @@ gecko_whisper_or_gecko = EncoderMetadata(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
     ),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_whisper_or_gecko_no_prompt = EncoderMetadata(
@@ -242,6 +250,7 @@ gecko_whisper_or_gecko_no_prompt = EncoderMetadata(
         document_normalizer=None,
         document_prompt_template=None,
     ),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_with_title_and_context_whisper = EncoderMetadata(
@@ -251,6 +260,7 @@ gecko_with_title_and_context_whisper = EncoderMetadata(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
     ),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 gecko_with_title_and_context_whisper_or_gecko = EncoderMetadata(
@@ -260,6 +270,7 @@ gecko_with_title_and_context_whisper_or_gecko = EncoderMetadata(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         gecko_model_path=_GECKO_MODEL_PATH.value,
     ),
+    url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
 )
 
 raw_encoder_25ms_10ms = EncoderMetadata(
@@ -271,6 +282,7 @@ raw_encoder_25ms_10ms = EncoderMetadata(
         "transform_fn": raw_encoder.spectrogram_transform,
         "pooling": "mean",
     },
+    url="https://en.wikipedia.org/wiki/Mel_scale",
 )
 
 litellm_speech_to_text = EncoderMetadata(
@@ -290,45 +302,51 @@ openai_speech_to_text = EncoderMetadata(
         api_key=_OPENAI_S2T_API_KEY.value,
         server_url=_OPENAI_S2T_SERVER_URL.value,
     ),
+    url="https://platform.openai.com/docs/guides/speech-to-text",
 )
 
 whisper_speech_to_text = EncoderMetadata(
     name="whisper_speech_to_text",
     encoder=whisper_encoder.SpeechToTextEncoder,
     params=lambda: dict(model_path=_WHISPER_MODEL_PATH.value),
+    url="https://github.com/openai/whisper",
 )
 
 whisper_base_speech_to_text = EncoderMetadata(
     name="whisper_base_speech_to_text",
     encoder=whisper_encoder.SpeechToTextEncoder,
     params=lambda: dict(model_path="base"),
+    url="https://github.com/openai/whisper",
 )
 
 whisper_base_pooled_last = EncoderMetadata(
     name="whisper_base_pooled_last",
     encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path="base", pooling="last"),
+    url="https://github.com/openai/whisper",
 )
 
 whisper_base_pooled_mean = EncoderMetadata(
     name="whisper_base_pooled_mean",
     encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path=_WHISPER_MODEL_PATH.value, pooling="mean"),
+    url="https://github.com/openai/whisper",
 )
 
 whisper_base_pooled_max = EncoderMetadata(
     name="whisper_base_pooled_max",
     encoder=whisper_encoder.PooledAudioEncoder,
     params=lambda: dict(model_path="base", pooling="max"),
+    url="https://github.com/openai/whisper",
 )
 
 whisper_forced_alignment = EncoderMetadata(
     name="whisper_forced_alignment",
     encoder=whisper_encoder.ForcedAlignmentEncoder,
     params=lambda: dict(
-        model_path=_WHISPER_MODEL_PATH.value,
-        language=_LANGUAGE.value
-    )
+        model_path=_WHISPER_MODEL_PATH.value, language=_LANGUAGE.value
+    ),
+    url="https://github.com/openai/whisper",
 )
 
 wav2vec2_large_960h_lv60_pooled_mean = EncoderMetadata(
@@ -340,6 +358,7 @@ wav2vec2_large_960h_lv60_pooled_mean = EncoderMetadata(
         pooling="mean",
         device=None,
     ),
+    url="https://huggingface.co/facebook/wav2vec2-large-960h-lv60",
 )
 
 hubert_large_ls960_ft_pooled_mean = EncoderMetadata(
@@ -351,6 +370,7 @@ hubert_large_ls960_ft_pooled_mean = EncoderMetadata(
         pooling="mean",
         device=None,
     ),
+    url="https://huggingface.co/facebook/hubert-large-ls960-ft",
 )
 
 gemini_embedding_text = EncoderMetadata(
@@ -360,6 +380,7 @@ gemini_embedding_text = EncoderMetadata(
         model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
         task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_transcript_truth = EncoderMetadata(
@@ -369,6 +390,7 @@ gemini_embedding_transcript_truth = EncoderMetadata(
         model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
         task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_transcript_truth_or_gemini_embedding = EncoderMetadata(
@@ -379,6 +401,7 @@ gemini_embedding_transcript_truth_or_gemini_embedding = EncoderMetadata(
         query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt = EncoderMetadata(
@@ -393,6 +416,7 @@ gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt = EncoderMetadat
         document_prompt_template=None,
         document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding = EncoderMetadata(
@@ -403,6 +427,7 @@ gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding = E
         query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_whisper = EncoderMetadata(
@@ -413,6 +438,7 @@ gemini_embedding_whisper = EncoderMetadata(
         gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
         gemini_embedding_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_whisper_or_gemini_embedding = EncoderMetadata(
@@ -424,6 +450,7 @@ gemini_embedding_whisper_or_gemini_embedding = EncoderMetadata(
         query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_whisper_or_gemini_embedding_no_prompt = EncoderMetadata(
@@ -439,6 +466,7 @@ gemini_embedding_whisper_or_gemini_embedding_no_prompt = EncoderMetadata(
         document_prompt_template=None,
         document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_with_title_and_context_whisper = EncoderMetadata(
@@ -449,6 +477,7 @@ gemini_embedding_with_title_and_context_whisper = EncoderMetadata(
         gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
         gemini_embedding_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemini_embedding_with_title_and_context_whisper_or_gemini_embedding = EncoderMetadata(
@@ -460,6 +489,7 @@ gemini_embedding_with_title_and_context_whisper_or_gemini_embedding = EncoderMet
         query_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         document_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
     ),
+    url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
 gemma_with_title_and_context_transcript_truth = EncoderMetadata(
@@ -469,6 +499,7 @@ gemma_with_title_and_context_transcript_truth = EncoderMetadata(
         model_path=_GEMMA_URL.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://ai.google.dev/gemma",
 )
 
 gemma_with_title_and_context_whisper = EncoderMetadata(
@@ -479,6 +510,7 @@ gemma_with_title_and_context_whisper = EncoderMetadata(
         gemma_model_path=_GEMMA_URL.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://ai.google.dev/gemma",
 )
 
 gemma_with_title_and_context_whisper_alignment = EncoderMetadata(
@@ -491,6 +523,7 @@ gemma_with_title_and_context_whisper_alignment = EncoderMetadata(
         whisper_word_timestamps=True,
         output_json_alignment=True,
     ),
+    url="https://ai.google.dev/gemma",
 )
 
 gemma_with_title_and_context = EncoderMetadata(
@@ -500,6 +533,7 @@ gemma_with_title_and_context = EncoderMetadata(
         model_path=_GEMMA_URL.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://ai.google.dev/gemma",
 )
 
 retrieval_gemini_embedding_transcript_truth = EncoderMetadata(
@@ -605,6 +639,7 @@ hf_llm_with_title_and_context = EncoderMetadata(
         model_path=_HF_LLM_MODEL_PATH.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
 )
 
 hf_llm_with_title_and_context_transcript_truth = EncoderMetadata(
@@ -614,6 +649,7 @@ hf_llm_with_title_and_context_transcript_truth = EncoderMetadata(
         model_path=_HF_LLM_MODEL_PATH.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
 )
 
 hf_llm_with_title_and_context_whisper = EncoderMetadata(
@@ -624,6 +660,7 @@ hf_llm_with_title_and_context_whisper = EncoderMetadata(
         model_path=_HF_LLM_MODEL_PATH.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
 )
 
 hf_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
@@ -638,6 +675,7 @@ hf_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
 )
 
 hf_llm_rag_gemini_embedding_whisper = EncoderMetadata(
@@ -653,6 +691,7 @@ hf_llm_rag_gemini_embedding_whisper = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
 )
 
 hf_llm_rag_gemini_embedding = EncoderMetadata(
@@ -667,6 +706,7 @@ hf_llm_rag_gemini_embedding = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
 )
 
 openai_llm_with_title_and_context = EncoderMetadata(
@@ -678,6 +718,7 @@ openai_llm_with_title_and_context = EncoderMetadata(
         api_key=_OPENAI_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://ai.google.dev/gemini-api/docs/openai",
 )
 
 openai_llm_with_title_and_context_transcript_truth = EncoderMetadata(
@@ -689,6 +730,7 @@ openai_llm_with_title_and_context_transcript_truth = EncoderMetadata(
         api_key=_OPENAI_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://ai.google.dev/gemini-api/docs/openai",
 )
 
 openai_llm_with_title_and_context_whisper = EncoderMetadata(
@@ -701,6 +743,7 @@ openai_llm_with_title_and_context_whisper = EncoderMetadata(
         llm_api_key=_OPENAI_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
+    url="https://ai.google.dev/gemini-api/docs/openai",
 )
 
 openai_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
@@ -717,6 +760,7 @@ openai_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+    url="https://ai.google.dev/gemini-api/docs/openai",
 )
 
 openai_llm_rag_gemini_embedding_whisper = EncoderMetadata(
@@ -734,6 +778,7 @@ openai_llm_rag_gemini_embedding_whisper = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+    url="https://ai.google.dev/gemini-api/docs/openai",
 )
 
 openai_llm_rag_gemini_embedding = EncoderMetadata(
@@ -750,6 +795,7 @@ openai_llm_rag_gemini_embedding = EncoderMetadata(
             task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         ),
     ),
+    url="https://ai.google.dev/gemini-api/docs/openai",
 )
 
 # Segmentation encoders:
@@ -760,8 +806,9 @@ whisper_base_asr_saliency = EncoderMetadata(
         whisper_model_path="base",
         language=_LANGUAGE.value,
         top_k=3,
-        idf_table_path=_IDF_TABLE_PATH.value
-    )
+        idf_table_path=_IDF_TABLE_PATH.value,
+    ),
+    url="https://github.com/openai/whisper",
 )
 
 whisper_large_asr_saliency = EncoderMetadata(
@@ -771,8 +818,9 @@ whisper_large_asr_saliency = EncoderMetadata(
         whisper_model_path=_WHISPER_MODEL_PATH.value,
         language=_LANGUAGE.value,
         top_k=3,
-        idf_table_path=_IDF_TABLE_PATH.value
-    )
+        idf_table_path=_IDF_TABLE_PATH.value,
+    ),
+    url="https://github.com/openai/whisper",
 )
 
 # Classification encoders:
@@ -781,7 +829,8 @@ laion_clap_encoder = EncoderMetadata(
     encoder=clap_encoder.ClapEncoder,
     params=lambda: dict(
         model_path=_CLAP_MODEL_PATH.value,
-    )
+    ),
+    url="https://huggingface.co/laion/clap-htsat-unfused",
 )
 
 

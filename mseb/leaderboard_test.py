@@ -118,6 +118,47 @@ class LeaderboardTest(unittest.TestCase):
     self.assertEqual(flattened[0].task_subtypes, ['test_subtype'])
     self.assertEqual(flattened[0].task_type, 'test type')
 
+  def test_flatten_leaderboard_results_with_url(self):
+    """Test that flatten_leaderboard_results correctly handles URLs."""
+    result = leaderboard.LeaderboardResult(
+        name='test_encoder',
+        sub_task_name='test_sub_task',
+        task_metadata=types.TaskMetadata(
+            name='test_task',
+            description='test description',
+            reference='test reference',
+            type='test type',
+            category='test category',
+            main_score='accuracy',
+            revision='test revision',
+            dataset=types.Dataset(path='test path', revision='test revision'),
+            scores=[
+                types.Score(
+                    metric='accuracy',
+                    description='test description',
+                    value=0.9,
+                    min=0,
+                    max=1,
+                ),
+            ],
+            eval_splits=['test'],
+            eval_langs=['en'],
+        ),
+        scores=[
+            types.Score(
+                metric='accuracy',
+                description='test description',
+                value=0.9,
+                min=0,
+                max=1,
+            ),
+        ],
+        url='https://example.com',
+    )
+    flattened = leaderboard.flatten_leaderboard_results([result.to_json()])
+    self.assertEqual(len(flattened), 1)
+    self.assertEqual(flattened[0].url, 'https://example.com')
+
 
 if __name__ == '__main__':
   unittest.main()

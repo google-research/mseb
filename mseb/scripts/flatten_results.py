@@ -19,8 +19,8 @@ from typing import Sequence
 
 from absl import app
 from absl import flags
-
 from mseb import leaderboard
+from mseb.encoders import encoder_registry
 
 _INPUT_GLOB = flags.DEFINE_string(
     "input_glob", None, "Glob pattern for input JSONL files.", required=True
@@ -45,7 +45,16 @@ def main(argv: Sequence[str]) -> None:
     for file_path in input_files:
       with open(file_path, "r") as f:
         for line in f:
-          yield line.strip()
+          result_json = line.strip()
+          # Backfill URL from registry if missing.
+          result = leaderboard.LeaderboardResult.from_json(result_json)
+          if not result.url:
+            try:
+              metadata = encoder_registry.get_encoder_metadata(result.name)
+              result.url = metadata.url
+            except ValueError:
+              pass
+          yield result.to_json()
 
   flattened_results = leaderboard.flatten_leaderboard_results(result_iterator())
 

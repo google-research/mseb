@@ -36,6 +36,7 @@ class LeaderboardResult:
   sub_task_name: str  # Update as sub-tasks removed/merged into task metadata.
   task_metadata: types.TaskMetadata
   scores: list[types.Score]
+  url: str | None = None  # URL for information about the encoder model.
 
   def to_json(self) -> str:
     """Convert metrics to JSON string."""
@@ -62,6 +63,7 @@ class LeaderboardResult:
         sub_task_name=data['sub_task_name'],
         task_metadata=task_metadata,
         scores=scores,
+        url=data.get('url'),
     )
 
 
@@ -93,6 +95,7 @@ def run_benchmark(
     encoder_name: str,  # Maybe this can come from Encoder metadata?
     runner: runner_lib.EncoderRunner,
     task: task_lib.MSEBTask,
+    url: str | None = None,
 ) -> list[LeaderboardResult]:
   """Run a task evaluation."""
   embeddings = runner.run(task.sounds())
@@ -104,6 +107,7 @@ def run_benchmark(
           sub_task_name=sub_task_name,
           task_metadata=task.metadata,
           scores=scores + encoding_scores,
+          url=url,
       )
       for sub_task_name, scores in scores.items()
   ]
@@ -126,6 +130,7 @@ class FlattenedLeaderboardResult:
   metric_min: int | float
   metric_max: int | float
   metric_std: float | None
+  url: str | None = None
 
 
 def flatten_leaderboard_results(
@@ -166,6 +171,7 @@ def flatten_leaderboard_results(
               metric_min=score.min,
               metric_max=score.max,
               metric_std=score.std,
+              url=result.url,
           )
       )
   return flattened_results

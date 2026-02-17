@@ -68,7 +68,8 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   encoder_name = _ENCODER.value
-  encoder = encoder_registry.get_encoder_metadata(encoder_name).load()
+  metadata = encoder_registry.get_encoder_metadata(encoder_name)
+  encoder = metadata.load()
   runner = runner_lib.DirectRunner(
       encoder=encoder,
       batch_size=_BATCH_SIZE.value,
@@ -79,7 +80,7 @@ def main(argv):
   task = task_cls()
   task.setup(runner=runner)
   results = leaderboard.run_benchmark(
-      encoder_name=encoder_name, runner=runner, task=task
+      encoder_name=encoder_name, runner=runner, task=task, url=metadata.url
   )
   if _RESULTS_JSONL.value:
     with epath.Path(_RESULTS_JSONL.value).open('w') as f:

@@ -75,7 +75,8 @@ def main(argv):
   task = task_cls()
   task.setup()
   encoder_name = _ENCODER.value
-  encoder = encoder_registry.get_encoder_metadata(encoder_name).load()
+  metadata = encoder_registry.get_encoder_metadata(encoder_name)
+  encoder = metadata.load()
   assert isinstance(encoder, encoder_lib.CascadeEncoder)
   for e in encoder._encoders:  # pylint: disable=protected-access
     if isinstance(e, retrieval_encoder.RetrievalEncoder):
@@ -87,7 +88,7 @@ def main(argv):
       output_path=runner_lib.RUNNER_CACHE_BASEPATH.value,
   )
   results = leaderboard.run_benchmark(
-      encoder_name=encoder_name, runner=runner, task=task
+      encoder_name=encoder_name, runner=runner, task=task, url=metadata.url
   )
   if _RESULTS_JSONL.value:
     with epath.Path(_RESULTS_JSONL.value).open('w') as f:

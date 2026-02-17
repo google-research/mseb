@@ -40,6 +40,7 @@ def generate_detail_table(
     main_task_type: str,
     columns: List[str],
     task_info: dict[str, tuple[str, str, List[str]]],
+    name_urls: dict[str, str | None],
 ) -> str:
   """Generates an HTML table for individual sub-task results of a task type."""
   # Determine which encoders have any non-"N/A" values for this task type
@@ -64,7 +65,9 @@ def generate_detail_table(
   html += "    <tr>\n"
   html += "      <th>Metric</th>\n"
   for name in present_encoders:
-    html += f"      <th>{name}</th>\n"
+    url = name_urls.get(name)
+    name_html = f'<a href="{url}">{name}</a>' if url else name
+    html += f"      <th>{name_html}</th>\n"
   html += "    </tr>\n"
   html += "  </thead>\n"
   html += "  <tbody>\n"
@@ -107,10 +110,13 @@ def generate_html_table(
       lambda: collections.defaultdict(list)
   )
   task_type_descriptions = {}
+  name_urls = {}
 
   for r in results:
     if r.name not in data:
       data[r.name] = {}
+    if r.name not in name_urls:
+      name_urls[r.name] = r.url
     column_key = f"{r.task_name} ({r.main_score_metric})"
     columns.add(column_key)
 
@@ -168,7 +174,9 @@ def generate_html_table(
   for i, name in enumerate(sorted_names_by_mean):
     html += "    <tr>\n"
     html += f"     <td>{i + 1}</td>\n"
-    html += f"     <td>{name}</td>\n"
+    url = name_urls.get(name)
+    name_html = f'<a href="{url}">{name}</a>' if url else name
+    html += f"     <td>{name_html}</td>\n"
     for task_type in main_task_types:
       value = mean_scores_by_type[name].get(task_type, "N/A")
       html += f"      <td>{format_value(value)}</td>\n"
@@ -187,7 +195,12 @@ def generate_html_table(
   for task_type in main_task_types:
     if task_type in cols_by_type:
       html += generate_detail_table(
-          data, sorted_names, task_type, cols_by_type[task_type], task_info
+          data,
+          sorted_names,
+          task_type,
+          cols_by_type[task_type],
+          task_info,
+          name_urls,
       )
 
   return html
