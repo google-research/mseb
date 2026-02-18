@@ -259,6 +259,11 @@ def main(argv: Sequence[str]) -> None:
     <label for="encoder-filter">Encoder Name Filter:</label>
     <input type="text" id="encoder-filter" name="encoder-filter">
   </div>
+  <div class="chart-section">
+    <div class="chart-container">
+      <canvas id="spider-chart"></canvas>
+    </div>
+  </div>
   <div class="table-container">
     {html_table}
   </div>

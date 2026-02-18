@@ -121,3 +121,23 @@ h2 {
 .detail-table-section {
   margin-top: 40px;
 }
+
+.chart-section {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 20px;
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.chart-container {
+  width: 100%;
+  max-width: 800px;
+}
+
+#spider-chart {
+  width: 100%;
+  height: 500px;
+}

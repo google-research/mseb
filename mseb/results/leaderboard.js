@@ -138,5 +138,163 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
+
+    renderSpiderChart();
   });
+
+  renderSpiderChart();
 });
+
+/**
+ * Renders a spider (radar) chart on the canvas based on the visible table data.
+ */
+function renderSpiderChart() {
+  const canvas = document.getElementById('spider-chart');
+  if (!canvas) return;
+
+  const table = document.getElementById('results-table');
+  if (!table) return;
+
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = (rect.height || 500) * dpr;
+  ctx.scale(dpr, dpr);
+
+  const width = rect.width;
+  const height = rect.height || 500;
+
+  // Positioning the graph more to the left
+  const radius = Math.min(width / 4, 150);
+  const centerX = radius + 110;  // Space for labels on the left
+  const centerY = radius + 60;   // Space for labels on top
+
+  // 1. Extract Data
+  const headers = Array.from(table.querySelectorAll('thead th')).slice(2);
+  const labels =
+      headers.map(th => th.textContent.replace(' (mean)', '').trim());
+  const numAxes = labels.length;
+
+  const visibleRows = Array.from(table.querySelectorAll('tbody tr'))
+                          .filter(row => row.style.display !== 'none')
+                          .slice(0, 5);  // Show top 5 visible encoders
+
+  const datasets = visibleRows.map(row => {
+    const name = row.querySelector('td:nth-child(2)').textContent.trim();
+    const scores = Array.from(row.querySelectorAll('td')).slice(2).map(td => {
+      const val = parseFloat(td.textContent);
+      return isNaN(val) ? 0 : val;
+    });
+    return {name, scores};
+  });
+
+  if (numAxes === 0) return;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // 2. Draw Grid (Circles/Polygons)
+  ctx.strokeStyle = '#e0e0e0';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 5; i++) {
+    const r = (radius / 5) * i;
+    ctx.beginPath();
+    for (let j = 0; j < numAxes; j++) {
+      const angle = (Math.PI * 2 * j) / numAxes - Math.PI / 2;
+      const x = centerX + r * Math.cos(angle);
+      const y = centerY + r * Math.sin(angle);
+      if (j === 0)
+        ctx.moveTo(x, y);
+      else
+        ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // Score labels (0.2, 0.4, ...)
+    ctx.fillStyle = '#9aa0a6';
+    ctx.font = '10px Roboto';
+    ctx.fillText((0.2 * i).toFixed(1), centerX + 5, centerY - r + 10);
+  }
+
+  // 3. Draw Axes and Labels
+  ctx.strokeStyle = '#bdbdbd';
+  labels.forEach((label, i) => {
+    const angle = (Math.PI * 2 * i) / numAxes - Math.PI / 2;
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + radius * Math.sin(angle);
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    // Axis Labels
+    ctx.fillStyle = '#3c4043';
+    ctx.font = 'bold 12px Roboto';
+    const labelRadius = radius + 25;
+    const lx = centerX + labelRadius * Math.cos(angle);
+    const ly = centerY + labelRadius * Math.sin(angle);
+
+    ctx.textAlign = 'center';
+    if (Math.cos(angle) > 0.1)
+      ctx.textAlign = 'left';
+    else if (Math.cos(angle) < -0.1)
+      ctx.textAlign = 'right';
+
+    ctx.textBaseline = 'middle';
+    if (Math.sin(angle) > 0.1)
+      ctx.textBaseline = 'top';
+    else if (Math.sin(angle) < -0.1)
+      ctx.textBaseline = 'bottom';
+
+    ctx.fillText(label, lx, ly);
+  });
+
+  // 4. Draw Data
+  const colors = [
+    'rgba(26, 115, 232, 0.7)',  // Google Blue
+    'rgba(217, 48, 37, 0.7)',   // Google Red
+    'rgba(249, 171, 0, 0.7)',   // Google Yellow
+    'rgba(30, 142, 62, 0.7)',   // Google Green
+    'rgba(161, 66, 244, 0.7)',  // Purple
+  ];
+
+  datasets.forEach((dataset, i) => {
+    const color = colors[i % colors.length];
+    ctx.strokeStyle = color.replace('0.7', '1');
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    dataset.scores.forEach((score, j) => {
+      const angle = (Math.PI * 2 * j) / numAxes - Math.PI / 2;
+      const r = radius * Math.min(score, 1.0);  // Cap at 1.0
+      const x = centerX + r * Math.cos(angle);
+      const y = centerY + r * Math.sin(angle);
+      if (j === 0)
+        ctx.moveTo(x, y);
+      else
+        ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+  });
+
+  // 5. Draw Legend
+  const legendX = 20;
+  let legendY =
+      centerY + radius + 60;  // Position below the graph and its labels
+  datasets.forEach((dataset, i) => {
+    const color = colors[i % colors.length];
+    ctx.fillStyle = color.replace('0.7', '1');
+    ctx.fillRect(legendX, legendY, 15, 15);
+    ctx.fillStyle = '#3c4043';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = '12px Roboto';
+    ctx.fillText(dataset.name, legendX + 20, legendY + 8);
+    legendY += 20;
+  });
+}
