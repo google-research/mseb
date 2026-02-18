@@ -79,6 +79,8 @@ class FSD50KTestClustering(FSD50KClustering):
  year    = {2021},
  doi     = {10.1109/TASLP.2022.3149014}
 }""",
+      documentation_file="fsd50k_clustering.md",
+      dataset_documentation_file="dataset_fsd50k.md",
       type="Clustering",
       category="audio",
       main_score="VMeasure",

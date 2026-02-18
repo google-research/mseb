@@ -25,6 +25,11 @@
     <label for="encoder-filter">Encoder Name Filter:</label>
     <input type="text" id="encoder-filter" name="encoder-filter">
   </div>
+  <div class="chart-section">
+    <div class="chart-container">
+      <canvas id="spider-chart"></canvas>
+    </div>
+  </div>
   <div class="table-container">
     <div class="table-container">
 <table id="results-table" border="1">
@@ -32,22 +37,37 @@
     <tr>
       <th>Rank</th>
       <th>Encoder Name</th>
-      <th title="Mean Average Precision (Macro)"><a href="#Classification">Classification (mean)</a> <span class="sort-icon"></span></th>
-      <th title="V-measure clustering metric: Normalised mutal information against a set of labels."><a href="#Clustering">Clustering (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Mean Reciprocal Rank"><a href="#DocumentCrossLangRetrieval">DocumentCrossLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Mean Reciprocal Rank"><a href="#DocumentInLangRetrieval">DocumentInLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Overall classification accuracy"><a href="#IntentClassification">IntentClassification (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Mean Reciprocal Rank"><a href="#PassageCrossLangRetrieval">PassageCrossLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Mean Reciprocal Rank"><a href="#PassageInLangRetrieval">PassageInLangRetrieval (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Mean Average Precision"><a href="#QueryReranking">QueryReranking (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Normalized Discounted Cumulative Gain. A metric that evaluates the quality of a sequence by rewarding correct terms found in the correct order."><a href="#SalientTermSegmentation">SalientTermSegmentation (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Geometric mean F1 score"><a href="#SpanCrossLangReasoning">SpanCrossLangReasoning (mean)</a> <span class="sort-icon"></span></th>
-      <th title="Geometric mean F1 score"><a href="#SpanInLangReasoning">SpanInLangReasoning (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Overall classification accuracy"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
+      <th title="V-measure clustering metric: Normalised mutal information against a set of labels."><a href="#clustering">clustering (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Geometric mean F1 score"><a href="#reasoning">reasoning (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Mean Average Precision"><a href="#reranking">reranking (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Mean Reciprocal Rank"><a href="#retrieval">retrieval (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Normalized Discounted Cumulative Gain. A metric that evaluates the quality of a sequence by rewarding correct terms found in the correct order."><a href="#segmentation">segmentation (mean)</a> <span class="sort-icon"></span></th>
     </tr>
   </thead>
   <tbody>
     <tr>
      <td>1</td>
+     <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></td>
+      <td>0.8339</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.6737</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>2</td>
+     <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></td>
+      <td>0.8023</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.5058</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>3</td>
      <td><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch_logits</a></td>
       <td>0.5756</td>
       <td>N/A</td>
@@ -55,14 +75,19 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+    </tr>
+    <tr>
+     <td>4</td>
+     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></td>
+      <td>0.4429</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
+      <td>0.5070</td>
       <td>N/A</td>
     </tr>
     <tr>
-     <td>2</td>
+     <td>5</td>
      <td><a href="https://huggingface.co/laion/clap-htsat-unfused">laion_clap_encoder</a></td>
       <td>0.4322</td>
       <td>0.4119</td>
@@ -70,144 +95,64 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+    </tr>
+    <tr>
+     <td>6</td>
+     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></td>
+      <td>0.4219</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
+      <td>0.3382</td>
       <td>N/A</td>
     </tr>
     <tr>
-     <td>3</td>
-     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.3034</td>
-      <td>0.6272</td>
-      <td>0.4429</td>
-      <td>0.4503</td>
-      <td>0.6777</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>4</td>
+     <td>7</td>
      <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko_no_prompt</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>0.9967</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
     </tr>
     <tr>
-     <td>5</td>
-     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.1644</td>
-      <td>0.4426</td>
-      <td>0.4219</td>
-      <td>0.2620</td>
-      <td>0.5134</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>6</td>
+     <td>8</td>
      <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko_no_prompt</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>0.5073</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>7</td>
-     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_transcript_truth_or_gecko</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.0008</td>
-      <td>0.1603</td>
-    </tr>
-    <tr>
-     <td>8</td>
-     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_whisper_or_gecko</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.0001</td>
-      <td>0.1211</td>
     </tr>
     <tr>
      <td>9</td>
-     <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></td>
+     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_transcript_truth_or_gecko</a></td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>0.5492</td>
-      <td>0.7258</td>
-      <td>0.8339</td>
-      <td>0.6863</td>
-      <td>0.7590</td>
-      <td>N/A</td>
+      <td>0.0761</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>10</td>
-     <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</a></td>
+     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_whisper_or_gecko</a></td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.9963</td>
+      <td>0.0554</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>11</td>
-     <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></td>
+     <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</a></td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>0.3764</td>
-      <td>0.5584</td>
-      <td>0.8023</td>
-      <td>0.5011</td>
-      <td>0.6155</td>
       <td>N/A</td>
-      <td>N/A</td>
+      <td>0.9963</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
@@ -217,12 +162,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
       <td>0.5992</td>
-      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
@@ -231,71 +171,46 @@
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</a></td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>0.0394</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.0139</td>
-      <td>0.0680</td>
     </tr>
     <tr>
      <td>14</td>
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_with_title_and_context_whisper_or_gemini_embedding</a></td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>0.0296</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.0109</td>
-      <td>0.0505</td>
     </tr>
     <tr>
      <td>15</td>
      <td><a href="https://ai.google.dev/gemma">gemma_with_title_and_context_transcript_truth</a></td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>0.5341</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.4754</td>
-      <td>0.5996</td>
     </tr>
     <tr>
      <td>16</td>
      <td><a href="https://ai.google.dev/gemma">gemma_with_title_and_context_whisper</a></td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>0.4681</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>0.3918</td>
-      <td>0.5533</td>
     </tr>
     <tr>
      <td>17</td>
      <td><a href="https://huggingface.co/facebook/hubert-large-ls960-ft">hubert_large_ls960_ft_pooled_mean</a></td>
       <td>N/A</td>
       <td>0.6014</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -310,22 +225,12 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
     </tr>
     <tr>
      <td>19</td>
      <td><a href="https://en.wikipedia.org/wiki/Mel_scale">raw_spectrogram_25ms_10ms_mean</a></td>
       <td>N/A</td>
       <td>0.5983</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -340,11 +245,6 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
     </tr>
     <tr>
      <td>21</td>
@@ -354,46 +254,169 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
       <td>0.4036</td>
-      <td>N/A</td>
-      <td>N/A</td>
     </tr>
   </tbody>
 </table>
 </div>
 <div class="detail-table-section">
-<h2 id="Classification">Classification</h2>
+<h2 id="classification">classification</h2>
 <div class="table-container">
-<table id="details-table-Classification" border="1">
+<table id="details-table-classification" border="1">
   <thead>
     <tr>
       <th>Metric</th>
+      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
+      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
+      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
+      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
       <th><a href="https://huggingface.co/laion/clap-htsat-unfused">laion_clap_encoder</a></th>
       <th><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch_logits</a></th>
     </tr>
   </thead>
   <tbody>
     <tr>
-     <td>BirdsetHSNClassification/ebird_classification (mAP)<br/>(Classification, und)</td>
+     <td>BirdsetHSNClassification/ebird_classification (mAP)<br/>(Classification, und) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>0.5271</td>
     </tr>
     <tr>
-     <td>BirdsetNBPClassification/ebird_classification (mAP)<br/>(Classification, und)</td>
+     <td>BirdsetNBPClassification/ebird_classification (mAP)<br/>(Classification, und) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>0.6583</td>
     </tr>
     <tr>
-     <td>BirdsetPOWClassification/ebird_classification (mAP)<br/>(Classification, und)</td>
+     <td>BirdsetPOWClassification/ebird_classification (mAP)<br/>(Classification, und) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>0.5413</td>
     </tr>
     <tr>
-     <td>FSD50KTestClassification/classification (mAP)<br/>(Classification, und)</td>
+     <td>FSD50KTestClassification/classification (mAP)<br/>(Classification, und) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
       <td>0.4322</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveArSaIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ar-SA) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.3937</td>
+      <td>0.3201</td>
+      <td>0.7666</td>
+      <td>0.6685</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveDeDeIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, de-DE) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4492</td>
+      <td>0.4590</td>
+      <td>0.8440</td>
+      <td>0.8339</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveEsEsIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, es-ES) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4610</td>
+      <td>0.4512</td>
+      <td>0.8373</td>
+      <td>0.8265</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveFrFrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, fr-FR) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4593</td>
+      <td>0.4533</td>
+      <td>0.8473</td>
+      <td>0.8322</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveHuHuIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, hu-HU) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4153</td>
+      <td>0.3658</td>
+      <td>0.8312</td>
+      <td>0.7831</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveKoKrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ko-KR) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4469</td>
+      <td>0.4274</td>
+      <td>0.8373</td>
+      <td>0.8141</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveNlNlIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, nl-NL) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4627</td>
+      <td>0.4556</td>
+      <td>0.8534</td>
+      <td>0.8420</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassivePlPlIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, pl-PL) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4553</td>
+      <td>0.4391</td>
+      <td>0.8410</td>
+      <td>0.8252</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassivePtPtIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, pt-PT) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4610</td>
+      <td>0.4465</td>
+      <td>0.8362</td>
+      <td>0.8141</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveRuRuIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ru-RU) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4546</td>
+      <td>0.4543</td>
+      <td>0.8473</td>
+      <td>0.8403</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveTrTrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, tr-TR) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4328</td>
+      <td>0.4132</td>
+      <td>0.8329</td>
+      <td>0.8033</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SpeechMassiveViVnIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, vi-VN) <a href="#type-classification" class="doc-link">[?]</a></td>
+      <td>0.4233</td>
+      <td>0.3776</td>
+      <td>0.8319</td>
+      <td>0.7445</td>
+      <td>N/A</td>
       <td>N/A</td>
     </tr>
   </tbody>
@@ -401,9 +424,9 @@
 </div>
 </div>
 <div class="detail-table-section">
-<h2 id="Clustering">Clustering</h2>
+<h2 id="clustering">clustering</h2>
 <div class="table-container">
-<table id="details-table-Clustering" border="1">
+<table id="details-table-clustering" border="1">
   <thead>
     <tr>
       <th>Metric</th>
@@ -416,7 +439,7 @@
   </thead>
   <tbody>
     <tr>
-     <td>BirdsetClusteringHSN/clustering (VMeasure)<br/>(Clustering, en-US)</td>
+     <td>BirdsetClusteringHSN/clustering (VMeasure)<br/>(Clustering, en-US) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0495</td>
       <td>0.1907</td>
       <td>0.2947</td>
@@ -424,7 +447,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>BirdsetClusteringNBP/clustering (VMeasure)<br/>(Clustering, en-US)</td>
+     <td>BirdsetClusteringNBP/clustering (VMeasure)<br/>(Clustering, en-US) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>N/A</td>
       <td>0.5196</td>
       <td>0.5265</td>
@@ -432,7 +455,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>BirdsetClusteringPOW/clustering (VMeasure)<br/>(Clustering, en-US)</td>
+     <td>BirdsetClusteringPOW/clustering (VMeasure)<br/>(Clustering, en-US) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1089</td>
       <td>0.2605</td>
       <td>0.3539</td>
@@ -440,7 +463,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>FSD50KTestClustering/sound_event (VMeasure)<br/>(Clustering, und)</td>
+     <td>FSD50KTestClustering/sound_event (VMeasure)<br/>(Clustering, und) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>N/A</td>
       <td>0.6768</td>
       <td>N/A</td>
@@ -472,7 +495,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>SVQClusteringArEg/speaker_age (VMeasure)<br/>(Clustering, ar-EG)</td>
+     <td>SVQClusteringArEg/speaker_age (VMeasure)<br/>(Clustering, ar-EG) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8482</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -480,7 +503,7 @@
       <td>0.8868</td>
     </tr>
     <tr>
-     <td>SVQClusteringArEg/speaker_gender (VMeasure)<br/>(Clustering, ar-EG)</td>
+     <td>SVQClusteringArEg/speaker_gender (VMeasure)<br/>(Clustering, ar-EG) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0018</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -488,7 +511,7 @@
       <td>0.0018</td>
     </tr>
     <tr>
-     <td>SVQClusteringArEg/speaker_id (VMeasure)<br/>(Clustering, ar-EG)</td>
+     <td>SVQClusteringArEg/speaker_id (VMeasure)<br/>(Clustering, ar-EG) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8330</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -496,7 +519,7 @@
       <td>0.9359</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXGulf/speaker_age (VMeasure)<br/>(Clustering, ar-x-gulf)</td>
+     <td>SVQClusteringArXGulf/speaker_age (VMeasure)<br/>(Clustering, ar-x-gulf) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8868</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -504,7 +527,7 @@
       <td>0.8482</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXGulf/speaker_gender (VMeasure)<br/>(Clustering, ar-x-gulf)</td>
+     <td>SVQClusteringArXGulf/speaker_gender (VMeasure)<br/>(Clustering, ar-x-gulf) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0018</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -512,7 +535,7 @@
       <td>0.0986</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXGulf/speaker_id (VMeasure)<br/>(Clustering, ar-x-gulf)</td>
+     <td>SVQClusteringArXGulf/speaker_id (VMeasure)<br/>(Clustering, ar-x-gulf) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8069</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -520,7 +543,7 @@
       <td>0.8482</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXLevant/speaker_age (VMeasure)<br/>(Clustering, ar-x-levant)</td>
+     <td>SVQClusteringArXLevant/speaker_age (VMeasure)<br/>(Clustering, ar-x-levant) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9007</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -528,7 +551,7 @@
       <td>0.9007</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXLevant/speaker_gender (VMeasure)<br/>(Clustering, ar-x-levant)</td>
+     <td>SVQClusteringArXLevant/speaker_gender (VMeasure)<br/>(Clustering, ar-x-levant) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.5291</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -536,7 +559,7 @@
       <td>0.5291</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXLevant/speaker_id (VMeasure)<br/>(Clustering, ar-x-levant)</td>
+     <td>SVQClusteringArXLevant/speaker_id (VMeasure)<br/>(Clustering, ar-x-levant) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9007</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -544,7 +567,7 @@
       <td>0.9359</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXMaghrebi/speaker_age (VMeasure)<br/>(Clustering, ar-x-maghrebi)</td>
+     <td>SVQClusteringArXMaghrebi/speaker_age (VMeasure)<br/>(Clustering, ar-x-maghrebi) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8056</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -552,7 +575,7 @@
       <td>0.8056</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXMaghrebi/speaker_gender (VMeasure)<br/>(Clustering, ar-x-maghrebi)</td>
+     <td>SVQClusteringArXMaghrebi/speaker_gender (VMeasure)<br/>(Clustering, ar-x-maghrebi) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0371</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -560,7 +583,7 @@
       <td>0.0371</td>
     </tr>
     <tr>
-     <td>SVQClusteringArXMaghrebi/speaker_id (VMeasure)<br/>(Clustering, ar-x-maghrebi)</td>
+     <td>SVQClusteringArXMaghrebi/speaker_id (VMeasure)<br/>(Clustering, ar-x-maghrebi) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9359</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -568,7 +591,7 @@
       <td>0.9690</td>
     </tr>
     <tr>
-     <td>SVQClusteringBnBd/speaker_age (VMeasure)<br/>(Clustering, bn-BD)</td>
+     <td>SVQClusteringBnBd/speaker_age (VMeasure)<br/>(Clustering, bn-BD) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6555</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -576,7 +599,7 @@
       <td>0.7208</td>
     </tr>
     <tr>
-     <td>SVQClusteringBnBd/speaker_gender (VMeasure)<br/>(Clustering, bn-BD)</td>
+     <td>SVQClusteringBnBd/speaker_gender (VMeasure)<br/>(Clustering, bn-BD) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>1.0000</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -584,7 +607,7 @@
       <td>1.0000</td>
     </tr>
     <tr>
-     <td>SVQClusteringBnBd/speaker_id (VMeasure)<br/>(Clustering, bn-BD)</td>
+     <td>SVQClusteringBnBd/speaker_id (VMeasure)<br/>(Clustering, bn-BD) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7745</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -592,7 +615,7 @@
       <td>0.8530</td>
     </tr>
     <tr>
-     <td>SVQClusteringBnIn/speaker_age (VMeasure)<br/>(Clustering, bn-IN)</td>
+     <td>SVQClusteringBnIn/speaker_age (VMeasure)<br/>(Clustering, bn-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6421</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -600,7 +623,7 @@
       <td>0.6421</td>
     </tr>
     <tr>
-     <td>SVQClusteringBnIn/speaker_gender (VMeasure)<br/>(Clustering, bn-IN)</td>
+     <td>SVQClusteringBnIn/speaker_gender (VMeasure)<br/>(Clustering, bn-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>1.0000</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -608,7 +631,7 @@
       <td>1.0000</td>
     </tr>
     <tr>
-     <td>SVQClusteringBnIn/speaker_id (VMeasure)<br/>(Clustering, bn-IN)</td>
+     <td>SVQClusteringBnIn/speaker_id (VMeasure)<br/>(Clustering, bn-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8530</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -616,7 +639,7 @@
       <td>0.8631</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnAu/speaker_age (VMeasure)<br/>(Clustering, en-AU)</td>
+     <td>SVQClusteringEnAu/speaker_age (VMeasure)<br/>(Clustering, en-AU) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8482</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -624,7 +647,7 @@
       <td>0.8228</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnAu/speaker_gender (VMeasure)<br/>(Clustering, en-AU)</td>
+     <td>SVQClusteringEnAu/speaker_gender (VMeasure)<br/>(Clustering, en-AU) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0206</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -632,7 +655,7 @@
       <td>0.0206</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnAu/speaker_id (VMeasure)<br/>(Clustering, en-AU)</td>
+     <td>SVQClusteringEnAu/speaker_id (VMeasure)<br/>(Clustering, en-AU) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8868</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -640,7 +663,7 @@
       <td>0.9690</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnGb/speaker_age (VMeasure)<br/>(Clustering, en-GB)</td>
+     <td>SVQClusteringEnGb/speaker_age (VMeasure)<br/>(Clustering, en-GB) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6284</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -648,7 +671,7 @@
       <td>0.7621</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnGb/speaker_gender (VMeasure)<br/>(Clustering, en-GB)</td>
+     <td>SVQClusteringEnGb/speaker_gender (VMeasure)<br/>(Clustering, en-GB) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.2174</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -656,7 +679,7 @@
       <td>0.0986</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnGb/speaker_id (VMeasure)<br/>(Clustering, en-GB)</td>
+     <td>SVQClusteringEnGb/speaker_id (VMeasure)<br/>(Clustering, en-GB) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9114</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -664,7 +687,7 @@
       <td>0.7796</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnIn/speaker_age (VMeasure)<br/>(Clustering, en-IN)</td>
+     <td>SVQClusteringEnIn/speaker_age (VMeasure)<br/>(Clustering, en-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7905</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -672,7 +695,7 @@
       <td>0.7145</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnIn/speaker_gender (VMeasure)<br/>(Clustering, en-IN)</td>
+     <td>SVQClusteringEnIn/speaker_gender (VMeasure)<br/>(Clustering, en-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.5291</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -680,7 +703,7 @@
       <td>0.2895</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnIn/speaker_id (VMeasure)<br/>(Clustering, en-IN)</td>
+     <td>SVQClusteringEnIn/speaker_id (VMeasure)<br/>(Clustering, en-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9007</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -688,7 +711,7 @@
       <td>0.9007</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnPh/speaker_age (VMeasure)<br/>(Clustering, en-PH)</td>
+     <td>SVQClusteringEnPh/speaker_age (VMeasure)<br/>(Clustering, en-PH) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8482</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -696,7 +719,7 @@
       <td>0.9176</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnPh/speaker_gender (VMeasure)<br/>(Clustering, en-PH)</td>
+     <td>SVQClusteringEnPh/speaker_gender (VMeasure)<br/>(Clustering, en-PH) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1097</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -704,7 +727,7 @@
       <td>0.1097</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnPh/speaker_id (VMeasure)<br/>(Clustering, en-PH)</td>
+     <td>SVQClusteringEnPh/speaker_id (VMeasure)<br/>(Clustering, en-PH) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8868</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -712,7 +735,7 @@
       <td>0.9690</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnUs/speaker_age (VMeasure)<br/>(Clustering, en-US)</td>
+     <td>SVQClusteringEnUs/speaker_age (VMeasure)<br/>(Clustering, en-US) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6993</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -720,7 +743,7 @@
       <td>0.7189</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnUs/speaker_gender (VMeasure)<br/>(Clustering, en-US)</td>
+     <td>SVQClusteringEnUs/speaker_gender (VMeasure)<br/>(Clustering, en-US) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1214</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -728,7 +751,7 @@
       <td>0.1117</td>
     </tr>
     <tr>
-     <td>SVQClusteringEnUs/speaker_id (VMeasure)<br/>(Clustering, en-US)</td>
+     <td>SVQClusteringEnUs/speaker_id (VMeasure)<br/>(Clustering, en-US) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8069</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -736,7 +759,7 @@
       <td>0.8069</td>
     </tr>
     <tr>
-     <td>SVQClusteringFiFi/speaker_age (VMeasure)<br/>(Clustering, fi-FI)</td>
+     <td>SVQClusteringFiFi/speaker_age (VMeasure)<br/>(Clustering, fi-FI) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.5421</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -744,7 +767,7 @@
       <td>0.6189</td>
     </tr>
     <tr>
-     <td>SVQClusteringFiFi/speaker_gender (VMeasure)<br/>(Clustering, fi-FI)</td>
+     <td>SVQClusteringFiFi/speaker_gender (VMeasure)<br/>(Clustering, fi-FI) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.4208</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -752,7 +775,7 @@
       <td>0.0812</td>
     </tr>
     <tr>
-     <td>SVQClusteringFiFi/speaker_id (VMeasure)<br/>(Clustering, fi-FI)</td>
+     <td>SVQClusteringFiFi/speaker_id (VMeasure)<br/>(Clustering, fi-FI) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9359</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -760,7 +783,7 @@
       <td>0.8868</td>
     </tr>
     <tr>
-     <td>SVQClusteringGuIn/speaker_age (VMeasure)<br/>(Clustering, gu-IN)</td>
+     <td>SVQClusteringGuIn/speaker_age (VMeasure)<br/>(Clustering, gu-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6387</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -768,7 +791,7 @@
       <td>0.5455</td>
     </tr>
     <tr>
-     <td>SVQClusteringGuIn/speaker_gender (VMeasure)<br/>(Clustering, gu-IN)</td>
+     <td>SVQClusteringGuIn/speaker_gender (VMeasure)<br/>(Clustering, gu-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1263</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -776,7 +799,7 @@
       <td>0.0000</td>
     </tr>
     <tr>
-     <td>SVQClusteringGuIn/speaker_id (VMeasure)<br/>(Clustering, gu-IN)</td>
+     <td>SVQClusteringGuIn/speaker_id (VMeasure)<br/>(Clustering, gu-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7624</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -784,7 +807,7 @@
       <td>0.7330</td>
     </tr>
     <tr>
-     <td>SVQClusteringHiIn/speaker_age (VMeasure)<br/>(Clustering, hi-IN)</td>
+     <td>SVQClusteringHiIn/speaker_age (VMeasure)<br/>(Clustering, hi-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8158</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -792,7 +815,7 @@
       <td>0.7740</td>
     </tr>
     <tr>
-     <td>SVQClusteringHiIn/speaker_gender (VMeasure)<br/>(Clustering, hi-IN)</td>
+     <td>SVQClusteringHiIn/speaker_gender (VMeasure)<br/>(Clustering, hi-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6190</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -800,7 +823,7 @@
       <td>0.2020</td>
     </tr>
     <tr>
-     <td>SVQClusteringHiIn/speaker_id (VMeasure)<br/>(Clustering, hi-IN)</td>
+     <td>SVQClusteringHiIn/speaker_id (VMeasure)<br/>(Clustering, hi-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7433</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -808,7 +831,7 @@
       <td>0.8525</td>
     </tr>
     <tr>
-     <td>SVQClusteringIdId/speaker_age (VMeasure)<br/>(Clustering, id-ID)</td>
+     <td>SVQClusteringIdId/speaker_age (VMeasure)<br/>(Clustering, id-ID) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7624</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -816,7 +839,7 @@
       <td>0.9176</td>
     </tr>
     <tr>
-     <td>SVQClusteringIdId/speaker_gender (VMeasure)<br/>(Clustering, id-ID)</td>
+     <td>SVQClusteringIdId/speaker_gender (VMeasure)<br/>(Clustering, id-ID) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.2866</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -824,7 +847,7 @@
       <td>0.0812</td>
     </tr>
     <tr>
-     <td>SVQClusteringIdId/speaker_id (VMeasure)<br/>(Clustering, id-ID)</td>
+     <td>SVQClusteringIdId/speaker_id (VMeasure)<br/>(Clustering, id-ID) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9007</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -832,7 +855,7 @@
       <td>0.8069</td>
     </tr>
     <tr>
-     <td>SVQClusteringJaJp/speaker_age (VMeasure)<br/>(Clustering, ja-JP)</td>
+     <td>SVQClusteringJaJp/speaker_age (VMeasure)<br/>(Clustering, ja-JP) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7538</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -840,7 +863,7 @@
       <td>0.7433</td>
     </tr>
     <tr>
-     <td>SVQClusteringJaJp/speaker_gender (VMeasure)<br/>(Clustering, ja-JP)</td>
+     <td>SVQClusteringJaJp/speaker_gender (VMeasure)<br/>(Clustering, ja-JP) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1010</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -848,7 +871,7 @@
       <td>0.1010</td>
     </tr>
     <tr>
-     <td>SVQClusteringJaJp/speaker_id (VMeasure)<br/>(Clustering, ja-JP)</td>
+     <td>SVQClusteringJaJp/speaker_id (VMeasure)<br/>(Clustering, ja-JP) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7039</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -856,7 +879,7 @@
       <td>0.6478</td>
     </tr>
     <tr>
-     <td>SVQClusteringKnIn/speaker_age (VMeasure)<br/>(Clustering, kn-IN)</td>
+     <td>SVQClusteringKnIn/speaker_age (VMeasure)<br/>(Clustering, kn-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.5611</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -864,7 +887,7 @@
       <td>0.6421</td>
     </tr>
     <tr>
-     <td>SVQClusteringKnIn/speaker_gender (VMeasure)<br/>(Clustering, kn-IN)</td>
+     <td>SVQClusteringKnIn/speaker_gender (VMeasure)<br/>(Clustering, kn-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.2342</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -872,7 +895,7 @@
       <td>0.2155</td>
     </tr>
     <tr>
-     <td>SVQClusteringKnIn/speaker_id (VMeasure)<br/>(Clustering, kn-IN)</td>
+     <td>SVQClusteringKnIn/speaker_id (VMeasure)<br/>(Clustering, kn-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7796</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -880,7 +903,7 @@
       <td>0.7796</td>
     </tr>
     <tr>
-     <td>SVQClusteringKoKr/speaker_age (VMeasure)<br/>(Clustering, ko-KR)</td>
+     <td>SVQClusteringKoKr/speaker_age (VMeasure)<br/>(Clustering, ko-KR) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8093</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -888,7 +911,7 @@
       <td>0.7145</td>
     </tr>
     <tr>
-     <td>SVQClusteringKoKr/speaker_gender (VMeasure)<br/>(Clustering, ko-KR)</td>
+     <td>SVQClusteringKoKr/speaker_gender (VMeasure)<br/>(Clustering, ko-KR) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0087</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -896,7 +919,7 @@
       <td>0.0063</td>
     </tr>
     <tr>
-     <td>SVQClusteringKoKr/speaker_id (VMeasure)<br/>(Clustering, ko-KR)</td>
+     <td>SVQClusteringKoKr/speaker_id (VMeasure)<br/>(Clustering, ko-KR) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7796</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -904,7 +927,7 @@
       <td>0.8787</td>
     </tr>
     <tr>
-     <td>SVQClusteringMlIn/speaker_age (VMeasure)<br/>(Clustering, ml-IN)</td>
+     <td>SVQClusteringMlIn/speaker_age (VMeasure)<br/>(Clustering, ml-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7556</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -912,7 +935,7 @@
       <td>0.7740</td>
     </tr>
     <tr>
-     <td>SVQClusteringMlIn/speaker_gender (VMeasure)<br/>(Clustering, ml-IN)</td>
+     <td>SVQClusteringMlIn/speaker_gender (VMeasure)<br/>(Clustering, ml-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0371</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -920,7 +943,7 @@
       <td>0.2746</td>
     </tr>
     <tr>
-     <td>SVQClusteringMlIn/speaker_id (VMeasure)<br/>(Clustering, ml-IN)</td>
+     <td>SVQClusteringMlIn/speaker_id (VMeasure)<br/>(Clustering, ml-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8868</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -928,7 +951,7 @@
       <td>0.9359</td>
     </tr>
     <tr>
-     <td>SVQClusteringMrIn/speaker_age (VMeasure)<br/>(Clustering, mr-IN)</td>
+     <td>SVQClusteringMrIn/speaker_age (VMeasure)<br/>(Clustering, mr-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7796</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -936,7 +959,7 @@
       <td>0.7145</td>
     </tr>
     <tr>
-     <td>SVQClusteringMrIn/speaker_gender (VMeasure)<br/>(Clustering, mr-IN)</td>
+     <td>SVQClusteringMrIn/speaker_gender (VMeasure)<br/>(Clustering, mr-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.4024</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -944,7 +967,7 @@
       <td>0.1470</td>
     </tr>
     <tr>
-     <td>SVQClusteringMrIn/speaker_id (VMeasure)<br/>(Clustering, mr-IN)</td>
+     <td>SVQClusteringMrIn/speaker_id (VMeasure)<br/>(Clustering, mr-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7145</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -952,7 +975,7 @@
       <td>0.7624</td>
     </tr>
     <tr>
-     <td>SVQClusteringRuRu/speaker_age (VMeasure)<br/>(Clustering, ru-RU)</td>
+     <td>SVQClusteringRuRu/speaker_age (VMeasure)<br/>(Clustering, ru-RU) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8369</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -960,7 +983,7 @@
       <td>0.8069</td>
     </tr>
     <tr>
-     <td>SVQClusteringRuRu/speaker_gender (VMeasure)<br/>(Clustering, ru-RU)</td>
+     <td>SVQClusteringRuRu/speaker_gender (VMeasure)<br/>(Clustering, ru-RU) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1471</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -968,7 +991,7 @@
       <td>0.0573</td>
     </tr>
     <tr>
-     <td>SVQClusteringRuRu/speaker_id (VMeasure)<br/>(Clustering, ru-RU)</td>
+     <td>SVQClusteringRuRu/speaker_id (VMeasure)<br/>(Clustering, ru-RU) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9229</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -976,7 +999,7 @@
       <td>0.9690</td>
     </tr>
     <tr>
-     <td>SVQClusteringSw/speaker_age (VMeasure)<br/>(Clustering, sw)</td>
+     <td>SVQClusteringSw/speaker_age (VMeasure)<br/>(Clustering, sw) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8056</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -984,7 +1007,7 @@
       <td>0.8210</td>
     </tr>
     <tr>
-     <td>SVQClusteringSw/speaker_gender (VMeasure)<br/>(Clustering, sw)</td>
+     <td>SVQClusteringSw/speaker_gender (VMeasure)<br/>(Clustering, sw) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0290</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -992,7 +1015,7 @@
       <td>0.0290</td>
     </tr>
     <tr>
-     <td>SVQClusteringSw/speaker_id (VMeasure)<br/>(Clustering, sw)</td>
+     <td>SVQClusteringSw/speaker_id (VMeasure)<br/>(Clustering, sw) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8937</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1000,7 +1023,7 @@
       <td>0.9176</td>
     </tr>
     <tr>
-     <td>SVQClusteringTaIn/speaker_age (VMeasure)<br/>(Clustering, ta-IN)</td>
+     <td>SVQClusteringTaIn/speaker_age (VMeasure)<br/>(Clustering, ta-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7239</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1008,7 +1031,7 @@
       <td>0.4926</td>
     </tr>
     <tr>
-     <td>SVQClusteringTaIn/speaker_gender (VMeasure)<br/>(Clustering, ta-IN)</td>
+     <td>SVQClusteringTaIn/speaker_gender (VMeasure)<br/>(Clustering, ta-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.1263</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1016,7 +1039,7 @@
       <td>0.0290</td>
     </tr>
     <tr>
-     <td>SVQClusteringTaIn/speaker_id (VMeasure)<br/>(Clustering, ta-IN)</td>
+     <td>SVQClusteringTaIn/speaker_id (VMeasure)<br/>(Clustering, ta-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8937</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1024,7 +1047,7 @@
       <td>0.8937</td>
     </tr>
     <tr>
-     <td>SVQClusteringTeIn/speaker_age (VMeasure)<br/>(Clustering, te-IN)</td>
+     <td>SVQClusteringTeIn/speaker_age (VMeasure)<br/>(Clustering, te-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.7919</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1032,7 +1055,7 @@
       <td>0.7624</td>
     </tr>
     <tr>
-     <td>SVQClusteringTeIn/speaker_gender (VMeasure)<br/>(Clustering, te-IN)</td>
+     <td>SVQClusteringTeIn/speaker_gender (VMeasure)<br/>(Clustering, te-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0063</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1040,7 +1063,7 @@
       <td>0.0063</td>
     </tr>
     <tr>
-     <td>SVQClusteringTeIn/speaker_id (VMeasure)<br/>(Clustering, te-IN)</td>
+     <td>SVQClusteringTeIn/speaker_id (VMeasure)<br/>(Clustering, te-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.9690</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1048,7 +1071,7 @@
       <td>0.9690</td>
     </tr>
     <tr>
-     <td>SVQClusteringUrIn/speaker_age (VMeasure)<br/>(Clustering, ur-IN)</td>
+     <td>SVQClusteringUrIn/speaker_age (VMeasure)<br/>(Clustering, ur-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.6955</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1056,7 +1079,7 @@
       <td>0.8203</td>
     </tr>
     <tr>
-     <td>SVQClusteringUrIn/speaker_gender (VMeasure)<br/>(Clustering, ur-IN)</td>
+     <td>SVQClusteringUrIn/speaker_gender (VMeasure)<br/>(Clustering, ur-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0371</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1064,7 +1087,7 @@
       <td>0.0063</td>
     </tr>
     <tr>
-     <td>SVQClusteringUrIn/speaker_id (VMeasure)<br/>(Clustering, ur-IN)</td>
+     <td>SVQClusteringUrIn/speaker_id (VMeasure)<br/>(Clustering, ur-IN) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8228</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1072,7 +1095,7 @@
       <td>0.8203</td>
     </tr>
     <tr>
-     <td>SVQClusteringUrPk/speaker_age (VMeasure)<br/>(Clustering, ur-PK)</td>
+     <td>SVQClusteringUrPk/speaker_age (VMeasure)<br/>(Clustering, ur-PK) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8530</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1080,7 +1103,7 @@
       <td>0.7621</td>
     </tr>
     <tr>
-     <td>SVQClusteringUrPk/speaker_gender (VMeasure)<br/>(Clustering, ur-PK)</td>
+     <td>SVQClusteringUrPk/speaker_gender (VMeasure)<br/>(Clustering, ur-PK) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.0371</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1088,7 +1111,7 @@
       <td>0.0371</td>
     </tr>
     <tr>
-     <td>SVQClusteringUrPk/speaker_id (VMeasure)<br/>(Clustering, ur-PK)</td>
+     <td>SVQClusteringUrPk/speaker_id (VMeasure)<br/>(Clustering, ur-PK) <a href="#type-clustering" class="doc-link">[?]</a></td>
       <td>0.8787</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -1100,1002 +1123,9 @@
 </div>
 </div>
 <div class="detail-table-section">
-<h2 id="DocumentCrossLangRetrieval">DocumentCrossLangRetrieval</h2>
+<h2 id="reasoning">reasoning</h2>
 <div class="table-container">
-<table id="details-table-DocumentCrossLangRetrieval" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SVQArEgDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-EG)</td>
-      <td>0.3081</td>
-      <td>0.2209</td>
-      <td>0.5583</td>
-      <td>0.4180</td>
-    </tr>
-    <tr>
-     <td>SVQArXGulfDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-gulf)</td>
-      <td>0.3096</td>
-      <td>0.2230</td>
-      <td>0.5582</td>
-      <td>0.4178</td>
-    </tr>
-    <tr>
-     <td>SVQArXLevantDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-levant)</td>
-      <td>0.3066</td>
-      <td>0.2351</td>
-      <td>0.5612</td>
-      <td>0.4578</td>
-    </tr>
-    <tr>
-     <td>SVQArXMaghrebiDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-maghrebi)</td>
-      <td>0.3060</td>
-      <td>0.1958</td>
-      <td>0.5537</td>
-      <td>0.3862</td>
-    </tr>
-    <tr>
-     <td>SVQBnBdDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, bn-BD)</td>
-      <td>0.3257</td>
-      <td>0.0837</td>
-      <td>0.5892</td>
-      <td>0.3291</td>
-    </tr>
-    <tr>
-     <td>SVQBnInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, bn-IN)</td>
-      <td>0.3271</td>
-      <td>0.0884</td>
-      <td>0.5907</td>
-      <td>0.3370</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, fi-FI)</td>
-      <td>0.4204</td>
-      <td>0.2072</td>
-      <td>0.5969</td>
-      <td>0.3065</td>
-    </tr>
-    <tr>
-     <td>SVQGuInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, gu-IN)</td>
-      <td>0.2701</td>
-      <td>0.1029</td>
-      <td>0.5357</td>
-      <td>0.3667</td>
-    </tr>
-    <tr>
-     <td>SVQHiInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, hi-IN)</td>
-      <td>0.3391</td>
-      <td>0.2033</td>
-      <td>0.5411</td>
-      <td>0.4438</td>
-    </tr>
-    <tr>
-     <td>SVQJaJpDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ja-JP)</td>
-      <td>0.2553</td>
-      <td>0.2013</td>
-      <td>0.5423</td>
-      <td>0.4189</td>
-    </tr>
-    <tr>
-     <td>SVQKnInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, kn-IN)</td>
-      <td>0.2876</td>
-      <td>0.1093</td>
-      <td>0.5448</td>
-      <td>0.3771</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ko-KR)</td>
-      <td>0.2811</td>
-      <td>0.2360</td>
-      <td>0.5119</td>
-      <td>0.4315</td>
-    </tr>
-    <tr>
-     <td>SVQMlInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ml-IN)</td>
-      <td>0.3268</td>
-      <td>0.0209</td>
-      <td>0.5491</td>
-      <td>0.1379</td>
-    </tr>
-    <tr>
-     <td>SVQMrInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, mr-IN)</td>
-      <td>0.3098</td>
-      <td>0.1410</td>
-      <td>0.5411</td>
-      <td>0.3841</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ru-RU)</td>
-      <td>0.3777</td>
-      <td>0.3343</td>
-      <td>0.6080</td>
-      <td>0.5408</td>
-    </tr>
-    <tr>
-     <td>SVQTaInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ta-IN)</td>
-      <td>0.2799</td>
-      <td>0.1370</td>
-      <td>0.5180</td>
-      <td>0.3338</td>
-    </tr>
-    <tr>
-     <td>SVQTeInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, te-IN)</td>
-      <td>0.3165</td>
-      <td>0.0878</td>
-      <td>0.5835</td>
-      <td>0.3359</td>
-    </tr>
-    <tr>
-     <td>SVQUrInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ur-IN)</td>
-      <td>0.2094</td>
-      <td>0.1520</td>
-      <td>0.4758</td>
-      <td>0.3767</td>
-    </tr>
-    <tr>
-     <td>SVQUrPkDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ur-PK)</td>
-      <td>0.2072</td>
-      <td>0.1431</td>
-      <td>0.4754</td>
-      <td>0.3522</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="DocumentInLangRetrieval">DocumentInLangRetrieval</h2>
-<div class="table-container">
-<table id="details-table-DocumentInLangRetrieval" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SVQArEgDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-EG)</td>
-      <td>0.6476</td>
-      <td>0.4629</td>
-      <td>0.7312</td>
-      <td>0.5492</td>
-    </tr>
-    <tr>
-     <td>SVQArXGulfDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-gulf)</td>
-      <td>0.6489</td>
-      <td>0.4794</td>
-      <td>0.7322</td>
-      <td>0.5659</td>
-    </tr>
-    <tr>
-     <td>SVQArXLevantDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-levant)</td>
-      <td>0.6470</td>
-      <td>0.5045</td>
-      <td>0.7295</td>
-      <td>0.5892</td>
-    </tr>
-    <tr>
-     <td>SVQArXMaghrebiDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-maghrebi)</td>
-      <td>0.6501</td>
-      <td>0.4159</td>
-      <td>0.7324</td>
-      <td>0.5195</td>
-    </tr>
-    <tr>
-     <td>SVQBnBdDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, bn-BD)</td>
-      <td>0.5933</td>
-      <td>0.2706</td>
-      <td>0.7479</td>
-      <td>0.5516</td>
-    </tr>
-    <tr>
-     <td>SVQBnInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, bn-IN)</td>
-      <td>0.5968</td>
-      <td>0.2543</td>
-      <td>0.7505</td>
-      <td>0.5654</td>
-    </tr>
-    <tr>
-     <td>SVQEnAuDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-AU)</td>
-      <td>0.6562</td>
-      <td>0.5722</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>SVQEnGbDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-GB)</td>
-      <td>0.6568</td>
-      <td>0.5135</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>SVQEnInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-IN)</td>
-      <td>0.6571</td>
-      <td>0.5290</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>SVQEnPhDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-PH)</td>
-      <td>0.6572</td>
-      <td>0.5353</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>SVQEnUsDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-US)</td>
-      <td>0.6574</td>
-      <td>0.5565</td>
-      <td>0.7636</td>
-      <td>0.6349</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, fi-FI)</td>
-      <td>0.6709</td>
-      <td>0.3409</td>
-      <td>0.7552</td>
-      <td>0.4209</td>
-    </tr>
-    <tr>
-     <td>SVQIdIdDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, id-ID)</td>
-      <td>0.6675</td>
-      <td>0.5677</td>
-      <td>0.7266</td>
-      <td>0.6371</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ko-KR)</td>
-      <td>0.4085</td>
-      <td>0.3313</td>
-      <td>0.5931</td>
-      <td>0.5324</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ru-RU)</td>
-      <td>0.5660</td>
-      <td>0.5183</td>
-      <td>0.7517</td>
-      <td>0.6810</td>
-    </tr>
-    <tr>
-     <td>SVQSwDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, sw)</td>
-      <td>0.5630</td>
-      <td>0.3517</td>
-      <td>0.7004</td>
-      <td>0.5067</td>
-    </tr>
-    <tr>
-     <td>SVQTeInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, te-IN)</td>
-      <td>0.7186</td>
-      <td>0.3192</td>
-      <td>0.7214</td>
-      <td>0.5051</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="IntentClassification">IntentClassification</h2>
-<div class="table-container">
-<table id="details-table-IntentClassification" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SpeechMassiveArSaIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ar-SA)</td>
-      <td>0.3937</td>
-      <td>0.3201</td>
-      <td>0.7666</td>
-      <td>0.6685</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveDeDeIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, de-DE)</td>
-      <td>0.4492</td>
-      <td>0.4590</td>
-      <td>0.8440</td>
-      <td>0.8339</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveEsEsIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, es-ES)</td>
-      <td>0.4610</td>
-      <td>0.4512</td>
-      <td>0.8373</td>
-      <td>0.8265</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveFrFrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, fr-FR)</td>
-      <td>0.4593</td>
-      <td>0.4533</td>
-      <td>0.8473</td>
-      <td>0.8322</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveHuHuIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, hu-HU)</td>
-      <td>0.4153</td>
-      <td>0.3658</td>
-      <td>0.8312</td>
-      <td>0.7831</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveKoKrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ko-KR)</td>
-      <td>0.4469</td>
-      <td>0.4274</td>
-      <td>0.8373</td>
-      <td>0.8141</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveNlNlIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, nl-NL)</td>
-      <td>0.4627</td>
-      <td>0.4556</td>
-      <td>0.8534</td>
-      <td>0.8420</td>
-    </tr>
-    <tr>
-     <td>SpeechMassivePlPlIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, pl-PL)</td>
-      <td>0.4553</td>
-      <td>0.4391</td>
-      <td>0.8410</td>
-      <td>0.8252</td>
-    </tr>
-    <tr>
-     <td>SpeechMassivePtPtIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, pt-PT)</td>
-      <td>0.4610</td>
-      <td>0.4465</td>
-      <td>0.8362</td>
-      <td>0.8141</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveRuRuIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, ru-RU)</td>
-      <td>0.4546</td>
-      <td>0.4543</td>
-      <td>0.8473</td>
-      <td>0.8403</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveTrTrIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, tr-TR)</td>
-      <td>0.4328</td>
-      <td>0.4132</td>
-      <td>0.8329</td>
-      <td>0.8033</td>
-    </tr>
-    <tr>
-     <td>SpeechMassiveViVnIntentClassification/intent_classification (Accuracy)<br/>(IntentClassification, vi-VN)</td>
-      <td>0.4233</td>
-      <td>0.3776</td>
-      <td>0.8319</td>
-      <td>0.7445</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="PassageCrossLangRetrieval">PassageCrossLangRetrieval</h2>
-<div class="table-container">
-<table id="details-table-PassageCrossLangRetrieval" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SVQArEgPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-EG)</td>
-      <td>0.4511</td>
-      <td>0.3296</td>
-      <td>0.6962</td>
-      <td>0.5452</td>
-    </tr>
-    <tr>
-     <td>SVQArXGulfPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-gulf)</td>
-      <td>0.4516</td>
-      <td>0.3441</td>
-      <td>0.6952</td>
-      <td>0.5590</td>
-    </tr>
-    <tr>
-     <td>SVQArXLevantPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-levant)</td>
-      <td>0.4543</td>
-      <td>0.3598</td>
-      <td>0.6968</td>
-      <td>0.5945</td>
-    </tr>
-    <tr>
-     <td>SVQArXMaghrebiPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-maghrebi)</td>
-      <td>0.4479</td>
-      <td>0.2854</td>
-      <td>0.6911</td>
-      <td>0.5044</td>
-    </tr>
-    <tr>
-     <td>SVQBnBdPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, bn-BD)</td>
-      <td>0.4703</td>
-      <td>0.1424</td>
-      <td>0.7319</td>
-      <td>0.4420</td>
-    </tr>
-    <tr>
-     <td>SVQBnInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, bn-IN)</td>
-      <td>0.4751</td>
-      <td>0.1389</td>
-      <td>0.7347</td>
-      <td>0.4528</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, fi-FI)</td>
-      <td>0.5257</td>
-      <td>0.2631</td>
-      <td>0.7179</td>
-      <td>0.3887</td>
-    </tr>
-    <tr>
-     <td>SVQGuInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, gu-IN)</td>
-      <td>0.4543</td>
-      <td>0.2072</td>
-      <td>0.6689</td>
-      <td>0.4987</td>
-    </tr>
-    <tr>
-     <td>SVQHiInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, hi-IN)</td>
-      <td>0.4919</td>
-      <td>0.3321</td>
-      <td>0.6742</td>
-      <td>0.5792</td>
-    </tr>
-    <tr>
-     <td>SVQJaJpPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ja-JP)</td>
-      <td>0.4272</td>
-      <td>0.3496</td>
-      <td>0.6866</td>
-      <td>0.5673</td>
-    </tr>
-    <tr>
-     <td>SVQKnInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, kn-IN)</td>
-      <td>0.4209</td>
-      <td>0.1988</td>
-      <td>0.6714</td>
-      <td>0.4988</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ko-KR)</td>
-      <td>0.4412</td>
-      <td>0.3672</td>
-      <td>0.7037</td>
-      <td>0.6259</td>
-    </tr>
-    <tr>
-     <td>SVQMlInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ml-IN)</td>
-      <td>0.4673</td>
-      <td>0.0356</td>
-      <td>0.6752</td>
-      <td>0.1678</td>
-    </tr>
-    <tr>
-     <td>SVQMrInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, mr-IN)</td>
-      <td>0.4502</td>
-      <td>0.2276</td>
-      <td>0.6522</td>
-      <td>0.4986</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ru-RU)</td>
-      <td>0.5313</td>
-      <td>0.4751</td>
-      <td>0.7394</td>
-      <td>0.6660</td>
-    </tr>
-    <tr>
-     <td>SVQTaInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ta-IN)</td>
-      <td>0.4278</td>
-      <td>0.2339</td>
-      <td>0.6491</td>
-      <td>0.4689</td>
-    </tr>
-    <tr>
-     <td>SVQTeInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, te-IN)</td>
-      <td>0.4666</td>
-      <td>0.1682</td>
-      <td>0.7137</td>
-      <td>0.4523</td>
-    </tr>
-    <tr>
-     <td>SVQUrInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ur-IN)</td>
-      <td>0.3496</td>
-      <td>0.2713</td>
-      <td>0.6190</td>
-      <td>0.5133</td>
-    </tr>
-    <tr>
-     <td>SVQUrPkPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ur-PK)</td>
-      <td>0.3506</td>
-      <td>0.2484</td>
-      <td>0.6225</td>
-      <td>0.4977</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="PassageInLangRetrieval">PassageInLangRetrieval</h2>
-<div class="table-container">
-<table id="details-table-PassageInLangRetrieval" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SVQArEgPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-EG)</td>
-      <td>0.7034</td>
-      <td>0.5365</td>
-      <td>0.7785</td>
-      <td>0.6188</td>
-    </tr>
-    <tr>
-     <td>SVQArXGulfPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-x-gulf)</td>
-      <td>0.7029</td>
-      <td>0.5555</td>
-      <td>0.7789</td>
-      <td>0.6417</td>
-    </tr>
-    <tr>
-     <td>SVQArXLevantPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-x-levant)</td>
-      <td>0.7038</td>
-      <td>0.5816</td>
-      <td>0.7799</td>
-      <td>0.6651</td>
-    </tr>
-    <tr>
-     <td>SVQArXMaghrebiPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-x-maghrebi)</td>
-      <td>0.7015</td>
-      <td>0.4820</td>
-      <td>0.7778</td>
-      <td>0.5776</td>
-    </tr>
-    <tr>
-     <td>SVQBnBdPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, bn-BD)</td>
-      <td>0.7053</td>
-      <td>0.3557</td>
-      <td>0.7655</td>
-      <td>0.5287</td>
-    </tr>
-    <tr>
-     <td>SVQBnInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, bn-IN)</td>
-      <td>0.7037</td>
-      <td>0.3766</td>
-      <td>0.7618</td>
-      <td>0.5437</td>
-    </tr>
-    <tr>
-     <td>SVQEnAuPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-AU)</td>
-      <td>0.7157</td>
-      <td>0.6545</td>
-      <td>0.8177</td>
-      <td>0.7541</td>
-    </tr>
-    <tr>
-     <td>SVQEnGbPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-GB)</td>
-      <td>0.7146</td>
-      <td>0.5980</td>
-      <td>0.8168</td>
-      <td>0.6921</td>
-    </tr>
-    <tr>
-     <td>SVQEnInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-IN)</td>
-      <td>0.7158</td>
-      <td>0.6161</td>
-      <td>0.8170</td>
-      <td>0.7170</td>
-    </tr>
-    <tr>
-     <td>SVQEnPhPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-PH)</td>
-      <td>0.7145</td>
-      <td>0.6150</td>
-      <td>0.8173</td>
-      <td>0.7062</td>
-    </tr>
-    <tr>
-     <td>SVQEnUsPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-US)</td>
-      <td>0.7152</td>
-      <td>0.6326</td>
-      <td>0.8170</td>
-      <td>0.7259</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, fi-FI)</td>
-      <td>0.6500</td>
-      <td>0.3646</td>
-      <td>0.7634</td>
-      <td>0.4405</td>
-    </tr>
-    <tr>
-     <td>SVQIdIdPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, id-ID)</td>
-      <td>0.7041</td>
-      <td>0.6245</td>
-      <td>0.7516</td>
-      <td>0.6743</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ko-KR)</td>
-      <td>0.5882</td>
-      <td>0.5255</td>
-      <td>0.6689</td>
-      <td>0.6095</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ru-RU)</td>
-      <td>0.5751</td>
-      <td>0.5189</td>
-      <td>0.6760</td>
-      <td>0.6273</td>
-    </tr>
-    <tr>
-     <td>SVQSwPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, sw)</td>
-      <td>0.5308</td>
-      <td>0.3130</td>
-      <td>0.6312</td>
-      <td>0.4421</td>
-    </tr>
-    <tr>
-     <td>SVQTeInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, te-IN)</td>
-      <td>0.6768</td>
-      <td>0.3766</td>
-      <td>0.6839</td>
-      <td>0.4989</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="QueryReranking">QueryReranking</h2>
-<div class="table-container">
-<table id="details-table-QueryReranking" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko_no_prompt</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko_no_prompt</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding_no_prompt</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SVQArEgQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-EG)</td>
-      <td>0.9993</td>
-      <td>0.5233</td>
-      <td>0.9990</td>
-      <td>0.5751</td>
-    </tr>
-    <tr>
-     <td>SVQArXGulfQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-gulf)</td>
-      <td>0.9992</td>
-      <td>0.5365</td>
-      <td>0.9989</td>
-      <td>0.5939</td>
-    </tr>
-    <tr>
-     <td>SVQArXLevantQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-levant)</td>
-      <td>0.9994</td>
-      <td>0.5103</td>
-      <td>0.9990</td>
-      <td>0.5750</td>
-    </tr>
-    <tr>
-     <td>SVQArXMaghrebiQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-maghrebi)</td>
-      <td>0.9993</td>
-      <td>0.3865</td>
-      <td>0.9990</td>
-      <td>0.4533</td>
-    </tr>
-    <tr>
-     <td>SVQBnBdQueryReranking/query_reranking (MAP)<br/>(QueryReranking, bn-BD)</td>
-      <td>0.9911</td>
-      <td>0.1430</td>
-      <td>0.9920</td>
-      <td>0.3666</td>
-    </tr>
-    <tr>
-     <td>SVQBnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, bn-IN)</td>
-      <td>0.9896</td>
-      <td>0.1477</td>
-      <td>0.9911</td>
-      <td>0.3796</td>
-    </tr>
-    <tr>
-     <td>SVQEnAuQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-AU)</td>
-      <td>1.0000</td>
-      <td>0.8410</td>
-      <td>1.0000</td>
-      <td>0.8645</td>
-    </tr>
-    <tr>
-     <td>SVQEnGbQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-GB)</td>
-      <td>1.0000</td>
-      <td>0.7664</td>
-      <td>1.0000</td>
-      <td>0.7929</td>
-    </tr>
-    <tr>
-     <td>SVQEnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-IN)</td>
-      <td>1.0000</td>
-      <td>0.7839</td>
-      <td>1.0000</td>
-      <td>0.8134</td>
-    </tr>
-    <tr>
-     <td>SVQEnPhQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-PH)</td>
-      <td>1.0000</td>
-      <td>0.7962</td>
-      <td>1.0000</td>
-      <td>0.8156</td>
-    </tr>
-    <tr>
-     <td>SVQEnUsQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-US)</td>
-      <td>1.0000</td>
-      <td>0.8141</td>
-      <td>1.0000</td>
-      <td>0.8420</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiQueryReranking/query_reranking (MAP)<br/>(QueryReranking, fi-FI)</td>
-      <td>1.0000</td>
-      <td>0.4570</td>
-      <td>1.0000</td>
-      <td>0.5012</td>
-    </tr>
-    <tr>
-     <td>SVQGuInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, gu-IN)</td>
-      <td>0.9991</td>
-      <td>0.3331</td>
-      <td>0.9974</td>
-      <td>0.5286</td>
-    </tr>
-    <tr>
-     <td>SVQHiInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, hi-IN)</td>
-      <td>0.9989</td>
-      <td>0.5068</td>
-      <td>0.9993</td>
-      <td>0.7024</td>
-    </tr>
-    <tr>
-     <td>SVQIdIdQueryReranking/query_reranking (MAP)<br/>(QueryReranking, id-ID)</td>
-      <td>1.0000</td>
-      <td>0.7379</td>
-      <td>1.0000</td>
-      <td>0.7840</td>
-    </tr>
-    <tr>
-     <td>SVQJaJpQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ja-JP)</td>
-      <td>0.9997</td>
-      <td>0.7262</td>
-      <td>0.9996</td>
-      <td>0.7618</td>
-    </tr>
-    <tr>
-     <td>SVQKnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, kn-IN)</td>
-      <td>0.9997</td>
-      <td>0.3533</td>
-      <td>0.9998</td>
-      <td>0.5732</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ko-KR)</td>
-      <td>0.9996</td>
-      <td>0.7687</td>
-      <td>0.9998</td>
-      <td>0.7924</td>
-    </tr>
-    <tr>
-     <td>SVQMlInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ml-IN)</td>
-      <td>0.9964</td>
-      <td>0.0347</td>
-      <td>0.9958</td>
-      <td>0.1067</td>
-    </tr>
-    <tr>
-     <td>SVQMrInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, mr-IN)</td>
-      <td>N/A</td>
-      <td>0.2942</td>
-      <td>0.9862</td>
-      <td>0.4862</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ru-RU)</td>
-      <td>0.9999</td>
-      <td>0.7769</td>
-      <td>0.9999</td>
-      <td>0.8484</td>
-    </tr>
-    <tr>
-     <td>SVQSwQueryReranking/query_reranking (MAP)<br/>(QueryReranking, sw)</td>
-      <td>1.0000</td>
-      <td>0.3527</td>
-      <td>0.9998</td>
-      <td>0.4553</td>
-    </tr>
-    <tr>
-     <td>SVQTaInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ta-IN)</td>
-      <td>0.9806</td>
-      <td>0.4544</td>
-      <td>0.9779</td>
-      <td>0.5838</td>
-    </tr>
-    <tr>
-     <td>SVQTeInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, te-IN)</td>
-      <td>0.9699</td>
-      <td>0.1825</td>
-      <td>0.9747</td>
-      <td>0.3282</td>
-    </tr>
-    <tr>
-     <td>SVQUrInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-IN)</td>
-      <td>0.9983</td>
-      <td>0.5088</td>
-      <td>0.9977</td>
-      <td>0.5452</td>
-    </tr>
-    <tr>
-     <td>SVQUrPkQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-PK)</td>
-      <td>0.9982</td>
-      <td>0.4536</td>
-      <td>0.9979</td>
-      <td>0.5094</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="SalientTermSegmentation">SalientTermSegmentation</h2>
-<div class="table-container">
-<table id="details-table-SalientTermSegmentation" border="1">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th><a href="https://github.com/openai/whisper">whisper_large_asr_saliency</a></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-     <td>SVQArEgSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-EG)</td>
-      <td>0.3815</td>
-    </tr>
-    <tr>
-     <td>SVQArXGulfSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-gulf)</td>
-      <td>0.4231</td>
-    </tr>
-    <tr>
-     <td>SVQArXLevantSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-levant)</td>
-      <td>0.4074</td>
-    </tr>
-    <tr>
-     <td>SVQArXMaghrebiSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-maghrebi)</td>
-      <td>0.2676</td>
-    </tr>
-    <tr>
-     <td>SVQBnBdSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, bn-BD)</td>
-      <td>0.0520</td>
-    </tr>
-    <tr>
-     <td>SVQBnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, bn-IN)</td>
-      <td>0.0550</td>
-    </tr>
-    <tr>
-     <td>SVQEnAuSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-AU)</td>
-      <td>0.8304</td>
-    </tr>
-    <tr>
-     <td>SVQEnGbSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-GB)</td>
-      <td>0.7527</td>
-    </tr>
-    <tr>
-     <td>SVQEnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-IN)</td>
-      <td>0.7804</td>
-    </tr>
-    <tr>
-     <td>SVQEnPhSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-PH)</td>
-      <td>0.7776</td>
-    </tr>
-    <tr>
-     <td>SVQEnUsSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-US)</td>
-      <td>0.8023</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, fi-FI)</td>
-      <td>0.3769</td>
-    </tr>
-    <tr>
-     <td>SVQGuInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, gu-IN)</td>
-      <td>0.1637</td>
-    </tr>
-    <tr>
-     <td>SVQHiInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, hi-IN)</td>
-      <td>0.2709</td>
-    </tr>
-    <tr>
-     <td>SVQIdIdSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, id-ID)</td>
-      <td>0.6600</td>
-    </tr>
-    <tr>
-     <td>SVQJaJpSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ja-JP)</td>
-      <td>0.6272</td>
-    </tr>
-    <tr>
-     <td>SVQKnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, kn-IN)</td>
-      <td>0.1227</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ko-KR)</td>
-      <td>0.6598</td>
-    </tr>
-    <tr>
-     <td>SVQMlInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ml-IN)</td>
-      <td>0.0020</td>
-    </tr>
-    <tr>
-     <td>SVQMrInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, mr-IN)</td>
-      <td>0.1079</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ru-RU)</td>
-      <td>0.6101</td>
-    </tr>
-    <tr>
-     <td>SVQTaInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ta-IN)</td>
-      <td>0.2538</td>
-    </tr>
-    <tr>
-     <td>SVQTeInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, te-IN)</td>
-      <td>0.0774</td>
-    </tr>
-    <tr>
-     <td>SVQUrInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ur-IN)</td>
-      <td>0.3204</td>
-    </tr>
-    <tr>
-     <td>SVQUrPkSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ur-PK)</td>
-      <td>0.3059</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-<div class="detail-table-section">
-<h2 id="SpanCrossLangReasoning">SpanCrossLangReasoning</h2>
-<div class="table-container">
-<table id="details-table-SpanCrossLangReasoning" border="1">
+<table id="details-table-reasoning" border="1">
   <thead>
     <tr>
       <th>Metric</th>
@@ -2109,7 +1139,7 @@
   </thead>
   <tbody>
     <tr>
-     <td>SVQArEgSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-EG)</td>
+     <td>SVQArEgSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-EG) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0320</td>
@@ -2118,7 +1148,16 @@
       <td>0.3813</td>
     </tr>
     <tr>
-     <td>SVQArXGulfSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-x-gulf)</td>
+     <td>SVQArEgSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-EG) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1533</td>
+      <td>0.1266</td>
+      <td>0.0719</td>
+      <td>0.0527</td>
+      <td>0.5728</td>
+      <td>0.5357</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-x-gulf) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0324</td>
@@ -2127,7 +1166,16 @@
       <td>0.3848</td>
     </tr>
     <tr>
-     <td>SVQArXLevantSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-x-levant)</td>
+     <td>SVQArXGulfSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-x-gulf) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1526</td>
+      <td>0.1324</td>
+      <td>0.0712</td>
+      <td>0.0582</td>
+      <td>0.5736</td>
+      <td>0.5421</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-x-levant) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0335</td>
@@ -2136,7 +1184,16 @@
       <td>0.3924</td>
     </tr>
     <tr>
-     <td>SVQArXMaghrebiSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-x-maghrebi)</td>
+     <td>SVQArXLevantSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-x-levant) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.3418</td>
+      <td>0.1316</td>
+      <td>0.0720</td>
+      <td>0.0542</td>
+      <td>0.5713</td>
+      <td>0.5415</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ar-x-maghrebi) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0318</td>
@@ -2145,7 +1202,16 @@
       <td>0.3653</td>
     </tr>
     <tr>
-     <td>SVQBnBdSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, bn-BD)</td>
+     <td>SVQArXMaghrebiSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-x-maghrebi) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1509</td>
+      <td>0.1151</td>
+      <td>0.0718</td>
+      <td>0.0543</td>
+      <td>0.5732</td>
+      <td>0.5060</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, bn-BD) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0010</td>
@@ -2154,7 +1220,16 @@
       <td>0.3889</td>
     </tr>
     <tr>
-     <td>SVQBnInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, bn-IN)</td>
+     <td>SVQBnBdSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, bn-BD) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1676</td>
+      <td>0.0821</td>
+      <td>0.0792</td>
+      <td>0.0194</td>
+      <td>0.6469</td>
+      <td>0.5415</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, bn-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0011</td>
@@ -2163,7 +1238,61 @@
       <td>0.4010</td>
     </tr>
     <tr>
-     <td>SVQFiFiSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, fi-FI)</td>
+     <td>SVQBnInSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, bn-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1769</td>
+      <td>0.0794</td>
+      <td>0.0845</td>
+      <td>0.0288</td>
+      <td>0.6585</td>
+      <td>0.5398</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-AU) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1375</td>
+      <td>0.1287</td>
+      <td>0.0606</td>
+      <td>0.0491</td>
+      <td>0.6006</td>
+      <td>0.5819</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-GB) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1388</td>
+      <td>0.1189</td>
+      <td>0.0605</td>
+      <td>0.0511</td>
+      <td>0.6058</td>
+      <td>0.5781</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1361</td>
+      <td>0.1186</td>
+      <td>0.0568</td>
+      <td>0.0463</td>
+      <td>0.5981</td>
+      <td>0.5755</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-PH) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1379</td>
+      <td>0.1231</td>
+      <td>0.0619</td>
+      <td>0.0522</td>
+      <td>0.6014</td>
+      <td>0.5785</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-US) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1395</td>
+      <td>0.1241</td>
+      <td>0.0619</td>
+      <td>0.0560</td>
+      <td>0.6087</td>
+      <td>0.5801</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, fi-FI) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0290</td>
@@ -2172,7 +1301,16 @@
       <td>0.3281</td>
     </tr>
     <tr>
-     <td>SVQGuInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, gu-IN)</td>
+     <td>SVQFiFiSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, fi-FI) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1934</td>
+      <td>0.1470</td>
+      <td>0.0710</td>
+      <td>0.0494</td>
+      <td>0.6080</td>
+      <td>0.5138</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, gu-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0054</td>
@@ -2181,7 +1319,7 @@
       <td>0.4466</td>
     </tr>
     <tr>
-     <td>SVQHiInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, hi-IN)</td>
+     <td>SVQHiInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, hi-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0112</td>
       <td>0.0000</td>
       <td>0.0000</td>
@@ -2190,7 +1328,16 @@
       <td>0.4389</td>
     </tr>
     <tr>
-     <td>SVQJaJpSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ja-JP)</td>
+     <td>SVQIdIdSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, id-ID) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1873</td>
+      <td>0.1802</td>
+      <td>0.0963</td>
+      <td>0.0934</td>
+      <td>0.5972</td>
+      <td>0.5902</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ja-JP) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0276</td>
@@ -2199,7 +1346,7 @@
       <td>0.4098</td>
     </tr>
     <tr>
-     <td>SVQKnInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, kn-IN)</td>
+     <td>SVQKnInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, kn-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0018</td>
       <td>0.0004</td>
       <td>0.0037</td>
@@ -2208,7 +1355,7 @@
       <td>0.4361</td>
     </tr>
     <tr>
-     <td>SVQKoKrSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ko-KR)</td>
+     <td>SVQKoKrSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ko-KR) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0192</td>
@@ -2217,7 +1364,16 @@
       <td>0.4169</td>
     </tr>
     <tr>
-     <td>SVQMlInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ml-IN)</td>
+     <td>SVQKoKrSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ko-KR) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1407</td>
+      <td>0.1336</td>
+      <td>0.0417</td>
+      <td>0.0529</td>
+      <td>0.5844</td>
+      <td>0.5773</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ml-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0016</td>
       <td>0.0010</td>
@@ -2226,7 +1382,7 @@
       <td>0.1175</td>
     </tr>
     <tr>
-     <td>SVQMrInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, mr-IN)</td>
+     <td>SVQMrInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, mr-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0016</td>
       <td>0.0000</td>
       <td>0.0028</td>
@@ -2235,7 +1391,7 @@
       <td>0.4352</td>
     </tr>
     <tr>
-     <td>SVQRuRuSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ru-RU)</td>
+     <td>SVQRuRuSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ru-RU) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0288</td>
@@ -2244,7 +1400,25 @@
       <td>0.3903</td>
     </tr>
     <tr>
-     <td>SVQTaInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ta-IN)</td>
+     <td>SVQRuRuSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ru-RU) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1088</td>
+      <td>0.1095</td>
+      <td>0.0592</td>
+      <td>0.0651</td>
+      <td>0.5618</td>
+      <td>0.5512</td>
+    </tr>
+    <tr>
+     <td>SVQSwSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, sw) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1345</td>
+      <td>0.0871</td>
+      <td>0.0723</td>
+      <td>0.0399</td>
+      <td>0.6049</td>
+      <td>0.5320</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ta-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0039</td>
@@ -2253,7 +1427,7 @@
       <td>0.4319</td>
     </tr>
     <tr>
-     <td>SVQTeInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, te-IN)</td>
+     <td>SVQTeInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, te-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0015</td>
       <td>0.0000</td>
       <td>0.0022</td>
@@ -2262,7 +1436,16 @@
       <td>0.3983</td>
     </tr>
     <tr>
-     <td>SVQUrInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ur-IN)</td>
+     <td>SVQTeInSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, te-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
+      <td>0.1276</td>
+      <td>N/A</td>
+      <td>0.0628</td>
+      <td>0.0358</td>
+      <td>0.6267</td>
+      <td>0.5401</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ur-IN) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0045</td>
@@ -2271,7 +1454,7 @@
       <td>0.4485</td>
     </tr>
     <tr>
-     <td>SVQUrPkSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ur-PK)</td>
+     <td>SVQUrPkSpanCrossLangReasoning/span_reasoning_cross_lang (GmeanF1)<br/>(SpanCrossLangReasoning, ur-PK) <a href="#type-reasoning" class="doc-link">[?]</a></td>
       <td>0.0000</td>
       <td>0.0000</td>
       <td>0.0048</td>
@@ -2284,177 +1467,1354 @@
 </div>
 </div>
 <div class="detail-table-section">
-<h2 id="SpanInLangReasoning">SpanInLangReasoning</h2>
+<h2 id="reranking">reranking</h2>
 <div class="table-container">
-<table id="details-table-SpanInLangReasoning" border="1">
+<table id="details-table-reranking" border="1">
   <thead>
     <tr>
       <th>Metric</th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_transcript_truth_or_gecko</a></th>
-      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_whisper_or_gecko</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_with_title_and_context_whisper_or_gemini_embedding</a></th>
-      <th><a href="https://ai.google.dev/gemma">gemma_with_title_and_context_transcript_truth</a></th>
-      <th><a href="https://ai.google.dev/gemma">gemma_with_title_and_context_whisper</a></th>
+      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko_no_prompt</a></th>
+      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko_no_prompt</a></th>
+      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</a></th>
+      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding_no_prompt</a></th>
     </tr>
   </thead>
   <tbody>
     <tr>
-     <td>SVQArEgSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-EG)</td>
-      <td>0.1533</td>
-      <td>0.1266</td>
-      <td>0.0719</td>
-      <td>0.0527</td>
-      <td>0.5728</td>
-      <td>0.5357</td>
+     <td>SVQArEgQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-EG) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9993</td>
+      <td>0.5233</td>
+      <td>0.9990</td>
+      <td>0.5751</td>
     </tr>
     <tr>
-     <td>SVQArXGulfSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-x-gulf)</td>
-      <td>0.1526</td>
-      <td>0.1324</td>
-      <td>0.0712</td>
-      <td>0.0582</td>
-      <td>0.5736</td>
-      <td>0.5421</td>
+     <td>SVQArXGulfQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-gulf) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9992</td>
+      <td>0.5365</td>
+      <td>0.9989</td>
+      <td>0.5939</td>
     </tr>
     <tr>
-     <td>SVQArXLevantSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-x-levant)</td>
-      <td>0.3418</td>
-      <td>0.1316</td>
-      <td>0.0720</td>
-      <td>0.0542</td>
-      <td>0.5713</td>
-      <td>0.5415</td>
+     <td>SVQArXLevantQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-levant) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9994</td>
+      <td>0.5103</td>
+      <td>0.9990</td>
+      <td>0.5750</td>
     </tr>
     <tr>
-     <td>SVQArXMaghrebiSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ar-x-maghrebi)</td>
-      <td>0.1509</td>
-      <td>0.1151</td>
-      <td>0.0718</td>
-      <td>0.0543</td>
+     <td>SVQArXMaghrebiQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ar-x-maghrebi) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9993</td>
+      <td>0.3865</td>
+      <td>0.9990</td>
+      <td>0.4533</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdQueryReranking/query_reranking (MAP)<br/>(QueryReranking, bn-BD) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9911</td>
+      <td>0.1430</td>
+      <td>0.9920</td>
+      <td>0.3666</td>
+    </tr>
+    <tr>
+     <td>SVQBnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, bn-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9896</td>
+      <td>0.1477</td>
+      <td>0.9911</td>
+      <td>0.3796</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-AU) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.8410</td>
+      <td>1.0000</td>
+      <td>0.8645</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-GB) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.7664</td>
+      <td>1.0000</td>
+      <td>0.7929</td>
+    </tr>
+    <tr>
+     <td>SVQEnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.7839</td>
+      <td>1.0000</td>
+      <td>0.8134</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-PH) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.7962</td>
+      <td>1.0000</td>
+      <td>0.8156</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsQueryReranking/query_reranking (MAP)<br/>(QueryReranking, en-US) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.8141</td>
+      <td>1.0000</td>
+      <td>0.8420</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiQueryReranking/query_reranking (MAP)<br/>(QueryReranking, fi-FI) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.4570</td>
+      <td>1.0000</td>
+      <td>0.5012</td>
+    </tr>
+    <tr>
+     <td>SVQGuInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, gu-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9991</td>
+      <td>0.3331</td>
+      <td>0.9974</td>
+      <td>0.5286</td>
+    </tr>
+    <tr>
+     <td>SVQHiInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, hi-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9989</td>
+      <td>0.5068</td>
+      <td>0.9993</td>
+      <td>0.7024</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdQueryReranking/query_reranking (MAP)<br/>(QueryReranking, id-ID) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.7379</td>
+      <td>1.0000</td>
+      <td>0.7840</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ja-JP) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9997</td>
+      <td>0.7262</td>
+      <td>0.9996</td>
+      <td>0.7618</td>
+    </tr>
+    <tr>
+     <td>SVQKnInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, kn-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9997</td>
+      <td>0.3533</td>
+      <td>0.9998</td>
       <td>0.5732</td>
-      <td>0.5060</td>
     </tr>
     <tr>
-     <td>SVQBnBdSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, bn-BD)</td>
-      <td>0.1676</td>
-      <td>0.0821</td>
-      <td>0.0792</td>
-      <td>0.0194</td>
-      <td>0.6469</td>
-      <td>0.5415</td>
+     <td>SVQKoKrQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ko-KR) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9996</td>
+      <td>0.7687</td>
+      <td>0.9998</td>
+      <td>0.7924</td>
     </tr>
     <tr>
-     <td>SVQBnInSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, bn-IN)</td>
-      <td>0.1769</td>
-      <td>0.0794</td>
-      <td>0.0845</td>
-      <td>0.0288</td>
-      <td>0.6585</td>
-      <td>0.5398</td>
+     <td>SVQMlInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ml-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9964</td>
+      <td>0.0347</td>
+      <td>0.9958</td>
+      <td>0.1067</td>
     </tr>
     <tr>
-     <td>SVQEnAuSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-AU)</td>
-      <td>0.1375</td>
-      <td>0.1287</td>
-      <td>0.0606</td>
-      <td>0.0491</td>
-      <td>0.6006</td>
-      <td>0.5819</td>
-    </tr>
-    <tr>
-     <td>SVQEnGbSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-GB)</td>
-      <td>0.1388</td>
-      <td>0.1189</td>
-      <td>0.0605</td>
-      <td>0.0511</td>
-      <td>0.6058</td>
-      <td>0.5781</td>
-    </tr>
-    <tr>
-     <td>SVQEnInSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-IN)</td>
-      <td>0.1361</td>
-      <td>0.1186</td>
-      <td>0.0568</td>
-      <td>0.0463</td>
-      <td>0.5981</td>
-      <td>0.5755</td>
-    </tr>
-    <tr>
-     <td>SVQEnPhSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-PH)</td>
-      <td>0.1379</td>
-      <td>0.1231</td>
-      <td>0.0619</td>
-      <td>0.0522</td>
-      <td>0.6014</td>
-      <td>0.5785</td>
-    </tr>
-    <tr>
-     <td>SVQEnUsSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, en-US)</td>
-      <td>0.1395</td>
-      <td>0.1241</td>
-      <td>0.0619</td>
-      <td>0.0560</td>
-      <td>0.6087</td>
-      <td>0.5801</td>
-    </tr>
-    <tr>
-     <td>SVQFiFiSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, fi-FI)</td>
-      <td>0.1934</td>
-      <td>0.1470</td>
-      <td>0.0710</td>
-      <td>0.0494</td>
-      <td>0.6080</td>
-      <td>0.5138</td>
-    </tr>
-    <tr>
-     <td>SVQIdIdSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, id-ID)</td>
-      <td>0.1873</td>
-      <td>0.1802</td>
-      <td>0.0963</td>
-      <td>0.0934</td>
-      <td>0.5972</td>
-      <td>0.5902</td>
-    </tr>
-    <tr>
-     <td>SVQKoKrSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ko-KR)</td>
-      <td>0.1407</td>
-      <td>0.1336</td>
-      <td>0.0417</td>
-      <td>0.0529</td>
-      <td>0.5844</td>
-      <td>0.5773</td>
-    </tr>
-    <tr>
-     <td>SVQRuRuSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, ru-RU)</td>
-      <td>0.1088</td>
-      <td>0.1095</td>
-      <td>0.0592</td>
-      <td>0.0651</td>
-      <td>0.5618</td>
-      <td>0.5512</td>
-    </tr>
-    <tr>
-     <td>SVQSwSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, sw)</td>
-      <td>0.1345</td>
-      <td>0.0871</td>
-      <td>0.0723</td>
-      <td>0.0399</td>
-      <td>0.6049</td>
-      <td>0.5320</td>
-    </tr>
-    <tr>
-     <td>SVQTeInSpanInLangReasoning/span_reasoning_in_lang (GmeanF1)<br/>(SpanInLangReasoning, te-IN)</td>
-      <td>0.1276</td>
+     <td>SVQMrInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, mr-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
       <td>N/A</td>
-      <td>0.0628</td>
-      <td>0.0358</td>
-      <td>0.6267</td>
-      <td>0.5401</td>
+      <td>0.2942</td>
+      <td>0.9862</td>
+      <td>0.4862</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ru-RU) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9999</td>
+      <td>0.7769</td>
+      <td>0.9999</td>
+      <td>0.8484</td>
+    </tr>
+    <tr>
+     <td>SVQSwQueryReranking/query_reranking (MAP)<br/>(QueryReranking, sw) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>1.0000</td>
+      <td>0.3527</td>
+      <td>0.9998</td>
+      <td>0.4553</td>
+    </tr>
+    <tr>
+     <td>SVQTaInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ta-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9806</td>
+      <td>0.4544</td>
+      <td>0.9779</td>
+      <td>0.5838</td>
+    </tr>
+    <tr>
+     <td>SVQTeInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, te-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9699</td>
+      <td>0.1825</td>
+      <td>0.9747</td>
+      <td>0.3282</td>
+    </tr>
+    <tr>
+     <td>SVQUrInQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-IN) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9983</td>
+      <td>0.5088</td>
+      <td>0.9977</td>
+      <td>0.5452</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkQueryReranking/query_reranking (MAP)<br/>(QueryReranking, ur-PK) <a href="#type-reranking" class="doc-link">[?]</a></td>
+      <td>0.9982</td>
+      <td>0.4536</td>
+      <td>0.9979</td>
+      <td>0.5094</td>
     </tr>
   </tbody>
 </table>
 </div>
+</div>
+<div class="detail-table-section">
+<h2 id="retrieval">retrieval</h2>
+<div class="table-container">
+<table id="details-table-retrieval" border="1">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko</a></th>
+      <th><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko</a></th>
+      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding</a></th>
+      <th><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td>SVQArEgDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-EG) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3081</td>
+      <td>0.2209</td>
+      <td>0.5583</td>
+      <td>0.4180</td>
+    </tr>
+    <tr>
+     <td>SVQArEgDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-EG) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6476</td>
+      <td>0.4629</td>
+      <td>0.7312</td>
+      <td>0.5492</td>
+    </tr>
+    <tr>
+     <td>SVQArEgPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-EG) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4511</td>
+      <td>0.3296</td>
+      <td>0.6962</td>
+      <td>0.5452</td>
+    </tr>
+    <tr>
+     <td>SVQArEgPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-EG) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7034</td>
+      <td>0.5365</td>
+      <td>0.7785</td>
+      <td>0.6188</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-gulf) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3096</td>
+      <td>0.2230</td>
+      <td>0.5582</td>
+      <td>0.4178</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-gulf) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6489</td>
+      <td>0.4794</td>
+      <td>0.7322</td>
+      <td>0.5659</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-gulf) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4516</td>
+      <td>0.3441</td>
+      <td>0.6952</td>
+      <td>0.5590</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-x-gulf) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7029</td>
+      <td>0.5555</td>
+      <td>0.7789</td>
+      <td>0.6417</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-levant) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3066</td>
+      <td>0.2351</td>
+      <td>0.5612</td>
+      <td>0.4578</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-levant) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6470</td>
+      <td>0.5045</td>
+      <td>0.7295</td>
+      <td>0.5892</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-levant) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4543</td>
+      <td>0.3598</td>
+      <td>0.6968</td>
+      <td>0.5945</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-x-levant) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7038</td>
+      <td>0.5816</td>
+      <td>0.7799</td>
+      <td>0.6651</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ar-x-maghrebi) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3060</td>
+      <td>0.1958</td>
+      <td>0.5537</td>
+      <td>0.3862</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ar-x-maghrebi) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6501</td>
+      <td>0.4159</td>
+      <td>0.7324</td>
+      <td>0.5195</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ar-x-maghrebi) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4479</td>
+      <td>0.2854</td>
+      <td>0.6911</td>
+      <td>0.5044</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ar-x-maghrebi) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7015</td>
+      <td>0.4820</td>
+      <td>0.7778</td>
+      <td>0.5776</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, bn-BD) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3257</td>
+      <td>0.0837</td>
+      <td>0.5892</td>
+      <td>0.3291</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, bn-BD) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5933</td>
+      <td>0.2706</td>
+      <td>0.7479</td>
+      <td>0.5516</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, bn-BD) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4703</td>
+      <td>0.1424</td>
+      <td>0.7319</td>
+      <td>0.4420</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, bn-BD) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7053</td>
+      <td>0.3557</td>
+      <td>0.7655</td>
+      <td>0.5287</td>
+    </tr>
+    <tr>
+     <td>SVQBnInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, bn-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3271</td>
+      <td>0.0884</td>
+      <td>0.5907</td>
+      <td>0.3370</td>
+    </tr>
+    <tr>
+     <td>SVQBnInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, bn-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5968</td>
+      <td>0.2543</td>
+      <td>0.7505</td>
+      <td>0.5654</td>
+    </tr>
+    <tr>
+     <td>SVQBnInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, bn-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4751</td>
+      <td>0.1389</td>
+      <td>0.7347</td>
+      <td>0.4528</td>
+    </tr>
+    <tr>
+     <td>SVQBnInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, bn-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7037</td>
+      <td>0.3766</td>
+      <td>0.7618</td>
+      <td>0.5437</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-AU) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6562</td>
+      <td>0.5722</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-AU) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7157</td>
+      <td>0.6545</td>
+      <td>0.8177</td>
+      <td>0.7541</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-GB) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6568</td>
+      <td>0.5135</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-GB) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7146</td>
+      <td>0.5980</td>
+      <td>0.8168</td>
+      <td>0.6921</td>
+    </tr>
+    <tr>
+     <td>SVQEnInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6571</td>
+      <td>0.5290</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SVQEnInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7158</td>
+      <td>0.6161</td>
+      <td>0.8170</td>
+      <td>0.7170</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-PH) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6572</td>
+      <td>0.5353</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-PH) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7145</td>
+      <td>0.6150</td>
+      <td>0.8173</td>
+      <td>0.7062</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, en-US) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6574</td>
+      <td>0.5565</td>
+      <td>0.7636</td>
+      <td>0.6349</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, en-US) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7152</td>
+      <td>0.6326</td>
+      <td>0.8170</td>
+      <td>0.7259</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, fi-FI) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4204</td>
+      <td>0.2072</td>
+      <td>0.5969</td>
+      <td>0.3065</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, fi-FI) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6709</td>
+      <td>0.3409</td>
+      <td>0.7552</td>
+      <td>0.4209</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, fi-FI) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5257</td>
+      <td>0.2631</td>
+      <td>0.7179</td>
+      <td>0.3887</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, fi-FI) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6500</td>
+      <td>0.3646</td>
+      <td>0.7634</td>
+      <td>0.4405</td>
+    </tr>
+    <tr>
+     <td>SVQGuInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, gu-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2701</td>
+      <td>0.1029</td>
+      <td>0.5357</td>
+      <td>0.3667</td>
+    </tr>
+    <tr>
+     <td>SVQGuInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, gu-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4543</td>
+      <td>0.2072</td>
+      <td>0.6689</td>
+      <td>0.4987</td>
+    </tr>
+    <tr>
+     <td>SVQHiInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, hi-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3391</td>
+      <td>0.2033</td>
+      <td>0.5411</td>
+      <td>0.4438</td>
+    </tr>
+    <tr>
+     <td>SVQHiInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, hi-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4919</td>
+      <td>0.3321</td>
+      <td>0.6742</td>
+      <td>0.5792</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, id-ID) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6675</td>
+      <td>0.5677</td>
+      <td>0.7266</td>
+      <td>0.6371</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, id-ID) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7041</td>
+      <td>0.6245</td>
+      <td>0.7516</td>
+      <td>0.6743</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ja-JP) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2553</td>
+      <td>0.2013</td>
+      <td>0.5423</td>
+      <td>0.4189</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ja-JP) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4272</td>
+      <td>0.3496</td>
+      <td>0.6866</td>
+      <td>0.5673</td>
+    </tr>
+    <tr>
+     <td>SVQKnInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, kn-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2876</td>
+      <td>0.1093</td>
+      <td>0.5448</td>
+      <td>0.3771</td>
+    </tr>
+    <tr>
+     <td>SVQKnInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, kn-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4209</td>
+      <td>0.1988</td>
+      <td>0.6714</td>
+      <td>0.4988</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ko-KR) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2811</td>
+      <td>0.2360</td>
+      <td>0.5119</td>
+      <td>0.4315</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ko-KR) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4085</td>
+      <td>0.3313</td>
+      <td>0.5931</td>
+      <td>0.5324</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ko-KR) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4412</td>
+      <td>0.3672</td>
+      <td>0.7037</td>
+      <td>0.6259</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ko-KR) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5882</td>
+      <td>0.5255</td>
+      <td>0.6689</td>
+      <td>0.6095</td>
+    </tr>
+    <tr>
+     <td>SVQMlInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ml-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3268</td>
+      <td>0.0209</td>
+      <td>0.5491</td>
+      <td>0.1379</td>
+    </tr>
+    <tr>
+     <td>SVQMlInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ml-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4673</td>
+      <td>0.0356</td>
+      <td>0.6752</td>
+      <td>0.1678</td>
+    </tr>
+    <tr>
+     <td>SVQMrInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, mr-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3098</td>
+      <td>0.1410</td>
+      <td>0.5411</td>
+      <td>0.3841</td>
+    </tr>
+    <tr>
+     <td>SVQMrInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, mr-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4502</td>
+      <td>0.2276</td>
+      <td>0.6522</td>
+      <td>0.4986</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ru-RU) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3777</td>
+      <td>0.3343</td>
+      <td>0.6080</td>
+      <td>0.5408</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, ru-RU) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5660</td>
+      <td>0.5183</td>
+      <td>0.7517</td>
+      <td>0.6810</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ru-RU) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5313</td>
+      <td>0.4751</td>
+      <td>0.7394</td>
+      <td>0.6660</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, ru-RU) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5751</td>
+      <td>0.5189</td>
+      <td>0.6760</td>
+      <td>0.6273</td>
+    </tr>
+    <tr>
+     <td>SVQSwDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, sw) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5630</td>
+      <td>0.3517</td>
+      <td>0.7004</td>
+      <td>0.5067</td>
+    </tr>
+    <tr>
+     <td>SVQSwPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, sw) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.5308</td>
+      <td>0.3130</td>
+      <td>0.6312</td>
+      <td>0.4421</td>
+    </tr>
+    <tr>
+     <td>SVQTaInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ta-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2799</td>
+      <td>0.1370</td>
+      <td>0.5180</td>
+      <td>0.3338</td>
+    </tr>
+    <tr>
+     <td>SVQTaInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ta-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4278</td>
+      <td>0.2339</td>
+      <td>0.6491</td>
+      <td>0.4689</td>
+    </tr>
+    <tr>
+     <td>SVQTeInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, te-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3165</td>
+      <td>0.0878</td>
+      <td>0.5835</td>
+      <td>0.3359</td>
+    </tr>
+    <tr>
+     <td>SVQTeInDocumentInLangRetrieval/document_retrieval_in_lang (MRR)<br/>(DocumentInLangRetrieval, te-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.7186</td>
+      <td>0.3192</td>
+      <td>0.7214</td>
+      <td>0.5051</td>
+    </tr>
+    <tr>
+     <td>SVQTeInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, te-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.4666</td>
+      <td>0.1682</td>
+      <td>0.7137</td>
+      <td>0.4523</td>
+    </tr>
+    <tr>
+     <td>SVQTeInPassageInLangRetrieval/passage_retrieval_in_lang (MRR)<br/>(PassageInLangRetrieval, te-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.6768</td>
+      <td>0.3766</td>
+      <td>0.6839</td>
+      <td>0.4989</td>
+    </tr>
+    <tr>
+     <td>SVQUrInDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ur-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2094</td>
+      <td>0.1520</td>
+      <td>0.4758</td>
+      <td>0.3767</td>
+    </tr>
+    <tr>
+     <td>SVQUrInPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ur-IN) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3496</td>
+      <td>0.2713</td>
+      <td>0.6190</td>
+      <td>0.5133</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkDocumentCrossLangRetrieval/document_retrieval_cross_lang (MRR)<br/>(DocumentCrossLangRetrieval, ur-PK) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.2072</td>
+      <td>0.1431</td>
+      <td>0.4754</td>
+      <td>0.3522</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkPassageCrossLangRetrieval/passage_retrieval_cross_lang (MRR)<br/>(PassageCrossLangRetrieval, ur-PK) <a href="#type-retrieval" class="doc-link">[?]</a></td>
+      <td>0.3506</td>
+      <td>0.2484</td>
+      <td>0.6225</td>
+      <td>0.4977</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<div class="detail-table-section">
+<h2 id="segmentation">segmentation</h2>
+<div class="table-container">
+<table id="details-table-segmentation" border="1">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th><a href="https://github.com/openai/whisper">whisper_large_asr_saliency</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td>SVQArEgSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-EG) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.3815</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-gulf) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.4231</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-levant) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.4074</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ar-x-maghrebi) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.2676</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, bn-BD) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.0520</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, bn-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.0550</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-AU) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.8304</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-GB) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.7527</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.7804</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-PH) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.7776</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, en-US) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.8023</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, fi-FI) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.3769</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, gu-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.1637</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, hi-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.2709</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, id-ID) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.6600</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ja-JP) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.6272</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, kn-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.1227</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ko-KR) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.6598</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ml-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.0020</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, mr-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.1079</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ru-RU) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.6101</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ta-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.2538</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, te-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.0774</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ur-IN) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.3204</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSalientTermSegmentation/salient_term (NDCG)<br/>(SalientTermSegmentation, ur-PK) <a href="#type-segmentation" class="doc-link">[?]</a></td>
+      <td>0.3059</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+  </div>
+  <div class="docs-container">
+    <div class="docs-section">
+  <h1>Task Definitions</h1>
+  <div id="type-classification" class="type-entry">
+<h1>Classification</h1>
+<p>Classification tasks involve assigning one or more predefined labels to an audio
+segment. These tasks evaluate the model's ability to extract specific features
+or categories from sound representations, such as intent in speech or species in
+bioacoustic recordings.</p><div class="task-implementation">
+<h1>BirdSet Classification</h1>
+<p>Evaluates the model's ability to identify bird species in soundscapes.</p>
+<ul>
+<li><strong>Task:</strong> Multi-label Classification.</li>
+<li><strong>Input:</strong> 5-second audio segments.</li>
+<li><strong>Labels:</strong> Predict all bird species present in the segment based on eBird
+    codes.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_birdset_md">BIRDSET</a>):</strong></p>
+<ul>
+  <li>BirdsetHSNClassification/ebird_classification</li>
+  <li>BirdsetNBPClassification/ebird_classification</li>
+  <li>BirdsetPOWClassification/ebird_classification</li>
+</ul>
+</div>
+<div class="task-implementation">
+<h1>FSD50K Classification</h1>
+<p>Evaluates the model's ability to classify general sound events.</p>
+<ul>
+<li><strong>Task:</strong> Multi-label Classification across 200 diverse categories.</li>
+<li><strong>Evaluation:</strong> Mean Average Precision (mAP) is the primary metric.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_fsd50k_md">FSD50K</a>):</strong></p>
+<ul>
+  <li>FSD50KTestClassification/classification</li>
+</ul>
+</div>
+<div class="task-implementation">
+<h1>Speech MASSIVE Classification</h1>
+<p>Evaluates the model's ability to categorize speech into intents.</p>
+<ul>
+<li><strong>Task:</strong> Intent Classification.</li>
+<li><strong>Labels:</strong> 60 predefined intents (e.g., <code>datetime_query</code>, <code>play_music</code>).</li>
+<li><strong>Goal:</strong> Correctlly identify the user's intent from the audio utterance.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_speech_massive_md">SPEECH_MASSIVE</a>):</strong></p>
+<ul>
+  <li>SpeechMassiveArSaIntentClassification/intent_classification</li>
+  <li>SpeechMassiveDeDeIntentClassification/intent_classification</li>
+  <li>SpeechMassiveEsEsIntentClassification/intent_classification</li>
+  <li>SpeechMassiveFrFrIntentClassification/intent_classification</li>
+  <li>SpeechMassiveHuHuIntentClassification/intent_classification</li>
+  <li>SpeechMassiveKoKrIntentClassification/intent_classification</li>
+  <li>SpeechMassiveNlNlIntentClassification/intent_classification</li>
+  <li>SpeechMassivePlPlIntentClassification/intent_classification</li>
+  <li>SpeechMassivePtPtIntentClassification/intent_classification</li>
+  <li>SpeechMassiveRuRuIntentClassification/intent_classification</li>
+  <li>SpeechMassiveTrTrIntentClassification/intent_classification</li>
+  <li>SpeechMassiveViVnIntentClassification/intent_classification</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <div id="type-clustering" class="type-entry">
+<h1>Clustering</h1>
+<p>Clustering tasks evaluate how well sound embeddings group together based on
+semantic or acoustic similarity without explicit labels during the grouping
+process. This tests the inherent structure and separability of the embedding
+space.</p><div class="task-implementation">
+<h1>BirdSet Clustering</h1>
+<p>Evaluates the semantic grouping of bird vocalizations in the embedding space.</p>
+<ul>
+<li><strong>Goal:</strong> Group bird calls from the same species together without explicit
+    supervised labels.</li>
+<li><strong>Evaluation:</strong> Primarily uses V-Measure to compare predicted clusters
+    against ground-truth species labels.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_birdset_md">BIRDSET</a>):</strong></p>
+<ul>
+  <li>BirdsetClusteringHSN/clustering</li>
+  <li>BirdsetClusteringNBP/clustering</li>
+  <li>BirdsetClusteringPOW/clustering</li>
+</ul>
+</div>
+<div class="task-implementation">
+<h1>FSD50K Clustering</h1>
+<p>Evaluates how well embeddings group by sound event categories.</p>
+<ul>
+<li><strong>Goal:</strong> Cluster audio clips such that clips belonging to the same AudioSet
+    class are grouped together.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_fsd50k_md">FSD50K</a>):</strong></p>
+<ul>
+  <li>FSD50KTestClustering/sound_event</li>
+</ul>
+</div>
+<div class="task-implementation">
+<h1>SVQ Clustering</h1>
+<p>Evaluates how well embeddings group by speaker-related attributes.</p>
+<ul>
+<li><strong>Attributes:</strong> The dataset provides labels for <code>speaker_id</code>,
+    <code>speaker_gender</code>, and <code>speaker_age</code>.</li>
+<li><strong>Goal:</strong> Group audio segments based on these metadata labels without using
+    the labels during embedding generation.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_svq_md">SVQ</a>):</strong></p>
+<ul>
+  <li>SVQClusteringArEg/speaker_age</li>
+  <li>SVQClusteringArEg/speaker_gender</li>
+  <li>SVQClusteringArEg/speaker_id</li>
+  <li>SVQClusteringArXGulf/speaker_age</li>
+  <li>SVQClusteringArXGulf/speaker_gender</li>
+  <li>SVQClusteringArXGulf/speaker_id</li>
+  <li>SVQClusteringArXLevant/speaker_age</li>
+  <li>SVQClusteringArXLevant/speaker_gender</li>
+  <li>SVQClusteringArXLevant/speaker_id</li>
+  <li>SVQClusteringArXMaghrebi/speaker_age</li>
+  <li>SVQClusteringArXMaghrebi/speaker_gender</li>
+  <li>SVQClusteringArXMaghrebi/speaker_id</li>
+  <li>SVQClusteringBnBd/speaker_age</li>
+  <li>SVQClusteringBnBd/speaker_gender</li>
+  <li>SVQClusteringBnBd/speaker_id</li>
+  <li>SVQClusteringBnIn/speaker_age</li>
+  <li>SVQClusteringBnIn/speaker_gender</li>
+  <li>SVQClusteringBnIn/speaker_id</li>
+  <li>SVQClusteringEnAu/speaker_age</li>
+  <li>SVQClusteringEnAu/speaker_gender</li>
+  <li>SVQClusteringEnAu/speaker_id</li>
+  <li>SVQClusteringEnGb/speaker_age</li>
+  <li>SVQClusteringEnGb/speaker_gender</li>
+  <li>SVQClusteringEnGb/speaker_id</li>
+  <li>SVQClusteringEnIn/speaker_age</li>
+  <li>SVQClusteringEnIn/speaker_gender</li>
+  <li>SVQClusteringEnIn/speaker_id</li>
+  <li>SVQClusteringEnPh/speaker_age</li>
+  <li>SVQClusteringEnPh/speaker_gender</li>
+  <li>SVQClusteringEnPh/speaker_id</li>
+  <li>SVQClusteringEnUs/speaker_age</li>
+  <li>SVQClusteringEnUs/speaker_gender</li>
+  <li>SVQClusteringEnUs/speaker_id</li>
+  <li>SVQClusteringFiFi/speaker_age</li>
+  <li>SVQClusteringFiFi/speaker_gender</li>
+  <li>SVQClusteringFiFi/speaker_id</li>
+  <li>SVQClusteringGuIn/speaker_age</li>
+  <li>SVQClusteringGuIn/speaker_gender</li>
+  <li>SVQClusteringGuIn/speaker_id</li>
+  <li>SVQClusteringHiIn/speaker_age</li>
+  <li>SVQClusteringHiIn/speaker_gender</li>
+  <li>SVQClusteringHiIn/speaker_id</li>
+  <li>SVQClusteringIdId/speaker_age</li>
+  <li>SVQClusteringIdId/speaker_gender</li>
+  <li>SVQClusteringIdId/speaker_id</li>
+  <li>SVQClusteringJaJp/speaker_age</li>
+  <li>SVQClusteringJaJp/speaker_gender</li>
+  <li>SVQClusteringJaJp/speaker_id</li>
+  <li>SVQClusteringKnIn/speaker_age</li>
+  <li>SVQClusteringKnIn/speaker_gender</li>
+  <li>SVQClusteringKnIn/speaker_id</li>
+  <li>SVQClusteringKoKr/speaker_age</li>
+  <li>SVQClusteringKoKr/speaker_gender</li>
+  <li>SVQClusteringKoKr/speaker_id</li>
+  <li>SVQClusteringMlIn/speaker_age</li>
+  <li>SVQClusteringMlIn/speaker_gender</li>
+  <li>SVQClusteringMlIn/speaker_id</li>
+  <li>SVQClusteringMrIn/speaker_age</li>
+  <li>SVQClusteringMrIn/speaker_gender</li>
+  <li>SVQClusteringMrIn/speaker_id</li>
+  <li>SVQClusteringRuRu/speaker_age</li>
+  <li>SVQClusteringRuRu/speaker_gender</li>
+  <li>SVQClusteringRuRu/speaker_id</li>
+  <li>SVQClusteringSw/speaker_age</li>
+  <li>SVQClusteringSw/speaker_gender</li>
+  <li>SVQClusteringSw/speaker_id</li>
+  <li>SVQClusteringTaIn/speaker_age</li>
+  <li>SVQClusteringTaIn/speaker_gender</li>
+  <li>SVQClusteringTaIn/speaker_id</li>
+  <li>SVQClusteringTeIn/speaker_age</li>
+  <li>SVQClusteringTeIn/speaker_gender</li>
+  <li>SVQClusteringTeIn/speaker_id</li>
+  <li>SVQClusteringUrIn/speaker_age</li>
+  <li>SVQClusteringUrIn/speaker_gender</li>
+  <li>SVQClusteringUrIn/speaker_id</li>
+  <li>SVQClusteringUrPk/speaker_age</li>
+  <li>SVQClusteringUrPk/speaker_gender</li>
+  <li>SVQClusteringUrPk/speaker_id</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <div id="type-reasoning" class="type-entry">
+<h1>Reasoning</h1>
+<p>Reasoning tasks (often implemented as Span Retrieval) require the model to
+identify specific segments within a text document that directly answer a voice
+query. This tests deeper semantic understanding and the ability to align
+fine-grained concepts between speech and text.</p><div class="task-implementation">
+<h1>SVQ Reasoning (Span Retrieval)</h1>
+<p>The reasoning task requires identifying the exact span of text within a
+Wikipedia article that answers a voice query.</p>
+<ul>
+<li><strong>Task Format:</strong> Given an audio query and a target document, the model must
+    predict the start and end offsets of the answer span.</li>
+<li><strong>In-Lang Reasoning:</strong> Query and document share the same language.</li>
+<li><strong>Cross-Lang Reasoning:</strong> Query is in a non-English language; the document
+    and target answer span are in English.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_svq_md">SVQ</a>):</strong></p>
+<ul>
+  <li>SVQArEgSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQArEgSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQArXGulfSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQArXGulfSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQArXLevantSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQArXLevantSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQArXMaghrebiSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQArXMaghrebiSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQBnBdSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQBnBdSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQBnInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQBnInSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQEnAuSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQEnGbSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQEnInSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQEnPhSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQEnUsSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQFiFiSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQFiFiSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQGuInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQHiInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQIdIdSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQJaJpSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQKnInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQKoKrSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQKoKrSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQMlInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQMrInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQRuRuSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQRuRuSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQSwSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQTaInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQTeInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQTeInSpanInLangReasoning/span_reasoning_in_lang</li>
+  <li>SVQUrInSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+  <li>SVQUrPkSpanCrossLangReasoning/span_reasoning_cross_lang</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <div id="type-reranking" class="type-entry">
+<h1>Reranking</h1>
+<p>Given a set of candidate answers, reranking tasks evaluate a model's ability to
+re-order them such that the most relevant results appear at the top. This is
+often used to refine the output of a primary retrieval system.</p><div class="task-implementation">
+<h1>SVQ Reranking</h1>
+<p>The reranking task assesses a model's ability to refine a list of candidate
+answers.</p>
+<ul>
+<li><strong>Input:</strong> A voice query and a set of candidate text answers (e.g., top-K
+    results from a first-stage retrieval system).</li>
+<li><strong>Goal:</strong> Re-order the candidates so that the ground-truth answer appears at
+    rank 1.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_svq_md">SVQ</a>):</strong></p>
+<ul>
+  <li>SVQArEgQueryReranking/query_reranking</li>
+  <li>SVQArXGulfQueryReranking/query_reranking</li>
+  <li>SVQArXLevantQueryReranking/query_reranking</li>
+  <li>SVQArXMaghrebiQueryReranking/query_reranking</li>
+  <li>SVQBnBdQueryReranking/query_reranking</li>
+  <li>SVQBnInQueryReranking/query_reranking</li>
+  <li>SVQEnAuQueryReranking/query_reranking</li>
+  <li>SVQEnGbQueryReranking/query_reranking</li>
+  <li>SVQEnInQueryReranking/query_reranking</li>
+  <li>SVQEnPhQueryReranking/query_reranking</li>
+  <li>SVQEnUsQueryReranking/query_reranking</li>
+  <li>SVQFiFiQueryReranking/query_reranking</li>
+  <li>SVQGuInQueryReranking/query_reranking</li>
+  <li>SVQHiInQueryReranking/query_reranking</li>
+  <li>SVQIdIdQueryReranking/query_reranking</li>
+  <li>SVQJaJpQueryReranking/query_reranking</li>
+  <li>SVQKnInQueryReranking/query_reranking</li>
+  <li>SVQKoKrQueryReranking/query_reranking</li>
+  <li>SVQMlInQueryReranking/query_reranking</li>
+  <li>SVQMrInQueryReranking/query_reranking</li>
+  <li>SVQRuRuQueryReranking/query_reranking</li>
+  <li>SVQSwQueryReranking/query_reranking</li>
+  <li>SVQTaInQueryReranking/query_reranking</li>
+  <li>SVQTeInQueryReranking/query_reranking</li>
+  <li>SVQUrInQueryReranking/query_reranking</li>
+  <li>SVQUrPkQueryReranking/query_reranking</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <div id="type-retrieval" class="type-entry">
+<h1>Retrieval</h1>
+<p>Retrieval tasks evaluate a model's ability to find relevant documents or
+passages from a large corpus given a voice query. This involves mapping speech
+and text into a shared embedding space where semantic similarity can be
+measured, often across different languages.</p><div class="task-implementation">
+<h1>SVQ Retrieval</h1>
+<p>The SVQ retrieval task evaluates the model's ability to find relevant Wikipedia
+content given a voice query.</p>
+<ul>
+<li><strong>In-Lang Retrieval:</strong> The voice query and the Wikipedia content are in the
+    same language. This tests native-language semantic alignment.</li>
+<li><strong>Cross-Lang Retrieval:</strong> The voice query is in a non-English language,
+    while the Wikipedia content is in English. This evaluates the model's
+    ability to map cross-lingual concepts into a shared embedding space.</li>
+<li><strong>Data:</strong> Both document-level and passage-level retrieval variants are
+    supported.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_svq_md">SVQ</a>):</strong></p>
+<ul>
+  <li>SVQArEgDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQArEgDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQArEgPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQArEgPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQArXGulfDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQArXGulfDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQArXGulfPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQArXGulfPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQArXLevantDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQArXLevantDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQArXLevantPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQArXLevantPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQArXMaghrebiDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQArXMaghrebiDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQArXMaghrebiPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQArXMaghrebiPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQBnBdDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQBnBdDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQBnBdPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQBnBdPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQBnInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQBnInDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQBnInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQBnInPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQEnAuDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQEnAuPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQEnGbDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQEnGbPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQEnInDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQEnInPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQEnPhDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQEnPhPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQEnUsDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQEnUsPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQFiFiDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQFiFiDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQFiFiPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQFiFiPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQGuInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQGuInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQHiInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQHiInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQIdIdDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQIdIdPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQJaJpDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQJaJpPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQKnInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQKnInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQKoKrDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQKoKrDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQKoKrPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQKoKrPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQMlInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQMlInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQMrInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQMrInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQRuRuDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQRuRuDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQRuRuPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQRuRuPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQSwDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQSwPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQTaInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQTaInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQTeInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQTeInDocumentInLangRetrieval/document_retrieval_in_lang</li>
+  <li>SVQTeInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQTeInPassageInLangRetrieval/passage_retrieval_in_lang</li>
+  <li>SVQUrInDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQUrInPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+  <li>SVQUrPkDocumentCrossLangRetrieval/document_retrieval_cross_lang</li>
+  <li>SVQUrPkPassageCrossLangRetrieval/passage_retrieval_cross_lang</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <div id="type-segmentation" class="type-entry">
+<h1>Segmentation</h1>
+<p>Segmentation tasks involve identifying and boundary-marking specific parts of an
+audio stream, such as salient terms or keywords. This evaluates the model's
+temporal precision and its ability to distinguish meaningful units of sound.</p><div class="task-implementation">
+<h1>SVQ Segmentation</h1>
+<p>This task focuses on identifying salient terms within a continuous audio stream.</p>
+<ul>
+<li><strong>Target:</strong> The model must identify the timestamps for "salient terms" or
+    keywords in the voice query.</li>
+<li><strong>Evaluation:</strong> Precision and recall of the predicted time-boundaries
+    compared to human-labeled keywords.</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_svq_md">SVQ</a>):</strong></p>
+<ul>
+  <li>SVQArEgSalientTermSegmentation/salient_term</li>
+  <li>SVQArXGulfSalientTermSegmentation/salient_term</li>
+  <li>SVQArXLevantSalientTermSegmentation/salient_term</li>
+  <li>SVQArXMaghrebiSalientTermSegmentation/salient_term</li>
+  <li>SVQBnBdSalientTermSegmentation/salient_term</li>
+  <li>SVQBnInSalientTermSegmentation/salient_term</li>
+  <li>SVQEnAuSalientTermSegmentation/salient_term</li>
+  <li>SVQEnGbSalientTermSegmentation/salient_term</li>
+  <li>SVQEnInSalientTermSegmentation/salient_term</li>
+  <li>SVQEnPhSalientTermSegmentation/salient_term</li>
+  <li>SVQEnUsSalientTermSegmentation/salient_term</li>
+  <li>SVQFiFiSalientTermSegmentation/salient_term</li>
+  <li>SVQGuInSalientTermSegmentation/salient_term</li>
+  <li>SVQHiInSalientTermSegmentation/salient_term</li>
+  <li>SVQIdIdSalientTermSegmentation/salient_term</li>
+  <li>SVQJaJpSalientTermSegmentation/salient_term</li>
+  <li>SVQKnInSalientTermSegmentation/salient_term</li>
+  <li>SVQKoKrSalientTermSegmentation/salient_term</li>
+  <li>SVQMlInSalientTermSegmentation/salient_term</li>
+  <li>SVQMrInSalientTermSegmentation/salient_term</li>
+  <li>SVQRuRuSalientTermSegmentation/salient_term</li>
+  <li>SVQTaInSalientTermSegmentation/salient_term</li>
+  <li>SVQTeInSalientTermSegmentation/salient_term</li>
+  <li>SVQUrInSalientTermSegmentation/salient_term</li>
+  <li>SVQUrPkSalientTermSegmentation/salient_term</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <h1>Datasets</h1>
+  <div id="doc-dataset_birdset_md" class="dataset-entry">
+<h1>BirdSet</h1>
+<p>BirdSet is a large-scale dataset for bioacoustic monitoring, focusing on bird
+species classification from audio recordings.</p>
+<h2>Task Description</h2>
+<p>The primary task is <strong>Multi-label Classification</strong>. Given a 5-second audio
+segment, the model must predict all bird species present in the recording.</p>
+<h2>Configurations</h2>
+<p>BirdSet includes data from various recording sites and setups, referred to as
+configurations: - <code>HSN</code>: High Sierra Nevada - <code>NBP</code>: NiBiolas Point - <code>POW</code>:
+Powdermill Nature Reserve - <code>SSW</code>: Sapsucker Woods - <code>SNE</code>: Sierra Nevada -
+<code>PER</code>: Peru - <code>NES</code>: Northeast - <code>UHH</code>: Hawaii - <code>XCM</code>: Xeno-Canto Mixed -
+<code>XCL</code>: Xeno-Canto Low-noise</p>
+<h2>References</h2>
+<ul>
+<li><strong>Paper:</strong>
+    <a href="https://arxiv.org/abs/2403.10380">BirdSet: A Multi-Task Benchmark for Bioacoustic Monitoring</a></li>
+<li><strong>Hugging Face:</strong>
+    <a href="https://huggingface.co/datasets/DBD-research-group/BirdSet">DBD-research-group/BirdSet</a></li>
+</ul>    <p><a href="#">[Back to top]</a></p>
+  </div>
+  <hr/>
+  <div id="doc-dataset_fsd50k_md" class="dataset-entry">
+<h1>FSD50K</h1>
+<p>FSD50K is an open dataset of human-labeled sound events containing 51,197 audio
+clips totaling 108.3 hours.</p>
+<h2>Task Description</h2>
+<p>The task is <strong>Multi-label Sound Event Classification</strong>. Audio clips are labeled
+using 200 classes from the AudioSet ontology.</p>
+<h2>Reference</h2>
+<ul>
+<li><strong>Paper:</strong>
+    <a href="https://arxiv.org/abs/2010.00475">FSD50K: an Open Dataset of Human-Labeled Sound Events</a></li>
+<li><strong>Hugging Face:</strong>
+    <a href="https://huggingface.co/datasets/Fhrozen/FSD50k">Fhrozen/FSD50k</a></li>
+</ul>    <p><a href="#">[Back to top]</a></p>
+  </div>
+  <hr/>
+  <div id="doc-dataset_speech_massive_md" class="dataset-entry">
+<h1>Speech MASSIVE</h1>
+<p>Speech MASSIVE is a multilingual dataset for Speech Intent Classification,
+derived from the MASSIVE text dataset.</p>
+<h2>Task Description</h2>
+<p>The task is <strong>Intent Classification</strong>. Given an utterance, the model must
+categorize it into one of 60 predefined intents (e.g., <code>datetime_query</code>,
+<code>iot_hue_lightchange</code>, <code>play_music</code>).</p>
+<h2>Coverage</h2>
+<p>It covers 12 languages and provides a challenging testbed for multilingual
+speech understanding.</p>
+<h2>References</h2>
+<ul>
+<li><strong>Dataset:</strong>
+    <a href="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test">FBK-MT/Speech-MASSIVE</a></li>
+</ul>    <p><a href="#">[Back to top]</a></p>
+  </div>
+  <hr/>
+  <div id="doc-dataset_svq_md" class="dataset-entry">
+<h1>Simple Voice Questions (SVQ) Dataset</h1>
+<p>Simple Voice Questions (SVQ) is a multilingual dataset designed for evaluating
+sound representations. It consists of voice queries in multiple languages based
+on Wikipedia content.</p>
+<h2>Dataset Characteristics</h2>
+<ul>
+<li><strong>Languages:</strong> 17 languages including Arabic, Bengali, English, Finnish,
+    Gujarati, Hindi, Indonesian, Japanese, Kannada, Korean, Malayalam, Marathi,
+    Russian, Swahili, Tamil, Telugu, and Urdu.</li>
+<li><strong>Environments:</strong> To test robustness, queries are provided in four
+    environments:<ul>
+<li><code>clean</code>: High-quality recording.</li>
+<li><code>media_noise</code>: With background music or other media.</li>
+<li><code>traffic_noise</code>: With street and vehicle noise.</li>
+<li><code>background_speech</code>: With other people talking in the background.</li>
+</ul>
+</li>
+</ul>
+<h2>References</h2>
+<ul>
+<li><strong>Hugging Face:</strong> <a href="https://huggingface.co/datasets/google/svq">google/svq</a></li>
+</ul>    <p><a href="#">[Back to top]</a></p>
+  </div>
+  <hr/>
 </div>
 
   </div>

@@ -95,7 +95,9 @@ class SVQArEgSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ar_eg."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -127,7 +129,9 @@ class SVQArXGulfSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ar_x_gulf."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -159,7 +163,9 @@ class SVQArXLevantSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ar_x_levant."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -191,7 +197,9 @@ class SVQArXMaghrebiSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ar_x_maghrebi."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -223,7 +231,9 @@ class SVQBnBdSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for bn_bd."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -255,7 +265,9 @@ class SVQBnInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for bn_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -287,7 +299,9 @@ class SVQEnAuSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for en_au."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -319,7 +333,9 @@ class SVQEnGbSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for en_gb."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -351,7 +367,9 @@ class SVQEnInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for en_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -383,7 +401,9 @@ class SVQEnPhSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for en_ph."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -415,7 +435,9 @@ class SVQEnUsSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for en_us."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -447,7 +469,9 @@ class SVQFiFiSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for fi_fi."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -479,7 +503,9 @@ class SVQGuInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for gu_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -511,7 +537,9 @@ class SVQHiInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for hi_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -543,7 +571,9 @@ class SVQIdIdSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for id_id."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -575,7 +605,9 @@ class SVQJaJpSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ja_jp."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -607,7 +639,9 @@ class SVQKnInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for kn_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -639,7 +673,9 @@ class SVQKoKrSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ko_kr."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -671,7 +707,9 @@ class SVQMlInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ml_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -703,7 +741,9 @@ class SVQMrInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for mr_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -735,7 +775,9 @@ class SVQRuRuSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ru_ru."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -767,7 +809,9 @@ class SVQTaInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ta_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -799,7 +843,9 @@ class SVQTeInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for te_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -831,7 +877,9 @@ class SVQUrInSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ur_in."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",
@@ -863,7 +911,9 @@ class SVQUrPkSalientTermSegmentation(SVQSalientTermSegmentation):
           "Salient term segmentation task on the Simple Voice Questions (SVQ) "
           "dataset for ur_pk."
       ),
-      reference="TODO",
+      reference="https://huggingface.co/datasets/google/svq",
+      documentation_file="svq_segmentation.md",
+      dataset_documentation_file="dataset_svq.md",
       type="SalientTermSegmentation",
       category="speech",
       main_score="NDCG",

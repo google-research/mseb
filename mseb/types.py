@@ -354,6 +354,7 @@ class Dataset:
   """A dataclass for dataset metadata."""
   path: str
   revision: str
+  documentation_file: Optional[str] = None
 
   def __post_init__(self):
     """Validates the dataset data."""
@@ -385,6 +386,8 @@ class TaskMetadata:
   eval_langs: list[str]
   domains: list[str] = dataclasses.field(default_factory=list)
   task_subtypes: list[str] = dataclasses.field(default_factory=list)
+  documentation_file: Optional[str] = None
+  dataset_documentation_file: Optional[str] = None
 
   def __post_init__(self):
     """Validates task meta data."""

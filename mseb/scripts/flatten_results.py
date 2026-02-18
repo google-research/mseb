@@ -14,12 +14,15 @@
 
 """Flatten leaderboard results from JSONL files."""
 
+import dataclasses
 import glob
 from typing import Sequence
 
 from absl import app
 from absl import flags
 from mseb import leaderboard
+from mseb import task as task_lib
+from mseb import tasks  # pylint: disable=unused-import
 from mseb.encoders import encoder_registry
 
 _INPUT_GLOB = flags.DEFINE_string(
@@ -46,7 +49,7 @@ def main(argv: Sequence[str]) -> None:
       with open(file_path, "r") as f:
         for line in f:
           result_json = line.strip()
-          # Backfill URL from registry if missing.
+          # Backfill metadata from registry if missing.
           result = leaderboard.LeaderboardResult.from_json(result_json)
           if not result.url:
             try:
@@ -54,6 +57,36 @@ def main(argv: Sequence[str]) -> None:
               result.url = metadata.url
             except ValueError:
               pass
+
+          if not result.task_metadata.documentation_file:
+            try:
+              # task_metadata.name might be "Task/SubTask", we need "Task"
+              base_task_name = result.task_metadata.name.split("/")[0]
+              task_cls = task_lib.get_task_by_name(base_task_name)
+              if task_cls.metadata:
+                updates = {}
+                if (
+                    not result.task_metadata.documentation_file
+                    and task_cls.metadata.documentation_file
+                ):
+                  updates["documentation_file"] = (
+                      task_cls.metadata.documentation_file
+                  )
+                if (
+                    not result.task_metadata.dataset_documentation_file
+                    and task_cls.metadata.dataset_documentation_file
+                ):
+                  updates["dataset_documentation_file"] = (
+                      task_cls.metadata.dataset_documentation_file
+                  )
+
+                if updates:
+                  result.task_metadata = dataclasses.replace(
+                      result.task_metadata, **updates
+                  )
+            except (ValueError, AttributeError):
+              pass
+
           yield result.to_json()
 
   flattened_results = leaderboard.flatten_leaderboard_results(result_iterator())

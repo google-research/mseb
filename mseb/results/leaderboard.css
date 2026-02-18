@@ -19,8 +19,56 @@ th, td {
   border: 1px solid #e0e0e0;
   padding: 12px 15px;
   text-align: left;
+}
+
+td {
   white-space: nowrap;
 }
+
+td:first-child {
+  white-space: normal;
+  min-width: 250px;
+}
+
+.doc-link {
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 0.85em;
+  margin-left: 5px;
+}
+
+.doc-link:hover {
+  text-decoration: underline;
+}
+
+.docs-container {
+  margin-top: 60px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.doc-entry {
+  padding: 20px 0;
+}
+
+.doc-entry h1 {
+  font-size: 1.8em;
+  border-bottom: 2px solid #e8f0fe;
+  padding-bottom: 10px;
+}
+
+.doc-entry h2 {
+  font-size: 1.4em;
+  margin-top: 25px;
+}
+
+.doc-entry ul {
+  padding-left: 25px;
+}
+
+
 
 thead {
   background-color: #e8f0fe; /* Light Google Blue */

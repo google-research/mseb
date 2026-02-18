@@ -16,10 +16,12 @@
 
 import collections
 import json
+import os
 from typing import List, Sequence
 
 from absl import app
 from absl import flags
+import markdown
 from mseb import leaderboard
 
 _INPUT_FILE = flags.DEFINE_string(
@@ -28,10 +30,27 @@ _INPUT_FILE = flags.DEFINE_string(
 _OUTPUT_FILE = flags.DEFINE_string(
     "output_file", None, "Output HTML file.", required=True
 )
+_DOCS_DIR = flags.DEFINE_string(
+    "docs_dir", None, "Directory containing documentation markdown files."
+)
 
 
 def format_value(value) -> str:
   return f"{value:.4f}" if isinstance(value, float) else str(value)
+
+
+def render_documentation(doc_file: str | None) -> str:
+  """Renders markdown documentation to HTML."""
+  if not doc_file or not _DOCS_DIR.value:
+    return ""
+
+  doc_path = os.path.join(_DOCS_DIR.value, doc_file)
+  if not os.path.exists(doc_path):
+    return ""
+
+  with open(doc_path, "r") as f:
+    md_content = f.read()
+  return markdown.markdown(md_content)
 
 
 def generate_detail_table(
@@ -39,7 +58,7 @@ def generate_detail_table(
     sorted_names: List[str],
     main_task_type: str,
     columns: List[str],
-    task_info: dict[str, tuple[str, str, List[str]]],
+    task_info: dict[str, tuple[str, str, List[str], str | None]],
     name_urls: dict[str, str | None],
 ) -> str:
   """Generates an HTML table for individual sub-task results of a task type."""
@@ -72,10 +91,16 @@ def generate_detail_table(
   html += "  </thead>\n"
   html += "  <tbody>\n"
   for col in columns:
-    _, task_type, task_languages = task_info[col]
+    _, task_type, task_languages, doc_file = task_info[col]
     lang_str = ", ".join(task_languages)
     html += "    <tr>\n"
-    html += f"     <td>{col}<br/>({task_type}, {lang_str})</td>\n"
+    doc_link = ""
+    if doc_file:
+      # Link to anchor at the bottom of the page
+      doc_link = (
+          f' <a href="#type-{main_task_type.lower()}" class="doc-link">[?]</a>'
+      )
+    html += f"     <td>{col}<br/>({task_type}, {lang_str}){doc_link}</td>\n"
     for name in present_encoders:
       value = data[name].get(col, "N/A")
       html += f"      <td>{format_value(value)}</td>\n"
@@ -89,17 +114,10 @@ def generate_detail_table(
 
 def generate_html_table(
     results: List[leaderboard.FlattenedLeaderboardResult],
-) -> str:
-  """Generates an HTML table from flattened leaderboard results.
-
-  Args:
-    results: A list of FlattenedLeaderboardResult objects.
-
-  Returns:
-    An HTML table as a string.
-  """
+) -> tuple[str, dict[str, dict[str, dict[str, List[str]]]]]:
+  """Generates an HTML table and returns documentation grouped by type."""
   if not results:
-    return "<p>No results to display.</p>"
+    return "<p>No results to display.</p>", {}
 
   # Group results by name
   data = {}
@@ -111,6 +129,10 @@ def generate_html_table(
   )
   task_type_descriptions = {}
   name_urls = {}
+  # task_type -> doc_file -> dataset_doc_file -> list of task_names
+  docs_by_type = collections.defaultdict(
+      lambda: collections.defaultdict(lambda: collections.defaultdict(list))
+  )
 
   for r in results:
     if r.name not in data:
@@ -120,8 +142,22 @@ def generate_html_table(
     column_key = f"{r.task_name} ({r.main_score_metric})"
     columns.add(column_key)
 
-    main_task_type = r.task_subtypes[0] if r.task_subtypes else r.task_type
-    task_info[column_key] = (main_task_type, r.task_type, r.task_languages)
+    main_task_type = (
+        r.task_subtypes[0] if r.task_subtypes else r.task_type
+    ).lower()
+    task_info[column_key] = (
+        main_task_type,
+        r.task_type,
+        r.task_languages,
+        r.documentation_file,
+    )
+
+    if r.documentation_file:
+      tasks_list = docs_by_type[main_task_type][r.documentation_file][
+          r.dataset_documentation_file
+      ]
+      if r.task_name not in tasks_list:
+        tasks_list.append(r.task_name)
 
     # We only want to display the main score value
     if r.metric == r.main_score_metric:
@@ -189,7 +225,7 @@ def generate_html_table(
   cols_by_type = collections.defaultdict(list)
   sorted_columns = sorted(list(columns))
   for col in sorted_columns:
-    main_task_type, _, _ = task_info[col]
+    main_task_type, _, _, _ = task_info[col]
     cols_by_type[main_task_type].append(col)
 
   for task_type in main_task_types:
@@ -203,6 +239,76 @@ def generate_html_table(
           name_urls,
       )
 
+  return html, docs_by_type
+
+
+def generate_docs_section(
+    docs_by_type: dict[str, dict[str, dict[str, List[str]]]],
+) -> str:
+  """Generates the documentation section with task/dataset separation."""
+  if not docs_by_type:
+    return ""
+
+  html = '<div class="docs-section">\n'
+  html += "  <h1>Task Definitions</h1>\n"
+
+  all_dataset_docs = set()
+
+  # Task Type Sections
+  for task_type in sorted(docs_by_type.keys()):
+    task_type_lower = task_type.lower()
+    html += f'  <div id="type-{task_type_lower}" class="type-entry">\n'
+
+    # 1. Abstract Type Description
+    type_doc = f"type_{task_type_lower}.md"
+    type_html = render_documentation(type_doc)
+    if type_html:
+      html += type_html
+    else:
+      html += f"<h2>{task_type.capitalize()}</h2>\n"
+
+    # 2. Specific Implementation per Dataset
+    for doc_file, dataset_map in sorted(docs_by_type[task_type].items()):
+      doc_html = render_documentation(doc_file)
+      if doc_html:
+        html += '<div class="task-implementation">\n'
+        html += doc_html
+        # 3. List of tasks using this implementation and link to dataset
+        for dataset_doc, tasks in sorted(dataset_map.items()):
+          dataset_link = ""
+          if dataset_doc:
+            all_dataset_docs.add(dataset_doc)
+            safe_dataset_id = dataset_doc.replace(".", "_")
+            dataset_name = (
+                dataset_doc.replace("dataset_", "").replace(".md", "").upper()
+            )
+            dataset_link = (
+                f' (See <a href="#doc-{safe_dataset_id}">{dataset_name}</a>)'
+            )
+          html += f"<p><strong>Tasks{dataset_link}:</strong></p>\n<ul>\n"
+          for task in sorted(tasks):
+            html += f"  <li>{task}</li>\n"
+          html += "</ul>\n"
+        html += "</div>\n"
+
+    html += '    <p><a href="#">[Back to top]</a></p>\n'
+    html += "  </div>\n"
+    html += "<hr/>\n"
+
+  # Dataset Details Section
+  if all_dataset_docs:
+    html += "  <h1>Datasets</h1>\n"
+    for dataset_doc in sorted(list(all_dataset_docs)):
+      dataset_html = render_documentation(dataset_doc)
+      if dataset_html:
+        safe_dataset_id = dataset_doc.replace(".", "_")
+        html += f'  <div id="doc-{safe_dataset_id}" class="dataset-entry">\n'
+        html += dataset_html
+        html += '    <p><a href="#">[Back to top]</a></p>\n'
+        html += "  </div>\n"
+        html += "  <hr/>\n"
+
+  html += "</div>\n"
   return html
 
 
@@ -236,7 +342,8 @@ def main(argv: Sequence[str]) -> None:
 </table>
 """
 
-  html_table = generate_html_table(flattened_results)
+  html_table, docs_by_type = generate_html_table(flattened_results)
+  docs_section = generate_docs_section(docs_by_type)
 
   html_content = f"""
 <!DOCTYPE html>
@@ -266,6 +373,9 @@ def main(argv: Sequence[str]) -> None:
   </div>
   <div class="table-container">
     {html_table}
+  </div>
+  <div class="docs-container">
+    {docs_section}
   </div>
 </body>
 </html>

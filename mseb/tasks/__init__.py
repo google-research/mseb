@@ -14,25 +14,97 @@
 
 """MSEB Tasks."""
 
+# pylint: disable=g-import-not-at-top
+
 from mseb.task import get_name_to_task
 from mseb.task import get_task_by_name
 
-from .classifications.birdset.birdset import *
-from .classifications.intent.speech_massive import *
-from .classifications.sound.fsd50k import *
-from .classifications.speaker_gender.speech_massive import *
-from .classifications.speaker_gender.svq import *
-from .clusterings.birdset import *
-from .clusterings.fsd50k import *
-from .clusterings.svq import *
-from .reasonings.span_cross_lang.svq import *
-from .reasonings.span_in_lang.svq import *
-# TODO(tombagby): Temporary remove because of dep changes, for now unregister,
-# switch them to lazy import and then re-enable.
-# from .rerankings.query.svq import *
-# from .retrievals.document_cross_lang.svq import *
-# from .retrievals.document_in_lang.svq import *
-# from .retrievals.passage_cross_lang.svq import *
-# from .retrievals.passage_in_lang.svq import *
-from .segmentations.salient_term.svq import *
-# from .transcriptions.speech.svq import *
+# The following imports are wrapped in try-except to avoid breaking environments
+# where some dependencies are missing (e.g., sharded tests on GitHub).
+# This ensures that tasks are registered when their dependencies are present,
+# which is needed for leaderboard generation and running tasks.
+
+try:
+  from .classifications.birdset.birdset import *
+except ImportError:
+  pass
+
+try:
+  from .classifications.intent.speech_massive import *
+except ImportError:
+  pass
+
+try:
+  from .classifications.sound.fsd50k import *
+except ImportError:
+  pass
+
+try:
+  from .classifications.speaker_gender.speech_massive import *
+except ImportError:
+  pass
+
+try:
+  from .classifications.speaker_gender.svq import *
+except ImportError:
+  pass
+
+try:
+  from .clusterings.birdset import *
+except ImportError:
+  pass
+
+try:
+  from .clusterings.fsd50k import *
+except ImportError:
+  pass
+
+try:
+  from .clusterings.svq import *
+except ImportError:
+  pass
+
+try:
+  from .reasonings.span_cross_lang.svq import *
+except ImportError:
+  pass
+
+try:
+  from .reasonings.span_in_lang.svq import *
+except ImportError:
+  pass
+
+try:
+  from .rerankings.query.svq import *
+except ImportError:
+  pass
+
+try:
+  from .retrievals.document_cross_lang.svq import *
+except ImportError:
+  pass
+
+try:
+  from .retrievals.document_in_lang.svq import *
+except ImportError:
+  pass
+
+try:
+  from .retrievals.passage_cross_lang.svq import *
+except ImportError:
+  pass
+
+try:
+  from .retrievals.passage_in_lang.svq import *
+except ImportError:
+  pass
+
+try:
+  from .segmentations.salient_term.svq import *
+except ImportError:
+  pass
+
+try:
+  from .transcriptions.speech.svq import *
+except ImportError:
+  pass

@@ -83,6 +83,8 @@ class FSD50KTestClassification(FSD50KClassification):
  year    = {2021},
  doi     = {10.1109/TASLP.2022.3149014}
 }""",
+      documentation_file="fsd50k_classification.md",
+      dataset_documentation_file="dataset_fsd50k.md",
       type="Classification",
       category="audio",
       main_score="mAP",

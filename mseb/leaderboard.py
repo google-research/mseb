@@ -131,6 +131,8 @@ class FlattenedLeaderboardResult:
   metric_max: int | float
   metric_std: float | None
   url: str | None = None
+  documentation_file: str | None = None
+  dataset_documentation_file: str | None = None
 
 
 def flatten_leaderboard_results(
@@ -172,6 +174,8 @@ def flatten_leaderboard_results(
               metric_max=score.max,
               metric_std=score.std,
               url=result.url,
+              documentation_file=task_metadata.documentation_file,
+              dataset_documentation_file=task_metadata.dataset_documentation_file,
           )
       )
   return flattened_results
