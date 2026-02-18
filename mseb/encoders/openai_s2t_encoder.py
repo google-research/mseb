@@ -161,6 +161,7 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
             model=self._model_name,
             file=flac_file,
             response_format=response_format,
+            temperature=self._temperature,
             timestamp_granularities=timestamp_granularity,
         )
       except Exception as e:  # pylint: disable=broad-exception-caught
