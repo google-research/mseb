@@ -101,9 +101,20 @@ def generate_detail_table(
           f' <a href="#type-{main_task_type.lower()}" class="doc-link">[?]</a>'
       )
     html += f"     <td>{col}<br/>({task_type}, {lang_str}){doc_link}</td>\n"
+
+    # Find the maximum value in the row to highlight it
+    row_values = []
+    for name in present_encoders:
+      val = data[name].get(col)
+      if val is not None and isinstance(val, (int, float)):
+        row_values.append(val)
+    max_val = max(row_values) if row_values else None
+
     for name in present_encoders:
       value = data[name].get(col, "N/A")
-      html += f"      <td>{format_value(value)}</td>\n"
+      is_best = max_val is not None and value == max_val
+      td_class = ' class="best-value"' if is_best else ""
+      html += f"      <td{td_class}>{format_value(value)}</td>\n"
     html += "    </tr>\n"
   html += "  </tbody>\n"
   html += "</table>\n"
@@ -175,6 +186,18 @@ def generate_html_table(
       mean_scores_by_type[name][task_type] = sum(scores) / len(scores)
 
   main_task_types = sorted(list(set(ti[0] for ti in task_info.values())))
+
+  # Calculate max mean scores by task type for highlighting
+  max_means_by_type = {}
+  for task_type in main_task_types:
+    type_values = [
+        mean_scores_by_type[name].get(task_type)
+        for name in sorted_names
+        if task_type in mean_scores_by_type[name]
+    ]
+    if type_values:
+      max_means_by_type[task_type] = max(type_values)
+
   mean_cols_map = {
       task_type: f"{task_type} (mean)" for task_type in main_task_types
   }
@@ -215,7 +238,12 @@ def generate_html_table(
     html += f"     <td>{name_html}</td>\n"
     for task_type in main_task_types:
       value = mean_scores_by_type[name].get(task_type, "N/A")
-      html += f"      <td>{format_value(value)}</td>\n"
+      is_best = (
+          task_type in max_means_by_type
+          and value == max_means_by_type[task_type]
+      )
+      td_class = ' class="best-value"' if is_best else ""
+      html += f"      <td{td_class}>{format_value(value)}</td>\n"
     html += "    </tr>\n"
   html += "  </tbody>\n"
   html += "</table>\n"

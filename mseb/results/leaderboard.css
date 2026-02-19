@@ -89,6 +89,12 @@ tr:hover {
   background-color: #e0f2f7; /* Light cyan on hover */
 }
 
+.best-value {
+  background-color: #e6f4ea !important; /* Light Google Green */
+  color: #137333;
+  font-weight: bold;
+}
+
 .table-container {
   overflow-x: auto;
   width: 100%;
