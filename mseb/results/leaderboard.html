@@ -14,8 +14,8 @@
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
 
 <table class="summary-table">
-  <tr><td>Tasks:</td><td>260</td></tr>
-  <tr><td>Task Types:</td><td>11</td></tr>
+  <tr><td>Tasks:</td><td>390</td></tr>
+  <tr><td>Task Types:</td><td>12</td></tr>
   <tr><td>Languages:</td><td>37</td></tr>
 </table>
 
@@ -37,12 +37,13 @@
     <tr>
       <th>Rank</th>
       <th>Encoder Name</th>
-      <th title="Overall classification accuracy"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Mean Average Precision (Macro)"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
       <th title="V-measure clustering metric: Normalised mutal information against a set of labels."><a href="#clustering">clustering (mean)</a> <span class="sort-icon"></span></th>
       <th title="Geometric mean F1 score"><a href="#reasoning">reasoning (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Average Precision"><a href="#reranking">reranking (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#retrieval">retrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Normalized Discounted Cumulative Gain. A metric that evaluates the quality of a sequence by rewarding correct terms found in the correct order."><a href="#segmentation">segmentation (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Word Error Rate"><a href="#transcription">transcription (mean)</a> <span class="sort-icon"></span></th>
     </tr>
   </thead>
   <tbody>
@@ -55,6 +56,7 @@
       <td>N/A</td>
       <td>0.6737</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>2</td>
@@ -65,11 +67,13 @@
       <td>N/A</td>
       <td>0.5058</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>3</td>
      <td><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch_logits</a></td>
       <td>0.5756</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -85,12 +89,14 @@
       <td>N/A</td>
       <td>0.5070</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>5</td>
      <td><a href="https://huggingface.co/laion/clap-htsat-unfused">laion_clap_encoder</a></td>
       <td>0.4322</td>
       <td>0.4119</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -105,9 +111,21 @@
       <td>N/A</td>
       <td>0.3382</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>7</td>
+     <td><a href="https://elevenlabs.io/docs/overview/models#scribe-v2">elevenlabs-scribe-v2</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.2883</td>
+    </tr>
+    <tr>
+     <td>8</td>
      <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_transcript_truth_or_gecko_no_prompt</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -115,9 +133,10 @@
       <td>0.9967</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>8</td>
+     <td>9</td>
      <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_whisper_or_gecko_no_prompt</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -125,9 +144,10 @@
       <td>0.5073</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>9</td>
+     <td>10</td>
      <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_transcript_truth_or_gecko</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -135,9 +155,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>10</td>
+     <td>11</td>
      <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko_with_title_and_context_whisper_or_gecko</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -145,9 +166,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>11</td>
+     <td>12</td>
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -155,9 +177,10 @@
       <td>0.9963</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>12</td>
+     <td>13</td>
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_whisper_or_gemini_embedding_no_prompt</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -165,9 +188,10 @@
       <td>0.5992</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>13</td>
+     <td>14</td>
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -175,9 +199,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>14</td>
+     <td>15</td>
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_with_title_and_context_whisper_or_gemini_embedding</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -185,9 +210,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>15</td>
+     <td>16</td>
      <td><a href="https://ai.google.dev/gemma">gemma_with_title_and_context_transcript_truth</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -195,9 +221,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>16</td>
+     <td>17</td>
      <td><a href="https://ai.google.dev/gemma">gemma_with_title_and_context_whisper</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -205,9 +232,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>17</td>
+     <td>18</td>
      <td><a href="https://huggingface.co/facebook/hubert-large-ls960-ft">hubert_large_ls960_ft_pooled_mean</a></td>
       <td>N/A</td>
       <td>0.6014</td>
@@ -215,9 +243,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>18</td>
+     <td>19</td>
      <td><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch_embedding</a></td>
       <td>N/A</td>
       <td>0.3917</td>
@@ -225,9 +254,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>19</td>
+     <td>20</td>
      <td><a href="https://en.wikipedia.org/wiki/Mel_scale">raw_spectrogram_25ms_10ms_mean</a></td>
       <td>N/A</td>
       <td>0.5983</td>
@@ -235,9 +265,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>20</td>
+     <td>21</td>
      <td><a href="https://huggingface.co/facebook/wav2vec2-large-960h-lv60">wav2vec2-large-960h-lv60_pooled_mean</a></td>
       <td>N/A</td>
       <td>0.5990</td>
@@ -245,9 +276,10 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>21</td>
+     <td>22</td>
      <td><a href="https://github.com/openai/whisper">whisper_large_asr_saliency</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -255,6 +287,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>0.4036</td>
+      <td>N/A</td>
     </tr>
   </tbody>
 </table>
@@ -2303,6 +2336,541 @@
 </table>
 </div>
 </div>
+<div class="detail-table-section">
+<h2 id="transcription">transcription</h2>
+<div class="table-container">
+<table id="details-table-transcription" border="1">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th><a href="https://elevenlabs.io/docs/overview/models#scribe-v2">elevenlabs-scribe-v2</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td>SVQArEgSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ar-EG) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2960</td>
+    </tr>
+    <tr>
+     <td>SVQArEgSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ar-EG) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3230</td>
+    </tr>
+    <tr>
+     <td>SVQArEgSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ar-EG) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2099</td>
+    </tr>
+    <tr>
+     <td>SVQArEgSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ar-EG) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3190</td>
+    </tr>
+    <tr>
+     <td>SVQArEgSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ar-EG) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3320</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ar-x-gulf) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2675</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ar-x-gulf) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3071</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ar-x-gulf) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1639</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ar-x-gulf) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2586</td>
+    </tr>
+    <tr>
+     <td>SVQArXGulfSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ar-x-gulf) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3431</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ar-x-levant) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2681</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ar-x-levant) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2803</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ar-x-levant) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2383</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ar-x-levant) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2502</td>
+    </tr>
+    <tr>
+     <td>SVQArXLevantSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ar-x-levant) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3087</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ar-x-maghrebi) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.5209</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ar-x-maghrebi) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3681</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ar-x-maghrebi) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.6564</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ar-x-maghrebi) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.5384</td>
+    </tr>
+    <tr>
+     <td>SVQArXMaghrebiSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ar-x-maghrebi) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.5280</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, bn-BD) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0715</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, bn-BD) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0824</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, bn-BD) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0557</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, bn-BD) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0774</td>
+    </tr>
+    <tr>
+     <td>SVQBnBdSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, bn-BD) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0721</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, bn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0925</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, bn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1610</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, bn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0666</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, bn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0663</td>
+    </tr>
+    <tr>
+     <td>SVQBnInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, bn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0746</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, en-AU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0579</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, en-AU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0727</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, en-AU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0309</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, en-AU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0549</td>
+    </tr>
+    <tr>
+     <td>SVQEnAuSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, en-AU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0732</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, en-GB) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1134</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, en-GB) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1901</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, en-GB) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0541</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, en-GB) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0465</td>
+    </tr>
+    <tr>
+     <td>SVQEnGbSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, en-GB) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1656</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, en-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0644</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, en-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0946</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, en-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0606</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, en-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0468</td>
+    </tr>
+    <tr>
+     <td>SVQEnInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, en-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0559</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, en-PH) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1433</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, en-PH) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3756</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, en-PH) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0337</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, en-PH) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0525</td>
+    </tr>
+    <tr>
+     <td>SVQEnPhSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, en-PH) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1104</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, en-US) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1386</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, en-US) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3778</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, en-US) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0358</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, en-US) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0861</td>
+    </tr>
+    <tr>
+     <td>SVQEnUsSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, en-US) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0533</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, fi-FI) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.5694</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, fi-FI) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.8118</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, fi-FI) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3184</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, fi-FI) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.6044</td>
+    </tr>
+    <tr>
+     <td>SVQFiFiSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, fi-FI) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.5917</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, gu-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2404</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, gu-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3340</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, gu-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2087</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, gu-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2116</td>
+    </tr>
+    <tr>
+     <td>SVQGuInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, gu-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2074</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, hi-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1174</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, hi-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0956</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, hi-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0993</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, hi-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0646</td>
+    </tr>
+    <tr>
+     <td>SVQHiInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, hi-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2109</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, id-ID) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1281</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, id-ID) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2005</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, id-ID) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0971</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, id-ID) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1136</td>
+    </tr>
+    <tr>
+     <td>SVQIdIdSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, id-ID) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1240</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ja-JP) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.6229</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ja-JP) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.6656</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ja-JP) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.4167</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ja-JP) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.4557</td>
+    </tr>
+    <tr>
+     <td>SVQJaJpSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ja-JP) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.9524</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, kn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1809</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, kn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2089</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, kn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1519</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, kn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1467</td>
+    </tr>
+    <tr>
+     <td>SVQKnInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, kn-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2087</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ko-KR) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2179</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ko-KR) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.4095</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ko-KR) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1406</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ko-KR) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1569</td>
+    </tr>
+    <tr>
+     <td>SVQKoKrSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ko-KR) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1654</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ml-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1137</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ml-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0964</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ml-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1262</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ml-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1058</td>
+    </tr>
+    <tr>
+     <td>SVQMlInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ml-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1232</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, mr-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1003</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, mr-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1069</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, mr-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0816</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, mr-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0910</td>
+    </tr>
+    <tr>
+     <td>SVQMrInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, mr-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1217</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ru-RU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1696</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ru-RU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1605</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ru-RU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.0937</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ru-RU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2435</td>
+    </tr>
+    <tr>
+     <td>SVQRuRuSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ru-RU) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1805</td>
+    </tr>
+    <tr>
+     <td>SVQSwSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, sw) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2764</td>
+    </tr>
+    <tr>
+     <td>SVQSwSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, sw) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1773</td>
+    </tr>
+    <tr>
+     <td>SVQSwSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, sw) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1119</td>
+    </tr>
+    <tr>
+     <td>SVQSwSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, sw) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.4199</td>
+    </tr>
+    <tr>
+     <td>SVQSwSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, sw) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3964</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ta-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1426</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ta-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1149</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ta-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1022</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ta-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2120</td>
+    </tr>
+    <tr>
+     <td>SVQTaInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ta-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1367</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, te-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2321</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, te-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.2451</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, te-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1814</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, te-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.1793</td>
+    </tr>
+    <tr>
+     <td>SVQTeInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, te-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.3200</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ur-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.2384</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ur-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.3791</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ur-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.2521</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ur-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.3764</td>
+    </tr>
+    <tr>
+     <td>SVQUrInSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ur-IN) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.9499</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSpeechTranscription/speech_transcription (WER)<br/>(SpeechTranscription, ur-PK) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.0966</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSpeechTranscription/speech_transcription:background_speech (WER)<br/>(SpeechTranscription, ur-PK) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.4406</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSpeechTranscription/speech_transcription:clean (WER)<br/>(SpeechTranscription, ur-PK) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.7422</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSpeechTranscription/speech_transcription:media_noise (WER)<br/>(SpeechTranscription, ur-PK) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>1.2218</td>
+    </tr>
+    <tr>
+     <td>SVQUrPkSpeechTranscription/speech_transcription:traffic_noise (WER)<br/>(SpeechTranscription, ur-PK) <a href="#type-transcription" class="doc-link">[?]</a></td>
+      <td>0.9775</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
 
   </div>
   <div class="docs-container">
@@ -2728,6 +3296,155 @@ temporal precision and its ability to distinguish meaningful units of sound.</p>
   <li>SVQTeInSalientTermSegmentation/salient_term</li>
   <li>SVQUrInSalientTermSegmentation/salient_term</li>
   <li>SVQUrPkSalientTermSegmentation/salient_term</li>
+</ul>
+</div>
+    <p><a href="#">[Back to top]</a></p>
+  </div>
+<hr/>
+  <div id="type-transcription" class="type-entry">
+<h1>Transcription</h1>
+<p>Transcription tasks (Automatic Speech Recognition) evaluate the model's ability
+to convert spoken language into written text. This tests the phonological and
+linguistic coverage of the sound representations.</p><div class="task-implementation">
+<h1>SVQ Transcription</h1>
+<p>A standard speech-to-text (ASR) task evaluating the linguistic accuracy of
+representations.</p>
+<ul>
+<li><strong>Goal:</strong> Transcribe the input voice query into the corresponding written
+    text in the same language.</li>
+<li><strong>Metric:</strong> Word Error Rate (WER) and Sentence Error Rate (SER).</li>
+</ul><p><strong>Tasks (See <a href="#doc-dataset_svq_md">SVQ</a>):</strong></p>
+<ul>
+  <li>SVQArEgSpeechTranscription/speech_transcription</li>
+  <li>SVQArEgSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQArEgSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQArEgSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQArEgSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQArXGulfSpeechTranscription/speech_transcription</li>
+  <li>SVQArXGulfSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQArXGulfSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQArXGulfSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQArXGulfSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQArXLevantSpeechTranscription/speech_transcription</li>
+  <li>SVQArXLevantSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQArXLevantSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQArXLevantSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQArXLevantSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQArXMaghrebiSpeechTranscription/speech_transcription</li>
+  <li>SVQArXMaghrebiSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQArXMaghrebiSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQArXMaghrebiSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQArXMaghrebiSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQBnBdSpeechTranscription/speech_transcription</li>
+  <li>SVQBnBdSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQBnBdSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQBnBdSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQBnBdSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQBnInSpeechTranscription/speech_transcription</li>
+  <li>SVQBnInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQBnInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQBnInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQBnInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQEnAuSpeechTranscription/speech_transcription</li>
+  <li>SVQEnAuSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQEnAuSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQEnAuSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQEnAuSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQEnGbSpeechTranscription/speech_transcription</li>
+  <li>SVQEnGbSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQEnGbSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQEnGbSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQEnGbSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQEnInSpeechTranscription/speech_transcription</li>
+  <li>SVQEnInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQEnInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQEnInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQEnInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQEnPhSpeechTranscription/speech_transcription</li>
+  <li>SVQEnPhSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQEnPhSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQEnPhSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQEnPhSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQEnUsSpeechTranscription/speech_transcription</li>
+  <li>SVQEnUsSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQEnUsSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQEnUsSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQEnUsSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQFiFiSpeechTranscription/speech_transcription</li>
+  <li>SVQFiFiSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQFiFiSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQFiFiSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQFiFiSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQGuInSpeechTranscription/speech_transcription</li>
+  <li>SVQGuInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQGuInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQGuInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQGuInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQHiInSpeechTranscription/speech_transcription</li>
+  <li>SVQHiInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQHiInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQHiInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQHiInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQIdIdSpeechTranscription/speech_transcription</li>
+  <li>SVQIdIdSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQIdIdSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQIdIdSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQIdIdSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQJaJpSpeechTranscription/speech_transcription</li>
+  <li>SVQJaJpSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQJaJpSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQJaJpSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQJaJpSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQKnInSpeechTranscription/speech_transcription</li>
+  <li>SVQKnInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQKnInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQKnInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQKnInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQKoKrSpeechTranscription/speech_transcription</li>
+  <li>SVQKoKrSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQKoKrSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQKoKrSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQKoKrSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQMlInSpeechTranscription/speech_transcription</li>
+  <li>SVQMlInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQMlInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQMlInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQMlInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQMrInSpeechTranscription/speech_transcription</li>
+  <li>SVQMrInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQMrInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQMrInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQMrInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQRuRuSpeechTranscription/speech_transcription</li>
+  <li>SVQRuRuSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQRuRuSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQRuRuSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQRuRuSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQSwSpeechTranscription/speech_transcription</li>
+  <li>SVQSwSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQSwSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQSwSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQSwSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQTaInSpeechTranscription/speech_transcription</li>
+  <li>SVQTaInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQTaInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQTaInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQTaInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQTeInSpeechTranscription/speech_transcription</li>
+  <li>SVQTeInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQTeInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQTeInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQTeInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQUrInSpeechTranscription/speech_transcription</li>
+  <li>SVQUrInSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQUrInSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQUrInSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQUrInSpeechTranscription/speech_transcription:traffic_noise</li>
+  <li>SVQUrPkSpeechTranscription/speech_transcription</li>
+  <li>SVQUrPkSpeechTranscription/speech_transcription:background_speech</li>
+  <li>SVQUrPkSpeechTranscription/speech_transcription:clean</li>
+  <li>SVQUrPkSpeechTranscription/speech_transcription:media_noise</li>
+  <li>SVQUrPkSpeechTranscription/speech_transcription:traffic_noise</li>
 </ul>
 </div>
     <p><a href="#">[Back to top]</a></p>
