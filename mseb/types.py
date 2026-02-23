@@ -97,6 +97,25 @@ class SoundContextParams:
 
 
 @dataclasses.dataclass
+class SoundEmbeddingCollection:
+  """A container for multiple representations of the same sound.
+
+  This allows an encoder to return a 'bundle' of embeddings (e.g.,
+  continuous bottleneck latents + discrete codebook indices) in a single pass.
+  """
+  # A mapping of head names to their respective embedding objects.
+  # e.g., {"latents": SoundEmbedding(...), "codes": TextPrediction(...)}
+  embeddings: Mapping[str, "MultiModalEmbedding"]
+  context: SoundContextParams
+  encoding_stats: Optional[EncodingStats] = None
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the total size of all bundled embeddings in bytes."""
+    return sum(e.size_bytes for e in self.embeddings.values())
+
+
+@dataclasses.dataclass
 class Sound:
   """A sound with context."""
 
@@ -419,6 +438,15 @@ class TaskMetadata:
       )
 
 
-MultiModalEmbedding = SoundEmbedding | TextEmbedding | TextPrediction
-MultiModalObject = Sound | Text | MultiModalEmbedding
+MultiModalEmbedding = (
+    SoundEmbedding
+    | TextEmbedding
+    | TextPrediction
+    | SoundEmbeddingCollection
+)
+MultiModalObject = (
+    Sound
+    | Text
+    | MultiModalEmbedding
+)
 MultiModalEmbeddingCache = Mapping[str, MultiModalEmbedding]

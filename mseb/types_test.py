@@ -92,6 +92,67 @@ class SoundContextParamsTest(parameterized.TestCase):
     assert params.length == 84000
 
 
+class SoundEmbeddingCollectionTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.ctx = types.SoundContextParams(
+        id="test_id",
+        sample_rate=16000,
+        length=16000
+    )
+    # Create a mock continuous embedding
+    self.sound_emb = types.SoundEmbedding(
+        embedding=np.zeros((10, 128), dtype=np.float32),
+        timestamps=np.zeros((10, 2)),
+        context=self.ctx
+    )
+    # Create a mock discrete prediction
+    self.text_pred = types.TextPrediction(
+        prediction="token1 token2 token3",
+        context=types.PredictionContextParams(id="test_id")
+    )
+
+  def test_composite_instantiation_and_access(self):
+    composite = types.SoundEmbeddingCollection(
+        embeddings={
+            "continuous": self.sound_emb,
+            "discrete": self.text_pred
+        },
+        context=self.ctx
+    )
+    self.assertIsInstance(
+        composite.embeddings["continuous"],
+        types.SoundEmbedding
+    )
+    self.assertIsInstance(
+        composite.embeddings["discrete"],
+        types.TextPrediction
+    )
+    self.assertEqual(composite.context.id, "test_id")
+
+  def test_composite_size_bytes_summation(self):
+    composite = types.SoundEmbeddingCollection(
+        embeddings={
+            "continuous": self.sound_emb,
+            "discrete": self.text_pred
+        },
+        context=self.ctx
+    )
+    expected_size = self.sound_emb.size_bytes + self.text_pred.size_bytes
+    self.assertEqual(composite.size_bytes, expected_size)
+
+  def test_composite_in_multimodal_alias(self):
+    # This test ensures type-checking tools would accept Composite in the Union
+    composite = types.SoundEmbeddingCollection(
+        embeddings={"head": self.sound_emb},
+        context=self.ctx
+    )
+    # Simulate a cache lookup
+    cache: types.MultiModalEmbeddingCache = {"sample_1": composite}
+    self.assertEqual(cache["sample_1"], composite)
+
+
 class TextContextParamsTest(parameterized.TestCase):
 
   def test_context_params_successful_instantiation(self):
