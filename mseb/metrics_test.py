@@ -111,7 +111,7 @@ class MetricsTest(parameterized.TestCase):
     hypo = [1, 5, 3]  # 1 substitution (2->5), 1 deletion (4)
     res = metrics.compute_unit_edit_distance(truth, hypo)
 
-    self.assertEqual(res['edit_distance'], 2.0)
+    self.assertEqual(res['raw_distance'], 2.0)
     self.assertEqual(res['substitutions'], 1.0)
     self.assertEqual(res['deletions'], 1.0)
     self.assertEqual(res['insertions'], 0.0)

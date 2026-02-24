@@ -122,7 +122,7 @@ def compute_unit_edit_distance(
 
   return {
       'normalized_distance': raw_edits / norm_factor,
-      'edit_distance': float(raw_edits),
+      'raw_distance': float(raw_edits),
       'substitutions': float(stats['substitutions']),
       'deletions': float(stats['deletions']),
       'insertions': float(stats['insertions']),
