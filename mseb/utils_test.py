@@ -126,5 +126,50 @@ class TestSoundUtils(absltest.TestCase):
         atol=1
     )
 
+
+class SpecAugmentTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.sample_rate = 16000
+    self.duration = 1.0
+    self.num_samples = int(self.sample_rate * self.duration)
+    # Generate a white noise signal for augmentation testing
+    self.rng = np.random.default_rng(42)
+    self.waveform = self.rng.standard_normal(
+        self.num_samples).astype(np.float32)
+    self.config = utils.SpecAugmentConfig()
+
+  def test_get_deterministic_seed_is_consistent(self):
+    seed1 = utils.get_deterministic_seed('utt_1', 0)
+    seed2 = utils.get_deterministic_seed('utt_1', 0)
+    seed3 = utils.get_deterministic_seed('utt_1', 1)
+
+    self.assertEqual(seed1, seed2)
+    self.assertNotEqual(seed1, seed3)
+
+  def test_apply_specaugment_is_deterministic_with_rng(self):
+    rng1 = np.random.default_rng(123)
+    aug1 = utils.apply_specaugment_to_waveform(self.waveform, self.config, rng1)
+
+    rng2 = np.random.default_rng(123)
+    aug2 = utils.apply_specaugment_to_waveform(self.waveform, self.config, rng2)
+
+    np.testing.assert_array_almost_equal(aug1, aug2)
+    # Verify it actually changed the original signal
+    self.assertFalse(np.array_equal(aug1, self.waveform))
+
+  def test_apply_specaugment_preserves_length(self):
+    rng = np.random.default_rng(42)
+    aug = utils.apply_specaugment_to_waveform(self.waveform, self.config, rng)
+    self.assertEqual(len(aug), len(self.waveform))
+
+  def test_apply_specaugment_handles_short_audio(self):
+    short_waveform = self.waveform[:512]
+    rng = np.random.default_rng(42)
+    aug = utils.apply_specaugment_to_waveform(short_waveform, self.config, rng)
+    self.assertLen(aug, 512)
+
+
 if __name__ == '__main__':
   absltest.main()
