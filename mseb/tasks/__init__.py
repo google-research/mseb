@@ -108,3 +108,8 @@ try:
   from .transcriptions.speech.svq import *
 except ImportError:
   pass
+
+try:
+  from .stabilities.speech.svq import *
+except ImportError:
+  pass
