@@ -33,6 +33,7 @@ from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import gemma_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
+from mseb.encoders import litellm_embedding_encoder
 from mseb.encoders import litellm_s2t_encoder
 from mseb.encoders import openai_llm_encoder
 from mseb.encoders import openai_s2t_encoder
@@ -121,6 +122,18 @@ _OPENAI_S2T_SERVER_URL = flags.DEFINE_string(
     "openai_s2t_server_url",
     "https://api.openai.com/v1",
     "URL of OpenAI S2T API server.",
+)
+
+_LITELLM_EMBEDDING_API_KEY = flags.DEFINE_string(
+    "litellm_embedding_api_key",
+    "",
+    "API key for LiteLLM Embedding API.",
+)
+
+_LITELLM_EMBEDDING_MODEL_NAME = flags.DEFINE_string(
+    "litellm_embedding_model_name",
+    "bedrock/amazon.nova-2-multimodal-embeddings-v1:0",
+    "Name of the LiteLLM Embedding API model.",
 )
 
 _LITELLM_S2T_API_KEY = flags.DEFINE_string(
@@ -283,6 +296,15 @@ raw_encoder_25ms_10ms = EncoderMetadata(
         "pooling": "mean",
     },
     url="https://en.wikipedia.org/wiki/Mel_scale",
+)
+
+litellm_embedding = EncoderMetadata(
+    name="litellm_embedding",
+    encoder=litellm_embedding_encoder.LiteLLMEmbeddingEncoder,
+    params=lambda: dict(
+        model_name=_LITELLM_EMBEDDING_MODEL_NAME.value,
+        api_key=_LITELLM_EMBEDDING_API_KEY.value,
+    ),
 )
 
 litellm_speech_to_text = EncoderMetadata(
