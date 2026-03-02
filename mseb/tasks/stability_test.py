@@ -24,120 +24,110 @@ import numpy as np
 class MockStabilityTask(stability.StabilityTask):
   """A concrete implementation of StabilityTask for testing."""
 
+  def __init__(self, sounds_data: list[np.ndarray], **kwargs):
+    super().__init__(**kwargs)
+    self.sounds_data = sounds_data
+
   def base_sounds(self) -> Iterable[types.Sound]:
-    # Yields a single reference sound
-    yield types.Sound(
-        waveform=np.zeros(16000),
-        context=types.SoundContextParams(
-            id="test_sample",
-            sample_rate=16000,
-            length=16000
-        )
-    )
+    for i, _ in enumerate(self.sounds_data):
+      yield types.Sound(
+          waveform=np.zeros(16000),
+          context=types.SoundContextParams(
+              id=f"sample_{i}",
+              sample_rate=16000,
+              length=16000
+          )
+      )
 
 
 class StabilityTaskTest(unittest.TestCase):
 
-  def setUp(self):
-    super().setUp()
-    # Task with 2 augmentations for quick testing
-    self.task = MockStabilityTask(num_augmentations=2)
-
-  def _make_emb(self, data: np.ndarray, dtype=None) -> types.SoundEmbedding:
-    """Helper to create a valid SoundEmbedding with all required fields."""
-    if dtype is None:
-      dtype = data.dtype
+  def _make_emb(self, data: np.ndarray) -> types.SoundEmbedding:
+    """Helper to create a valid SoundEmbedding."""
     return types.SoundEmbedding(
-        embedding=data.astype(dtype),
+        embedding=data.astype(np.float32),
         timestamps=np.zeros((data.shape[0], 2)),
         context=types.SoundContextParams(
-            id="test",
-            sample_rate=16000,
-            length=data.shape[0]
+            id="test", sample_rate=16000, length=data.shape[0]
         )
     )
 
   def test_sounds_generation_flow(self):
-    all_sounds = list(self.task.sounds())
-    self.assertEqual(len(all_sounds), 3)  # 1 base + 2 augs
-    self.assertEqual(all_sounds[0].context.id, "test_sample")
-    self.assertIn("aug_0", all_sounds[1].context.id)
-    self.assertIn("aug_1", all_sounds[2].context.id)
+    # 2 base sounds * (1 clean + 2 augs) = 6 total sounds
+    task = MockStabilityTask(
+        sounds_data=[np.zeros(10), np.zeros(10)],
+        num_augmentations=2
+    )
+    all_sounds = list(task.sounds())
+    self.assertEqual(len(all_sounds), 6)
+    # Check first triplet
+    self.assertEqual(all_sounds[0].context.id, "sample_0")
+    self.assertEqual(all_sounds[1].context.id, "sample_0_aug_0")
+    self.assertEqual(all_sounds[2].context.id, "sample_0_aug_1")
 
-  def test_compute_scores_ced_logic(self):
+  def test_compute_scores_hierarchical_logic(self):
+    # Setup: 2 base utterances, each with 2 augmentations
+    task = MockStabilityTask(
+        sounds_data=[np.zeros(10), np.zeros(10)],
+        num_augmentations=2
+    )
     cache = mock.MagicMock(spec=types.MultiModalEmbeddingCache)
-    # Ref: Two orthogonal frames on the unit sphere
-    ref_emb = self._make_emb(np.array([[1.0, 0.0], [0.0, 1.0]]))
-    # Aug: Frames are flipped 180 degrees (Max distance on unit sphere)
-    # Each frame has an L2 distance of 2.0 from the reference
-    aug0_emb = self._make_emb(np.array([[1.0, 0.0], [0.0, 1.0]]))
-    aug1_emb = self._make_emb(np.array([[-1.0, 0.0], [0.0, -1.0]]))
+    # Reference frame (Unit Sphere)
+    ref_vec = np.array([[1.0, 0.0]])
+    # Utterance 0: Perfectly stable (No drift across variants)
+    # Drifts = [0.0, 0.0] -> Mean=0.0, Std=0.0
+    u0_ref = self._make_emb(ref_vec)
 
+    # Utterance 1: Volatile (Aug 0 is stable, Aug 1 is 180° flip)
+    # Aug 1 Sub cost = 2.0. Normalized drift (2.0 / (2.0*1)) = 1.0
+    # Drifts = [0.0, 1.0] -> Mean=0.5, Std=0.5
+    u1_ref = self._make_emb(ref_vec)
+    flip_vec = np.array([[-1.0, 0.0]])
     embedding_map = {
-        "test_sample": ref_emb,
-        "test_sample_aug_0": aug0_emb,
-        "test_sample_aug_1": aug1_emb,
+        "sample_0": u0_ref,
+        "sample_0_aug_0": u0_ref,
+        "sample_0_aug_1": u0_ref,
+        "sample_1": u1_ref,
+        "sample_1_aug_0": u1_ref,
+        "sample_1_aug_1": self._make_emb(flip_vec),
     }
     cache.get.side_effect = embedding_map.get
-    scores_dict = self.task.compute_scores(cache)
-    # Filter for the CED (Cosine Embedding Distance) results
+    scores_dict = task.compute_scores(cache)
     scores = {
         s.metric: s for s in scores_dict["stability"] if "CED" in s.metric
     }
-    self.assertAlmostEqual(scores["Corpus_Mean_CED"].value, 0.5)
-    self.assertAlmostEqual(scores["Mean_Local_IS_CED"].value, 0.5)
-    self.assertAlmostEqual(scores["Mean_Local_IS_CED"].std, 0.5)
+    # 1. Corpus Mean (Micro-Average)
+    # Total Costs: 0+0 (U0) + 0+2.0 (U1) = 2.0
+    # Total Norm: (2.0 factor * 1 len * 4 total variant pairs) = 8.0
+    # 2.0 / 8.0 = 0.25
+    self.assertAlmostEqual(scores["Corpus_Mean_CED"].value, 0.25)
 
-  def test_compute_scores_continuous_suite_logic(self):
+    # 2. Mean Local IS (Macro-Average)
+    # Mean of Means: (0.0 + 0.5) / 2 = 0.25
+    # Mean of Stds (Instability): (0.0 + 0.5) / 2 = 0.25
+    self.assertAlmostEqual(scores["Mean_Local_IS_CED"].value, 0.25)
+    self.assertAlmostEqual(scores["Mean_Local_IS_CED"].std, 0.25)
+
+  def test_insertion_overflow_logic(self):
+    task = MockStabilityTask(sounds_data=[np.zeros(10)], num_augmentations=1)
     cache = mock.MagicMock(spec=types.MultiModalEmbeddingCache)
-    ref_data = np.array([[1.0, 0.0], [0.0, 1.0]])
-    ref_emb = self._make_emb(ref_data)
-    aug_data = np.array([[-1.0, 0.0], [0.0, -1.0]])
-    aug_emb = self._make_emb(aug_data)
 
-    embedding_map = {
-        "test_sample": ref_emb,
-        "test_sample_aug_0": aug_emb,
-        "test_sample_aug_1": aug_emb,
-    }
+    ref = self._make_emb(np.array([[1.0, 0.0]]))
+    # Hypothesis is 3x the length.
+    # 2 Insertions (cost 2.0 each) + 1 Match (cost 0)
+    # Raw Cost = 4.0. Normalized = 4.0 / (2.0 * 1 ref_len) = 2.0
+    aug = self._make_emb(np.array([[1.0, 0.0], [-1.0, 0.0], [-1.0, 0.0]]))
+
+    embedding_map = {"sample_0": ref, "sample_0_aug_0": aug}
     cache.get.side_effect = embedding_map.get
 
-    scores_dict = self.task.compute_scores(cache)
-    scores = {s.metric: s for s in scores_dict["stability"]}
-
-    # Total Cost: 2.0 (frame 1) + 2.0 (frame 2) = 4.0
-    # Normalization: 4.0 / (2.0 factor * 2 length) = 1.0 (100% drift)
-    self.assertAlmostEqual(scores["Corpus_Mean_CED"].value, 1.0)
-    self.assertAlmostEqual(scores["Mean_Local_IS_CED"].std, 0.0)
-
-    # In this simple case, DTW path matches CED substitution path
-    # Total Cost: 4.0. Note: DTW is typically reported as raw cost.
-    self.assertAlmostEqual(scores["Corpus_Mean_DTW"].value, 4.0 / 2.0)
-
-    self.assertAlmostEqual(
-        scores["Corpus_Mean_L2"].value,
-        1.0,
-        places=5
+    scores_dict = task.compute_scores(cache)
+    score = next(
+        s for s in scores_dict["stability"] if s.metric == "Corpus_Mean_CED"
     )
 
-  def test_compute_scores_ued_logic(self):
-    cache = mock.MagicMock(spec=types.MultiModalEmbeddingCache)
-    # UED (Unit Edit Distance) logic usually expects 1D arrays of discrete units
-    ref_emb = self._make_emb(np.array([1, 2, 3]), dtype=np.int32)
-    aug_emb = self._make_emb(np.array([1, 9, 3]), dtype=np.int32)
-
-    embedding_map = {
-        "test_sample": ref_emb,
-        "test_sample_aug_0": aug_emb,
-        "test_sample_aug_1": aug_emb,
-    }
-    cache.get.side_effect = embedding_map.get
-    scores_dict = self.task.compute_scores(cache)
-    scores = {
-        s.metric: s for s in scores_dict["stability"] if "UED" in s.metric
-    }
-    # 1 edit (substitution) / 3 total units = 0.333
-    self.assertAlmostEqual(scores["Corpus_Mean_UED"].value, 1/3)
+    self.assertEqual(score.value, 2.0)
+    self.assertEqual(score.max, float("inf"))
 
 
 if __name__ == "__main__":

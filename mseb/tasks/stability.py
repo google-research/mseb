@@ -15,14 +15,16 @@
 """Stability super task."""
 
 import abc
+import collections
 import dataclasses
-from typing import Dict, Iterable, List, Mapping, Optional
+from typing import Iterable, Mapping, Optional
 
 from mseb import metrics
 from mseb import task as task_lib
 from mseb import types
 from mseb import utils
 import numpy as np
+import tqdm
 
 
 def get_leaf_dist(
@@ -126,11 +128,13 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
 
   The task reports two primary scores per metric:
     1. Corpus_Mean: A global Micro-Average drift rate. It is calculated as the
-       sum of all edit costs across the corpus divided by the sum of maximum
-       possible costs (2*L for continuous, L for discrete).
-    2. Mean_Local_IS: The Macro-Average of per-sample drift, where the standard
-       deviation ('std') represents the Instability Score (IS). This identifies
-       models that are unpredictable in their response to perturbation.
+       sum of all edit costs across the entire corpus divided by the total
+       normalization factor (2*L_ref for CED, L_ref for UED). This represents
+       the total "Robustness Penalty" of the representation.
+    2. Mean_Local_IS: The Macro-Average of per-utterance drift. The 'std' field
+       represents the average Instability Score (IS)—calculated by taking the
+       standard deviation of drifts across variants for each utterance and
+       averaging those deviations across the corpus.
   """
 
   def __init__(
@@ -183,9 +187,9 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
   ) -> dict[str, list[types.Score]]:
     """Calculates stability metrics using Micro and Macro averaging.
 
-    This method implements a Micro-Average (sum-over-sum) normalization
-    strategy to ensure that longer utterances contribute proportionally
-    to the global error profile.
+    This method implements a Micro-Average (sum-over-sum) for the global profile
+    and a 'Mean of Means'/'Mean of Stds' for the local reliability profile.
+
 
     Args:
       embeddings: The cache containing model outputs for clean and noisy audio.
@@ -193,11 +197,16 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
     Returns:
       A dictionary mapping the 'stability' key to a list of MSEB Scores.
     """
-    total_abs_dist: Dict[str, float] = {}
-    total_ref_len: Dict[str, float] = {}
-    local_normalized_drifts: Dict[str, List[float]] = {}
+    total_abs_dist = collections.defaultdict(float)
+    total_ref_len = collections.defaultdict(float)
+    sample_stats = collections.defaultdict(list)
 
-    for sound in self.base_sounds():
+    pbar = tqdm.tqdm(
+        self.base_sounds(),
+        desc="Evaluating Stability",
+        unit="utt"
+    )
+    for sound in pbar:
       base_id = sound.context.id
       clean = embeddings.get(base_id)
       if clean is None: continue
@@ -208,45 +217,41 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
           for i in range(self.num_augmentations)
       ]
       variants = [v for v in variants if v is not None]
-
+      if not variants: continue
+      utt_results = collections.defaultdict(list)
       for v in variants:
         abs_results = _calculate_all_distances(clean, v)
         for m_name, res in abs_results.items():
-          # Identify base metric type for normalization factor
-          base_m = m_name.split("_")[-1]
-
-          # Pull distance and reference length from metric results
           dist = res.get("raw_distance")
           ref_len = res.get("reference_length", 0.0)
 
-          if dist is None or ref_len == 0: continue
-          # 1. Accumulate for Micro-Average
-          total_abs_dist[m_name] = total_abs_dist.get(m_name, 0.0) + dist
-          total_ref_len[m_name] = total_ref_len.get(m_name, 0.0) + ref_len
-          # 2. Accumulate for Macro-Average/IS
-          # CED distance is bounded by 2.0 per frame on unit sphere
-          norm_factor = 2.0 if base_m == "CED" else 1.0
-          norm_drift = dist / (norm_factor * ref_len)
-          local_normalized_drifts.setdefault(m_name, []).append(norm_drift)
+          if dist is not None and ref_len > 0:
+            total_abs_dist[m_name] += dist
+            total_ref_len[m_name] += ref_len
+            base_m = m_name.split("_")[-1]
+            norm_factor = 2.0 if base_m == "CED" else 1.0
+            utt_results[m_name].append(dist / (norm_factor * ref_len))
+      for m_name, drifts in utt_results.items():
+        sample_stats[m_name].append(drifts)
 
     return {"stability": self._format_results(
-        total_abs_dist, total_ref_len, local_normalized_drifts)}
+        total_abs_dist, total_ref_len, sample_stats)}
 
   def _format_results(
       self,
-      total_dist: Dict[str, float],
-      total_len: Dict[str, float],
-      local_drifts: Dict[str, List[float]]
-  ) -> List[types.Score]:
+      total_dist: Mapping[str, float],
+      total_len: Mapping[str, float],
+      sample_stats: Mapping[str, list[list[float]]]
+  ) -> list[types.Score]:
     """Formats raw statistics into MSEB Score objects.
 
-    Calculates both the Micro-averaged mean and the Macro-averaged
-    Instability Score (IS).
+    Calculates the Global Micro-Average and the Hierarchical Macro-Average
+    (Mean of means and Mean of standard deviations).
 
     Args:
       total_dist: Mapping of metric name to sum of distances.
       total_len: Mapping of metric name to sum of reference lengths.
-      local_drifts: Mapping of metric name to list of normalized drift values.
+      sample_stats: Nested list of normalized drifts per utterance.
 
     Returns:
       A list of formatted MSEB Score objects.
@@ -254,24 +259,24 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
     final = []
     metric_meta = {
         "CED": (
-            "Continuous Edit Distance. Measures the cost of transforming one"
-            "vector sequence into another via insertions, deletions, and"
-            "substitutions. Normalized by 2*L assuming a unit sphere where"
+            "Continuous Edit Distance. Measures the cost of transforming one "
+            "vector sequence into another via insertions, deletions, and "
+            "substitutions. Normalized by 2*L assuming a unit sphere where "
             "max L2 distance is 2.0."
         ),
         "UED": (
-            "Unit Edit Distance. The normalized Levenshtein distance between"
-            "discrete units (indices or words). Indicates categorical or"
+            "Unit Edit Distance. The normalized Levenshtein distance between "
+            "discrete units (indices or words). Indicates categorical or "
             "semantic invariance. Normalized by L."
         ),
         "DTW": (
-            "Dynamic Time Warping. Computes the optimal non-linear alignment"
-            "cost between two sequences, measuring stability against temporal"
+            "Dynamic Time Warping. Computes the optimal non-linear alignment "
+            "cost between two sequences, measuring stability against temporal "
             "warping or stretching."
         ),
         "L2": (
-            "Euclidean Distance (L2). A rigid, point-to-point distance metric."
-            "Highly sensitive to precise temporal alignment and magnitude"
+            "Euclidean Distance (L2). A rigid, point-to-point distance metric. "
+            "Highly sensitive to precise temporal alignment and magnitude "
             "shifts."
         )
     }
@@ -287,25 +292,34 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
           metric=f"Corpus_Mean_{m}",
           value=float(global_drift),
           description=(
-              f"{description_base} Global Micro-Average"
-              "across the entire corpus."
+              f"{description_base} Global Micro-Average {base_m} "
+              "(sum of costs / total frames). "
+              "Values > 1.0 indicate rate instability via insertions."
           ),
-          min=0.0, max=1.0 if base_m in ["CED", "UED"] else float("inf")
+          min=0.0, max=float("inf")
       ))
 
-      # 2. Mean Local Drift & Instability Score (Reliability Profile)
-      local_mean = np.mean(local_drifts[m]) if local_drifts[m] else 0.0
-      local_is = np.std(local_drifts[m]) if local_drifts[m] else 0.0
+      # 2. Mean Local Drift & Average Instability Score (Reliability Profile)
+      if m in sample_stats:
+        data = np.array(sample_stats[m])
+        # Calculate stats across the second axis (augmentations)
+        utt_means = np.mean(data, axis=1)
+        utt_stds = np.std(data, axis=1)
+        # Final Mean of Means / Mean of Stds
+        local_mean = np.mean(utt_means)
+        local_is = np.mean(utt_stds)
+      else:
+        local_mean, local_is = 0.0, 0.0
+
       final.append(types.Score(
           metric=f"Mean_Local_IS_{m}",
           value=float(local_mean),
           std=float(local_is),
           description=(
-              f"Average local drift for {base_m}. The 'std' field"
-              "represents the Instability Score (IS), measuring the"
-              "predictability of model drift."
+              f"Macro-average of per-utterance {base_m} drift. The 'std' field "
+              "represents the average Instability Score (IS) across samples."
           ),
-          min=0.0, max=1.0 if base_m in ["CED", "UED"] else float("inf")
+          min=0.0, max=float("inf")
       ))
 
     return final
