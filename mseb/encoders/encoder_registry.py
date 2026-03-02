@@ -320,7 +320,10 @@ openai_speech_to_text = EncoderMetadata(
 whisper_speech_to_text = EncoderMetadata(
     name="whisper_speech_to_text",
     encoder=whisper_encoder.SpeechToTextEncoder,
-    params=lambda: dict(model_path=_WHISPER_MODEL_PATH.value),
+    params=lambda: dict(
+        model_path=_WHISPER_MODEL_PATH.value,
+        language=_LANGUAGE.value
+    ),
     url="https://github.com/openai/whisper",
 )
 
