@@ -18,7 +18,69 @@ from collections.abc import Sequence
 from typing import Callable, Mapping
 
 import jiwer
+import numba
 import numpy as np
+
+
+@numba.njit
+def _jit_edit_distance_core(
+    cost_matrix: np.ndarray,
+    w_ins: float,
+    w_del: float
+) -> float:
+  """Compiled Dynamic Programming core for Continuous Edit Distance.
+
+  Args:
+    cost_matrix: (N, M) array of L2 distances between frames.
+    w_ins: Scalar penalty for insertions.
+    w_del: Scalar penalty for deletions.
+
+  Returns:
+    The minimum cumulative edit cost to align the two sequences.
+  """
+  n, m = cost_matrix.shape
+  dp = np.zeros((n + 1, m + 1))
+
+  # Initialize boundary conditions (cumulative insertions/deletions)
+  for i in range(1, n + 1):
+    dp[i, 0] = dp[i - 1, 0] + w_del
+  for j in range(1, m + 1):
+    dp[0, j] = dp[0, j - 1] + w_ins
+
+  # Fill DP table
+  for i in range(1, n + 1):
+    for j in range(1, m + 1):
+      # Substitution cost is pulled from the pre-calculated cost_matrix
+      dp[i, j] = min(
+          dp[i - 1, j] + w_del,        # Deletion
+          dp[i, j - 1] + w_ins,        # Insertion
+          dp[i - 1, j - 1] + cost_matrix[i - 1, j - 1]  # Substitution
+      )
+  return dp[n, m]
+
+
+@numba.njit
+def _jit_dtw_core(dist_matrix: np.ndarray) -> float:
+  """Compiled Dynamic Programming core for Dynamic Time Warping.
+
+  Args:
+    dist_matrix: (N, M) array of Euclidean distances between frames.
+
+  Returns:
+    The optimal non-linear alignment cost.
+  """
+  n, m = dist_matrix.shape
+  dtw_matrix = np.full((n + 1, m + 1), np.inf)
+  dtw_matrix[0, 0] = 0.0
+
+  for i in range(1, n + 1):
+    for j in range(1, m + 1):
+      dtw_matrix[i, j] = dist_matrix[i - 1, j - 1] + min(
+          dtw_matrix[i - 1, j],     # Vertical (Insertion)
+          dtw_matrix[i, j - 1],     # Horizontal (Deletion)
+          dtw_matrix[i - 1, j - 1]  # Diagonal (Match)
+      )
+  return dtw_matrix[n, m]
 
 
 def compute_reciprocal_rank(
@@ -111,14 +173,13 @@ def compute_unit_edit_distance(
         'reference_length': The number of tokens in the truth sequence.
   """
   truth = ' '.join(map(str, truth_tokens))
-  hypo = ' '.join(map(str, hypothesis_tokens))
+  hyp = ' '.join(map(str, hypothesis_tokens))
 
-  stats = _compute_levenshtein_stats(truth=truth, hypothesis=hypo)
+  stats = _compute_levenshtein_stats(truth=truth, hypothesis=hyp)
   raw_edits = stats['substitutions'] + stats['deletions'] + stats['insertions']
 
   ref_len = len(truth_tokens)
-  hypo_len = len(hypothesis_tokens)
-  norm_factor = max(ref_len, hypo_len, 1)
+  norm_factor = max(ref_len, 1)
 
   return {
       'normalized_distance': raw_edits / norm_factor,
@@ -173,22 +234,15 @@ def compute_dynamic_time_warping_distance(
   Returns:
     A mapping containing 'raw_distance' and 'reference_length'.
   """
-  n, m = len(z1), len(z2)
-  dtw_matrix = np.full((n + 1, m + 1), np.inf)
-  dtw_matrix[0, 0] = 0
-
-  for i in range(1, n + 1):
-    for j in range(1, m + 1):
-      cost = np.linalg.norm(z1[i-1] - z2[j-1])
-      dtw_matrix[i, j] = cost + min(
-          dtw_matrix[i-1, j],
-          dtw_matrix[i, j-1],
-          dtw_matrix[i-1, j-1]
-      )
-  raw_dist = float(dtw_matrix[n, m])
+  # Vectorized Euclidean distance matrix: sqrt(a^2 + b^2 - 2ab)
+  dot_product = np.dot(z1, z2.T)
+  sq_norms1 = np.sum(z1**2, axis=1).reshape(-1, 1)
+  sq_norms2 = np.sum(z2**2, axis=1).reshape(1, -1)
+  dist_matrix = np.sqrt(np.maximum(sq_norms1 + sq_norms2 - 2 * dot_product, 0))
+  raw_dist = float(_jit_dtw_core(dist_matrix))
   return {
       'raw_distance': raw_dist,
-      'reference_length': float(n)
+      'reference_length': float(len(z1))
   }
 
 
@@ -223,33 +277,21 @@ def compute_continuous_edit_distance(
         'reference_length': The number of frames (N) in the truth sequence.
   """
   if unit_sphere_scaling:
-    # Scale sequences so that all vectors reside within the unit sphere [0, 1]
-    # This bounds the L2 substitution cost to a maximum of 2.0.
-    max_norm1 = np.max(np.linalg.norm(z1, axis=1)) if z1.any() else 1.0
-    max_norm2 = np.max(np.linalg.norm(z2, axis=1)) if z2.any() else 1.0
+    # Scale sequences so all vectors reside within the unit sphere [0, 1]
+    norm1 = np.linalg.norm(z1, axis=1)
+    norm2 = np.linalg.norm(z2, axis=1)
+    max_norm1 = np.max(norm1) if z1.any() else 1.0
+    max_norm2 = np.max(norm2) if z2.any() else 1.0
     z1 = z1 / (max_norm1 + 1e-9)
     z2 = z2 / (max_norm2 + 1e-9)
 
-  n, m = len(z1), len(z2)
-  # Initialize DP table with cumulative insertion/deletion penalties
-  dp = np.zeros((n + 1, m + 1))
-
-  for i in range(1, n + 1):
-    dp[i, 0] = dp[i-1, 0] + w_del
-  for j in range(1, m + 1):
-    dp[0, j] = dp[0, j-1] + w_ins
-
-  # Fill the DP table using the standard Edit Distance recurrence
-  for i in range(1, n + 1):
-    for j in range(1, m + 1):
-      # Substitution cost is the L2 distance between vector frames
-      sub_cost = np.linalg.norm(z1[i-1] - z2[j-1])
-      dp[i, j] = min(
-          dp[i-1, j] + w_del,        # Deletion
-          dp[i, j-1] + w_ins,        # Insertion
-          dp[i-1, j-1] + sub_cost    # Substitution
-      )
-  raw_cost = dp[n, m]
+  # Pre-calculate cost matrix (Euclidean)
+  dot_product = np.dot(z1, z2.T)
+  sq_norms1 = np.sum(z1**2, axis=1).reshape(-1, 1)
+  sq_norms2 = np.sum(z2**2, axis=1).reshape(1, -1)
+  cost_matrix = np.sqrt(np.maximum(sq_norms1 + sq_norms2 - 2 * dot_product, 0))
+  raw_cost = _jit_edit_distance_core(cost_matrix, w_ins, w_del)
+  n = len(z1)
   return {
       'raw_distance': float(raw_cost),
       'normalized_distance': float(raw_cost / (2.0 * max(n, 1))),
