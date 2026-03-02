@@ -282,7 +282,19 @@ raw_encoder_25ms_10ms = EncoderMetadata(
         "transform_fn": raw_encoder.spectrogram_transform,
         "pooling": "mean",
     },
-    url="https://en.wikipedia.org/wiki/Mel_scale",
+    url="https://en.wikipedia.org/wiki/Spectrogram",
+)
+
+raw_encoder_25ms_10ms_wo_pooling = EncoderMetadata(
+    name="raw_spectrogram_25ms_10ms_wo_pooling",
+    encoder=raw_encoder.RawEncoder,
+    params=lambda: {
+        "frame_length": 400,
+        "frame_step": 160,
+        "transform_fn": raw_encoder.spectrogram_transform,
+        "pooling": None,
+    },
+    url="https://en.wikipedia.org/wiki/Spectrogram",
 )
 
 litellm_speech_to_text = EncoderMetadata(
