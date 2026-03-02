@@ -280,7 +280,7 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
 
 
 def _create_saliency_cascade_base(
-    asr_encoder: whisper_encoder.Whisper,
+    asr_encoder: encoder.MultiModalEncoder,
     language: str,
     top_k: int,
     idf_table: Optional[dict[str, float]],

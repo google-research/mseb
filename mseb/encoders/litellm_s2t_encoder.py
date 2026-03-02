@@ -137,10 +137,10 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
                   on word_timestamps. Dtype will be float.
     """
     if self._word_timestamps:
-      # response_format = 'verbose_json'
+      response_format = 'verbose_json'
       timestamp_granularity = ['word']
     else:
-      # response_format = 'json'
+      response_format = 'json'
       timestamp_granularity = None
 
     wav_file = io.BytesIO(utils.sound_to_wav_bytes(sound))
@@ -150,10 +150,15 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
         transcription = litellm.transcription(
             model=self._model_name,
             file=wav_file,
-            # TODO(allauzen): Add support for response_format and temperature.
-            # response_format=response_format,
+            # TODO(allauzen): Add support for temperature.
+            response_format=response_format,
             timestamp_granularities=timestamp_granularity,
             api_key=self._api_key,
+            additional_drop_params=[
+                'response_format',
+                'timestamp_granularities',
+            ],
+            drop_params=True,
         )
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
@@ -167,9 +172,14 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
     elif self._word_timestamps:
       timestamps_list = []
       embeddings_list = []
+      prefix = ''
+      if ''.join([x['word'] for x in transcription['words']]).count(
+          ' '
+      ) < transcription['text'].count(' '):
+        prefix = ' '
       for word in transcription['words']:
         timestamps_list.append([word['start'], word['end']])
-        embeddings_list.append(word['word'])
+        embeddings_list.append(prefix + word['word'])
       timestamps = np.array(timestamps_list, dtype=float)
       embeddings = np.array(embeddings_list, dtype=object)
     else:

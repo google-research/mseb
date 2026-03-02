@@ -95,7 +95,7 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     self.assertIsInstance(outputs[0], types.SoundEmbedding)
     self.assertEqual(
         outputs[0].embedding.tolist(),
-        ['Roses', 'are', 'red,', 'violets', 'are', 'blue.'],
+        [' Roses', ' are', ' red,', ' violets', ' are', ' blue.'],
     )
     self.assertEqual(outputs[0].timestamps.shape, (6, 2))
     self.assertEqual(outputs[0].timestamps[0, 0], 0.479)
