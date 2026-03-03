@@ -148,8 +148,8 @@ def compute_word_errors(
 
 
 def compute_unit_edit_distance(
-    truth_tokens: Sequence[int | str],
-    hypothesis_tokens: Sequence[int | str]
+    truth_tokens: str | Sequence[int | str],
+    hypothesis_tokens: str | Sequence[int | str]
 ) -> Mapping[str, float]:
   """Computes Unit Edit Distance (UED) statistics for discrete tokens.
 
@@ -172,13 +172,32 @@ def compute_unit_edit_distance(
         'insertions': Number of insertion operations.
         'reference_length': The number of tokens in the truth sequence.
   """
+  # 1. Normalize inputs: Convert strings to lists of words
+  if isinstance(truth_tokens, str):
+    truth_tokens = truth_tokens.split()
+  if isinstance(hypothesis_tokens, str):
+    hypothesis_tokens = hypothesis_tokens.split()
+
+  hyp_len = len(hypothesis_tokens)
+  # 2. Guard for Empty Reference (Prevents jiwer ValueError)
+  if len(truth_tokens) == 0:
+    return {
+        'normalized_distance': float(hyp_len),
+        'raw_distance': float(hyp_len),
+        'substitutions': 0.0,
+        'deletions': 0.0,
+        'insertions': float(hyp_len),
+        'reference_length': 0.0,
+    }
+
+  # 3. Standard jiwer logic for non-empty references
   truth = ' '.join(map(str, truth_tokens))
   hyp = ' '.join(map(str, hypothesis_tokens))
 
   stats = _compute_levenshtein_stats(truth=truth, hypothesis=hyp)
   raw_edits = stats['substitutions'] + stats['deletions'] + stats['insertions']
 
-  ref_len = len(truth_tokens)
+  ref_len = float(stats['hits'] + stats['substitutions'] + stats['deletions'])
   norm_factor = max(ref_len, 1)
 
   return {

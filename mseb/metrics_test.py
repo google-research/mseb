@@ -106,16 +106,38 @@ class MetricsTest(parameterized.TestCase):
     self.assertEqual(word_errors, 4.0)
     self.assertEqual(word_errors_weight, 4.0)
 
+  def test_compute_unit_edit_distance_empty_reference(self):
+    res = metrics.compute_unit_edit_distance([], [1, 2, 3])
+    self.assertEqual(res['reference_length'], 0.0)
+    self.assertEqual(res['insertions'], 3.0)
+    # Normalized should be raw_distance / max(ref, 1) = 3.0 / 1.0
+    self.assertEqual(res['normalized_distance'], 3.0)
+
   def test_compute_unit_edit_distance(self):
     truth = [1, 2, 3, 4]
     hypo = [1, 5, 3]  # 1 substitution (2->5), 1 deletion (4)
     res = metrics.compute_unit_edit_distance(truth, hypo)
-
     self.assertEqual(res['raw_distance'], 2.0)
     self.assertEqual(res['substitutions'], 1.0)
     self.assertEqual(res['deletions'], 1.0)
     self.assertEqual(res['insertions'], 0.0)
     self.assertEqual(res['normalized_distance'], 0.5)
+    self.assertEqual(res['reference_length'], 4.0)
+
+  def test_compute_unit_edit_distance_with_strings(self):
+    truth = 'The quick brown fox'
+    hypo = 'The slow brown fox jumps'
+    # 1 substitution (quick->slow), 1 insertion (jumps)
+    res = metrics.compute_unit_edit_distance(truth, hypo)
+    self.assertEqual(res['raw_distance'], 2.0)
+    self.assertEqual(res['reference_length'], 4.0)
+
+  def test_compute_unit_edit_distance_with_list_of_strings(self):
+    truth = 'The quick brown fox'.split()
+    hypo = 'The slow brown fox jumps'.split()
+    # 1 substitution (quick->slow), 1 insertion (jumps)
+    res = metrics.compute_unit_edit_distance(truth, hypo)
+    self.assertEqual(res['raw_distance'], 2.0)
     self.assertEqual(res['reference_length'], 4.0)
 
   def test_compute_lp_norm_valid(self):
