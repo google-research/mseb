@@ -382,3 +382,128 @@ class PooledAudioEncoder(Whisper):
     flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel)
     self._flops_cache = flop_analyzer.total()
     return self._flops_cache
+
+
+class WhisperJointEncoder(encoder.MultiModalEncoder):
+  """Extracts acoustic hidden states and transcripts from Whisper.
+
+  This encoder leverages the robust Mel-preprocessing logic from
+  PooledAudioEncoder to ensure compatibility with Whisper's 30-second
+  positional embeddings while maintaining accurate temporal alignment.
+  """
+
+  def __init__(self, model_path: str, device: str | None = None):
+    """Initializes the Joint Encoder.
+
+    Args:
+      model_path: The Whisper model size or path (e.g., 'base', 'large-v3').
+      device: Hardware device for inference (e.g., 'cuda', 'cpu').
+    """
+    super().__init__()
+    self.model_path = model_path
+    self.device = device
+    self.model = None
+    self.encoder_stride = 2
+    self.frame_shift_seconds = 0.01
+
+  def _setup(self):
+    """Loads the Whisper model into memory."""
+    default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = self.device if self.device else default_device
+    self.model = whisper.load_model(self.model_path, device=device)
+
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
+    """Validates that all inputs are Sound objects."""
+    if not all(isinstance(x, types.Sound) for x in batch):
+      raise ValueError('WhisperJointEncoder only supports Sound inputs.')
+
+  def get_mel_inputs(self, waveform: np.ndarray):
+    """Prepares Mel spectrograms padded exactly to 30 seconds.
+
+    Args:
+      waveform: 1D NumPy array (16kHz).
+
+    Returns:
+      mel: Torch tensor of shape (1, 80, 3000) on the target device.
+      num_frames: The number of mel frames in the actual signal before padding.
+    """
+    assert self.model is not None
+    # padding=N_SAMPLES adds 30s of zeros to the waveform
+    mel = whisper.audio.log_mel_spectrogram(
+        waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
+    )
+    # Subtracting N_FRAMES (3000) recovers the unpadded frame count
+    num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
+    # Ensure shape is exactly 3000 to match positional embeddings
+    mel_fixed = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
+    mel_fixed = mel_fixed[None, :, :].to(self.model.device)
+    return mel_fixed, num_frames
+
+  def _encode(
+      self,
+      batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.SoundEmbeddingCollection]:
+    """Encodes a batch of sounds."""
+    outputs = []
+    for example in batch:
+      sound = encoder.resample_sound(example, whisper.audio.SAMPLE_RATE)
+      outputs.append(self._encode_single_sound(sound.waveform, sound.context))
+    return outputs
+
+  def _encode_single_sound(
+      self,
+      waveform: np.ndarray,
+      params: types.SoundContextParams
+  ) -> types.SoundEmbeddingCollection:
+    """Extracts hidden states and transcripts for one waveform."""
+    assert self.model is not None
+
+    # 1. Acoustic Path: Encoder Hidden States
+    # Use the robust helper to avoid "incorrect audio shape" AssertionError
+    mel, num_frames = self.get_mel_inputs(waveform)
+
+    with torch.no_grad():
+      hiddens = self.model.embed_audio(mel)
+
+    hiddens_np = hiddens.to('cpu').detach().numpy().squeeze(0)
+    num_steps = num_frames // self.encoder_stride
+
+    # Accurate 20ms step timestamps
+    step_dur = self.frame_shift_seconds * self.encoder_stride
+    starts = np.arange(num_steps) * step_dur
+    acoustic_timestamps = np.stack([starts, starts + step_dur], axis=1)
+
+    # 2. Semantic Path: Transcription
+    result = self.model.transcribe(
+        waveform.astype(np.float32),
+        word_timestamps=True,
+        language=params.language.split('_')[0] if params.language else None
+    )
+
+    # 3. Packaging
+    acoustic_emb = types.SoundEmbedding(
+        embedding=hiddens_np[:num_steps, :],
+        timestamps=acoustic_timestamps,
+        context=params
+    )
+
+    words = []
+    word_ts = []
+    for segment in result['segments']:
+      for w in segment['words']:
+        words.append(w['word'])
+        word_ts.append([w['start'], w['end']])
+
+    semantic_emb = types.SoundEmbedding(
+        embedding=np.array(words, dtype=object),
+        timestamps=np.array(word_ts, dtype=float),
+        context=params
+    )
+
+    return types.SoundEmbeddingCollection(
+        embeddings={
+            'encoder_hiddens': acoustic_emb,
+            'transcripts': semantic_emb
+        },
+        context=params
+    )

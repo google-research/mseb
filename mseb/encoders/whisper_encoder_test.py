@@ -214,5 +214,73 @@ class PooledAudioEncoderTest(absltest.TestCase):
     npt.assert_equal(result.embedding.shape, [1, 512])
 
 
+@pytest.mark.whisper
+@pytest.mark.optional
+class WhisperJointEncoderTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.enter_context(whisper_cache_context(self.__class__.__name__))
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, 'testdata'
+    )
+    self.svq_samples = pq.ParquetFile(
+        os.path.join(testdata_path, 'en_us.parquet')
+    )
+
+  def test_encode_joint_representations(self):
+    enc = whisper_encoder.WhisperJointEncoder(model_path='base', device='cpu')
+    enc.setup()
+
+    # Prepare Input (Resampling from 48kHz to Whisper's 16kHz internally)
+    svq_example = self.svq_samples.read_row_group(0)
+    waveform = svq_example['waveform'].to_numpy()[0]
+    waveform = waveform.astype(np.float32) / 32767.0
+    sample_rate = 48000
+    duration = waveform.shape[0] / sample_rate
+
+    params = types.SoundContextParams(
+        sample_rate=sample_rate,
+        length=waveform.shape[0],
+        language='en',
+        id='test_joint',
+    )
+    sound = types.Sound(waveform=waveform, context=params)
+
+    results = enc.encode([sound])
+
+    # Collection Verification
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbeddingCollection)
+    self.assertIn('encoder_hiddens', result.embeddings)
+    self.assertIn('transcripts', result.embeddings)
+
+    # Acoustic Layer Verification (20ms step hiddens)
+    acoustic = result.embeddings['encoder_hiddens']
+    self.assertIsInstance(acoustic, types.SoundEmbedding)
+    # Ensure hidden states are 2D (Time x Dimension)
+    self.assertLen(acoustic.embedding.shape, 2)
+    # Verify temporal alignment (1-to-1 mapping of steps to timestamps)
+    npt.assert_equal(acoustic.timestamps.shape[0], acoustic.embedding.shape[0])
+    # Ensure the last frame falls within the audio duration (with small epsilon)
+    self.assertLessEqual(acoustic.timestamps[-1, 1], duration + 0.05)
+
+    # Semantic Layer Verification (Word tokens)
+    semantic = result.embeddings['transcripts']
+    self.assertIsInstance(semantic, types.SoundEmbedding)
+    # Ensure transcripts are 1D arrays of strings/objects
+    self.assertLen(semantic.embedding.shape, 1)
+    self.assertEqual(semantic.embedding.dtype, object)
+    # Verify word-level timestamps match word count
+    npt.assert_equal(semantic.timestamps.shape[0], semantic.embedding.shape[0])
+
+    # Content Integrity
+    # The sample "How many members..." should be transcribed correctly
+    words_found = ' '.join(semantic.embedding.tolist())
+    self.assertIn('National', words_found)
+    self.assertIn('Board', words_found)
+
+
 if __name__ == '__main__':
   absltest.main()
