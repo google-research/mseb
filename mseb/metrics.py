@@ -217,23 +217,43 @@ def compute_lp_norm(
 ) -> Mapping[str, float]:
   """Computes the standard L_p norm between two latent sequences.
 
-  Measures rigid point-to-point distance. Requires identical temporal
-  lengths and embedding dimensions.
+  If temporal lengths differ, the shorter sequence is zero-padded
+  to match the longer sequence. This measures rigid point-to-point distance
+  while naturally penalizing dropped or hallucinated frames.
 
   Args:
-    z1: Array of shape (time_steps, embedding_dim).
-    z2: Array of shape (time_steps, embedding_dim).
+    z1: Array of shape (time_steps_1, embedding_dim).
+    z2: Array of shape (time_steps_2, embedding_dim).
     p: The order of the norm (default 2).
 
   Returns:
     A mapping containing 'raw_distance' and 'reference_length'.
   """
-  if z1.shape != z2.shape:
-    raise ValueError(f'Shape mismatch for L_p: {z1.shape} vs {z2.shape}.')
+  if z1.shape[1] != z2.shape[1]:
+    raise ValueError(
+        f'Embedding dim mismatch for L_p: {z1.shape[1]} vs {z2.shape[1]}.'
+    )
+
+  t1, dim = z1.shape
+  t2, _ = z2.shape
+
+  # Pad the shorter array with zeros to match the longer array
+  if t1 != t2:
+    max_t = max(t1, t2)
+    if t1 < max_t:
+      z1_padded = np.zeros((max_t, dim), dtype=z1.dtype)
+      z1_padded[:t1] = z1
+      z1 = z1_padded
+    else:
+      z2_padded = np.zeros((max_t, dim), dtype=z2.dtype)
+      z2_padded[:t2] = z2
+      z2 = z2_padded
+
   dist = float(np.linalg.norm(z1 - z2, ord=p))
+
   return {
       'raw_distance': dist,
-      'reference_length': float(len(z1))
+      'reference_length': float(t1)
   }
 
 

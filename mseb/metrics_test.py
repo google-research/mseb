@@ -148,9 +148,22 @@ class MetricsTest(parameterized.TestCase):
     self.assertEqual(res['raw_distance'], 1.0)
     self.assertEqual(res['reference_length'], 2.0)
 
-  def test_compute_lp_norm_mismatch(self):
+  def test_compute_lp_norm_temporal_mismatch(self):
+    # z1 has 1 frame, z2 has 2 frames.
+    z1 = np.array([[3.0, 4.0]])
+    z2 = np.array([[3.0, 4.0], [0.0, 5.0]])
+    # z1 should be implicitly padded to [[3.0, 4.0], [0.0, 0.0]].
+    # The difference array is [[0.0, 0.0], [0.0, -5.0]].
+    # The L2 norm of that difference is exactly 5.0.
+    res = metrics.compute_lp_norm(z1, z2, p=2)
+    self.assertEqual(res['raw_distance'], 5.0)
+    self.assertEqual(res['reference_length'], 1.0)
+
+  def test_compute_lp_norm_dim_mismatch_raises(self):
+    # Temporal mismatches are handled, but embedding dimension mismatches
+    # must still raise an error.
     z1 = np.ones((5, 10))
-    z2 = np.ones((6, 10))
+    z2 = np.ones((5, 12))
     with self.assertRaises(ValueError):
       metrics.compute_lp_norm(z1, z2)
 
