@@ -28,6 +28,7 @@ from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import clap_encoder
 from mseb.encoders import converter
+from mseb.encoders import encodec_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import gemma_encoder
@@ -139,6 +140,12 @@ _WHISPER_MODEL_PATH = flags.DEFINE_string(
     "whisper_model_path",
     "large-v3",
     "Path to Whisper model.",
+)
+
+_ENCODEC_MODEL_PATH = flags.DEFINE_string(
+    "encodec_model_path",
+    "facebook/encodec_24khz",
+    "Path to ENCODEC model.",
 )
 
 _LANGUAGE = flags.DEFINE_string(
@@ -358,6 +365,20 @@ whisper_forced_alignment = EncoderMetadata(
     params=lambda: dict(
         model_path=_WHISPER_MODEL_PATH.value, language=_LANGUAGE.value
     ),
+    url="https://github.com/openai/whisper",
+)
+
+whisper_joint = EncoderMetadata(
+    name="whisper_joint",
+    encoder=whisper_encoder.WhisperJointEncoder,
+    params=lambda: dict(model_path=_WHISPER_MODEL_PATH.value),
+    url="https://github.com/openai/whisper",
+)
+
+whisper_base_joint = EncoderMetadata(
+    name="whisper_base_joint",
+    encoder=whisper_encoder.WhisperJointEncoder,
+    params=lambda: dict(model_path="base"),
     url="https://github.com/openai/whisper",
 )
 
@@ -843,6 +864,15 @@ laion_clap_encoder = EncoderMetadata(
         model_path=_CLAP_MODEL_PATH.value,
     ),
     url="https://huggingface.co/laion/clap-htsat-unfused",
+)
+
+encodec_encoder_24khz = EncoderMetadata(
+    name="encodec_encoder_24khz",
+    encoder=encodec_encoder.EncodecJointEncoder,
+    params=lambda: dict(
+        model_path=_ENCODEC_MODEL_PATH.value,
+    ),
+    url="https://huggingface.co/facebook/encodec_24khz",
 )
 
 
