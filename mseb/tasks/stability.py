@@ -63,8 +63,7 @@ def get_leaf_dist(
       results["DTW"] = metrics.compute_dynamic_time_warping_distance(
           r.embedding, h.embedding)
       # Rigid alignment: Standard Euclidean distance (if shapes match)
-      if r.embedding.shape == h.embedding.shape:
-        results["L2"] = metrics.compute_lp_norm(r.embedding, h.embedding, p=2)
+      results["L2"] = metrics.compute_lp_norm(r.embedding, h.embedding, p=2)
 
     # Discrete Suite (Rank 1: [Sequence_Length])
     elif len(shape) == 1:
