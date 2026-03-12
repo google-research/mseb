@@ -74,6 +74,8 @@ class GemmaTextEncoder(prompt_encoder.TextEncoderWithPrompt):
     if self._client is None:
       logging.info('Connecting to Gemma at: %s', self._model_path)
       self._client = genai.Client(api_key=_GEMINI_API_KEY.value)
+      if self._client is None:
+        raise ValueError('Failed to connect to Gemma.')
       logging.info('Connected to Gemma at: %s', self._model_path)
     self.prompt_encode_fn = lambda prompts: np.array([
         GemmaTextEncoder.get_response(

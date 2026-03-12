@@ -71,9 +71,15 @@ class OpenAILLMEncoder(prompt_encoder.TextEncoderWithPrompt):
   def _setup(self):
     """Loads the OpenAI LLM model client."""
     if self._client is None:
+      logging.info(
+          'Initializing OpenAI LLM client: api_key=...%s, server_url=%s',
+          self._api_key[-3:],
+          self._server_url,
+      )
       self._client = openai.OpenAI(
           api_key=self._api_key, base_url=self._server_url
       )
+      logging.info('OpenAI LLM client initialized.')
     self.prompt_encode_fn = lambda prompts: np.array([
         OpenAILLMEncoder.get_response(
             prompt,
@@ -120,8 +126,8 @@ class OpenAILLMEncoder(prompt_encoder.TextEncoderWithPrompt):
             messages=messages,
         )
         response = client_response.choices[0].message.content.strip()
-      except Exception as _:  # pylint: disable=broad-exception-caught
-        logging.warning('Failed to get prediction, retrying %d', n_try)
+      except Exception as e:  # pylint: disable=broad-exception-caught
+        logging.warning('Failed to get prediction, retrying %d: %s', n_try, e)
         time.sleep(int(wait_time * 1.5 ** (n_try + 1)))
         continue
 
