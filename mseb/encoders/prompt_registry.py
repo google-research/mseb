@@ -84,6 +84,12 @@ retrieval = PromptMetadata(
     params=lambda: {},
 )
 
+gpt_retrieval = PromptMetadata(
+    name="gpt_retrieval",
+    prompt=prompt_lib.GptRetrievalPrompt,
+    params=lambda: {},
+)
+
 segmentation = PromptMetadata(
     name="segmentation",
     prompt=prompt_lib.SegmentationPrompt,
@@ -105,6 +111,12 @@ transcription = PromptMetadata(
 reranking = PromptMetadata(
     name="reranking",
     prompt=prompt_lib.RerankingPrompt,
+    params=lambda: {},
+)
+
+gpt_reranking = PromptMetadata(
+    name="gpt_reranking",
+    prompt=prompt_lib.GptRerankingPrompt,
     params=lambda: {},
 )
 

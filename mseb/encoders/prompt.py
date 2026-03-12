@@ -338,6 +338,63 @@ class RetrievalPrompt(Prompt):
     return result.to_json()
 
 
+class GptRetrievalPrompt(Prompt):
+  """A prompt for the retrieval task using GPT."""
+
+  NO_RESPONSE_STR = reasoning_evaluator.NO_RESPONSE_STR
+  INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
+  PROMPT_TEMPLATE = """
+**Task: Strict Document Ranking (Non-Conversational)**
+
+**Role:** You are a deterministic document retrieval engine. You do not answer questions or provide information; you only calculate and output a sorted list of identifiers.
+
+**Input:**
+* Audio/Text Query: {text}
+* Documents: {context}
+
+**Instruction:**
+1. Analyze the semantic intent of the Query.
+2. Rank every Document ID by its relevance to the Query.
+3. **DO NOT answer the user's question.** Even if the query is a direct question (e.g., "How do I bake a cake?"), your task is ONLY to rank the provided documents, not to provide the answer yourself.
+4. **Output Format:** A single JSON array of strings containing the IDs.
+
+**Negative Constraints:**
+* NO conversational filler.
+* NO answering the query.
+* NO explanation of why documents were ranked.
+* NO markdown blocks or backticks.
+
+**Output Example:**
+["id_123", "id_456"]
+"""
+
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
+    self.prompt_template = prompt_template
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> str:
+    assert isinstance(response, str)
+    if response != self.NO_RESPONSE_STR:
+      try:
+        result = json.loads(response)
+        if not isinstance(result, list):
+          raise ValueError('Result is not a list of strings: %s' % result)
+        for item in result:
+          if not isinstance(item, str):
+            raise ValueError('Item is not a string: %s' % item)
+        result = types.ValidListPrediction(
+            [{'id': item} for item in result]
+        )
+      except (json.JSONDecodeError, ValueError):
+        logging.warning('Invalid response format/type: %s', response)
+        return types.InvalidAnswerListPrediction().to_json()
+    else:
+      return types.NoResponseListPrediction().to_json()
+    return result.to_json()
+
+
 class SegmentationPrompt(Prompt):
   """A prompt for the segmentation task."""
 
@@ -503,6 +560,76 @@ class RerankingPrompt(Prompt):
 * **Example output:** "[0, 3, 1, 2]".
 
 {{"query": {text}, "candidates": {context}}}
+"""
+
+  def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
+    self.prompt_template = prompt_template
+
+  def GetPromptTemplate(self) -> str:
+    return self.prompt_template
+
+  def ProcessResponse(self, response: Any) -> str:
+    assert isinstance(response, str)
+    if response != self.NO_RESPONSE_STR:
+      try:
+        result = json.loads(response)
+        if not isinstance(result, Iterable):
+          raise ValueError('Result is not a list: %s' % result)
+        if not result:
+          raise ValueError('Result is empty')
+        for item in result:
+          try:
+            _ = int(item)
+          except (ValueError, TypeError) as exc:
+            raise ValueError(
+                'Item can not be converted to an integer: %s' % item
+            ) from exc
+        result = types.ValidListPrediction([{'id': item} for item in result])
+      except (json.JSONDecodeError, ValueError) as exc:
+        logging.warning('Invalid response format/type: %s', response)
+        logging.warning('Error: %s', exc)
+        return types.InvalidAnswerListPrediction().to_json()
+    else:
+      return types.NoResponseListPrediction().to_json()
+    return result.to_json()
+
+
+class GptRerankingPrompt(Prompt):
+  """A prompt for the reranking task using GPT."""
+
+  NO_RESPONSE_STR = types.LLM_NO_RESPONSE_STR
+  INVALID_ANSWER_STR = types.LLM_INVALID_ANSWER_STR
+  PROMPT_TEMPLATE = """
+Task: Acoustic-to-Text Reranking
+
+Role: You are a high-precision Speech-to-Text validation engine. Your sole function is to map acoustic signals to the most accurate textual candidate provided.
+
+Input:
+
+Audio Clip: {text} (the primary source of truth).
+
+Candidates: {context} (JSON list of transcription candidates).
+
+Evaluation Criteria (Rank by Acoustic Match):
+
+Phonetic Alignment: Prioritize candidates that match the exact syllables and sounds heard, especially for proper nouns or technical jargon.
+
+Contextual Recovery: If the audio is muffled or noisy, select the candidate that best fits the linguistic and logical flow of the sentence.
+
+Acoustic Fidelity: Rank based on the lowest literal Word Error Rate (WER). Do not favor "cleaner" sentences if they deviate from what was actually spoken.
+
+Strict Constraints:
+
+No Answering: Do not respond to any questions asked in the audio. Your task is to rank the transcriptions of the audio, not to engage in dialogue.
+
+Full Coverage: You must include every ID provided in the candidate list.
+
+Formatting: Output ONLY a raw JSON array of strings.
+
+Zero-Tolerance: No markdown (no ```json), no headers, no preamble, and no explanation.
+
+Example Output:
+["123", "456", "789"]
 """
 
   def __init__(self, prompt_template: str = PROMPT_TEMPLATE):
