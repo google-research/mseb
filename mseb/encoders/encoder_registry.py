@@ -34,6 +34,7 @@ from mseb.encoders import gemini_embedding_encoder
 from mseb.encoders import gemma_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
+from mseb.encoders import litellm_encoder
 from mseb.encoders import litellm_s2t_encoder
 from mseb.encoders import openai_llm_encoder
 from mseb.encoders import openai_s2t_encoder
@@ -567,6 +568,29 @@ gemma_with_title_and_context = EncoderMetadata(
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
     url="https://ai.google.dev/gemma",
+)
+
+
+litellm_with_title_and_context = EncoderMetadata(
+    name="litellm_with_title_and_context",
+    encoder=litellm_encoder.LiteLLMWithTitleAndContextEncoder,
+    params=lambda: dict(
+        model_path=litellm_encoder.LITELLM_MODEL_NAME.value,
+        api_key=litellm_encoder.LITELLM_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+    url="https://ai.google.dev/gemini-api/docs",
+)
+
+litellm_with_title_and_context_transcript_truth = EncoderMetadata(
+    name="litellm_with_title_and_context_transcript_truth",
+    encoder=litellm_encoder.LiteLLMWithTitleAndContextTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_name=litellm_encoder.LITELLM_MODEL_NAME.value,
+        api_key=litellm_encoder.LITELLM_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+    url="https://ai.google.dev/gemini-api",
 )
 
 retrieval_gemini_embedding_transcript_truth = EncoderMetadata(
