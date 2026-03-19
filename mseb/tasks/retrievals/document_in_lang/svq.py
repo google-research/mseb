@@ -22,6 +22,7 @@ from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
+from mseb.tasks.retrievals import utils
 import tensorflow_datasets as tfds
 
 
@@ -81,6 +82,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
       )
 
   def sounds(self) -> Iterable[types.Sound]:
+    backfill = None
     svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
         'document_retrieval_in_lang',
@@ -94,10 +96,23 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
         sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
         if retrieval.RETRIEVED_ITEMS_KEY.value:
+          if backfill is None:
+            backfill = utils.BackFillRetrievedItemTexts(
+                self.documents(),
+                utils.BackFillRetrievedItemTexts.get_empty_text_by_id([
+                    x.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+                    for x in svq_dataset.get_task_data(
+                        'document_retrieval_in_lang', dtype={'utt_id': str}
+                    ).to_dict('records')
+                ]),
+            )
+          context_text = backfill.backfill(
+              example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+          )
           sound = types.SoundWithTitleAndContext(
               waveform=sound.waveform,
               context=sound.context,
-              context_text=example.get(retrieval.RETRIEVED_ITEMS_KEY.value),
+              context_text=context_text,
           )
         yield sound
 
@@ -108,7 +123,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
         _base_sub_task(sub_task),
-        dtype={'locale': str, 'utt_id': str, 'page_title': str}
+        dtype={'locale': str, 'utt_id': str, 'page_title': str},
     ).to_dict('records'):
       if example['locale'] == self.locale and filter_fn(example):
         yield retrieval_evaluator.RetrievalReferenceId(

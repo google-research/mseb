@@ -267,7 +267,10 @@ class ValidListPrediction(ListPrediction):
           "Duplicate doc ids found in predictions: %s",
           self.items,
       )
-    items = sorted(items.values(), key=lambda x: x["score"], reverse=True)
+    if all("score" in x for x in items.values()):
+      items = sorted(items.values(), key=lambda x: x["score"], reverse=True)
+    else:
+      items = list(items.values())
     if k is not None:
       items = items[:k]
     self.items = items
