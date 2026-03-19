@@ -96,6 +96,50 @@ class UtilsTest(absltest.TestCase):
         types.NoResponseListPrediction().to_json(),
     )
 
+  def test_naive_token_count(self):
+    token_count = utils.get_token_count("naive")
+    self.assertIsInstance(token_count, utils.NaiveTokenCount)
+    self.assertEqual(token_count("Hello world!"), 2)
+
+  def test_list_prediction_truncation(self):
+    truncation = utils.ListPredictionTruncation(
+        max_tokens=8,
+        tokenizer_name="naive",
+    )
+
+    self.assertEqual(
+        truncation.maybe_truncate(
+            types.ValidListPrediction(
+                items=[
+                    {"id": "doc_1", "text": "text_1"},
+                    {"id": "doc_2", "text": "text_2"},
+                ]
+            ).to_json()
+        ),
+        types.ValidListPrediction(
+            items=[
+                {"id": "doc_1", "text": "text_1"},
+                {"id": "doc_2", "text": "text_2"},
+            ]
+        ).to_json(),
+    )
+
+    self.assertEqual(
+        truncation.maybe_truncate(
+            types.ValidListPrediction(
+                items=[
+                    {"id": "doc_1", "text": "text 1"},
+                    {"id": "doc_2", "text": "text 2"},
+                ]
+            ).to_json()
+        ),
+        types.ValidListPrediction(
+            items=[
+                {"id": "doc_1", "text": "text 1"},
+            ]
+        ).to_json(),
+    )
+
 
 if __name__ == "__main__":
   absltest.main()

@@ -14,8 +14,26 @@
 
 """Utility functions for retrieval tasks."""
 
+import os
 from typing import Iterable, Mapping, Sequence
+from absl import flags
+from absl import logging
+from google import genai
 from mseb import types
+import tiktoken
+
+
+TOKENIZER_NAME = flags.DEFINE_string(
+    'tokenizer_name',
+    None,
+    'Tokenizer name of the encoder.',
+)
+
+MAX_CONTEXT_TOKENS = flags.DEFINE_integer(
+    'max_context_tokens',
+    None,
+    'Maximum number of tokens to use for the context.',
+)
 
 
 class BackFillRetrievedItemTexts:
@@ -78,4 +96,92 @@ class BackFillRetrievedItemTexts:
         if self._remove_scores:
           item.pop('score', None)
     retrieved_items_str = retrieved_items.to_json()
+    return retrieved_items_str
+
+
+class NaiveTokenCount:
+  """Wrapper for naive token counting by splitting on spaces."""
+
+  def __call__(self, text: str) -> int:
+    return len(text.split(' '))
+
+
+class GptTokenCount:
+  """Wrapper for GPT token counting with tiktoken."""
+
+  def __init__(self, model_name: str):
+    try:
+      self._encoding = tiktoken.encoding_for_model(model_name)
+    except KeyError:
+      logging.warning(
+          'Tiktoken encoding not found for model %s, using cl100k_base.',
+          model_name,
+      )
+      self._encoding = tiktoken.get_encoding('cl100_base')
+
+  def __call__(self, text: str) -> int:
+    return len(self._encoding.encode(text))
+
+
+class GeminiTokenCount:
+  """Wrapper for Gemini token counting with genai."""
+
+  def __init__(self, model_name: str):
+    self._model_name = model_name
+    self._client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+
+  def __call__(self, text: str) -> int:
+    response = self._client.models.count_tokens(
+        model=self._model_name, contents=text
+    )
+    return response.total_tokens
+
+
+TokenCount = NaiveTokenCount | GptTokenCount | GeminiTokenCount
+
+
+def get_token_count(tokenizer_name: str) -> TokenCount:
+  """Returns a token counter for the given tokenizer name."""
+  if 'gpt' in tokenizer_name:
+    logging.info('Using GPT token counting for tokenizer %s', tokenizer_name)
+    return GptTokenCount(tokenizer_name)
+  elif 'gemini' in tokenizer_name:
+    logging.info('Using Gemini token counting for tokenizer %s', tokenizer_name)
+    return GeminiTokenCount(tokenizer_name)
+  else:
+    logging.warning(
+        'Unsupported tokenizer name: %s, falling back to blank-based token'
+        ' counting.',
+        tokenizer_name,
+    )
+    return NaiveTokenCount()
+
+
+class ListPredictionTruncation:
+  """Truncates a ListPrediction to a maximum number of tokens."""
+
+  def __init__(self, max_tokens: int, tokenizer_name: str):
+    self._max_tokens = max_tokens
+    self._token_count = get_token_count(tokenizer_name)
+
+  def maybe_truncate(self, retrieved_items_str: str | None) -> str | None:
+    """Truncates the list of texts to the maximum number of tokens."""
+
+    if retrieved_items_str is None:
+      return retrieved_items_str
+
+    while self._token_count(retrieved_items_str) > self._max_tokens:
+      retrieved_items = types.ListPrediction.from_json(retrieved_items_str)
+      if isinstance(retrieved_items, types.ValidListPrediction):
+        retrieved_items.normalize()
+        retrieved_items = types.ValidListPrediction(
+            items=retrieved_items.items[:-1]
+        )
+        logging.warning(
+            'Truncated retrieved items to %d items.',
+            len(retrieved_items.items),
+        )
+        retrieved_items_str = retrieved_items.to_json()
+      else:
+        break
     return retrieved_items_str

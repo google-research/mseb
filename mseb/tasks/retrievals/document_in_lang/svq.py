@@ -82,6 +82,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
       )
 
   def sounds(self) -> Iterable[types.Sound]:
+    truncation = None
     backfill = None
     svq_dataset = self._get_svq_dataset()
     for example in svq_dataset.get_task_data(
@@ -109,6 +110,13 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
           context_text = backfill.backfill(
               example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
           )
+          if utils.MAX_CONTEXT_TOKENS.value and utils.TOKENIZER_NAME.value:
+            if truncation is None:
+              truncation = utils.ListPredictionTruncation(
+                  max_tokens=utils.MAX_CONTEXT_TOKENS.value,
+                  tokenizer_name=utils.TOKENIZER_NAME.value,
+              )
+            context_text = truncation.maybe_truncate(context_text)
           sound = types.SoundWithTitleAndContext(
               waveform=sound.waveform,
               context=sound.context,
