@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from mseb import types
 import numpy as np
 import numpy.testing as npt
@@ -23,7 +24,7 @@ reranking_evaluator = pytest.importorskip('mseb.evaluators.reranking_evaluator')
 
 @pytest.mark.whisper
 @pytest.mark.optional
-class RerankingEvaluatorTest(absltest.TestCase):
+class RerankingEvaluatorTest(parameterized.TestCase):
 
   def test_compute_predictions(self):
     evaluator = reranking_evaluator.RerankingEvaluator(
@@ -71,25 +72,38 @@ class RerankingEvaluatorTest(absltest.TestCase):
         ['b l a', 'b l i', 'x y z'],
     )
 
-  def test_compute_metrics(self):
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='no_rank_by_id',
+          items=[
+              {'id': 1, 'score': 1.0},  # b l a
+              {'id': 0, 'score': 0.5},  # b l i
+              {'id': 2, 'score': 0.0},  # x y z
+          ],
+          rank_by_id=None,
+      ),
+      dict(
+          testcase_name='rank_by_id',
+          items=[
+              {'id': 2, 'score': 1.0},  # b l a
+              {'id': 1, 'score': 0.5},  # b l i
+              {'id': 0, 'score': 0.0},  # x y z
+          ],
+          rank_by_id={0: 2, 1: 0, 2: 1},
+      ),
+  )
+  def test_compute_metrics(self, items, rank_by_id):
     evaluator = reranking_evaluator.RerankingEvaluator(
         candidate_embeddings_by_sound_id={}, mrr_at_k=2
     )
     scores = evaluator.compute_metrics(
-        predictions={
-            'test': types.ValidListPrediction(
-                items=[
-                    {'id': 0, 'score': 1.0, 'text': 'b l a'},
-                    {'id': 1, 'score': 0.5, 'text': 'b l i'},
-                    {'id': 2, 'score': 0.0, 'text': 'x y z'},
-                ]
-            )
-        },
+        predictions={'test': types.ValidListPrediction(items=items)},
         candidates_batch=[
             reranking_evaluator.RerankingCandidates(
                 sound_id='test',
                 texts=['b l i', 'b l a', 'x y z'],
                 language='en',
+                rank_by_id=rank_by_id,
             ),
         ],
     )

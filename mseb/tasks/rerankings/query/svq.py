@@ -14,15 +14,24 @@
 
 """SVQ query reranking tasks."""
 
+import hashlib
 import os
-from typing import Iterable, Sequence
+import random
+from typing import Iterable, Mapping, Sequence
 
+from absl import flags
 from mseb import task as task_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reranking_evaluator
 from mseb.tasks import reranking
 
+
+_RANDOMIZE_CANDIDATES = flags.DEFINE_bool(
+    'randomize_candidates',
+    True,
+    'Whether to randomize the candidates.',
+)
 
 _filter_fn_by_sub_task = {
     'query_reranking': lambda x: True,
@@ -39,6 +48,37 @@ _filter_fn_by_sub_task = {
 
 def _base_sub_task(sub_task: str) -> str:
   return sub_task.split(':')[0]
+
+
+def _seed_from_candidates(candidates: Sequence[str]) -> int:
+  sha_hash = hashlib.sha256('\n'.join(candidates).encode('utf-8')).hexdigest()
+  return int(sha_hash, 16)
+
+
+def _get_context_text(candidates: Sequence[str], randomize: bool) -> str:
+  if randomize:
+    candidates = list(candidates)
+    random.seed(_seed_from_candidates(candidates))
+    random.shuffle(candidates)
+    random.seed()
+
+  return types.ValidListPrediction(
+      items=[{'id': i, 'text': c} for i, c in enumerate(candidates)]
+  ).to_json()
+
+
+def _get_texts_and_rank_by_id(
+    candidates: Sequence[str], randomize: bool
+) -> tuple[Sequence[str], Mapping[int, int] | None]:
+  if not randomize:
+    return candidates, None
+
+  random.seed(_seed_from_candidates(candidates))
+  rank_by_id = list(range(len(candidates)))
+  random.shuffle(rank_by_id)
+  rank_by_id = {i: r for i, r in enumerate(rank_by_id)}
+  random.seed()
+  return candidates, rank_by_id
 
 
 class SVQQueryReranking(reranking.RerankingTask):
@@ -74,15 +114,13 @@ class SVQQueryReranking(reranking.RerankingTask):
       if example['locale'] == self.locale:
         sound = svq_dataset.get_sound(example)
         sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+        context_text = _get_context_text(
+            example['candidates'], randomize=_RANDOMIZE_CANDIDATES.value
+        )
         sound = types.SoundWithTitleAndContext(
             waveform=sound.waveform,
             context=sound.context,
-            context_text=types.ValidListPrediction(
-                items=[
-                    {'id': i, 'text': c}
-                    for i, c in enumerate(example['candidates'])
-                ]
-            ).to_json(),
+            context_text=context_text,
         )
         yield sound
 
@@ -96,10 +134,14 @@ class SVQQueryReranking(reranking.RerankingTask):
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
     ).to_dict('records'):
       if example['locale'] == self.locale and filter_fn(example):
+        texts, rank_by_id = _get_texts_and_rank_by_id(
+            example['candidates'], randomize=_RANDOMIZE_CANDIDATES.value
+        )
         yield reranking_evaluator.RerankingCandidates(
             sound_id=example['utt_id'],
-            texts=example['candidates'],
+            texts=texts,
             language=example['locale'],
+            rank_by_id=rank_by_id,
         )
 
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:

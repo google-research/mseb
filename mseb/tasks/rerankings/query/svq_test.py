@@ -46,10 +46,36 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     os.chmod(cache_dir, 0o755)
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
     self.enter_context(
-        flagsaver.flagsaver(
-            (dataset._DATASET_BASEPATH, cache_dir)
-        )
+        flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
     )
+    self.enter_context(
+        flagsaver.flagsaver((svq._RANDOMIZE_CANDIDATES, False))
+    )
+
+  def test_seed_from_candidates(self):
+    candidates = ["a", "b", "c"]
+    seed = svq._seed_from_candidates(candidates)
+    self.assertEqual(
+        seed,
+        106066814613367738644872591937025180872126396142919988090859577352361712472268,
+    )
+
+  def test_get_context_text(self):
+    candidates = ["a", "b", "c"]
+    context_text = svq._get_context_text(candidates, randomize=True)
+    self.assertEqual(
+        context_text,
+        '[{"id": 0, "text": "b"}, {"id": 1, "text": "c"},'
+        ' {"id": 2, "text": "a"}]',
+    )
+
+  def test_get_texts_and_rank_by_id(self):
+    candidates = ["a", "b", "c"]
+    texts, rank_by_id = svq._get_texts_and_rank_by_id(
+        candidates, randomize=True
+    )
+    self.assertEqual(texts, candidates)
+    self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
 
   def test_svq_query_reranking_candidate_lists(self):
     task = svq.SVQEnUsQueryReranking()

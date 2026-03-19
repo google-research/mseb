@@ -78,6 +78,9 @@ class RerankingCandidates:
   sound_id: str
   texts: Sequence[str]
   language: str  # For text normalization.
+  rank_by_id: Mapping[int, int] | None = (
+      None  # If None, we assume that id = rank.
+  )
 
 
 RerankingPredictionsCache = Mapping[str, types.ListPrediction]
@@ -176,8 +179,12 @@ class RerankingEvaluator:
         predicted_items = prediction.items
         for item in predicted_items:
           try:
-            item['text'] = item.get('text', candidates.texts[int(item['id'])])
-          except IndexError:
+            if candidates.rank_by_id is not None:
+              rank = candidates.rank_by_id[int(item['id'])]
+            else:
+              rank = int(item['id'])
+            item['text'] = item.get('text', candidates.texts[rank])
+          except (IndexError, KeyError):
             item['text'] = ''
 
         word_errors, word_errors_weight = metrics.compute_word_errors(
