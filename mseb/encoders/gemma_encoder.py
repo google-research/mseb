@@ -284,8 +284,7 @@ def GemmaWithTitleAndContextEncoder(
               max_num_retry=max_num_retry,
               wait_time=wait_time,
           ),
-          converter.SoundEmbeddingToTextConverter(),
-          converter.TextToTextPredictionConverter(),
+          converter.TextEmbeddingToTextPredictionConverter(),
       ]
   )
 

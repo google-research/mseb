@@ -147,6 +147,34 @@ class TextEmbeddingToTextPredictionConverterTest(absltest.TestCase):
     self.assertEqual(prediction.prediction, "transcript truth")
     self.assertEqual(prediction.context.id, "test")
 
+  def test_eval_text(self):
+    sound_embedding = types.SoundEmbedding(
+        embedding=np.array(["transcript truth"]),
+        timestamps=np.array([[0.0, 2.0]]),
+        context=types.SoundContextParams(
+            id="test", sample_rate=2, length=4, debug_text="debug text"
+        ),
+    )
+
+    converter1 = converter_lib.TextEmbeddingToTextPredictionConverter()
+    converter1.setup()
+    prediction1 = converter1.encode([sound_embedding])[0]
+    self.assertIsInstance(prediction1, types.TextPrediction)
+    self.assertEqual(prediction1.prediction, "transcript truth")
+    self.assertEqual(prediction1.context.id, "test")
+
+    converter2 = converter_lib.encoder.CascadeEncoder(encoders=[
+        converter_lib.SoundEmbeddingToTextConverter(),
+        converter_lib.TextToTextPredictionConverter(),
+    ])
+    converter2.setup()
+    prediction2 = converter2.encode([sound_embedding])[0]
+    self.assertIsInstance(prediction2, types.TextPrediction)
+    self.assertEqual(prediction2.prediction, "transcript truth")
+    self.assertEqual(prediction2.context.id, "test")
+
+    self.assertEqual(prediction1, prediction2)
+
 
 if __name__ == "__main__":
   absltest.main()
