@@ -27,11 +27,10 @@ from typing import Any, Callable
 from absl import flags
 from mseb import encoder as encoder_lib
 from mseb.encoders import clap_encoder
-from mseb.encoders import converter
 from mseb.encoders import encodec_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
-from mseb.encoders import gemma_encoder
+from mseb.encoders import genai_llm_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
 from mseb.encoders import litellm_encoder
@@ -75,12 +74,6 @@ _GEMINI_EMBEDDING_TASK_TYPE = flags.DEFINE_string(
     None,
     "Task type for Gemini embedding model. One of: None, RETRIEVAL_DOCUMENT,"
     " RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION, CLUSTERING",
-)
-
-_GEMMA_URL = flags.DEFINE_string(
-    "gemma_url",
-    "google/gemma-3-27b-it",
-    "URL of Evergreen server serving the Gemma model.",
 )
 
 _HF_LLM_MODEL_PATH = flags.DEFINE_string(
@@ -526,50 +519,27 @@ gemini_embedding_with_title_and_context_whisper_or_gemini_embedding = EncoderMet
     url="https://ai.google.dev/gemini-api/docs/embeddings",
 )
 
-gemma_with_title_and_context_transcript_truth = EncoderMetadata(
-    name="gemma_with_title_and_context_transcript_truth",
-    encoder=gemma_encoder.GemmaWithTitleAndContextTranscriptTruthEncoder,
+genai_llm = EncoderMetadata(
+    name="genai_llm",
+    encoder=genai_llm_encoder.GenaiLLMEncoder,
     params=lambda: dict(
-        model_path=_GEMMA_URL.value,
+        model_path=genai_llm_encoder.GENAI_LLM_ENCODER_MODEL_PATH.value,
+        api_key=genai_llm_encoder.GENAI_LLM_ENCODER_GEMINI_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
     url="https://ai.google.dev/gemma",
 )
 
-gemma_with_title_and_context_whisper = EncoderMetadata(
-    name="gemma_with_title_and_context_whisper",
-    encoder=gemma_encoder.GemmaWithTitleAndContextWhisperEncoder,
+genai_llm_transcript_truth = EncoderMetadata(
+    name="genai_llm_transcript_truth",
+    encoder=genai_llm_encoder.GenaiLLMTranscriptTruthEncoder,
     params=lambda: dict(
-        whisper_model_path=_WHISPER_MODEL_PATH.value,
-        gemma_model_path=_GEMMA_URL.value,
+        model_path=genai_llm_encoder.GENAI_LLM_ENCODER_MODEL_PATH.value,
+        api_key=genai_llm_encoder.GENAI_LLM_ENCODER_GEMINI_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
     url="https://ai.google.dev/gemma",
 )
-
-gemma_with_title_and_context_whisper_alignment = EncoderMetadata(
-    name="gemma_with_title_and_context_whisper_alignment",
-    encoder=gemma_encoder.GemmaWithTitleAndContextWhisperEncoder,
-    params=lambda: dict(
-        whisper_model_path=_WHISPER_MODEL_PATH.value,
-        gemma_model_path=_GEMMA_URL.value,
-        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
-        whisper_word_timestamps=True,
-        output_json_alignment=True,
-    ),
-    url="https://ai.google.dev/gemma",
-)
-
-gemma_with_title_and_context = EncoderMetadata(
-    name="gemma_with_title_and_context",
-    encoder=gemma_encoder.GemmaWithTitleAndContextEncoder,
-    params=lambda: dict(
-        model_path=_GEMMA_URL.value,
-        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
-    ),
-    url="https://ai.google.dev/gemma",
-)
-
 
 litellm_with_title_and_context = EncoderMetadata(
     name="litellm_with_title_and_context",
@@ -611,80 +581,6 @@ retrieval_gemini_embedding_whisper = EncoderMetadata(
         gemini_embedding_model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
         gemini_embedding_task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
         top_k=100,
-    ),
-)
-
-gemma_rag_gemini_embedding_transcript_truth = EncoderMetadata(
-    name="gemma_rag_gemini_embedding_transcript_truth",
-    encoder=gemma_encoder.RagGemmaWithTitleAndContextTranscriptTruthEncoder,
-    params=lambda: dict(
-        model_path=_GEMMA_URL.value,
-        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
-            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
-            normalizer=None,
-            prompt_template="task: search result | query: {text}",
-            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
-        ),
-    ),
-)
-
-audio_gemma_rag_retrieved_items = EncoderMetadata(
-    name="audio_gemma_rag_retrieved_items",
-    encoder=lambda model_path: encoder_lib.CascadeEncoder(
-        encoders=[
-            gemma_encoder.GemmaTextEncoder(
-                model_path=model_path,
-                normalizer=None,
-                prompt=gemma_encoder.prompt_lib.RetrievalPrompt(),
-            ),
-            converter.TextEmbeddingToTextPredictionConverter(),
-        ]
-    ),
-    params=lambda: dict(model_path=_GEMMA_URL.value),
-)
-
-gemma_rag_retrieved_items = EncoderMetadata(
-    name="gemma_rag_retrieved_items",
-    encoder=lambda model_path: encoder_lib.CascadeEncoder(
-        encoders=[
-            converter.SoundToTextWithTitleAndContextConverter(),
-            gemma_encoder.GemmaTextEncoder(
-                model_path=model_path,
-                normalizer=None,
-                prompt=gemma_encoder.prompt_lib.RetrievalPrompt(),
-            ),
-            converter.TextEmbeddingToTextPredictionConverter(),
-        ]
-    ),
-    params=lambda: dict(model_path=_GEMMA_URL.value),
-)
-
-gemma_rag_gemini_embedding_whisper = EncoderMetadata(
-    name="gemma_rag_gemini_embedding_whisper",
-    encoder=gemma_encoder.RagGemmaWithTitleAndContextWhisperEncoder,
-    params=lambda: dict(
-        whisper_model_path=_WHISPER_MODEL_PATH.value,
-        gemma_model_path=_GEMMA_URL.value,
-        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
-            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
-            normalizer=None,
-            prompt_template="task: search result | query: {text}",
-            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
-        ),
-    ),
-)
-
-gemma_rag_gemini_embedding = EncoderMetadata(
-    name="gemma_rag_gemini_embedding",
-    encoder=gemma_encoder.RagGemmaWithTitleAndContextEncoder,
-    params=lambda: dict(
-        model_path=_GEMMA_URL.value,
-        rag_encoder=gemini_embedding_encoder.GeminiEmbeddingTextEncoder(
-            model_path=_GEMINI_EMBEDDING_MODEL_PATH.value,
-            normalizer=None,
-            prompt_template="task: search result | query: {text}",
-            task_type=_GEMINI_EMBEDDING_TASK_TYPE.value,
-        ),
     ),
 )
 
