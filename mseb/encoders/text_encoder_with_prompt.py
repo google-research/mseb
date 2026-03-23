@@ -16,8 +16,7 @@
 
 import dataclasses
 import json
-import re
-from typing import Callable, final, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple, final
 
 import jaxtyping
 from mseb import encoder
@@ -25,8 +24,6 @@ from mseb import types
 from mseb import utils
 from mseb.encoders import prompt as prompt_lib
 import numpy as np
-import tensorflow as tf
-import tensorflow_hub as tf_hub
 
 
 class TextEncoderWithPrompt(encoder.MultiModalEncoder):
@@ -85,8 +82,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
         for x in batch
     ):
       raise ValueError(
-          'TextEncoderWithPrompt only supports a batch of Text or'
-          ' Sound inputs.'
+          'TextEncoderWithPrompt only supports a batch of Text or Sound inputs.'
       )
 
   def _get_normalized_text_prompt(
@@ -162,8 +158,9 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
             types.TextEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
                 spans=np.array([[0, len(example.text)]]),
-                context=dataclasses.replace(example.context, text=example.text,
-                                            debug_text=debug_text),
+                context=dataclasses.replace(
+                    example.context, text=example.text, debug_text=debug_text
+                ),
             )
         )
       if isinstance(example, types.Sound):
@@ -180,42 +177,6 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
             )
         )
     return outputs
-
-
-class GeckoTextEncoder(TextEncoderWithPrompt):
-  """Text encoder with Gecko model."""
-
-  def __init__(
-      self,
-      model_path: str,
-      normalizer: Callable[[str], str] | None = lambda x: re.sub(
-          r'\[\d+\]', '', x.lower()
-      ),
-      prompt_template: str | None = 'title: {title} | text: {text}',
-  ):
-    """Initializes the transcript truth and Gecko models.
-
-    Args:
-      model_path: A serializable string (e.g., a GCS path or Hub ID) pointing to
-        the model to be loaded in setup().
-      normalizer: A function that normalizes the text before encoding. This is
-        useful for removing special characters or formatting the text for better
-        encoding results.
-      prompt_template: Format of the prompt to be used for Gecko. Typically, the
-        prompt is of the form: 'task: search result | query: {text}' for queries
-        and 'title: {title} | text: {text}' for documents".
-    """
-    super().__init__(
-        normalizer, prompt=prompt_lib.DefaultPrompt(prompt_template)
-    )
-    self.model_path = model_path
-
-  def _setup(self):
-    """Loads the Gecko model."""
-    gecko_model = tf_hub.load(self.model_path)
-    self.prompt_encode_fn = lambda batch: gecko_model.signatures[
-        'serving_default'
-    ](tf.constant([x[0] for x in batch]))['encodings'].numpy()
 
 
 # For testing only.

@@ -53,8 +53,6 @@ class MockTextEncoderWithPrompt(text_encoder_with_prompt.TextEncoderWithPrompt):
       self.prompt_encode_fn = mock.MagicMock(return_value=np.zeros((10, 8)))
 
 
-@pytest.mark.gecko  # Added this for Gecko-related tests to be skipped properly.
-@pytest.mark.optional
 class TextEncoderWithPromptTest(absltest.TestCase):
 
   def test_check_input_types_does_not_raise_error_for_text_inputs(self):
