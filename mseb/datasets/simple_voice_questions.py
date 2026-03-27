@@ -14,6 +14,7 @@
 
 """Simple Voice Questions (SVQ) dataset."""
 
+import glob
 import json
 import os
 from typing import Any, Mapping
@@ -26,6 +27,7 @@ from mseb import types
 from mseb import utils
 from mseb.datasets import base
 import pandas as pd
+import pyarrow.parquet as pq
 
 
 LANGUAGES = [
@@ -68,14 +70,33 @@ class _UttLookup:
     idx = int(idx_str)
 
     if path not in self.readers:
+      parquet_path = os.path.join(self.base_path, f"{path}.parquet")
       array_record_path = os.path.join(self.base_path, f"{path}.array_record")
-      if not epath.Path(array_record_path).exists():
-        raise FileNotFoundError(
-            f"Array record file not found: {array_record_path}"
-        )
-      self.readers[path] = array_record.ArrayRecordReader(array_record_path)
 
-    return self.readers[path].read([idx])[0]
+      if epath.Path(parquet_path).exists():
+        self.readers[path] = ("parquet", pq.read_table(parquet_path))
+      elif epath.Path(array_record_path).exists():
+        self.readers[path] = (
+            "array_record",
+            array_record.ArrayRecordReader(array_record_path),
+        )
+      else:
+        raise FileNotFoundError(
+            f"Neither parquet nor array_record found for {path} in"
+            f" {self.base_path}"
+        )
+
+    reader_type, reader = self.readers[path]
+    if reader_type == "parquet":
+      row = reader["waveform"][idx].as_py()
+      if isinstance(row, dict) and "bytes" in row:
+        return row["bytes"]
+      elif isinstance(row, bytes):
+        return row
+      else:
+        raise ValueError(f"Unexpected waveform type in parquet: {type(row)}")
+    else:
+      return reader.read([idx])[0]
 
 
 class _LoadAudioFn(beam.DoFn):
@@ -176,9 +197,42 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
   def _load_index(self) -> pd.DataFrame:
     """Loads the master index of all unique utterances."""
     utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
-    if not epath.Path(utt_index_path).exists():
-      raise FileNotFoundError(f"Master index not found: {utt_index_path}")
-    return pd.read_json(utt_index_path, lines=True)
+    if epath.Path(utt_index_path).exists():
+      return pd.read_json(utt_index_path, lines=True)
+
+    # Fallback to scanning audio/*.parquet files.
+    # We scan to build the index if it's not present.
+    audio_dir = os.path.join(self.base_path, "audio")
+    if not epath.Path(audio_dir).exists():
+      raise FileNotFoundError(
+          f"Master index {utt_index_path} not found and audio dir {audio_dir}"
+          " not found."
+      )
+
+    files = glob.glob(os.path.join(audio_dir, "*.parquet"))
+    cols = [
+        "utt_id",
+        "locale",
+        "speaker_id",
+        "speaker_age",
+        "speaker_gender",
+        "environment",
+        "text",
+    ]
+
+    records = []
+    for f in files:
+      table = pq.read_table(f, columns=cols)
+      basename = os.path.basename(f)
+      rel_name = os.path.join("audio", os.path.splitext(basename)[0])
+      for idx, r in enumerate(table.to_pylist()):
+        r["index"] = f"{rel_name}:{idx}"
+        records.append(r)
+
+    if not records:
+      raise FileNotFoundError(f"No utterances found in {audio_dir}")
+
+    return pd.DataFrame(records)
 
   def get_sound(self, record: Mapping[str, Any]) -> types.Sound:
     """Retrieves a Sound object by its unique utterance ID."""
@@ -212,14 +266,18 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
 
   def _get_task_path(self, task_name: str) -> str:
     """Returns the path to the task file for the given task name."""
-    task_filename = f"{task_name}.jsonl"
-    task_path = os.path.join(self.base_path, task_filename)
-    if not epath.Path(task_path).exists():
-      raise FileNotFoundError(
-          f"Task file not found: {task_path}. "
-          f"Ensure the task name '{task_name}' is valid."
-      )
-    return task_path
+    parquet_path = os.path.join(self.base_path, f"{task_name}.parquet")
+    if epath.Path(parquet_path).exists():
+      return parquet_path
+
+    jsonl_path = os.path.join(self.base_path, f"{task_name}.jsonl")
+    if epath.Path(jsonl_path).exists():
+      return jsonl_path
+
+    raise FileNotFoundError(
+        f"Task file not found for task '{task_name}' in {self.base_path}. "
+        "Tried .parquet and .jsonl"
+    )
 
   def get_task_data(
       self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
@@ -236,13 +294,11 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
-    if not task_name:
-      raise ValueError(
-          "task_name must be specified for SimpleVoiceQuestionsDataset"
-      )
-    return pd.read_json(
-        self._get_task_path(task_name), lines=True, dtype=dtype
-    )
+    path = self._get_task_path(task_name)
+    if path.endswith(".parquet"):
+      return pd.read_parquet(path)
+    else:
+      return pd.read_json(path, lines=True, dtype=dtype)
 
   def get_task_data_beam(self, task_name: str) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""

@@ -54,6 +54,57 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
     self.assertEqual(task_record["task"], "retrieval_in_lang")
     self.assertIn("1480 and 1481", task_record["passage_text"])
 
+  def test_parquet_reading(self):
+    """Verifies reading from Parquet task and audio files."""
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    temp_dir = self.create_tempdir().full_path
+    audio_dir = os.path.join(temp_dir, "audio")
+    os.makedirs(audio_dir)
+
+    # 1. Create task data parquet
+    task_df = pd.DataFrame({
+        "utt_id": ["utt_p1"],
+        "task": ["p_task"],
+        "passage_text": ["text in parquet"],
+    })
+    task_df.to_parquet(os.path.join(temp_dir, "test_p_task.parquet"))
+
+    # 2. Use real wav for audio bytes
+    with open(os.path.join(testdata_path, "roses-are.wav"), "rb") as f_wav:
+      real_wav = f_wav.read()
+
+    audio_df = pd.DataFrame({
+        "utt_id": ["utt_p1"],
+        "locale": ["en_us"],
+        "speaker_id": ["speaker_p1"],
+        "speaker_age": [25],
+        "speaker_gender": ["Female"],
+        "environment": ["clean"],
+        "text": ["hello parquet"],
+        "waveform": [real_wav],
+    })
+    audio_df.to_parquet(os.path.join(audio_dir, "utts_en_us_clean.parquet"))
+
+    # 3. Load dataset
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=temp_dir)
+
+    # 4. Verify index scan worked (no utt_index.jsonl exists)
+    self.assertLen(dataset, 1)
+
+    # 5. Verify audio reading
+    sound1 = dataset.get_sound({"utt_id": "utt_p1"})
+    self.assertEqual(sound1.context.id, "utt_p1")
+    self.assertEqual(sound1.context.speaker_id, "speaker_p1")
+    self.assertEqual(sound1.context.language, "en_us")
+    self.assertNotEmpty(sound1.waveform)
+
+    # 6. Verify task data reading
+    loaded_task_df = dataset.get_task_data("test_p_task")
+    self.assertLen(loaded_task_df, 1)
+    self.assertEqual(loaded_task_df.iloc[0]["utt_id"], "utt_p1")
+
   def test_get_task_data_for_text_index(self):
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
