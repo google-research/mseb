@@ -136,6 +136,85 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     npt.assert_array_equal(result.scores, expected_scores)
     npt.assert_array_equal(result.timestamps, expected_timestamps)
 
+  def test_encode_scales_scores_with_input_scores(self):
+    retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
+    retokenizer.setup()
+    segmenter = segmentation_encoder.TokenIDFSegmenter(
+        retokenizer=retokenizer,
+        idf_table=IDF_TABLE
+    )
+    segmenter.setup()
+    encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
+    encoder.setup()
+
+    # Create input with scores
+    mock_input_with_scores = types.SoundEmbedding(
+        embedding=self.mock_input_embedding.embedding,
+        timestamps=self.mock_input_embedding.timestamps,
+        context=self.mock_input_embedding.context,
+        scores=np.array([0.693147, 0.0])  # sum = 0.693147, exp(sum) approx 2.0
+    )
+
+    output_embeddings = encoder.encode([mock_input_with_scores])
+    self.assertLen(output_embeddings, 1)
+    result = output_embeddings[0]
+
+    expected_terms = np.array(['relations', 'national'])
+    expected_scores = np.array([8.0, 6.0])  # 4.0 * 2.0 and 3.0 * 2.0
+    expected_timestamps = np.array([[1.1, 1.5], [0.1, 0.5]])
+
+    npt.assert_array_equal(result.embedding, expected_terms)
+    self.assertIsNotNone(result.scores)
+    npt.assert_array_almost_equal(result.scores, expected_scores, decimal=5)
+    npt.assert_array_equal(result.timestamps, expected_timestamps)
+
+  def test_encode_handles_empty_segments(self):
+    retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
+    retokenizer.setup()
+    segmenter = segmentation_encoder.TokenIDFSegmenter(
+        retokenizer=retokenizer,
+        idf_table=IDF_TABLE
+    )
+    segmenter.setup()
+    encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
+    encoder.setup()
+
+    # Create input with no words in the IDF table
+    mock_input_empty = types.SoundEmbedding(
+        embedding=np.array(['unknown', 'word']),
+        timestamps=np.array([[0.1, 0.5], [0.6, 1.0]]),
+        context=self.mock_input_embedding.context
+    )
+
+    output_embeddings = encoder.encode([mock_input_empty])
+    self.assertLen(output_embeddings, 1)
+    result = output_embeddings[0]
+
+    # Expected: empty embedding, scores, timestamps
+    self.assertEqual(result.embedding.size, 0)
+    self.assertEqual(result.scores.size, 0)
+    self.assertEqual(result.timestamps.size, 0)
+    self.assertEqual(result.timestamps.shape, (1, 0))
+
+
+@pytest.mark.segmentation
+@pytest.mark.optional
+class NormalizingRetokenizerTest(absltest.TestCase):
+
+  def test_retokenizer_normalizes_and_lowercases(self):
+    words = [' «Word1»', 'word2?', ' word3.', 'word4!', 'word5']
+    expected_output = [
+        ('word1', 0, 0),
+        ('word2', 1, 1),
+        ('word3', 2, 2),
+        ('word4!', 3, 3),
+        ('word5', 4, 4)
+    ]
+    retokenizer = segmentation_encoder.NormalizingRetokenizer()
+    retokenizer.setup()
+    actual_output = list(retokenizer.retokenize(words))
+    self.assertEqual(actual_output, expected_output)
+
 
 @pytest.mark.segmentation
 @pytest.mark.optional

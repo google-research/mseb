@@ -243,12 +243,13 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
     for sound_embedding in batch:
       assert isinstance(sound_embedding, types.SoundEmbedding)
       words = sound_embedding.embedding
-      segments = list(self.segmenter.segment([str(w) for w in words]))
+      segments = list[str](self.segmenter.segment([str(w) for w in words]))
       if not segments:
         outputs.append(
             types.SoundEmbedding(
-                embedding=np.array([['', 0.0]], dtype=object),
-                timestamps=np.array([[0.0, 0.0]], dtype=float),
+                embedding=np.array(list[str](), dtype=object),
+                scores=np.array([], dtype=float),
+                timestamps=np.array([[]], dtype=float),
                 context=sound_embedding.context,
             )
         )
@@ -260,6 +261,12 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
           [score for _, score, _, _ in top_segments],
           dtype=float
       )
+      if sound_embedding.scores is not None and sound_embedding.scores.size > 0:
+        ## Salience scores are in the real domain but the embedding scores are
+        ## in the log domain.
+        saliency_scores = saliency_scores * np.exp(
+            np.sum(sound_embedding.scores)
+        )
       outputs.append(
           types.SoundEmbedding(
               embedding=terms,
