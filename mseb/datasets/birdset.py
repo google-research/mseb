@@ -104,13 +104,29 @@ class BirdsetDataset(base.MsebDataset):
     """Loads and configures the Hugging Face dataset object."""
     cache_filename = f"birdset_{self.configuration}_{self.split}.parquet"
     cache_path = os.path.join(self.base_path, cache_filename)
+    if not epath.Path(cache_path).exists():
+      raise FileNotFoundError(
+          f"Birdset cache file not found at {cache_path}. Please ensure the"
+          " local cache is provided as automatic download is not supported for"
+          " this dataset due to remote Python issues at HF HEAD."
+      )
     df = pd.read_parquet(cache_path)
+
     class_lists_path = os.path.join(self.base_path, "class_lists.json")
+    if not epath.Path(class_lists_path).exists():
+      raise FileNotFoundError(
+          f"Class lists file not found at {class_lists_path}."
+      )
     with epath.Path(class_lists_path).open("r") as f:
       class_lists = json.load(f)
+
     config_to_class_list_path = os.path.join(
         self.base_path, "config_to_class_list.json"
     )
+    if not epath.Path(config_to_class_list_path).exists():
+      raise FileNotFoundError(
+          f"Config-to-class-list file not found at {config_to_class_list_path}."
+      )
     with epath.Path(config_to_class_list_path).open("r") as f:
       config_to_class_list = json.load(f)
     class_list_name = config_to_class_list[self.configuration]

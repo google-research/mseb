@@ -103,14 +103,21 @@ class SpeechMassiveDataset(base.MsebDataset):
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
-    self._download_and_prepare()
-
     parquet_path = os.path.join(self.base_path, self.filename)
     parquet_files = tuple(
         epath.Path(os.path.dirname(parquet_path)).glob(
             os.path.basename(parquet_path)
         )
     )
+
+    if not parquet_files:
+      self._download_and_prepare()
+      parquet_files = tuple(
+          epath.Path(os.path.dirname(parquet_path)).glob(
+              os.path.basename(parquet_path)
+          )
+      )
+
     if not parquet_files:
       raise FileNotFoundError(f"No parquet files found for {parquet_path}")
 
