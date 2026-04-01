@@ -17,16 +17,20 @@
 import dataclasses
 import hashlib
 import io
+import json
 import logging
 import os
 import subprocess
 from typing import Optional
+import urllib.request
 
 from etils import epath
+import fsspec
 import librosa
 from mseb import encoder
 from mseb import types
 import numpy as np
+import pandas as pd
 from scipy.io import wavfile
 import soundfile
 
@@ -49,6 +53,46 @@ def download_from_hf(repo_id: str, target_dir: str, repo_type: str = "dataset"):
   clone_url = f"https://huggingface.co/{repo_type}s/{repo_id}"
   logging.info("Cloning '%s' to %s...", clone_url, target_dir)
   subprocess.run(["git", "clone", clone_url, target_dir], check=True)
+
+
+def list_hf_files(
+    repo_id: str, path: str = "", token: str | None = None
+) -> list[str]:
+  """Lists all files in a Hugging Face repository recursively."""
+  url = f"https://huggingface.co/api/datasets/{repo_id}/tree/main/{path}"
+  logger.info("Listing files from HF API: %s", url)
+  token = token or os.environ.get("HF_TOKEN")
+  try:
+    req = urllib.request.Request(url)
+    if token:
+      req.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(req) as response:
+      data = json.loads(response.read().decode("utf-8"))
+      files = []
+      for item in data:
+        if item["type"] == "file":
+          files.append(item["path"])
+        elif item["type"] == "directory":
+          files.extend(list_hf_files(repo_id, item["path"], token=token))
+      return files
+  except Exception as e:
+    logger.error("Failed to list files from HF API for path '%s': %s", path, e)
+    raise
+
+
+def read_hf_parquet(
+    repo_id: str, filename: str, token: str | None = None
+) -> pd.DataFrame:
+  """Reads a parquet file from Hugging Face using pandas streaming."""
+  url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{filename}"
+  logger.info("Reading HF Parquet from URL: %s", url)
+  storage_options = {}
+  token = token or os.environ.get("HF_TOKEN")
+  if token:
+    storage_options["headers"] = {"Authorization": f"Bearer {token}"}
+
+  with fsspec.open(url, "rb", **storage_options) as f:
+    return pd.read_parquet(f)
 
 
 def read_audio(

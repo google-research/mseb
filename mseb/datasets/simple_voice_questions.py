@@ -14,8 +14,10 @@
 
 """Simple Voice Questions (SVQ) dataset."""
 
+import fnmatch
 import glob
 import json
+import logging
 import os
 from typing import Any, Mapping
 
@@ -54,8 +56,16 @@ LANGUAGES = [
 class _UttLookup:
   """A helper class to efficiently look up utterances from array records."""
 
-  def __init__(self, base_path: str, utt_index_df: pd.DataFrame):
+  def __init__(
+      self,
+      base_path: str,
+      utt_index_df: pd.DataFrame,
+      streaming: bool = False,
+      repo_id: str = "google/svq",
+  ):
     self.base_path = base_path
+    self.streaming = streaming
+    self.repo_id = repo_id
     self.utt_id_to_index = dict(
         zip(utt_index_df["utt_id"], utt_index_df["index"])
     )
@@ -70,21 +80,28 @@ class _UttLookup:
     idx = int(idx_str)
 
     if path not in self.readers:
-      parquet_path = os.path.join(self.base_path, f"{path}.parquet")
-      array_record_path = os.path.join(self.base_path, f"{path}.array_record")
-
-      if epath.Path(parquet_path).exists():
-        self.readers[path] = ("parquet", pq.read_table(parquet_path))
-      elif epath.Path(array_record_path).exists():
+      if self.streaming:
+        parquet_path = f"https://huggingface.co/datasets/{self.repo_id}/resolve/main/{path}.parquet"
         self.readers[path] = (
-            "array_record",
-            array_record.ArrayRecordReader(array_record_path),
-        )
+            "parquet_url",
+            parquet_path,
+        )  # We don't cache read_table for URL to avoid memory bloat
       else:
-        raise FileNotFoundError(
-            f"Neither parquet nor array_record found for {path} in"
-            f" {self.base_path}"
-        )
+        parquet_path = os.path.join(self.base_path, f"{path}.parquet")
+        array_record_path = os.path.join(self.base_path, f"{path}.array_record")
+
+        if epath.Path(parquet_path).exists():
+          self.readers[path] = ("parquet", pq.read_table(parquet_path))
+        elif epath.Path(array_record_path).exists():
+          self.readers[path] = (
+              "array_record",
+              array_record.ArrayRecordReader(array_record_path),
+          )
+        else:
+          raise FileNotFoundError(
+              f"Neither parquet nor array_record found for {path} in"
+              f" {self.base_path}"
+          )
 
     reader_type, reader = self.readers[path]
     if reader_type == "parquet":
@@ -95,6 +112,16 @@ class _UttLookup:
         return row
       else:
         raise ValueError(f"Unexpected waveform type in parquet: {type(row)}")
+    elif reader_type == "parquet_url":
+      # Read only the single row from URL using pandas? Or use fsspec
+      # Reading single row from parquet URL is hard without ParquetDataset.
+      # Let's read the whole file if it's small, or use fsspec
+      # For now, let's try to read it using pandas.
+      df = pd.read_parquet(reader)  # reader is parquet_path
+      row = df.iloc[idx]
+      if "bytes" in row["waveform"]:
+        return row["waveform"]["bytes"]
+      return row["waveform"]
     else:
       return reader.read([idx])[0]
 
@@ -164,11 +191,17 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       self,
       base_path: str | None = None,
       split: str = "all",
+      streaming: bool = False,
+      repo_id: str = "google/svq",
   ):
     super().__init__(base_path=base_path, split=split)
     self.base_path = dataset.get_base_path(self.base_path)
+    self.streaming = streaming
+    self.repo_id = repo_id
     self._index = self._load_index()
-    self._utt_lookup = _UttLookup(self.base_path, self._index)
+    self._utt_lookup = _UttLookup(
+        self.base_path, self._index, streaming=streaming, repo_id=repo_id
+    )
     self.utt_id_to_record = self._index.set_index("utt_id").to_dict("index")
 
   @property
@@ -196,20 +229,42 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
 
   def _load_index(self) -> pd.DataFrame:
     """Loads the master index of all unique utterances."""
-    utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
-    if epath.Path(utt_index_path).exists():
-      return pd.read_json(utt_index_path, lines=True)
+    if self.streaming:
+      utt_index_path = f"https://huggingface.co/datasets/{self.repo_id}/resolve/main/utt_index.jsonl"
+      try:
+        return pd.read_json(utt_index_path, lines=True)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.warning(
+            "Failed to load index from %s, falling back to scanning: %s",
+            utt_index_path,
+            e,
+        )
+        # Fallback to scanning audio/*.parquet
+        all_files = utils.list_hf_files(self.repo_id, path="audio")
 
-    # Fallback to scanning audio/*.parquet files.
-    # We scan to build the index if it's not present.
-    audio_dir = os.path.join(self.base_path, "audio")
-    if not epath.Path(audio_dir).exists():
-      raise FileNotFoundError(
-          f"Master index {utt_index_path} not found and audio dir {audio_dir}"
-          " not found."
-      )
+        files = [
+            f
+            for f in all_files
+            if fnmatch.fnmatch(os.path.basename(f), "*.parquet")
+        ]
+        if not files:
+          raise FileNotFoundError(
+              f"No parquet files found in {self.repo_id}/audio"
+          ) from e
+    else:
+      utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
+      if epath.Path(utt_index_path).exists():
+        return pd.read_json(utt_index_path, lines=True)
 
-    files = glob.glob(os.path.join(audio_dir, "*.parquet"))
+      audio_dir = os.path.join(self.base_path, "audio")
+      if not epath.Path(audio_dir).exists():
+        raise FileNotFoundError(
+            f"Master index {utt_index_path} not found and audio dir {audio_dir}"
+            " not found."
+        )
+
+      files = glob.glob(os.path.join(audio_dir, "*.parquet"))
+
     cols = [
         "utt_id",
         "locale",
@@ -222,15 +277,26 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
 
     records = []
     for f in files:
-      table = pq.read_table(f, columns=cols)
-      basename = os.path.basename(f)
-      rel_name = os.path.join("audio", os.path.splitext(basename)[0])
-      for idx, r in enumerate(table.to_pylist()):
+      if self.streaming:
+        url = f"https://huggingface.co/datasets/{self.repo_id}/resolve/main/{f}"
+        table = pd.read_parquet(url, columns=cols)
+        rel_name = os.path.splitext(f)[
+            0
+        ]  # f is relative to repo root if list_hf_files returns relative
+      else:
+        table = pq.read_table(f, columns=cols)
+        basename = os.path.basename(f)
+        rel_name = os.path.join("audio", os.path.splitext(basename)[0])
+
+      pylist = (
+          table.to_pylist() if not self.streaming else table.to_dict("records")
+      )  # pandas.to_dict('records') is similar to pylist
+      for idx, r in enumerate(pylist):
         r["index"] = f"{rel_name}:{idx}"
         records.append(r)
 
     if not records:
-      raise FileNotFoundError(f"No utterances found in {audio_dir}")
+      raise FileNotFoundError("No utterances found")
 
     return pd.DataFrame(records)
 

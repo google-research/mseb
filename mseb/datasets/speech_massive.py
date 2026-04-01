@@ -14,6 +14,7 @@
 
 """Speech-MASSIVE dataset."""
 
+import fnmatch
 import os
 from typing import Any, Mapping
 
@@ -50,6 +51,8 @@ class SpeechMassiveDataset(base.MsebDataset):
       filename: str,
       base_path: str | None = None,
       repo_id: str = "FBK-MT/Speech-MASSIVE-test",
+      streaming: bool = False,
+      token: str | None = None,
   ):
     """Initializes the dataset for a specific file pattern.
 
@@ -59,11 +62,16 @@ class SpeechMassiveDataset(base.MsebDataset):
       repo_id: The Hugging Face repository ID to download from. Defaults to the
         richer 'FBK-MT/Speech-MASSIVE' version, but the original
         'speechcolab/massive' is also supported.
+      streaming: Whether to stream data from Hugging Face instead of
+        downloading.
+      token: Hugging Face authentication token for private/gated repos.
     """
     super().__init__(base_path=base_path, split="no_used")
     self.base_path = dataset.get_base_path(self.base_path)
     self.repo_id = repo_id
     self.filename = filename
+    self.streaming = streaming
+    self.token = token
     self._data = self._load_data()
 
   @property
@@ -103,26 +111,52 @@ class SpeechMassiveDataset(base.MsebDataset):
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
-    parquet_path = os.path.join(self.base_path, self.filename)
-    parquet_files = tuple(
-        epath.Path(os.path.dirname(parquet_path)).glob(
-            os.path.basename(parquet_path)
+    if self.streaming:
+      if "*" not in self.filename:
+        df = utils.read_hf_parquet(
+            self.repo_id, self.filename, token=self.token
         )
-    )
-
-    if not parquet_files:
-      self._download_and_prepare()
+      else:
+        all_files = utils.list_hf_files(
+            self.repo_id, path=os.path.dirname(self.filename), token=self.token
+        )
+        filtered_files = [
+            f
+            for f in all_files
+            if fnmatch.fnmatch(
+                os.path.basename(f), os.path.basename(self.filename)
+            )
+        ]
+        if not filtered_files:
+          raise FileNotFoundError(
+              f"No match for {self.filename} in {self.repo_id}"
+          )
+        dfs = [
+            utils.read_hf_parquet(self.repo_id, f, token=self.token)
+            for f in filtered_files
+        ]
+        df = pd.concat(dfs)
+    else:
+      parquet_path = os.path.join(self.base_path, self.filename)
       parquet_files = tuple(
           epath.Path(os.path.dirname(parquet_path)).glob(
               os.path.basename(parquet_path)
           )
       )
 
-    if not parquet_files:
-      raise FileNotFoundError(f"No parquet files found for {parquet_path}")
+      if not parquet_files:
+        self._download_and_prepare()
+        parquet_files = tuple(
+            epath.Path(os.path.dirname(parquet_path)).glob(
+                os.path.basename(parquet_path)
+            )
+        )
 
-    dfs = [pd.read_parquet(file) for file in parquet_files]
-    df = pd.concat(dfs)
+      if not parquet_files:
+        raise FileNotFoundError(f"No parquet files found for {parquet_path}")
+
+      dfs = [pd.read_parquet(file) for file in parquet_files]
+      df = pd.concat(dfs)
 
     def _wav_bytes_to_waveform(x):
       if "bytes" in x:

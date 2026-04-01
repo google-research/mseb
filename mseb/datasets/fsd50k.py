@@ -16,6 +16,7 @@
 
 import os
 from typing import Any, Mapping
+import urllib.request
 
 from absl import logging
 from etils import epath
@@ -34,6 +35,7 @@ class FSD50KDataset(base.MsebDataset):
       split: str,
       base_path: str | None = None,
       repo_id: str = 'Fhrozen/FSD50k',
+      streaming: bool = False,
   ):
     if split not in ['validation', 'test']:
       raise ValueError(f'Split must be validation or test, but got {split}.')
@@ -42,6 +44,7 @@ class FSD50KDataset(base.MsebDataset):
     self.base_path = dataset.get_base_path(self.base_path)
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
+    self.streaming = streaming
 
     self._data = self._load_metadata()
     self._load_vocabulary()
@@ -82,19 +85,29 @@ class FSD50KDataset(base.MsebDataset):
   def _path(self, *args):
     return os.path.join(self.base_path, *args)
 
+  def _hf_path(self, *parts):
+    """Constructs a URL for a file in the Hugging Face repository."""
+    return f"https://huggingface.co/datasets/{self.repo_id}/resolve/main/{'/'.join(parts)}"
+
   def get_task_data(
       self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
   ) -> pd.DataFrame:
     return self._data
 
   def _load_vocabulary(self) -> None:
-    vocab_path = self._path('labels', 'vocabulary.csv')
-    if not epath.Path(vocab_path).exists():
-      raise FileNotFoundError(f'Vocabulary file not found at {vocab_path}.')
-    with epath.Path(vocab_path).open('r') as f:
+    if self.streaming:
+      vocab_path = self._hf_path('labels', 'vocabulary.csv')
       vocab_df = pd.read_csv(
-          f, header=None, names=['index', 'display_name', 'mid']
+          vocab_path, header=None, names=['index', 'display_name', 'mid']
       )
+    else:
+      vocab_path = self._path('labels', 'vocabulary.csv')
+      if not epath.Path(vocab_path).exists():
+        raise FileNotFoundError(f'Vocabulary file not found at {vocab_path}.')
+      with epath.Path(vocab_path).open('r') as f:
+        vocab_df = pd.read_csv(
+            f, header=None, names=['index', 'display_name', 'mid']
+        )
     self._class_labels = vocab_df['display_name'].tolist()
     self.label_to_id = {label: i for i, label in enumerate(self._class_labels)}
 
@@ -111,23 +124,26 @@ class FSD50KDataset(base.MsebDataset):
     Returns:
       A pandas DataFrame containing the metadata for the requested split.
     """
-    if self.split == 'test':
-      # eval.csv is for the 'test' split and has no 'split' column.
-      # We load it directly without filtering.
-      csv_path = self._path('labels', 'eval.csv')
-      with epath.Path(csv_path).open('r') as f:
-        df = pd.read_csv(f)
-    elif self.split == 'validation':
-      # dev.csv contains multiple splits, so we must load and then filter it.
-      csv_path = self._path('labels', 'dev.csv')
-      with epath.Path(csv_path).open('r') as f:
-        df = pd.read_csv(f)
-      df = df[df['split'] == 'val']
+    if self.streaming:
+      if self.split == 'test':
+        csv_path = self._hf_path('labels', 'eval.csv')
+        df = pd.read_csv(csv_path)
+      elif self.split == 'validation':
+        csv_path = self._hf_path('labels', 'dev.csv')
+        df = pd.read_csv(csv_path)
+        df = df[df['split'] == 'val']
     else:
-      # This case should not be reached due to the check in __init__
-      raise ValueError(
-          f'Unsupported split {self.split} for _load_csv'
-      )
+      if self.split == 'test':
+        csv_path = self._path('labels', 'eval.csv')
+        with epath.Path(csv_path).open('r') as f:
+          df = pd.read_csv(f)
+      elif self.split == 'validation':
+        csv_path = self._path('labels', 'dev.csv')
+        with epath.Path(csv_path).open('r') as f:
+          df = pd.read_csv(f)
+        df = df[df['split'] == 'val']
+      else:
+        raise ValueError(f'Unsupported split {self.split} for _load_csv')
     return df
 
   def _load_metadata(self) -> pd.DataFrame:
@@ -154,19 +170,27 @@ class FSD50KDataset(base.MsebDataset):
     logging.info(
         'Cache not found. Processing FSD50K %s split from source...'
     )
-    utils.download_from_hf(self.repo_id, self.base_path)
+    if not self.streaming:
+      utils.download_from_hf(self.repo_id, self.base_path)
     df = self._load_csv()
-    logging.info(
-        'Saving FSD50K %s split to cache at %s', self.split, cache_path
-    )
-    df.to_parquet(cache_path, row_group_size=32)
+    if not self.streaming:
+      logging.info(
+          'Saving FSD50K %s split to cache at %s', self.split, cache_path
+      )
+      df.to_parquet(cache_path, row_group_size=32)
     return df
 
   def _load_wav_for_row(self, row):
     fname = row['fname']
-    clip_path = self._path('clips', self._clip_dir, f'{fname}.wav')
-    with epath.Path(clip_path).open('rb') as f:
-      clip_bytes = f.read()
+    if self.streaming:
+      clip_url = self._hf_path('clips', self._clip_dir, f'{fname}.wav')
+
+      with urllib.request.urlopen(clip_url) as f:
+        clip_bytes = f.read()
+    else:
+      clip_path = self._path('clips', self._clip_dir, f'{fname}.wav')
+      with epath.Path(clip_path).open('rb') as f:
+        clip_bytes = f.read()
     waveform, sr = utils.wav_bytes_to_waveform(clip_bytes)
     return waveform, sr
 
