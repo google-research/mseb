@@ -30,6 +30,7 @@ from mseb.encoders import clap_encoder
 from mseb.encoders import encodec_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
+from mseb.encoders import genai_embedding_encoder
 from mseb.encoders import genai_llm_encoder
 from mseb.encoders import hf_llm_encoder
 from mseb.encoders import hf_sound_encoder
@@ -557,6 +558,28 @@ genai_llm_transcript_truth = EncoderMetadata(
     params=lambda: dict(
         model_path=genai_llm_encoder.GENAI_LLM_ENCODER_MODEL_PATH.value,
         api_key=genai_llm_encoder.GENAI_LLM_ENCODER_GEMINI_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+    url="https://ai.google.dev/gemma",
+)
+
+genai_embedding = EncoderMetadata(
+    name="genai_embedding",
+    encoder=genai_embedding_encoder.GenaiEmbeddingEncoder,
+    params=lambda: dict(
+        model_path=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_MODEL_PATH.value,
+        api_key=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_GEMINI_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+    url="https://ai.google.dev/gemma",
+)
+
+genai_embedding_transcript_truth = EncoderMetadata(
+    name="genai_embedding_transcript_truth",
+    encoder=genai_embedding_encoder.GenaiEmbeddingTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_path=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_MODEL_PATH.value,
+        api_key=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_GEMINI_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
     url="https://ai.google.dev/gemma",
