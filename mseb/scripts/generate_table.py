@@ -130,26 +130,22 @@ def generate_html_table(
   if not results:
     return "<p>No results to display.</p>", {}
 
-  # Group results by name
+  # Group results by base_model or name
   data = {}
-  # Collect all unique task/metric combinations for columns
   columns = set()
   task_info = {}
-  scores_by_type = collections.defaultdict(
-      lambda: collections.defaultdict(list)
-  )
   task_type_descriptions = {}
   name_urls = {}
-  # task_type -> doc_file -> dataset_doc_file -> list of task_names
   docs_by_type = collections.defaultdict(
       lambda: collections.defaultdict(lambda: collections.defaultdict(list))
   )
 
   for r in results:
-    if r.name not in data:
-      data[r.name] = {}
-    if r.name not in name_urls:
-      name_urls[r.name] = r.url
+    key = r.base_model if r.base_model else r.name
+    if key not in data:
+      data[key] = {}
+    if key not in name_urls or (r.url and not name_urls[key]):
+      name_urls[key] = r.url
     column_key = f"{r.task_name} ({r.main_score_metric})"
     columns.add(column_key)
 
@@ -170,12 +166,23 @@ def generate_html_table(
       if r.task_name not in tasks_list:
         tasks_list.append(r.task_name)
 
-    # We only want to display the main score value
     if r.metric == r.main_score_metric:
-      data[r.name][column_key] = r.metric_value
-      scores_by_type[r.name][main_task_type].append(r.metric_value)
+      if column_key not in data[key]:
+        data[key][column_key] = r.metric_value
+      else:
+        data[key][column_key] = max(data[key][column_key], r.metric_value)
+
       if main_task_type not in task_type_descriptions:
         task_type_descriptions[main_task_type] = r.metric_description
+
+  # Calculate mean scores by task type from aggregated data
+  scores_by_type = collections.defaultdict(
+      lambda: collections.defaultdict(list)
+  )
+  for key, task_scores in data.items():
+    for column_key, score in task_scores.items():
+      main_task_type = task_info[column_key][0]
+      scores_by_type[key][main_task_type].append(score)
 
   sorted_names = sorted(data.keys())
 

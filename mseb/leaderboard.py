@@ -37,6 +37,7 @@ class LeaderboardResult:
   task_metadata: types.TaskMetadata
   scores: list[types.Score]
   url: str | None = None  # URL for information about the encoder model.
+  base_model: str | None = None  # Base model name for grouping.
 
   def to_json(self) -> str:
     """Convert metrics to JSON string."""
@@ -64,6 +65,7 @@ class LeaderboardResult:
         task_metadata=task_metadata,
         scores=scores,
         url=data.get('url'),
+        base_model=data.get('base_model'),
     )
 
 
@@ -133,6 +135,7 @@ class FlattenedLeaderboardResult:
   url: str | None = None
   documentation_file: str | None = None
   dataset_documentation_file: str | None = None
+  base_model: str | None = None
 
 
 def flatten_leaderboard_results(
@@ -176,6 +179,7 @@ def flatten_leaderboard_results(
               url=result.url,
               documentation_file=task_metadata.documentation_file,
               dataset_documentation_file=task_metadata.dataset_documentation_file,
+              base_model=result.base_model,
           )
       )
   return flattened_results
