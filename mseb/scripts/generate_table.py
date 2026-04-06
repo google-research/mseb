@@ -125,10 +125,10 @@ def generate_detail_table(
 
 def generate_html_table(
     results: List[leaderboard.FlattenedLeaderboardResult],
-) -> tuple[str, dict[str, dict[str, dict[str, List[str]]]]]:
+) -> tuple[str, str, dict[str, dict[str, dict[str, List[str]]]]]:
   """Generates an HTML table and returns documentation grouped by type."""
   if not results:
-    return "<p>No results to display.</p>", {}
+    return "<p>No results to display.</p>", "", {}
 
   # Group results by base_model or name
   data = {}
@@ -263,9 +263,10 @@ def generate_html_table(
     main_task_type, _, _, _ = task_info[col]
     cols_by_type[main_task_type].append(col)
 
+  details_html = ""
   for task_type in main_task_types:
     if task_type in cols_by_type:
-      html += generate_detail_table(
+      details_html += generate_detail_table(
           data,
           sorted_names,
           task_type,
@@ -274,7 +275,7 @@ def generate_html_table(
           name_urls,
       )
 
-  return html, docs_by_type
+  return html, details_html, docs_by_type
 
 
 def generate_docs_section(
@@ -377,8 +378,40 @@ def main(argv: Sequence[str]) -> None:
 </table>
 """
 
-  html_table, docs_by_type = generate_html_table(flattened_results)
+  audio_results = [r for r in flattened_results if "transcript" not in r.tags]
+  transcript_results = [r for r in flattened_results if "transcript" in r.tags]
+
+  html_audio, details_audio, docs_audio = generate_html_table(audio_results)
+  html_transcript, details_transcript, docs_transcript = generate_html_table(
+      transcript_results
+  )
+
+  # Merge docs
+  docs_by_type = collections.defaultdict(
+      lambda: collections.defaultdict(lambda: collections.defaultdict(list))
+  )
+  for d in [docs_audio, docs_transcript]:
+    for k1, v1 in d.items():
+      for k2, v2 in v1.items():
+        for k3, v3 in v2.items():
+          for x in v3:
+            if x not in docs_by_type[k1][k2][k3]:
+              docs_by_type[k1][k2][k3].append(x)
+
   docs_section = generate_docs_section(docs_by_type)
+
+  html_table = ""
+  if audio_results:
+    html_table += "<h1>Audio Encoders</h1>\n" + html_audio
+  if transcript_results:
+    html_table += (
+        "<h1>Transcript Encoders (Ground Truth)</h1>\n" + html_transcript
+    )
+
+  if audio_results:
+    html_table += "<h1>Audio Encoder Details</h1>\n" + details_audio
+  if transcript_results:
+    html_table += "<h1>Transcript Encoder Details</h1>\n" + details_transcript
 
   html_content = f"""
 <!DOCTYPE html>

@@ -186,6 +186,7 @@ class EncoderMetadata:
   params: Callable[[], dict[str, Any]]  # Additional encoder parameters.
   url: str | None = None  # URL for information about the encoder model.
   base_model: str | None = None  # Base model name for grouping.
+  tags: tuple[str, ...] = ()
 
   def load(self) -> Encoder:
     """Loads the encoder."""
@@ -207,6 +208,7 @@ gecko_transcript_truth = EncoderMetadata(
     params=lambda: dict(model_path=_GECKO_MODEL_PATH.value),
     url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
     base_model="gecko",
+    tags=("transcript",),
 )
 
 gecko_transcript_truth_or_gecko = EncoderMetadata(
@@ -215,6 +217,7 @@ gecko_transcript_truth_or_gecko = EncoderMetadata(
     params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
     url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
     base_model="gecko",
+    tags=("transcript",),
 )
 
 gecko_transcript_truth_or_gecko_no_prompt = EncoderMetadata(
@@ -229,6 +232,7 @@ gecko_transcript_truth_or_gecko_no_prompt = EncoderMetadata(
     ),
     url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
     base_model="gecko",
+    tags=("transcript",),
 )
 
 gecko_with_title_and_context_transcript_truth_or_gecko = EncoderMetadata(
@@ -237,6 +241,7 @@ gecko_with_title_and_context_transcript_truth_or_gecko = EncoderMetadata(
     params=lambda: dict(gecko_model_path=_GECKO_MODEL_PATH.value),
     url="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings",
     base_model="gecko",
+    tags=("transcript",),
 )
 
 gecko_whisper = EncoderMetadata(
@@ -468,6 +473,7 @@ gemini_embedding_transcript_truth = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemini-api/docs/embeddings",
     base_model="gemini-embedding",
+    tags=("transcript",),
 )
 
 gemini_embedding_transcript_truth_or_gemini_embedding = EncoderMetadata(
@@ -480,6 +486,7 @@ gemini_embedding_transcript_truth_or_gemini_embedding = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemini-api/docs/embeddings",
     base_model="gemini-embedding",
+    tags=("transcript",),
 )
 
 gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt = EncoderMetadata(
@@ -496,6 +503,7 @@ gemini_embedding_transcript_truth_or_gemini_embedding_no_prompt = EncoderMetadat
     ),
     url="https://ai.google.dev/gemini-api/docs/embeddings",
     base_model="gemini-embedding",
+    tags=("transcript",),
 )
 
 gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding = EncoderMetadata(
@@ -508,6 +516,7 @@ gemini_embedding_with_title_and_context_transcript_truth_or_gemini_embedding = E
     ),
     url="https://ai.google.dev/gemini-api/docs/embeddings",
     base_model="gemini-embedding",
+    tags=("transcript",),
 )
 
 gemini_embedding_whisper = EncoderMetadata(
@@ -599,6 +608,7 @@ genai_llm_transcript_truth = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemma",
     base_model="gemma",
+    tags=("transcript",),
 )
 
 genai_embedding = EncoderMetadata(
@@ -623,6 +633,7 @@ genai_embedding_transcript_truth = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemma",
     base_model="gemma",
+    tags=("transcript",),
 )
 
 litellm_with_title_and_context = EncoderMetadata(
@@ -647,6 +658,7 @@ litellm_with_title_and_context_transcript_truth = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemini-api",
     base_model="litellm",
+    tags=("transcript",),
 )
 
 retrieval_gemini_embedding_transcript_truth = EncoderMetadata(
@@ -658,6 +670,7 @@ retrieval_gemini_embedding_transcript_truth = EncoderMetadata(
         top_k=_RETRIEVAL_TOP_K.value,
     ),
     base_model="gemini-embedding",
+    tags=("transcript",),
 )
 
 retrieval_gemini_embedding_whisper = EncoderMetadata(
@@ -693,6 +706,7 @@ hf_llm_with_title_and_context_transcript_truth = EncoderMetadata(
     ),
     url="https://huggingface.co/google/gemma-3n-E2B-it",
     base_model="gemma",
+    tags=("transcript",),
 )
 
 hf_llm_with_title_and_context_whisper = EncoderMetadata(
@@ -721,6 +735,7 @@ hf_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
     ),
     url="https://huggingface.co/google/gemma-3n-E2B-it",
     base_model="gemma",
+    tags=("transcript",),
 )
 
 hf_llm_rag_gemini_embedding_whisper = EncoderMetadata(
@@ -780,6 +795,7 @@ openai_llm_with_title_and_context_transcript_truth = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemini-api/docs/openai",
     base_model="gemini",
+    tags=("transcript",),
 )
 
 openai_llm_with_title_and_context_whisper = EncoderMetadata(
@@ -812,6 +828,7 @@ openai_llm_rag_gemini_embedding_transcript_truth = EncoderMetadata(
     ),
     url="https://ai.google.dev/gemini-api/docs/openai",
     base_model="gemini",
+    tags=("transcript",),
 )
 
 openai_llm_rag_gemini_embedding_whisper = EncoderMetadata(

@@ -38,6 +38,7 @@ class LeaderboardResult:
   scores: list[types.Score]
   url: str | None = None  # URL for information about the encoder model.
   base_model: str | None = None  # Base model name for grouping.
+  tags: list[str] = dataclasses.field(default_factory=list)
 
   def to_json(self) -> str:
     """Convert metrics to JSON string."""
@@ -66,6 +67,7 @@ class LeaderboardResult:
         scores=scores,
         url=data.get('url'),
         base_model=data.get('base_model'),
+        tags=data.get('tags', []),
     )
 
 
@@ -98,6 +100,8 @@ def run_benchmark(
     runner: runner_lib.EncoderRunner,
     task: task_lib.MSEBTask,
     url: str | None = None,
+    base_model: str | None = None,
+    tags: list[str] | None = None,
 ) -> list[LeaderboardResult]:
   """Run a task evaluation."""
   embeddings = runner.run(task.sounds())
@@ -110,6 +114,8 @@ def run_benchmark(
           task_metadata=task.metadata,
           scores=scores + encoding_scores,
           url=url,
+          base_model=base_model,
+          tags=tags if tags is not None else [],
       )
       for sub_task_name, scores in scores.items()
   ]
@@ -136,6 +142,7 @@ class FlattenedLeaderboardResult:
   documentation_file: str | None = None
   dataset_documentation_file: str | None = None
   base_model: str | None = None
+  tags: list[str] = dataclasses.field(default_factory=list)
 
 
 def flatten_leaderboard_results(
@@ -180,6 +187,7 @@ def flatten_leaderboard_results(
               documentation_file=task_metadata.documentation_file,
               dataset_documentation_file=task_metadata.dataset_documentation_file,
               base_model=result.base_model,
+              tags=result.tags,
           )
       )
   return flattened_results

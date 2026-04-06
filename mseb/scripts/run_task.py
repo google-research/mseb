@@ -80,7 +80,12 @@ def main(argv):
   task = task_cls()
   task.setup(runner=runner)
   results = leaderboard.run_benchmark(
-      encoder_name=encoder_name, runner=runner, task=task, url=metadata.url
+      encoder_name=encoder_name,
+      runner=runner,
+      task=task,
+      url=metadata.url,
+      base_model=metadata.base_model,
+      tags=list(metadata.tags),
   )
   if _RESULTS_JSONL.value:
     with epath.Path(_RESULTS_JSONL.value).open('w') as f:
