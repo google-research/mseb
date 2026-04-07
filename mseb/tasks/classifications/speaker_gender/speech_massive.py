@@ -89,6 +89,7 @@ class SpeechMassiveArSaSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -121,6 +122,7 @@ class SpeechMassiveDeDeSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -153,6 +155,7 @@ class SpeechMassiveEsEsSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -185,6 +188,7 @@ class SpeechMassiveFrFrSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -217,6 +221,7 @@ class SpeechMassiveHuHuSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -249,6 +254,7 @@ class SpeechMassiveKoKrSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -281,6 +287,7 @@ class SpeechMassiveNlNlSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -313,6 +320,7 @@ class SpeechMassivePlPlSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -345,6 +353,7 @@ class SpeechMassivePtPtSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -377,6 +386,7 @@ class SpeechMassiveRuRuSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -409,6 +419,7 @@ class SpeechMassiveTrTrSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -441,6 +452,7 @@ class SpeechMassiveViVnSpeakerGenderClassification(
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),

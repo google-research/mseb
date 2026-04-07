@@ -142,6 +142,7 @@ class SpeechMassiveArSaIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -174,6 +175,7 @@ class SpeechMassiveDeDeIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -206,6 +208,7 @@ class SpeechMassiveEsEsIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -238,6 +241,7 @@ class SpeechMassiveFrFrIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -270,6 +274,7 @@ class SpeechMassiveHuHuIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -302,6 +307,7 @@ class SpeechMassiveKoKrIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -334,6 +340,7 @@ class SpeechMassiveNlNlIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -366,6 +373,7 @@ class SpeechMassivePlPlIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -398,6 +406,7 @@ class SpeechMassivePtPtIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -430,6 +439,7 @@ class SpeechMassiveRuRuIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -462,6 +472,7 @@ class SpeechMassiveTrTrIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),
@@ -494,6 +505,7 @@ class SpeechMassiveViVnIntentClassification(SpeechMassiveIntentClassification):
       main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SpeechMassive",
           path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
           revision="2024.08.08",
       ),

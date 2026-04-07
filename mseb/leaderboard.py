@@ -138,6 +138,8 @@ class FlattenedLeaderboardResult:
   metric_min: int | float
   metric_max: int | float
   metric_std: float | None
+  dataset_name: str
+  sub_task_name: str
   url: str | None = None
   documentation_file: str | None = None
   dataset_documentation_file: str | None = None
@@ -183,6 +185,8 @@ def flatten_leaderboard_results(
               metric_min=score.min,
               metric_max=score.max,
               metric_std=score.std,
+              dataset_name=task_metadata.dataset.name,
+              sub_task_name=result.sub_task_name,
               url=result.url,
               documentation_file=task_metadata.documentation_file,
               dataset_documentation_file=task_metadata.dataset_documentation_file,

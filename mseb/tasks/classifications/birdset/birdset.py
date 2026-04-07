@@ -36,6 +36,7 @@ def _get_birdset_metadata(configuration: str) -> types.TaskMetadata:
       main_score="mAP",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="BirdSet",
           path="https://huggingface.co/datasets/DBD-research-group/BirdSet",
           revision="1.0.0",
       ),

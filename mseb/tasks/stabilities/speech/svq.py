@@ -114,6 +114,7 @@ def create_svq_stability_variant(
               main_score=main_metric,
               revision="1.0.0",
               dataset=types.Dataset(
+                  name="SVQ",
                   path="https://huggingface.co/datasets/google/svq",
                   revision="1.0.0",
               ),

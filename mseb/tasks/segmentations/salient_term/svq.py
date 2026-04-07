@@ -103,6 +103,7 @@ class SVQArEgSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -137,6 +138,7 @@ class SVQArXGulfSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -171,6 +173,7 @@ class SVQArXLevantSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -205,6 +208,7 @@ class SVQArXMaghrebiSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -239,6 +243,7 @@ class SVQBnBdSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -273,6 +278,7 @@ class SVQBnInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -307,6 +313,7 @@ class SVQEnAuSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -341,6 +348,7 @@ class SVQEnGbSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -375,6 +383,7 @@ class SVQEnInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -409,6 +418,7 @@ class SVQEnPhSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -443,6 +453,7 @@ class SVQEnUsSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -477,6 +488,7 @@ class SVQFiFiSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -511,6 +523,7 @@ class SVQGuInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -545,6 +558,7 @@ class SVQHiInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -579,6 +593,7 @@ class SVQIdIdSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -613,6 +628,7 @@ class SVQJaJpSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -647,6 +663,7 @@ class SVQKnInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -681,6 +698,7 @@ class SVQKoKrSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -715,6 +733,7 @@ class SVQMlInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -749,6 +768,7 @@ class SVQMrInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -783,6 +803,7 @@ class SVQRuRuSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -817,6 +838,7 @@ class SVQTaInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -851,6 +873,7 @@ class SVQTeInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -885,6 +908,7 @@ class SVQUrInSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),
@@ -919,6 +943,7 @@ class SVQUrPkSalientTermSegmentation(SVQSalientTermSegmentation):
       main_score="NDCG",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="SVQ",
           path="https://huggingface.co/datasets/google/svq",
           revision="1.0.0",
       ),

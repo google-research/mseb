@@ -172,6 +172,7 @@ class SVQArEgQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -201,6 +202,7 @@ class SVQArXGulfQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -230,6 +232,7 @@ class SVQArXLevantQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -259,6 +262,7 @@ class SVQArXMaghrebiQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -288,6 +292,7 @@ class SVQBnBdQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -317,6 +322,7 @@ class SVQBnInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -346,6 +352,7 @@ class SVQEnAuQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -375,6 +382,7 @@ class SVQEnGbQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -404,6 +412,7 @@ class SVQEnInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -433,6 +442,7 @@ class SVQEnPhQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -462,6 +472,7 @@ class SVQEnUsQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -491,6 +502,7 @@ class SVQFiFiQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -520,6 +532,7 @@ class SVQGuInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -549,6 +562,7 @@ class SVQHiInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -578,6 +592,7 @@ class SVQIdIdQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -607,6 +622,7 @@ class SVQJaJpQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -636,6 +652,7 @@ class SVQKnInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -665,6 +682,7 @@ class SVQKoKrQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -694,6 +712,7 @@ class SVQMlInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -723,6 +742,7 @@ class SVQMrInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -752,6 +772,7 @@ class SVQRuRuQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -781,6 +802,7 @@ class SVQSwQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -810,6 +832,7 @@ class SVQTaInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -839,6 +862,7 @@ class SVQTeInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -868,6 +892,7 @@ class SVQUrInQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -897,6 +922,7 @@ class SVQUrPkQueryReranking(SVQQueryReranking):
       main_score='MAP',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

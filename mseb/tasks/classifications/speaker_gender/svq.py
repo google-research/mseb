@@ -111,6 +111,7 @@ class SVQArEgSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -141,6 +142,7 @@ class SVQArXGulfSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -171,6 +173,7 @@ class SVQArXLevantSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -201,6 +204,7 @@ class SVQArXMaghrebiSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -231,6 +235,7 @@ class SVQBnBdSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -261,6 +266,7 @@ class SVQBnInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -291,6 +297,7 @@ class SVQEnAuSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -321,6 +328,7 @@ class SVQEnGbSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -351,6 +359,7 @@ class SVQEnInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -381,6 +390,7 @@ class SVQEnPhSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -411,6 +421,7 @@ class SVQEnUsSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -441,6 +452,7 @@ class SVQFiFiSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -471,6 +483,7 @@ class SVQGuInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -501,6 +514,7 @@ class SVQHiInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -531,6 +545,7 @@ class SVQIdIdSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -561,6 +576,7 @@ class SVQJaJpSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -591,6 +607,7 @@ class SVQKnInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -621,6 +638,7 @@ class SVQKoKrSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -651,6 +669,7 @@ class SVQMlInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -681,6 +700,7 @@ class SVQMrInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -711,6 +731,7 @@ class SVQRuRuSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -741,6 +762,7 @@ class SVQSwSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -771,6 +793,7 @@ class SVQTaInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -801,6 +824,7 @@ class SVQTeInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -831,6 +855,7 @@ class SVQUrInSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -861,6 +886,7 @@ class SVQUrPkSpeakerGenderClassification(SVQSpeakerGenderClassification):
       main_score='Accuracy',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

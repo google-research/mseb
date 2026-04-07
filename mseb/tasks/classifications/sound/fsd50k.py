@@ -90,6 +90,7 @@ class FSD50KTestClassification(FSD50KClassification):
       main_score="mAP",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="FSD50K",
           path="https://huggingface.co/datasets/Fhrozen/FSD50k",
           revision="1.0.0",
       ),

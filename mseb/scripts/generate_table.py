@@ -17,6 +17,7 @@
 import collections
 import json
 import os
+import statistics
 from typing import List, Sequence
 
 from absl import app
@@ -36,7 +37,7 @@ _DOCS_DIR = flags.DEFINE_string(
 
 
 def format_value(value) -> str:
-  return f"{value:.4f}" if isinstance(value, float) else str(value)
+  return f"{value:.2f}" if isinstance(value, float) else str(value)
 
 
 def render_documentation(doc_file: str | None) -> str:
@@ -82,36 +83,37 @@ def generate_detail_table(
   html += f'<table id="details-table-{main_task_type}" border="1">\n'
   html += "  <thead>\n"
   html += "    <tr>\n"
-  html += "      <th>Metric</th>\n"
-  for name in present_encoders:
-    url = name_urls.get(name)
-    name_html = f'<a href="{url}">{name}</a>' if url else name
-    html += f"      <th>{name_html}</th>\n"
-  html += "    </tr>\n"
-  html += "  </thead>\n"
-  html += "  <tbody>\n"
+  html += "      <th>Model</th>\n"
   for col in columns:
     _, task_type, task_languages, doc_file = task_info[col]
-    lang_str = ", ".join(task_languages)
-    html += "    <tr>\n"
     doc_link = ""
     if doc_file:
-      # Link to anchor at the bottom of the page
       doc_link = (
           f' <a href="#type-{main_task_type.lower()}" class="doc-link">[?]</a>'
       )
-    html += f"     <td>{col}<br/>({task_type}, {lang_str}){doc_link}</td>\n"
+    html += f"      <th>{col}{doc_link}</th>\n"
+  html += "    </tr>\n"
+  html += "  </thead>\n"
+  html += "  <tbody>\n"
 
-    # Find the maximum value in the row to highlight it
-    row_values = []
+  # Find the maximum value per column (task) to highlight it
+  max_vals = {}
+  for col in columns:
+    col_values = []
     for name in present_encoders:
       val = data[name].get(col)
       if val is not None and isinstance(val, (int, float)):
-        row_values.append(val)
-    max_val = max(row_values) if row_values else None
+        col_values.append(val)
+    max_vals[col] = max(col_values) if col_values else None
 
-    for name in present_encoders:
+  for name in present_encoders:
+    url = name_urls.get(name)
+    name_html = f'<a href="{url}">{name}</a>' if url else name
+    html += "    <tr>\n"
+    html += f"     <td>{name_html}</td>\n"
+    for col in columns:
       value = data[name].get(col, "N/A")
+      max_val = max_vals[col]
       is_best = max_val is not None and value == max_val
       td_class = ' class="best-value"' if is_best else ""
       html += f"      <td{td_class}>{format_value(value)}</td>\n"
@@ -140,40 +142,62 @@ def generate_html_table(
       lambda: collections.defaultdict(lambda: collections.defaultdict(list))
   )
 
+  accumulated_data = collections.defaultdict(
+      lambda: collections.defaultdict(list)
+  )
+
   for r in results:
     key = r.base_model if r.base_model else r.name
-    if key not in data:
-      data[key] = {}
     if key not in name_urls or (r.url and not name_urls[key]):
       name_urls[key] = r.url
-    column_key = f"{r.task_name} ({r.main_score_metric})"
-    columns.add(column_key)
 
     main_task_type = (
         r.task_subtypes[0] if r.task_subtypes else r.task_type
     ).lower()
-    task_info[column_key] = (
-        main_task_type,
-        r.task_type,
-        r.task_languages,
-        r.documentation_file,
-    )
+
+    # Aggregate by dataset name if available
+    aggregated_name = f"{r.dataset_name}/{main_task_type}/{r.sub_task_name}"
+    column_key = f"{aggregated_name} ({r.main_score_metric})"
+    columns.add(column_key)
+
+    if column_key not in task_info:
+      task_info[column_key] = [
+          main_task_type,
+          r.task_type,
+          set(r.task_languages),
+          r.documentation_file,
+      ]
+    else:
+      task_info[column_key][2].update(r.task_languages)
 
     if r.documentation_file:
       tasks_list = docs_by_type[main_task_type][r.documentation_file][
           r.dataset_documentation_file
       ]
-      if r.task_name not in tasks_list:
-        tasks_list.append(r.task_name)
+      if aggregated_name not in tasks_list:
+        tasks_list.append(aggregated_name)
 
     if r.metric == r.main_score_metric:
-      if column_key not in data[key]:
-        data[key][column_key] = r.metric_value
-      else:
-        data[key][column_key] = max(data[key][column_key], r.metric_value)
+      accumulated_data[key][column_key].append(r.metric_value)
 
       if main_task_type not in task_type_descriptions:
         task_type_descriptions[main_task_type] = r.metric_description
+
+  # Convert sets to sorted lists and lists to tuples in task_info
+  for col_key, info in task_info.items():
+    task_info[col_key] = (
+        info[0],
+        info[1],
+        sorted(list(info[2])),
+        info[3],
+    )
+
+  # Compute means for accumulated data
+  for key, task_scores in accumulated_data.items():
+    if key not in data:
+      data[key] = {}
+    for column_key, scores in task_scores.items():
+      data[key][column_key] = sum(scores) / len(scores) if scores else 0.0
 
   # Calculate mean scores by task type from aggregated data
   scores_by_type = collections.defaultdict(
@@ -186,11 +210,16 @@ def generate_html_table(
 
   sorted_names = sorted(data.keys())
 
-  # Calculate mean scores by task type
+  # Calculate mean and std scores by task type
   mean_scores_by_type = collections.defaultdict(dict)
+  std_scores_by_type = collections.defaultdict(dict)
   for name, type_scores in scores_by_type.items():
     for task_type, scores in type_scores.items():
       mean_scores_by_type[name][task_type] = sum(scores) / len(scores)
+      if len(scores) >= 2:
+        std_scores_by_type[name][task_type] = statistics.stdev(scores)
+      else:
+        std_scores_by_type[name][task_type] = 0.0
 
   main_task_types = sorted(list(set(ti[0] for ti in task_info.values())))
 
@@ -244,13 +273,18 @@ def generate_html_table(
     name_html = f'<a href="{url}">{name}</a>' if url else name
     html += f"     <td>{name_html}</td>\n"
     for task_type in main_task_types:
-      value = mean_scores_by_type[name].get(task_type, "N/A")
+      mean_val = mean_scores_by_type[name].get(task_type, "N/A")
+      std_val = std_scores_by_type[name].get(task_type, 0.0)
       is_best = (
           task_type in max_means_by_type
-          and value == max_means_by_type[task_type]
+          and mean_val == max_means_by_type[task_type]
       )
       td_class = ' class="best-value"' if is_best else ""
-      html += f"      <td{td_class}>{format_value(value)}</td>\n"
+      if isinstance(mean_val, (int, float)):
+        val_str = f"{format_value(mean_val)} ± {format_value(std_val)}"
+      else:
+        val_str = mean_val
+      html += f"      <td{td_class}>{val_str}</td>\n"
     html += "    </tr>\n"
   html += "  </tbody>\n"
   html += "</table>\n"
@@ -276,6 +310,161 @@ def generate_html_table(
       )
 
   return html, details_html, docs_by_type
+
+
+def generate_comparison_html_table(
+    truth_results: List[leaderboard.FlattenedLeaderboardResult],
+    cascaded_results: List[leaderboard.FlattenedLeaderboardResult],
+    audio_results: List[leaderboard.FlattenedLeaderboardResult],
+) -> str:
+  """Generates an HTML table comparing Truth and Cascaded results."""
+
+  def group_results(results):
+    data = collections.defaultdict(lambda: collections.defaultdict(list))
+    name_urls = {}
+    for r in results:
+      key = r.base_model if r.base_model else r.name
+      if key not in name_urls or (r.url and not name_urls[key]):
+        name_urls[key] = r.url
+      if r.metric == r.main_score_metric:
+        main_task_type = (
+            r.task_subtypes[0] if r.task_subtypes else r.task_type
+        ).lower()
+        data[key][main_task_type].append(r.metric_value)
+
+    means = collections.defaultdict(dict)
+    for key, type_scores in data.items():
+      for task_type, scores in type_scores.items():
+        means[key][task_type] = sum(scores) / len(scores)
+    return means, name_urls
+
+  truth_means, truth_urls = group_results(truth_results)
+  cascaded_means, cascaded_urls = group_results(cascaded_results)
+  audio_means, audio_urls = group_results(audio_results)
+
+  common_models = sorted(
+      list(set(truth_means.keys()) & set(cascaded_means.keys()))
+  )
+
+  if not common_models:
+    return "<p>No common models to compare for headroom.</p>"
+
+  all_task_types = set()
+  for model in common_models:
+    all_task_types.update(truth_means[model].keys())
+    all_task_types.update(cascaded_means[model].keys())
+  sorted_task_types = sorted(list(all_task_types))
+
+  max_truth_by_type = {}
+  max_cascaded_by_type = {}
+  max_audio_by_type = {}
+  for task_type in sorted_task_types:
+    truth_vals = [
+        truth_means[model].get(task_type)
+        for model in common_models
+        if task_type in truth_means[model]
+    ]
+    truth_vals = [v for v in truth_vals if isinstance(v, (int, float))]
+    if truth_vals:
+      max_truth_by_type[task_type] = max(truth_vals)
+
+    cascaded_vals = [
+        cascaded_means[model].get(task_type)
+        for model in common_models
+        if task_type in cascaded_means[model]
+    ]
+    cascaded_vals = [v for v in cascaded_vals if isinstance(v, (int, float))]
+    if cascaded_vals:
+      max_cascaded_by_type[task_type] = max(cascaded_vals)
+
+    audio_vals = [
+        audio_means[model].get(task_type)
+        for model in common_models
+        if task_type in audio_means[model]
+    ]
+    audio_vals = [v for v in audio_vals if isinstance(v, (int, float))]
+    if audio_vals:
+      max_audio_by_type[task_type] = max(audio_vals)
+
+  html = '<div class="table-container">\n'
+  html += '<table id="comparison-table" border="1">\n'
+  html += "  <thead>\n"
+  html += "    <tr>\n"
+  html += '      <th rowspan="2">Encoder Name</th>\n'
+  for task_type in sorted_task_types:
+    html += f'      <th colspan="3">{task_type}</th>\n'
+  html += "    </tr>\n"
+  html += "    <tr>\n"
+  for task_type in sorted_task_types:
+    html += "      <th>Transcript Truth</th>\n"
+    html += "      <th>Cascaded ASR</th>\n"
+    html += "      <th>Audio</th>\n"
+  html += "    </tr>\n"
+  html += "  </thead>\n"
+  html += "  <tbody>\n"
+
+  for model in common_models:
+    html += "    <tr>\n"
+    url = (
+        truth_urls.get(model)
+        or cascaded_urls.get(model)
+        or audio_urls.get(model)
+    )
+    name_html = f'<a href="{url}">{model}</a>' if url else model
+    html += f"     <td>{name_html}</td>\n"
+    for task_type in sorted_task_types:
+      truth_val = truth_means[model].get(task_type)
+      cascaded_val = cascaded_means[model].get(task_type)
+      audio_val = audio_means[model].get(task_type)
+
+      is_best_truth = (
+          task_type in max_truth_by_type
+          and truth_val == max_truth_by_type[task_type]
+      )
+      is_best_cascaded = (
+          task_type in max_cascaded_by_type
+          and cascaded_val == max_cascaded_by_type[task_type]
+      )
+      is_best_audio = (
+          task_type in max_audio_by_type
+          and audio_val == max_audio_by_type[task_type]
+      )
+
+      td_class_truth = ' class="best-value"' if is_best_truth else ""
+      td_class_cascaded = ' class="best-value"' if is_best_cascaded else ""
+      td_class_audio = ' class="best-value"' if is_best_audio else ""
+
+      truth_str = format_value(truth_val) if truth_val is not None else "N/A"
+      cascaded_str = (
+          format_value(cascaded_val) if cascaded_val is not None else "N/A"
+      )
+      audio_str = format_value(audio_val) if audio_val is not None else "N/A"
+
+      if truth_val is not None and cascaded_val is not None:
+        delta = cascaded_val - truth_val
+        delta_str = format_value(delta)
+        if delta > 0:
+          delta_str = f"+{delta_str}"
+
+        if truth_val != 0:
+          rel_change = delta / truth_val * 100
+          rel_str = f"{rel_change:.2f}%"
+          if rel_change > 0:
+            rel_str = f"+{rel_str}"
+          cascaded_str = f"{cascaded_str} (&Delta;{delta_str}, {rel_str})"
+        else:
+          cascaded_str = f"{cascaded_str} (&Delta;{delta_str})"
+
+      html += f"      <td{td_class_truth}>{truth_str}</td>\n"
+      html += f"      <td{td_class_cascaded}>{cascaded_str}</td>\n"
+      html += f"      <td{td_class_audio}>{audio_str}</td>\n"
+    html += "    </tr>\n"
+
+  html += "  </tbody>\n"
+  html += "</table>\n"
+  html += "</div>\n"
+
+  return html
 
 
 def generate_docs_section(
@@ -378,19 +567,33 @@ def main(argv: Sequence[str]) -> None:
 </table>
 """
 
-  audio_results = [r for r in flattened_results if "transcript" not in r.tags]
-  transcript_results = [r for r in flattened_results if "transcript" in r.tags]
+  audio_results = [
+      r
+      for r in flattened_results
+      if "transcript_truth" not in r.tags and "cascaded" not in r.tags
+  ]
+  transcript_truth_results = [
+      r for r in flattened_results if "transcript_truth" in r.tags
+  ]
+  cascaded_results = [r for r in flattened_results if "cascaded" in r.tags]
 
   html_audio, details_audio, docs_audio = generate_html_table(audio_results)
-  html_transcript, details_transcript, docs_transcript = generate_html_table(
-      transcript_results
+  html_transcript_truth, details_transcript_truth, docs_transcript_truth = (
+      generate_html_table(transcript_truth_results)
+  )
+  html_cascaded, details_cascaded, docs_cascaded = generate_html_table(
+      cascaded_results
+  )
+
+  html_comparison = generate_comparison_html_table(
+      transcript_truth_results, cascaded_results, audio_results
   )
 
   # Merge docs
   docs_by_type = collections.defaultdict(
       lambda: collections.defaultdict(lambda: collections.defaultdict(list))
   )
-  for d in [docs_audio, docs_transcript]:
+  for d in [docs_audio, docs_transcript_truth, docs_cascaded]:
     for k1, v1 in d.items():
       for k2, v2 in v1.items():
         for k3, v3 in v2.items():
@@ -401,17 +604,13 @@ def main(argv: Sequence[str]) -> None:
   docs_section = generate_docs_section(docs_by_type)
 
   html_table = ""
-  if audio_results:
-    html_table += "<h1>Audio Encoders</h1>\n" + html_audio
-  if transcript_results:
-    html_table += (
-        "<h1>Transcript Encoders (Ground Truth)</h1>\n" + html_transcript
-    )
+  if transcript_truth_results and cascaded_results:
+    html_table += "<h1>Headroom and Audio Comparison</h1>\n" + html_comparison
 
   if audio_results:
+    html_table += "<h1>Audio Encoders</h1>\n" + html_audio
+  if audio_results:
     html_table += "<h1>Audio Encoder Details</h1>\n" + details_audio
-  if transcript_results:
-    html_table += "<h1>Transcript Encoder Details</h1>\n" + details_transcript
 
   html_content = f"""
 <!DOCTYPE html>
@@ -420,6 +619,12 @@ def main(argv: Sequence[str]) -> None:
 <meta http-equiv="Content-Security-Policy" content="script-src 'self'">
 <title>Leaderboard</title>
 <link rel="stylesheet" href="leaderboard.css">
+<style>
+.best-value {{
+  background-color: #e6f3ff;
+  font-weight: bold;
+}}
+</style>
 <script src="leaderboard.js"></script>
 </head>
 <body>

@@ -110,6 +110,7 @@ class SVQArEgSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -134,6 +135,7 @@ class SVQArXGulfSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -158,6 +160,7 @@ class SVQArXLevantSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -182,6 +185,7 @@ class SVQArXMaghrebiSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -206,6 +210,7 @@ class SVQBnBdSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -230,6 +235,7 @@ class SVQBnInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -254,6 +260,7 @@ class SVQEnAuSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -278,6 +285,7 @@ class SVQEnGbSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -302,6 +310,7 @@ class SVQEnInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -326,6 +335,7 @@ class SVQEnPhSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -350,6 +360,7 @@ class SVQEnUsSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -374,6 +385,7 @@ class SVQFiFiSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -398,6 +410,7 @@ class SVQGuInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -422,6 +435,7 @@ class SVQHiInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -446,6 +460,7 @@ class SVQIdIdSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -470,6 +485,7 @@ class SVQJaJpSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -494,6 +510,7 @@ class SVQKnInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -518,6 +535,7 @@ class SVQKoKrSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -542,6 +560,7 @@ class SVQMlInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -566,6 +585,7 @@ class SVQMrInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -590,6 +610,7 @@ class SVQRuRuSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -614,6 +635,7 @@ class SVQSwSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -638,6 +660,7 @@ class SVQTaInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -662,6 +685,7 @@ class SVQTeInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -686,6 +710,7 @@ class SVQUrInSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -710,6 +735,7 @@ class SVQUrPkSpeechTranscription(SVQSpeechTranscription):
       main_score='WER',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

@@ -377,6 +377,7 @@ class Dataset:
   path: str
   revision: str
   documentation_file: Optional[str] = None
+  name: Optional[str] = None
 
   def __post_init__(self):
     """Validates the dataset data."""

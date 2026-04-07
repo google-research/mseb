@@ -147,6 +147,7 @@ class SVQArEgDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -171,6 +172,7 @@ class SVQArXGulfDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -195,6 +197,7 @@ class SVQArXLevantDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -219,6 +222,7 @@ class SVQArXMaghrebiDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -243,6 +247,7 @@ class SVQBnBdDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -267,6 +272,7 @@ class SVQBnInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -291,6 +297,7 @@ class SVQFiFiDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -315,6 +322,7 @@ class SVQGuInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -339,6 +347,7 @@ class SVQHiInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -363,6 +372,7 @@ class SVQJaJpDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -387,6 +397,7 @@ class SVQKnInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -411,6 +422,7 @@ class SVQKoKrDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -435,6 +447,7 @@ class SVQMlInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -459,6 +472,7 @@ class SVQMrInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -483,6 +497,7 @@ class SVQRuRuDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -507,6 +522,7 @@ class SVQTaInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -531,6 +547,7 @@ class SVQTeInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -555,6 +572,7 @@ class SVQUrInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -579,6 +597,7 @@ class SVQUrPkDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

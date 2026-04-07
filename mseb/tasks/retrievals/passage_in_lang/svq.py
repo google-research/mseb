@@ -148,6 +148,7 @@ class SVQArEgPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -172,6 +173,7 @@ class SVQArXGulfPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -196,6 +198,7 @@ class SVQArXLevantPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -220,6 +223,7 @@ class SVQArXMaghrebiPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -244,6 +248,7 @@ class SVQBnBdPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -268,6 +273,7 @@ class SVQBnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -292,6 +298,7 @@ class SVQEnAuPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -316,6 +323,7 @@ class SVQEnGbPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -340,6 +348,7 @@ class SVQEnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -364,6 +373,7 @@ class SVQEnPhPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -388,6 +398,7 @@ class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -412,6 +423,7 @@ class SVQFiFiPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -436,6 +448,7 @@ class SVQIdIdPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -460,6 +473,7 @@ class SVQKoKrPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -484,6 +498,7 @@ class SVQRuRuPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -508,6 +523,7 @@ class SVQSwPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -532,6 +548,7 @@ class SVQTeInPassageInLangRetrieval(SVQPassageInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

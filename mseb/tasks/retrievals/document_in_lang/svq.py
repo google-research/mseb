@@ -152,6 +152,7 @@ class SVQArEgDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -176,6 +177,7 @@ class SVQArXGulfDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -200,6 +202,7 @@ class SVQArXLevantDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -224,6 +227,7 @@ class SVQArXMaghrebiDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -248,6 +252,7 @@ class SVQBnBdDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -272,6 +277,7 @@ class SVQBnInDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -296,6 +302,7 @@ class SVQEnAuDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -320,6 +327,7 @@ class SVQEnGbDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -344,6 +352,7 @@ class SVQEnInDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -368,6 +377,7 @@ class SVQEnPhDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -392,6 +402,7 @@ class SVQEnUsDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -416,6 +427,7 @@ class SVQFiFiDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -440,6 +452,7 @@ class SVQIdIdDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -464,6 +477,7 @@ class SVQKoKrDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -488,6 +502,7 @@ class SVQRuRuDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -512,6 +527,7 @@ class SVQSwDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -536,6 +552,7 @@ class SVQTeInDocumentInLangRetrieval(SVQDocumentInLangRetrieval):
       main_score='MRR',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

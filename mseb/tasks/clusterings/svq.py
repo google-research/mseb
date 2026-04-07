@@ -87,6 +87,7 @@ class SVQClusteringArEg(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -111,6 +112,7 @@ class SVQClusteringArXGulf(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -135,6 +137,7 @@ class SVQClusteringArXLevant(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -159,6 +162,7 @@ class SVQClusteringArXMaghrebi(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -183,6 +187,7 @@ class SVQClusteringBnBd(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -207,6 +212,7 @@ class SVQClusteringBnIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -231,6 +237,7 @@ class SVQClusteringEnAu(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -255,6 +262,7 @@ class SVQClusteringEnGb(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -279,6 +287,7 @@ class SVQClusteringEnIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -303,6 +312,7 @@ class SVQClusteringEnPh(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -327,6 +337,7 @@ class SVQClusteringEnUs(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -351,6 +362,7 @@ class SVQClusteringFiFi(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -375,6 +387,7 @@ class SVQClusteringGuIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -399,6 +412,7 @@ class SVQClusteringHiIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -423,6 +437,7 @@ class SVQClusteringIdId(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -447,6 +462,7 @@ class SVQClusteringJaJp(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -471,6 +487,7 @@ class SVQClusteringKnIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -495,6 +512,7 @@ class SVQClusteringKoKr(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -519,6 +537,7 @@ class SVQClusteringMlIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -543,6 +562,7 @@ class SVQClusteringMrIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -567,6 +587,7 @@ class SVQClusteringRuRu(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -591,6 +612,7 @@ class SVQClusteringSw(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -615,6 +637,7 @@ class SVQClusteringTaIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -639,6 +662,7 @@ class SVQClusteringTeIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -663,6 +687,7 @@ class SVQClusteringUrIn(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -687,6 +712,7 @@ class SVQClusteringUrPk(SVQClustering):
       main_score='VMeasure',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),

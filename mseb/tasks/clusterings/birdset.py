@@ -36,6 +36,7 @@ def _get_birdset_clustering_metadata(configuration: str) -> types.TaskMetadata:
       main_score="VMeasure",
       revision="1.0.0",
       dataset=types.Dataset(
+          name="BirdSet",
           path="https://huggingface.co/datasets/DBD-research-group/BirdSet",
           revision="1.0.0",
       ),

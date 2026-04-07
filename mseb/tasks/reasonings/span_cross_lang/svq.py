@@ -131,6 +131,7 @@ class SVQArEgSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -155,6 +156,7 @@ class SVQArXGulfSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -179,6 +181,7 @@ class SVQArXLevantSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -203,6 +206,7 @@ class SVQArXMaghrebiSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -227,6 +231,7 @@ class SVQBnBdSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -251,6 +256,7 @@ class SVQBnInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -275,6 +281,7 @@ class SVQFiFiSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -299,6 +306,7 @@ class SVQGuInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -323,6 +331,7 @@ class SVQHiInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -347,6 +356,7 @@ class SVQJaJpSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -371,6 +381,7 @@ class SVQKnInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -395,6 +406,7 @@ class SVQKoKrSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -419,6 +431,7 @@ class SVQMlInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -443,6 +456,7 @@ class SVQMrInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -467,6 +481,7 @@ class SVQRuRuSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -491,6 +506,7 @@ class SVQTaInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -515,6 +531,7 @@ class SVQTeInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -539,6 +556,7 @@ class SVQUrInSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
@@ -563,6 +581,7 @@ class SVQUrPkSpanCrossLangReasoning(SVQSpanCrossLangReasoning):
       main_score='GmeanF1',
       revision='1.0.0',
       dataset=types.Dataset(
+          name='SVQ',
           path='https://huggingface.co/datasets/google/svq',
           revision='1.0.0',
       ),
