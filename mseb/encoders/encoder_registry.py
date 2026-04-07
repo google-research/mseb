@@ -646,7 +646,7 @@ litellm_with_title_and_context = EncoderMetadata(
     name="litellm_with_title_and_context",
     encoder=litellm_encoder.LiteLLMWithTitleAndContextEncoder,
     params=lambda: dict(
-        model_path=litellm_encoder.LITELLM_MODEL_NAME.value,
+        model_name=litellm_encoder.LITELLM_MODEL_NAME.value,
         api_key=litellm_encoder.LITELLM_API_KEY.value,
         prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
     ),
