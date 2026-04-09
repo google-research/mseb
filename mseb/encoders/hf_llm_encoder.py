@@ -18,7 +18,7 @@ import logging
 import os
 import re
 import tempfile
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Mapping, Optional, Tuple
 
 from mseb import encoder
 from mseb.encoders import converter
@@ -41,6 +41,7 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
       device_map: Any = 'auto',
       torch_dtype: Any = 'auto',
       max_new_tokens: int = 128,
+      task_prompts: Mapping[str, prompt_lib.Prompt] | None = None,
   ):
     """Initializes the HF LLM encoder.
 
@@ -55,8 +56,9 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
       device_map: Device map to use for the model.
       torch_dtype: Torch dtype to use for the model.
       max_new_tokens: Maximum number of new tokens to generate.
+      task_prompts: A mapping from task name to Prompt object.
     """
-    super().__init__(normalizer, prompt=prompt)
+    super().__init__(normalizer, prompt=prompt, task_prompts=task_prompts)
     self._model_path = model_path
     self._processor = None
     self._model = None

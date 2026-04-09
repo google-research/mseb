@@ -30,6 +30,7 @@ from mseb.encoders import clap_encoder
 from mseb.encoders import encodec_encoder
 from mseb.encoders import gecko_encoder
 from mseb.encoders import gemini_embedding_encoder
+from mseb.encoders import gemma3n_encoder
 from mseb.encoders import genai_embedding_encoder
 from mseb.encoders import genai_llm_encoder
 from mseb.encoders import hf_llm_encoder
@@ -82,6 +83,7 @@ _HF_LLM_MODEL_PATH = flags.DEFINE_string(
     "google/gemma-3n-E2B-it",
     "Path to HF LLM model.",
 )
+
 
 _OPENAI_API_KEY = flags.DEFINE_string(
     "openai_api_key",
@@ -778,6 +780,17 @@ hf_llm_rag_gemini_embedding = EncoderMetadata(
     ),
     url="https://huggingface.co/google/gemma-3n-E2B-it",
     base_model="gemma",
+)
+
+
+gemma3n_audio_e2b_it = EncoderMetadata(
+    name="gemma3n_audio_e2b_it",
+    encoder=gemma3n_encoder.Gemma3nEncoder,
+    params=lambda: dict(
+        model_path=_HF_LLM_MODEL_PATH.value,
+    ),
+    url="https://huggingface.co/google/gemma-3n-E2B-it",
+    base_model="gemma3n",
 )
 
 openai_llm_with_title_and_context = EncoderMetadata(

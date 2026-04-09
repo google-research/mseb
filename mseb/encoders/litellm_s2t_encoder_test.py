@@ -73,13 +73,14 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     s2t_encoder.setup()
     outputs = s2t_encoder.encode([self.test_sound])
     self.assertLen(outputs, 1)
-    self.assertIsInstance(outputs[0], types.SoundEmbedding)
+    output = outputs[0]
+    assert isinstance(output, types.SoundEmbedding)
     self.assertEqual(
-        str(outputs[0].embedding[0]), 'Roses are red, violets are blue.'
+        str(output.embedding[0]), 'Roses are red, violets are blue.'
     )
-    self.assertEqual(outputs[0].timestamps.shape, (1, 2))
-    self.assertEqual(outputs[0].timestamps[0, 0], 0.0)
-    self.assertEqual(outputs[0].timestamps[0, 1], 3.0763125)
+    self.assertEqual(output.timestamps.shape, (1, 2))
+    self.assertEqual(output.timestamps[0, 0], 0.0)
+    self.assertEqual(output.timestamps[0, 1], 3.0763125)
 
   @mock.patch('litellm.transcription')
   def test_encode_with_word_timestamps(self, mock_transcription):
@@ -92,14 +93,15 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     s2t_encoder.setup()
     outputs = s2t_encoder.encode([self.test_sound])
     self.assertLen(outputs, 1)
-    self.assertIsInstance(outputs[0], types.SoundEmbedding)
+    output = outputs[0]
+    assert isinstance(output, types.SoundEmbedding)
     self.assertEqual(
-        outputs[0].embedding.tolist(),
+        output.embedding.tolist(),
         [' Roses', ' are', ' red,', ' violets', ' are', ' blue.'],
     )
-    self.assertEqual(outputs[0].timestamps.shape, (6, 2))
-    self.assertEqual(outputs[0].timestamps[0, 0], 0.479)
-    self.assertEqual(outputs[0].timestamps[0, 1], 0.84)
+    self.assertEqual(output.timestamps.shape, (6, 2))
+    self.assertEqual(output.timestamps[0, 0], 0.479)
+    self.assertEqual(output.timestamps[0, 1], 0.84)
 
 
 if __name__ == '__main__':

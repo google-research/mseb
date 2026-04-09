@@ -76,6 +76,11 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
           )
         yield sound
 
+  def sounds_beam(self):
+    return self._get_dataset().get_task_sounds_beam(
+        'speech_transcription', locale=self.locale
+    )
+
   def examples(
       self, sub_task: str
   ) -> Iterable[transcription_evaluator.TranscriptTruth]:

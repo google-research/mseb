@@ -135,6 +135,40 @@ class TextEncoderWithPromptTest(absltest.TestCase):
         ("title: abc | context: this is another text.", None),
     ])
 
+  def test_get_normalized_text_prompt_with_task_prompts(self):
+    mock_encoder = MockTextEncoderWithPrompt(prompt_template="default: {text}")
+    mock_encoder.task_prompts = {
+        "Task1": prompt_lib.DefaultPrompt("task1 prompt: {text}"),
+        "Task2": prompt_lib.DefaultPrompt("task2 prompt: {text}"),
+    }
+
+    mock_task1 = mock.MagicMock()
+    mock_task1.metadata.name = "Task1"
+
+    mock_task2 = mock.MagicMock()
+    mock_task2.metadata.name = "Task2"
+
+    mock_task3 = mock.MagicMock()
+    mock_task3.metadata.name = "Task3"
+
+    mock_encoder.set_task(mock_task1)
+    self.assertEqual(
+        mock_encoder._get_normalized_text_prompt("hello"),
+        "task1 prompt: hello",
+    )
+
+    mock_encoder.set_task(mock_task2)
+    self.assertEqual(
+        mock_encoder._get_normalized_text_prompt("hello"),
+        "task2 prompt: hello",
+    )
+
+    mock_encoder.set_task(mock_task3)
+    self.assertEqual(
+        mock_encoder._get_normalized_text_prompt("hello"),
+        "default: hello",
+    )
+
 
 if __name__ == "__main__":
   absltest.main()

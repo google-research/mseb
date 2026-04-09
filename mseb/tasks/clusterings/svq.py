@@ -16,7 +16,6 @@
 
 from typing import Iterable, Type
 
-import apache_beam as beam
 from mseb import runner as runner_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
@@ -53,12 +52,9 @@ class SVQClustering(clustering.ClusteringTask):
       yield self._svq_dataset.get_sound(example)
 
   def sounds_beam(self):
-    sounds = self._svq_dataset.get_task_sounds_beam('utt_index')
-    if self.locale:
-      sounds = sounds | f'FilterSoundsByLocale_{self.locale}' >> beam.Filter(
-          lambda x: x.context.language == self.locale
-      )
-    return sounds
+    return self._svq_dataset.get_task_sounds_beam(
+        'utt_index', locale=self.locale
+    )
 
   def examples(
       self, sub_task: str

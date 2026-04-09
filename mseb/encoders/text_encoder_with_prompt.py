@@ -16,7 +16,7 @@
 
 import dataclasses
 import json
-from typing import Callable, Optional, Sequence, Tuple, final
+from typing import Callable, Mapping, Optional, Sequence, Tuple, final
 
 import jaxtyping
 from mseb import encoder
@@ -44,6 +44,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       self,
       normalizer: Callable[[str], str] | None = None,
       prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+      task_prompts: Mapping[str, prompt_lib.Prompt] | None = None,
   ):
     """Initializes the encoder with configuration.
 
@@ -58,10 +59,15 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
         encoding results.
       prompt: Prompt object definiing the prompt template and reponse format to
         be used for encoding.
+      task_prompts: A mapping from task name to Prompt object.
     """
     super().__init__()
     self.normalizer = normalizer
     self.prompt = prompt
+    self.task_prompts = task_prompts
+    self._current_task = None
+    self._last_used_prompt = None
+
     self.prompt_encode_fn: (
         Callable[
             [Sequence[Tuple[str, Optional[bytes]]]],
@@ -74,6 +80,14 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
         ]
         | None
     ) = None
+
+  def set_task(self, task):
+    """Sets the current task for the encoder."""
+    self._current_task = task
+
+  def get_last_used_prompt(self) -> prompt_lib.Prompt | None:
+    """Returns the last used prompt."""
+    return self._last_used_prompt
 
   @final
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
@@ -89,7 +103,14 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       self, text: str, title: str | None = None, context: str | None = None
   ) -> str:
     """Returns the prompt to be used for encoding."""
-    prompt_template = self.prompt.GetPromptTemplate()
+    prompt = self.prompt
+    if self.task_prompts and self._current_task:
+      task_name = self._current_task.metadata.name
+      if task_name in self.task_prompts:
+        prompt = self.task_prompts[task_name]
+
+    self._last_used_prompt = prompt
+    prompt_template = prompt.GetPromptTemplate()
     if self.normalizer is not None:
       text = self.normalizer(text)
 

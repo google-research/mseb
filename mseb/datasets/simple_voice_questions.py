@@ -375,9 +375,21 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     )
 
   def get_task_sounds_beam(
-      self, task_name: str
-  ) -> beam.PCollection[types.Sound]:
+      self, task_name: str, locale: str | None = None
+  ) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""
-    return self.get_task_data_beam(task_name) | "TakeSound" >> beam.Map(
+    task_data = self.get_task_data(task_name)
+    if locale:
+      task_data = task_data[task_data["locale"] == locale]
+
+    transform = self.get_task_data_beam(task_name) | "TakeSound" >> beam.Map(
         lambda x: x["sound"]
     )
+
+    if locale:
+      transform = transform | f"FilterSoundsByLocale_{locale}" >> beam.Filter(
+          lambda x: x.context.language == locale
+      )
+
+    transform.num_examples = len(task_data)
+    return transform

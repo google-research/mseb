@@ -39,6 +39,7 @@ class LeaderboardResult:
   url: str | None = None  # URL for information about the encoder model.
   base_model: str | None = None  # Base model name for grouping.
   tags: list[str] = dataclasses.field(default_factory=list)
+  prompt: str | None = None
 
   def to_json(self) -> str:
     """Convert metrics to JSON string."""
@@ -104,9 +105,20 @@ def run_benchmark(
     tags: list[str] | None = None,
 ) -> list[LeaderboardResult]:
   """Run a task evaluation."""
-  embeddings = runner.run(task.sounds())
+  runner.set_task(task)
+  if isinstance(runner, runner_lib.BeamRunner):
+    embeddings = runner.run(task.sounds_beam())
+  else:
+    embeddings = runner.run(task.sounds())
   scores = task.compute_scores(embeddings)
   encoding_scores = get_encoding_scores(embeddings)
+
+  prompt_str = None
+  if hasattr(runner.encoder, 'get_last_used_prompt'):
+    used_prompt = runner.encoder.get_last_used_prompt()
+    if used_prompt:
+      prompt_str = used_prompt.GetPromptTemplate()
+
   return [
       LeaderboardResult(
           name=encoder_name,
@@ -116,6 +128,7 @@ def run_benchmark(
           url=url,
           base_model=base_model,
           tags=tags if tags is not None else [],
+          prompt=prompt_str,
       )
       for sub_task_name, scores in scores.items()
   ]

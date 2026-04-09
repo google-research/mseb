@@ -76,18 +76,20 @@ class LiteLLMEmbeddingEncoderTest(absltest.TestCase):
     embedding_encoder.setup()
     outputs = embedding_encoder.encode([self.test_sound] * 2)
     self.assertLen(outputs, 2)
-    self.assertIsInstance(outputs[0], types.SoundEmbedding)
-    self.assertIsInstance(outputs[1], types.SoundEmbedding)
-    self.assertEqual(outputs[0].embedding.shape, (1, 3))
-    self.assertEqual(outputs[1].embedding.shape, (1, 3))
-    self.assertEqual(outputs[0].embedding.tolist(), [[0.1, 0.2, 0.3]])
-    self.assertEqual(outputs[1].embedding.tolist(), [[0.4, 0.5, 0.6]])
-    self.assertEqual(outputs[0].timestamps.shape, (1, 2))
-    self.assertEqual(outputs[0].timestamps[0, 0], 0.0)
-    self.assertEqual(outputs[0].timestamps[0, 1], 3.0763125)
-    self.assertEqual(outputs[1].timestamps.shape, (1, 2))
-    self.assertEqual(outputs[1].timestamps[0, 0], 0.0)
-    self.assertEqual(outputs[1].timestamps[0, 1], 3.0763125)
+    output0 = outputs[0]
+    output1 = outputs[1]
+    assert isinstance(output0, types.SoundEmbedding)
+    assert isinstance(output1, types.SoundEmbedding)
+    self.assertEqual(output0.embedding.shape, (1, 3))
+    self.assertEqual(output1.embedding.shape, (1, 3))
+    self.assertEqual(output0.embedding.tolist(), [[0.1, 0.2, 0.3]])
+    self.assertEqual(output1.embedding.tolist(), [[0.4, 0.5, 0.6]])
+    self.assertEqual(output0.timestamps.shape, (1, 2))
+    self.assertEqual(output0.timestamps[0, 0], 0.0)
+    self.assertEqual(output0.timestamps[0, 1], 3.0763125)
+    self.assertEqual(output1.timestamps.shape, (1, 2))
+    self.assertEqual(output1.timestamps[0, 0], 0.0)
+    self.assertEqual(output1.timestamps[0, 1], 3.0763125)
 
 
 if __name__ == '__main__':

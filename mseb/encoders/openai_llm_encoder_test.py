@@ -98,6 +98,7 @@ class OpenAILLMEncoderTest(absltest.TestCase):
     self.assertEqual(outputs[1].context.id, '2')
     for output in outputs:
       self.assertIsInstance(output, types.TextEmbedding)
+      assert isinstance(output, types.TextEmbedding)
       self.assertEqual(output.embedding.shape, (1,))
       self.assertEqual(str(output.embedding[0]), 'Paris')
 

@@ -64,6 +64,18 @@ class EncoderRunner(abc.ABC):
 
   def __init__(self, encoder: Encoder):
     self._encoder = encoder
+    self._task = None
+
+  @property
+  def encoder(self) -> Encoder:
+    """Returns the encoder used by this runner."""
+    return self._encoder
+
+  def set_task(self, task):
+    """Sets the current task for the runner and encoder."""
+    self._task = task
+    if hasattr(self._encoder, 'set_task'):
+      self._encoder.set_task(task)
 
   @abc.abstractmethod
   def run(
@@ -275,7 +287,7 @@ class BeamRunner(EncoderRunner):
 
   def run(
       self,
-      elements: Iterable[types.MultiModalObject],
+      elements: Iterable[types.MultiModalObject] | beam.PTransform,
       output_name: str = 'embeddings',
       output_path: str | None = None,
   ) -> types.MultiModalEmbeddingCache:
@@ -290,26 +302,45 @@ class BeamRunner(EncoderRunner):
 
     resource_hints = cpu_resource_hints
 
-    logging.info('Consuming elements iterable into a list...')
-    start_time = time.time()
-    last_log_time = start_time
-    elements_list = []
-    for element in elements:
-      elements_list.append(element)
-      current_time = time.time()
-      if current_time - last_log_time > 10:
-        logging.info('Read %d elements so far...', len(elements_list))
-        last_log_time = current_time
-    elements = elements_list
-    logging.info(
-        'Consumed %d elements in %.2f seconds',
-        len(elements),
-        time.time() - start_time,
-    )
     pipeline = beam.Pipeline(runner=self._runner)
+
+    if isinstance(elements, beam.PTransform):
+      pcoll = pipeline | elements
+      num_examples = getattr(elements, 'num_examples', None)
+      logging.info(
+          'Using Beam PTransform for elements. num_examples=%s', num_examples
+      )
+    else:
+      logging.info('Consuming elements iterable into a list...')
+      start_time = time.time()
+      last_log_time = start_time
+      elements_list = []
+      for element in elements:
+        elements_list.append(element)
+        current_time = time.time()
+        if current_time - last_log_time > 10:
+          logging.info('Read %d elements so far...', len(elements_list))
+          last_log_time = current_time
+      elements = elements_list
+      logging.info(
+          'Consumed %d elements in %.2f seconds',
+          len(elements),
+          time.time() - start_time,
+      )
+      pcoll = pipeline | 'ReadExamples' >> beam.Create(elements, reshuffle=True)
+      num_examples = len(elements)
+
+    if num_examples is not None:
+      num_shards = get_num_shards(num_examples)
+    else:
+      num_shards = 10  # Fallback default
+      logging.warning(
+          'Could not determine num_examples, using default num_shards=%d',
+          num_shards,
+      )
+
     _ = (
-        pipeline
-        | 'ReadExamples' >> beam.Create(elements, reshuffle=True)
+        pcoll
         | 'Encode'
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)
@@ -322,7 +353,7 @@ class BeamRunner(EncoderRunner):
             output_prefix,
             # Explicitly set num_shards to avoid an excessive number of shards,
             # which unnecessarily slows down loading.
-            num_shards=get_num_shards(len(elements)),
+            num_shards=num_shards,
         )
     )
     logging.info('Running pipeline')
