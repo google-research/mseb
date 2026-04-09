@@ -20,6 +20,7 @@ from concurrent import futures
 import math
 import os
 import pickle
+import time
 
 from absl import flags
 from absl import logging
@@ -289,7 +290,22 @@ class BeamRunner(EncoderRunner):
 
     resource_hints = cpu_resource_hints
 
-    elements = list(elements)
+    logging.info('Consuming elements iterable into a list...')
+    start_time = time.time()
+    last_log_time = start_time
+    elements_list = []
+    for element in elements:
+      elements_list.append(element)
+      current_time = time.time()
+      if current_time - last_log_time > 10:
+        logging.info('Read %d elements so far...', len(elements_list))
+        last_log_time = current_time
+    elements = elements_list
+    logging.info(
+        'Consumed %d elements in %.2f seconds',
+        len(elements),
+        time.time() - start_time,
+    )
     pipeline = beam.Pipeline(runner=self._runner)
     _ = (
         pipeline
