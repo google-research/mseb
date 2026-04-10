@@ -16,6 +16,7 @@
 
 import fnmatch
 import glob
+import io
 import json
 import logging
 import os
@@ -91,7 +92,12 @@ class _UttLookup:
         array_record_path = os.path.join(self.base_path, f"{path}.array_record")
 
         if epath.Path(parquet_path).exists():
-          self.readers[path] = ("parquet", pq.read_table(parquet_path))
+          with epath.Path(parquet_path).open("rb") as f:
+            # Stream bytes natively via epath, restricting memory to 'waveform'
+            self.readers[path] = (
+                "parquet",
+                pq.read_table(io.BytesIO(f.read()), columns=["waveform"])
+            )
         elif epath.Path(array_record_path).exists():
           self.readers[path] = (
               "array_record",
@@ -284,7 +290,8 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
             0
         ]  # f is relative to repo root if list_hf_files returns relative
       else:
-        table = pq.read_table(f, columns=cols)
+        with epath.Path(f).open("rb") as parquet_file:
+          table = pq.read_table(io.BytesIO(parquet_file.read()), columns=cols)
         basename = os.path.basename(f)
         rel_name = os.path.join("audio", os.path.splitext(basename)[0])
 
