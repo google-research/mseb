@@ -117,7 +117,6 @@ class GenaiEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
     for request_prompt in request_prompts:
       prompt_content = [request_prompt[0]]
       if request_prompt[1] is not None:
-        print('DEBUG_request_prompt[1]')
         prompt_content.append(
             genai.types.Part.from_bytes(
                 data=request_prompt[1], mime_type='audio/wav'
