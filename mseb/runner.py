@@ -193,7 +193,13 @@ class EncodeDoFn(beam.DoFn):
   def process(self, element: types.MultiModalObject):
     self._batch.append(element)
     if len(self._batch) == self._batch_size:
+      start_time = time.time()
       embeds = self._encoder.encode(self._batch)
+      logging.info(
+          'EncodeDoFn: Encoded batch of %d in %.2f seconds',
+          len(self._batch),
+          time.time() - start_time,
+      )
       for embed in embeds:
         beam.metrics.Metrics.counter('EncodeDoFn', 'num_embeddings').inc()
         yield embed
@@ -202,7 +208,13 @@ class EncodeDoFn(beam.DoFn):
   def finish_bundle(self) -> Iterator[beam.utils.windowed_value.WindowedValue]:
     """Writes the remaining batch."""
     if self._batch:
+      start_time = time.time()
       embeds = self._encoder.encode(self._batch)
+      logging.info(
+          'EncodeDoFn: Encoded remaining batch of %d in %.2f seconds',
+          len(self._batch),
+          time.time() - start_time,
+      )
       for embed in embeds:
         beam.metrics.Metrics.counter('EncodeDoFn', 'num_embeddings').inc()
         yield beam.transforms.window.GlobalWindows.windowed_value(embed)
@@ -231,6 +243,11 @@ def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
       embedding: types.MultiModalEmbedding = pickle.loads(record.numpy())
       embeddings[embedding.context.id] = embedding
   logging.info('Loaded %d embeddings from %s', len(embeddings), output_pattern)
+  if not embeddings:
+    raise FileNotFoundError(
+        f'Found files matching {output_pattern} but they contained zero'
+        ' embeddings'
+    )
   return embeddings
 
 
@@ -341,6 +358,7 @@ class BeamRunner(EncoderRunner):
 
     _ = (
         pcoll
+        | 'ReshuffleSounds' >> beam.Reshuffle()
         | 'Encode'
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)

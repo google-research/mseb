@@ -15,6 +15,7 @@
 """Transcription super task."""
 
 import abc
+import logging
 from typing import Iterable
 
 from absl import flags
@@ -48,16 +49,46 @@ class TranscriptionTask(task.MSEBTask):
     if self._evaluator is None:
       raise ValueError('Evaluator is not initialized. Did you call setup?')
 
+    if not embeddings:
+      logging.warning('Embeddings cache is empty!')
+      return {}
+
     if not isinstance(next(iter(embeddings.values())), types.TextPrediction):
       transcript_by_sound_id = self._evaluator.compute_predictions(embeddings)
     else:
       transcript_by_sound_id = embeddings
 
+    # Check if the first item has a stashed transcript in its context.
+    first_emb = next(iter(embeddings.values()))
+    has_cached_truths = (
+        isinstance(first_emb.context, types.SoundContextParams)
+        and first_emb.context.text is not None
+    )
+
     scores = {}
     for sub_task in self.sub_tasks:
+      if has_cached_truths:
+        logging.info('Using stashed transcripts from cached embeddings.')
+        transcript_truths = []
+        for sound_id, sound_emb in embeddings.items():
+          if isinstance(sound_emb.context, types.SoundContextParams):
+            transcript_truths.append(
+                transcription_evaluator.TranscriptTruth(
+                    sound_id=sound_id,
+                    text=sound_emb.context.text,
+                    language=sound_emb.context.language or 'en-US',
+                )
+            )
+          else:
+            logging.warning('Unexpected context type for sound %s', sound_id)
+        truths = tuple(transcript_truths)
+      else:
+        # Fallback to the task-specific implementation (which might be slow)
+        truths = tuple(self.examples(sub_task))
+
       scores[sub_task] = self._evaluator.compute_metrics(
           transcript_by_sound_id=transcript_by_sound_id,
-          transcript_truths=tuple(self.examples(sub_task)),
+          transcript_truths=truths,
       )
     return scores
 
