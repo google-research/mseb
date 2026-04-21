@@ -364,6 +364,7 @@ openai_speech_to_text = EncoderMetadata(
     base_model="openai",
 )
 
+
 whisper_speech_to_text = EncoderMetadata(
     name="whisper_speech_to_text",
     encoder=whisper_encoder.SpeechToTextEncoder,
