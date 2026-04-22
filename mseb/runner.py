@@ -15,12 +15,14 @@
 """Runners for executing encoders and storing embeddings."""
 
 import abc
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from concurrent import futures
+import json
 import math
 import os
 import pickle
 import time
+from typing import Any
 
 from absl import flags
 from absl import logging
@@ -276,6 +278,21 @@ def save_embeddings(
         writer.write(record_bytes)  # pytype: disable=attribute-error
 
 
+def parse_resource_hints(
+    resource_hints: str | Mapping[Any, Any] | None,
+    accelerator: str | None = None,
+) -> Mapping[str, Any]:
+  """Parses the resource hints."""
+  if isinstance(resource_hints, Mapping):
+    return resource_hints
+  elif isinstance(resource_hints, str):
+    # If the resource hints are passed as a json-string, parse them.
+    return json.loads(resource_hints)
+  else:
+    assert resource_hints is None
+    return cpu_resource_hints
+
+
 class BeamRunner(EncoderRunner):
   """Runner that encodes using beam, then loads results into in-memory dict."""
 
@@ -285,6 +302,7 @@ class BeamRunner(EncoderRunner):
       runner: beam.runners.PipelineRunner,
       batch_size: int = 1,
       accelerator: str | None = None,
+      resource_hints: str | Mapping[Any, Any] | None = None,
       **kwargs,
   ):
     """Initializes the BeamRunner.
@@ -294,13 +312,16 @@ class BeamRunner(EncoderRunner):
       runner: The beam pipeline runner to use.
       batch_size: The batch size to use for encoding.
       accelerator: The accelerator to use for encoding.
+      resource_hints: The resource hints to use for encoding. The resource hints
+        can be passed as a dictionary or as json-string thereof. If None, the
+        default accelerator-specific resource hints will be used.
       **kwargs: Additional keyword arguments for the base class.
     """
     super().__init__(**kwargs)
     self._output_path = output_path
     self._runner = runner
     self._batch_size = batch_size
-    self._accelerator = accelerator
+    self._resource_hints = parse_resource_hints(resource_hints, accelerator)
 
   def run(
       self,
@@ -316,8 +337,6 @@ class BeamRunner(EncoderRunner):
     except FileNotFoundError:
       logging.info('No embeddings found at %s', output_prefix)
       pass
-
-    resource_hints = cpu_resource_hints
 
     pipeline = beam.Pipeline(runner=self._runner)
 
@@ -362,7 +381,7 @@ class BeamRunner(EncoderRunner):
         | 'Encode'
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)
-        ).with_resource_hints(**resource_hints)
+        ).with_resource_hints(**self._resource_hints)
         | 'Serialize' >> beam.Map(pickle.dumps)
         | 'Reshuffle' >> beam.Reshuffle()  # Avoid fusing with write.
         # Using TFRecord because it's available as standard beam io.
