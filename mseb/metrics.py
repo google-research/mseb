@@ -140,6 +140,14 @@ def compute_word_errors(
     truth = text_transform(truth)
     hypothesis = text_transform(hypothesis)
 
+  # Guard for empty reference to prevent jiwer ValueError
+  if not truth.strip():
+    hyp_words = hypothesis.split()
+    return (
+        float(len(hyp_words)),  # All insertions
+        0.0,  # Reference length is 0
+    )
+
   stats = _compute_levenshtein_stats(truth=truth, hypothesis=hypothesis)
   return (
       stats['substitutions'] + stats['deletions'] + stats['insertions'],
