@@ -79,8 +79,8 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
         str(output.embedding[0]), 'Roses are red, violets are blue.'
     )
     self.assertEqual(output.timestamps.shape, (1, 2))
-    self.assertEqual(output.timestamps[0, 0], 0.0)
-    self.assertEqual(output.timestamps[0, 1], 3.0763125)
+    self.assertEqual(output.timestamps[0, 0], 0.479)
+    self.assertEqual(output.timestamps[0, 1], 3.039)
 
   @mock.patch('litellm.transcription')
   def test_encode_with_word_timestamps(self, mock_transcription):

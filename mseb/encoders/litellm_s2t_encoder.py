@@ -182,6 +182,15 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
         embeddings_list.append(prefix + word['word'])
       timestamps = np.array(timestamps_list, dtype=float)
       embeddings = np.array(embeddings_list, dtype=object)
+    elif hasattr(transcription, 'words'):
+      timestamps = np.array(
+          [[
+              transcription['words'][0]['start'],
+              transcription['words'][-1]['end'],
+          ]],
+          dtype=float,
+      )
+      embeddings = np.array([transcription['text']], dtype=object)
     else:
       timestamps = np.array([[0.0, transcription['duration']]], dtype=float)
       embeddings = np.array([transcription['text']], dtype=object)
