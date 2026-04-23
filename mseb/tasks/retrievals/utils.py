@@ -15,6 +15,7 @@
 """Utility functions for retrieval tasks."""
 
 import os
+import time
 from typing import Iterable, Mapping, Sequence
 from absl import flags
 from absl import logging
@@ -126,15 +127,34 @@ class GptTokenCount:
 class GeminiTokenCount:
   """Wrapper for Gemini token counting with genai."""
 
-  def __init__(self, model_name: str):
+  def __init__(
+      self, model_name: str, *, max_try: int = 1, wait_time: float = 1.0
+  ):
     self._model_name = model_name
-    self._client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
-
-  def __call__(self, text: str) -> int:
-    response = self._client.models.count_tokens(
-        model=self._model_name, contents=text
+    self._client = genai.Client(
+        api_key=os.environ.get(
+            'GEMINI_API_KEY', 'AIzaSyDvy7ldblRbXTnzxwFvy_o2XCleJIr-3oE'
+        )
     )
-    return response.total_tokens
+    self._max_try = max_try
+    self._wait_time = wait_time
+
+  def __call__(
+      self,
+      text: str,
+  ) -> int:
+    for n_try in range(self._max_try):
+      try:
+        response = self._client.models.count_tokens(
+            model=self._model_name, contents=text
+        )
+        return response.total_tokens
+      except Exception as e:  # pylint: disable=broad-exception-caught
+        logging.warning('Failed to count tokens: %s, retrying %d: ', e, n_try)
+        time.sleep(int(self._wait_time * 1.5 ** (n_try + 1)))
+        continue
+
+    return NaiveTokenCount()(text)
 
 
 TokenCount = NaiveTokenCount | GptTokenCount | GeminiTokenCount
