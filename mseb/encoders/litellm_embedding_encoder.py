@@ -15,24 +15,42 @@
 """Encoder using the LiteLLM Embedding API."""
 
 import base64
+import re
 import time
-from typing import Sequence
+from typing import Callable, Optional
 
+from absl import flags
 from absl import logging
 import litellm
 from mseb import encoder
 from mseb import types
-from mseb import utils
+from mseb.encoders import converter
+from mseb.encoders import prompt as prompt_lib
+from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 import numpy as np
 
+LITELLM_EMBEDDING_API_KEY = flags.DEFINE_string(
+    'litellm_embedding_api_key',
+    '',
+    'API key for LiteLLM Embedding API.',
+)
 
-class LiteLLMEmbeddingEncoder(encoder.MultiModalEncoder):
+LITELLM_EMBEDDING_MODEL_NAME = flags.DEFINE_string(
+    'litellm_embedding_model_name',
+    'bedrock/amazon.nova-2-multimodal-embeddings-v1:0',
+    'Name of the LiteLLM Embedding API model.',
+)
+
+
+class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
   """Encode texts and sounds using the LiteLLM Embedding API."""
 
   def __init__(
       self,
       model_name: str,
       api_key: str,
+      normalizer: Callable[[str], str] | None = None,
+      prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
       max_num_retry: int = 1,
       wait_time: float = 1.0,
       embedding_dim: int | None = None,
@@ -42,12 +60,17 @@ class LiteLLMEmbeddingEncoder(encoder.MultiModalEncoder):
     Args:
       model_name: Name of the LiteLLM Embedding model.
       api_key: API key for the LiteLLM Embedding server.
+      ditto_config_id: Ditto config ID to use for the LLM.
+      normalizer: A function that normalizes the text before encoding. This is
+        useful for removing special characters or formatting the text for better
+        encoding results.
+      prompt: Prompt object definining the format of the prompt to be used.
       max_num_retry: The maximum number of retries for the model.
       wait_time: The wait time in seconds between retries.
       embedding_dim: The dimension of the embedding vectors. If None, it will be
         inferred from the model.
     """
-    super().__init__()
+    super().__init__(normalizer, prompt=prompt)
     self._api_key = api_key
     self._model_name = model_name
     self._max_try = max_num_retry
@@ -63,98 +86,155 @@ class LiteLLMEmbeddingEncoder(encoder.MultiModalEncoder):
         )
 
   def _setup(self):
-    pass
+    self.prompt_encode_fn = lambda prompts: np.array(
+        [
+            LiteLLMEmbeddingEncoder.get_embedding(
+                prompt,
+                model_name=self._model_name,
+                api_key=self._api_key,
+                embedding_dim=self.embedding_dim,
+                max_try=self._max_try,
+                wait_time=self._wait_time,
+            )
+            for prompt in prompts
+        ],
+        dtype=np.float32,
+    )
 
-  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not all(isinstance(x, types.Sound) for x in batch) and not all(
-        isinstance(x, types.Text) for x in batch
-    ):
-      raise ValueError(
-          'LiteLLMEmbeddingEncoder only supports a batch of all Sound'
-          ' or all Text inputs.'
-      )
-
-  def _encode(
-      self,
-      batch: Sequence[types.MultiModalObject],
-  ) -> Sequence[types.SoundEmbedding | types.TextEmbedding]:
-    """Encodes a batch of all Sound or all Text inputs."""
-
-    if all(isinstance(x, types.Sound) for x in batch):
-      return self._encode_sound_batch(batch)
-    elif all(isinstance(x, types.Text) for x in batch):
-      return self._encode_text_batch(batch)
-    else:
-      raise ValueError(
-          'LiteLLMEmbeddingEncoder only supports a batch of all Sound'
-          ' or all Text inputs.'
-      )
-
-  def _encode_text_batch(
-      self,
-      batch: Sequence[types.Text],
-  ) -> Sequence[types.TextEmbedding]:
-    """Encodes a batch of Text inputs."""
-    embeddings = self._encode_batch([text.text for text in batch])
-    outputs = []
-    for i, text in enumerate(batch):
-      outputs.append(
-          types.TextEmbedding(
-              embedding=embeddings[i],
-              spans=np.array([[0, len(text.text)]]),
-              context=text.context,
-          )
-      )
-    return outputs
-
-  def _encode_sound_batch(
-      self,
-      batch: Sequence[types.Sound],
-  ) -> Sequence[types.SoundEmbedding]:
-    """Encodes a batch of Sound inputs."""
-    inputs = []
-    for sound in batch:
-      wav_bytes = utils.sound_to_wav_bytes(sound)
-      audio_data = base64.b64encode(wav_bytes).decode('utf-8')
-      inputs.append(f'data:audio/wav;base64,{audio_data}')
-
-    embeddings = self._encode_batch(inputs)
-    outputs = []
-    for i, sound in enumerate(batch):
-      end_time = sound.context.length / sound.context.sample_rate
-      timestamps = np.array([[0.0, end_time]])
-      outputs.append(
-          types.SoundEmbedding(
-              embedding=embeddings[i],
-              timestamps=timestamps,
-              context=sound.context,
-          )
-      )
-    return outputs
-
-  def _encode_batch(
-      self,
-      input_batch: Sequence[str],
-  ) -> Sequence[np.ndarray]:
-    """Encodes a batch of texts or sounds into embeddings."""
+  @staticmethod
+  def get_embedding(
+      request_prompt: tuple[str, Optional[bytes]],
+      *,
+      model_name: str,
+      api_key: str,
+      embedding_dim: int,
+      max_try: int = 1,
+      wait_time: float = 1.0,
+  ) -> np.ndarray:
+    """Returns the embeddings for the given request prompts."""
+    input_content = []
+    if request_prompt[0]:
+      input_content.append(request_prompt[0])
+    if request_prompt[1] is not None:
+      audio_data = base64.b64encode(request_prompt[1]).decode('utf-8')
+      input_content.append(f'data:audio/wav;base64,{audio_data}')
     response = None
-    for n_try in range(self._max_try):
+    for n_try in range(max_try):
       try:
         response = litellm.embedding(
-            model=self._model_name,
-            input=input_batch,
-            api_key=self._api_key,
+            model=model_name,
+            input=input_content,
+            api_key=api_key,
         )
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
-        logging.warning('Failed to get prediction, retrying %d', n_try)
-        time.sleep(int(self._wait_time * 1.5 ** (n_try + 1)))
+        logging.warning(
+            'Failed to get embedding, retrying %d:  (%d)', n_try, max_try
+        )
+        time.sleep(int(wait_time * 1.5 ** (n_try + 1)))
         continue
 
     if response is None:
-      return [np.zeros((1, self.embedding_dim), dtype=float)] * len(input_batch)
+      logging.error('Failed to get embedding after %d retries.', max_try)
+      return np.zeros(embedding_dim, dtype=np.float32)
 
-    return [
-        np.expand_dims(np.array(data.embedding, dtype=float), axis=0)
-        for data in response.data
-    ]
+    return np.array(response.data[0].embedding, dtype=np.float32)
+
+
+def LiteLLMEmbeddingOrLiteLLMEmbeddingEncoder(
+    model_name: str,
+    api_key: str,
+    normalizer_for_sound: Callable[[str], str] | None = None,
+    prompt_for_sound: prompt_lib.Prompt | None = prompt_lib.DefaultPrompt(''),
+    normalizer_for_text: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    prompt_for_text: prompt_lib.Prompt | None = None,
+) -> encoder.CollectionEncoder:
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+  sound_encoder = LiteLLMEmbeddingEncoder(
+      model_name=model_name,
+      api_key=api_key,
+      normalizer=normalizer_for_sound,
+      prompt=prompt_for_sound,
+  )
+  text_encoder = LiteLLMEmbeddingEncoder(
+      model_name=model_name,
+      api_key=api_key,
+      normalizer=normalizer_for_text,
+      prompt=prompt_for_text,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )
+
+
+def LiteLLMEmbeddingTranscriptTruthEncoder(
+    model_name: str,
+    api_key: str,
+    normalizer: Callable[[str], str] | None = None,
+    prompt: prompt_lib.Prompt | None = None,
+    embedding_dim: int | None = None,
+) -> encoder.CascadeEncoder:
+  """Cascaded transcript truth and LiteLLM API encoder.
+
+  Args:
+      model_name: Name of the LiteLLM Embedding model.
+      api_key: API key for the LiteLLM Embedding server.
+      ditto_config_id: Ditto config ID to use for the LLM.
+      normalizer: A function that normalizes the text before encoding. This is
+        useful for removing special characters or formatting the text for better
+        encoding results.
+      prompt: Prompt object definining the format of the prompt to be used.
+      embedding_dim: The dimension of the embedding vectors. If None, it will be
+        inferred from the model.
+
+  Returns:
+    A cascaded transcript truth and Google GenAI API encoder.
+  """
+  return encoder.CascadeEncoder(
+      encoders=[
+          converter.SoundToTextWithTitleAndContextConverter(),
+          LiteLLMEmbeddingEncoder(
+              model_name=model_name,
+              api_key=api_key,
+              normalizer=normalizer,
+              prompt=prompt,
+              embedding_dim=embedding_dim,
+          ),
+      ]
+  )
+
+
+def LiteLLMEmbeddingTranscriptTruthOrLiteLLMEmbeddingEncoder(
+    model_name: str,
+    api_key: str,
+    normalizer_for_sound: Callable[[str], str] | None = None,
+    prompt_for_sound: prompt_lib.Prompt | None = prompt_lib.DefaultPrompt(''),
+    normalizer_for_text: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    prompt_for_text: prompt_lib.Prompt | None = None,
+) -> encoder.CollectionEncoder:
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+  sound_encoder = LiteLLMEmbeddingTranscriptTruthEncoder(
+      model_name=model_name,
+      api_key=api_key,
+      normalizer=normalizer_for_sound,
+      prompt=prompt_for_sound,
+  )
+  text_encoder = LiteLLMEmbeddingEncoder(
+      model_name=model_name,
+      api_key=api_key,
+      normalizer=normalizer_for_text,
+      prompt=prompt_for_text,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )

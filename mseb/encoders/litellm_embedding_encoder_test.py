@@ -48,26 +48,29 @@ class LiteLLMEmbeddingEncoderTest(absltest.TestCase):
             waveform_end_second=len(samples) / sample_rate,
         ),
     )
-    self.mock_response = EmbeddingResponse(
-        data=[
-            Embedding(
-                embedding=[0.1, 0.2, 0.3],
-                index=0,
-                object='embedding',
-            ),
-            Embedding(
-                embedding=[0.4, 0.5, 0.6],
-                index=1,
-                object='embedding',
-            ),
-        ],
-        model='test_model',
-        object='list',
-    )
 
   @mock.patch('litellm.embedding')
-  def test_encode(self, mock_transcription):
-    mock_transcription.return_value = self.mock_response
+  def test_encode(self, mock_embedding):
+    mock_embedding.side_effect = [
+        EmbeddingResponse(
+            data=[
+                Embedding(
+                    embedding=[0.1, 0.2, 0.3], index=0, object='embedding'
+                ),
+            ],
+            model='test_model',
+            object='list',
+        ),
+        EmbeddingResponse(
+            data=[
+                Embedding(
+                    embedding=[0.4, 0.5, 0.6], index=0, object='embedding'
+                ),
+            ],
+            model='test_model',
+            object='list',
+        ),
+    ]
     embedding_encoder = encoder_lib.LiteLLMEmbeddingEncoder(
         model_name='test_model',
         api_key='test_api_key',
@@ -82,14 +85,18 @@ class LiteLLMEmbeddingEncoderTest(absltest.TestCase):
     assert isinstance(output1, types.SoundEmbedding)
     self.assertEqual(output0.embedding.shape, (1, 3))
     self.assertEqual(output1.embedding.shape, (1, 3))
-    self.assertEqual(output0.embedding.tolist(), [[0.1, 0.2, 0.3]])
-    self.assertEqual(output1.embedding.tolist(), [[0.4, 0.5, 0.6]])
+    self.assertSequenceAlmostEqual(
+        output0.embedding[0].tolist(), [0.1, 0.2, 0.3], places=6
+    )
+    self.assertSequenceAlmostEqual(
+        output1.embedding[0].tolist(), [0.4, 0.5, 0.6], places=6
+    )
     self.assertEqual(output0.timestamps.shape, (1, 2))
     self.assertEqual(output0.timestamps[0, 0], 0.0)
-    self.assertEqual(output0.timestamps[0, 1], 3.0763125)
+    self.assertAlmostEqual(output0.timestamps[0, 1], 3.0763125, places=6)
     self.assertEqual(output1.timestamps.shape, (1, 2))
     self.assertEqual(output1.timestamps[0, 0], 0.0)
-    self.assertEqual(output1.timestamps[0, 1], 3.0763125)
+    self.assertAlmostEqual(output1.timestamps[0, 1], 3.0763125, places=6)
 
 
 if __name__ == '__main__':

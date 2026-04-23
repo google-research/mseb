@@ -52,6 +52,12 @@ _PROMPT_NAME = flags.DEFINE_string(
     "Name of the prompt to use for LLM-based encoders.",
 )
 
+_DOCUMENT_PROMPT_NAME = flags.DEFINE_string(
+    "document_prompt_name",
+    "",
+    "Name of the prompt to use for the document encoder in retrieval tasks.",
+)
+
 _CLAP_MODEL_PATH = flags.DEFINE_string(
     "clap_model_path",
     "laion/clap-htsat-unfused",
@@ -119,18 +125,6 @@ _OPENAI_S2T_SERVER_URL = flags.DEFINE_string(
     "openai_s2t_server_url",
     "https://api.openai.com/v1",
     "URL of OpenAI S2T API server.",
-)
-
-_LITELLM_EMBEDDING_API_KEY = flags.DEFINE_string(
-    "litellm_embedding_api_key",
-    "",
-    "API key for LiteLLM Embedding API.",
-)
-
-_LITELLM_EMBEDDING_MODEL_NAME = flags.DEFINE_string(
-    "litellm_embedding_model_name",
-    "bedrock/amazon.nova-2-multimodal-embeddings-v1:0",
-    "Name of the LiteLLM Embedding API model.",
 )
 
 _LITELLM_S2T_API_KEY = flags.DEFINE_string(
@@ -336,8 +330,52 @@ litellm_embedding = EncoderMetadata(
     name="litellm_embedding",
     encoder=litellm_embedding_encoder.LiteLLMEmbeddingEncoder,
     params=lambda: dict(
-        model_name=_LITELLM_EMBEDDING_MODEL_NAME.value,
-        api_key=_LITELLM_EMBEDDING_API_KEY.value,
+        model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
+        api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+    base_model="litellm",
+)
+
+litellm_embedding_or_litellm_embedding = EncoderMetadata(
+    name="litellm_embedding_or_litellm_embedding",
+    encoder=litellm_embedding_encoder.LiteLLMEmbeddingOrLiteLLMEmbeddingEncoder,
+    params=lambda: dict(
+        model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
+        api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
+        prompt_for_sound=prompt_registry.get_prompt_metadata(
+            _PROMPT_NAME.value
+        ).load(),
+        prompt_for_text=prompt_registry.get_prompt_metadata(
+            _DOCUMENT_PROMPT_NAME.value
+        ).load(),
+    ),
+    base_model="litellm",
+)
+
+litellm_embedding_transcript_truth = EncoderMetadata(
+    name="litellm_embedding_transcript_truth",
+    encoder=litellm_embedding_encoder.LiteLLMEmbeddingTranscriptTruthEncoder,
+    params=lambda: dict(
+        model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
+        api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
+        prompt=prompt_registry.get_prompt_metadata(_PROMPT_NAME.value).load(),
+    ),
+    base_model="litellm",
+)
+
+litellm_embedding_transcript_truth_or_litellm_embedding = EncoderMetadata(
+    name="litellm_embedding_transcript_truth_or_litellm_embedding",
+    encoder=litellm_embedding_encoder.LiteLLMEmbeddingTranscriptTruthOrLiteLLMEmbeddingEncoder,
+    params=lambda: dict(
+        model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
+        api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
+        prompt_for_sound=prompt_registry.get_prompt_metadata(
+            _PROMPT_NAME.value
+        ).load(),
+        prompt_for_text=prompt_registry.get_prompt_metadata(
+            _DOCUMENT_PROMPT_NAME.value
+        ).load(),
     ),
     base_model="litellm",
 )
@@ -632,6 +670,23 @@ genai_embedding = EncoderMetadata(
     base_model="gemma",
 )
 
+genai_embedding_or_genai_embedding = EncoderMetadata(
+    name="genai_embedding_or_genai_embedding",
+    encoder=genai_embedding_encoder.GenaiEmbeddingOrGenaiEmbeddingEncoder,
+    params=lambda: dict(
+        model_path=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_MODEL_PATH.value,
+        api_key=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_GEMINI_API_KEY.value,
+        query_prompt=prompt_registry.get_prompt_metadata(
+            _PROMPT_NAME.value
+        ).load(),
+        document_prompt=prompt_registry.get_prompt_metadata(
+            _DOCUMENT_PROMPT_NAME.value
+        ).load(),
+    ),
+    url="https://ai.google.dev/gemma",
+    base_model="gemma",
+)
+
 genai_embedding_transcript_truth = EncoderMetadata(
     name="genai_embedding_transcript_truth",
     encoder=genai_embedding_encoder.GenaiEmbeddingTranscriptTruthEncoder,
@@ -643,6 +698,23 @@ genai_embedding_transcript_truth = EncoderMetadata(
     url="https://ai.google.dev/gemma",
     base_model="gemma",
     tags=("transcript_truth",),
+)
+
+genai_embedding_transcript_truth_or_genai_embedding = EncoderMetadata(
+    name="genai_embedding_transcript_truth_or_genai_embedding",
+    encoder=genai_embedding_encoder.GenaiEmbeddingTranscriptTruthOrGenaiEmbeddingEncoder,
+    params=lambda: dict(
+        model_path=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_MODEL_PATH.value,
+        api_key=genai_embedding_encoder.GENAI_EMBEDDING_ENCODER_GEMINI_API_KEY.value,
+        query_prompt=prompt_registry.get_prompt_metadata(
+            _PROMPT_NAME.value
+        ).load(),
+        document_prompt=prompt_registry.get_prompt_metadata(
+            _DOCUMENT_PROMPT_NAME.value
+        ).load(),
+    ),
+    url="https://ai.google.dev/gemma",
+    base_model="gemma",
 )
 
 litellm_with_title_and_context = EncoderMetadata(

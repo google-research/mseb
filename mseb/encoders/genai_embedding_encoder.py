@@ -15,12 +15,14 @@
 """Embedding vector encoders using the Google GenAI API."""
 
 import logging
+import re
 import time
 from typing import Callable, Optional, Sequence
 
 from absl import flags
 from google import genai
 from mseb import encoder
+from mseb import types
 from mseb.encoders import converter
 from mseb.encoders import prompt as prompt_lib
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder
@@ -141,6 +143,37 @@ class GenaiEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
     return np.zeros((len(request_prompts), embedding_dim), dtype=np.float32)
 
 
+def GenaiEmbeddingOrGenaiEmbeddingEncoder(
+    model_path: str,
+    api_key: str,
+    query_normalizer: Callable[[str], str] | None = None,
+    query_prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+    document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    document_prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+) -> encoder.CollectionEncoder:
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+  sound_encoder = GenaiEmbeddingEncoder(
+      model_path=model_path,
+      api_key=api_key,
+      normalizer=query_normalizer,
+      prompt=query_prompt,
+  )
+  text_encoder = GenaiEmbeddingEncoder(
+      model_path=model_path,
+      api_key=api_key,
+      normalizer=document_normalizer,
+      prompt=document_prompt,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: sound_encoder,
+          types.Text: text_encoder,
+      }
+  )
+
+
 def GenaiEmbeddingTranscriptTruthEncoder(
     model_path: str,
     api_key: str,
@@ -171,4 +204,35 @@ def GenaiEmbeddingTranscriptTruthEncoder(
               prompt=prompt,
           ),
       ]
+  )
+
+
+def GenaiEmbeddingTranscriptTruthOrGenaiEmbeddingEncoder(
+    model_path: str,
+    api_key: str,
+    query_normalizer: Callable[[str], str] | None = None,
+    query_prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+    document_normalizer: Callable[[str], str] | None = lambda x: re.sub(
+        r'\[\d+\]', '', x.lower()
+    ),
+    document_prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+) -> encoder.CollectionEncoder:
+  """Pair Sound and Text encoder as for sound to text retrieval."""
+  sound_encoder = GenaiEmbeddingTranscriptTruthEncoder(
+      model_path=model_path,
+      api_key=api_key,
+      normalizer=query_normalizer,
+      prompt=query_prompt,
+  )
+  text_encoder = GenaiEmbeddingEncoder(
+      model_path=model_path,
+      api_key=api_key,
+      normalizer=document_normalizer,
+      prompt=document_prompt,
+  )
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: sound_encoder,
+          types.Text: text_encoder,
+      }
   )

@@ -90,6 +90,18 @@ gpt_retrieval = PromptMetadata(
     params=lambda: {},
 )
 
+gemini_embedding_retrieval_document = PromptMetadata(
+    name="gemini_embedding_retrieval_document",
+    prompt=prompt_lib.DefaultPrompt,
+    params=lambda: {"prompt_template": "title: {title} | text: {text}"},
+)
+
+gemini_embedding_retrieval_query = PromptMetadata(
+    name="gemini_embedding_retrieval_query",
+    prompt=prompt_lib.DefaultPrompt,
+    params=lambda: {"prompt_template": "task: search result | query: {text}"},
+)
+
 segmentation = PromptMetadata(
     name="segmentation",
     prompt=prompt_lib.SegmentationPrompt,
@@ -119,6 +131,14 @@ gpt_reranking = PromptMetadata(
     prompt=prompt_lib.GptRerankingPrompt,
     params=lambda: {},
 )
+
+empty_prompt = PromptMetadata(
+    name="empty_prompt",
+    prompt=prompt_lib.DefaultPrompt,
+    params=lambda: {"prompt_template": ""},
+)
+
+no_prompt = None
 
 _REGISTRY: dict[str, PromptMetadata] = {}
 
