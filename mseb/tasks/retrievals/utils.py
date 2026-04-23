@@ -131,11 +131,7 @@ class GeminiTokenCount:
       self, model_name: str, *, max_try: int = 1, wait_time: float = 1.0
   ):
     self._model_name = model_name
-    self._client = genai.Client(
-        api_key=os.environ.get(
-            'GEMINI_API_KEY', 'AIzaSyDvy7ldblRbXTnzxwFvy_o2XCleJIr-3oE'
-        )
-    )
+    self._client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY', ''))
     self._max_try = max_try
     self._wait_time = wait_time
 
