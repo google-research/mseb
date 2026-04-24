@@ -18,27 +18,34 @@ import pytest
 
 encoder_registry = pytest.importorskip("mseb.encoders.encoder_registry")
 
+_ = pytest.importorskip("mseb.encoders.registration.clap")
+_ = pytest.importorskip("mseb.encoders.registration.genai")
+_ = pytest.importorskip("mseb.encoders.registration.litellm")
+_ = pytest.importorskip("mseb.encoders.registration.openai")
+_ = pytest.importorskip("mseb.encoders.registration.raw")
+_ = pytest.importorskip("mseb.encoders.registration.whisper")
+
 
 @pytest.mark.whisper
 @pytest.mark.optional
 class EncoderRegistryTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      encoder_registry.raw_encoder_25ms_10ms,
-      encoder_registry.whisper_base_speech_to_text,
-      encoder_registry.whisper_base_pooled_last,
-      encoder_registry.whisper_base_pooled_mean,
-      encoder_registry.whisper_base_pooled_max,
-      encoder_registry.whisper_forced_alignment,
-      encoder_registry.laion_clap_encoder,
-      encoder_registry.genai_llm,
-      encoder_registry.hf_llm_with_title_and_context,
-      encoder_registry.openai_llm_with_title_and_context,
-      encoder_registry.openai_speech_to_text,
-      encoder_registry.litellm_speech_to_text,
-      encoder_registry.litellm_embedding,
+      "raw_spectrogram_25ms_10ms_mean",
+      "whisper_base_speech_to_text",
+      "whisper_base_pooled_last",
+      "whisper_base_pooled_mean",
+      "whisper_base_pooled_max",
+      "whisper_forced_alignment",
+      "laion_clap_encoder",
+      "genai_llm",
+      "openai_llm_with_title_and_context",
+      "openai_speech_to_text",
+      "litellm_speech_to_text",
+      "litellm_embedding",
   )
-  def test_load_encoder(self, meta):
+  def test_load_encoder(self, name):
+    meta = encoder_registry.get_encoder_metadata(name)
     encoder = meta.load()
     self.assertIsNotNone(encoder)
 
