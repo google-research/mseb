@@ -29,24 +29,21 @@ def _get_birdset_metadata(configuration: str) -> types.TaskMetadata:
       name=f"Birdset{configuration}Classification",
       description=f"Ebird classification task on Birdset {configuration}.",
       reference="https://arxiv.org/abs/2403.10380",
-      documentation_file="birdset_classification.md",
-      dataset_documentation_file="dataset_birdset.md",
       type="Classification",
       category="audio",
-      main_score="mAP",
+      main_score="Accuracy",
       revision="1.0.0",
       dataset=types.Dataset(
-          name="BirdSet",
           path="https://huggingface.co/datasets/DBD-research-group/BirdSet",
           revision="1.0.0",
       ),
       scores=[
-          classification_evaluator.mean_average_precision(),
-          classification_evaluator.micro_f1(),
-          classification_evaluator.macro_f1(),
-          classification_evaluator.hamming_loss(),
-          classification_evaluator.subset_accuracy(),
+          classification_evaluator.accuracy(),
+          classification_evaluator.top_k_accuracy(k=5),
           classification_evaluator.balanced_accuracy(),
+          classification_evaluator.weighted_f1(),
+          classification_evaluator.weighted_precision(),
+          classification_evaluator.weighted_recall(),
       ],
       eval_splits=["test"],
       eval_langs=["und"],
@@ -82,27 +79,28 @@ class BirdsetClassification(classification.ClassificationTask):
 
   def sounds(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
-    for example in dataset.get_task_data().to_dict("records"):
+    for _, example in dataset.get_task_data().iterrows():
+      # dataset._get_sound expects a dict, so convert the Series to dict
       yield dataset.get_sound(example)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[classification_evaluator.MultiLabelClassificationReference]:
     dataset = self._get_dataset()
-    for example in dataset.get_task_data().to_dict("records"):
+    for _, example in dataset.get_task_data().iterrows():
+      ebird_codes = example["ebird_code_multilabel"]
       yield classification_evaluator.MultiLabelClassificationReference(
           example_id=str(example["filepath"]),
-          label_ids=list(example["ebird_code_multilabel"]),
+          label_ids=ebird_codes if isinstance(ebird_codes, list) else [],
       )
 
   def class_labels(self) -> Iterable[str]:
     dataset = self._get_dataset()
     unique_labels = set()
     for labels in dataset.get_task_data()["ebird_code_multilabel"]:
-      for label in labels:
-        unique_labels.add(label)
-    all_labels = sorted(list(unique_labels))
-    return all_labels
+      if isinstance(labels, list):
+        unique_labels.update(labels)
+    return sorted(list(unique_labels))
 
 
 class BirdsetHSNClassification(BirdsetClassification):
