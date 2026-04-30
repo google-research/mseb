@@ -15,7 +15,6 @@
 """Encoder using the LiteLLM Embedding API."""
 
 import base64
-import re
 import time
 from typing import Callable, Optional
 
@@ -145,11 +144,9 @@ def LiteLLMEmbeddingOrLiteLLMEmbeddingEncoder(
     model_name: str,
     api_key: str,
     normalizer_for_sound: Callable[[str], str] | None = None,
-    prompt_for_sound: prompt_lib.Prompt | None = prompt_lib.DefaultPrompt(''),
-    normalizer_for_text: Callable[[str], str] | None = lambda x: re.sub(
-        r'\[\d+\]', '', x.lower()
-    ),
-    prompt_for_text: prompt_lib.Prompt | None = None,
+    prompt_for_sound: prompt_lib.Prompt = prompt_lib.DefaultPrompt(''),
+    normalizer_for_text: Callable[[str], str] | None = None,
+    prompt_for_text: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
 ) -> encoder.CollectionEncoder:
   """Pair Sound and Text encoder as for sound to text retrieval."""
   sound_encoder = LiteLLMEmbeddingEncoder(
@@ -176,7 +173,7 @@ def LiteLLMEmbeddingTranscriptTruthEncoder(
     model_name: str,
     api_key: str,
     normalizer: Callable[[str], str] | None = None,
-    prompt: prompt_lib.Prompt | None = None,
+    prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
     embedding_dim: int | None = None,
 ) -> encoder.CascadeEncoder:
   """Cascaded transcript truth and LiteLLM API encoder.
@@ -213,11 +210,9 @@ def LiteLLMEmbeddingTranscriptTruthOrLiteLLMEmbeddingEncoder(
     model_name: str,
     api_key: str,
     normalizer_for_sound: Callable[[str], str] | None = None,
-    prompt_for_sound: prompt_lib.Prompt | None = prompt_lib.DefaultPrompt(''),
-    normalizer_for_text: Callable[[str], str] | None = lambda x: re.sub(
-        r'\[\d+\]', '', x.lower()
-    ),
-    prompt_for_text: prompt_lib.Prompt | None = None,
+    prompt_for_sound: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+    normalizer_for_text: Callable[[str], str] | None = None,
+    prompt_for_text: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
 ) -> encoder.CollectionEncoder:
   """Pair Sound and Text encoder as for sound to text retrieval."""
   sound_encoder = LiteLLMEmbeddingTranscriptTruthEncoder(

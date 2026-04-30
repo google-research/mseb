@@ -14,6 +14,8 @@
 
 """Registration for LiteLLM Encoders."""
 
+import re
+
 from absl import flags
 from mseb.encoders import encoder_registry
 from mseb.encoders import litellm_embedding_encoder
@@ -37,13 +39,10 @@ _LITELLM_S2T_MODEL_NAME = flags.DEFINE_string(
 encoder_registry.register_encoder(
     encoder_registry.EncoderMetadata(
         name="litellm_embedding",
-        encoder=litellm_embedding_encoder.LiteLLMEmbeddingEncoder,
+        encoder=litellm_embedding_encoder.LiteLLMEmbeddingOrLiteLLMEmbeddingEncoder,
         params=lambda: dict(
             model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
             api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
-            prompt=prompt_registry.get_prompt_metadata(
-                encoder_registry.PROMPT_NAME.value
-            ).load(),
         ),
         base_model="litellm",
     )
@@ -62,6 +61,9 @@ encoder_registry.register_encoder(
             prompt_for_text=prompt_registry.get_prompt_metadata(
                 encoder_registry.DOCUMENT_PROMPT_NAME.value
             ).load(),
+            normalizer_for_text=lambda x: re.sub(
+                r"\[\d+\]", "", x.lower()
+            ),
         ),
         base_model="litellm",
     )
@@ -70,13 +72,10 @@ encoder_registry.register_encoder(
 encoder_registry.register_encoder(
     encoder_registry.EncoderMetadata(
         name="litellm_embedding_transcript_truth",
-        encoder=litellm_embedding_encoder.LiteLLMEmbeddingTranscriptTruthEncoder,
+        encoder=litellm_embedding_encoder.LiteLLMEmbeddingTranscriptTruthOrLiteLLMEmbeddingEncoder,
         params=lambda: dict(
             model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
             api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
-            prompt=prompt_registry.get_prompt_metadata(
-                encoder_registry.PROMPT_NAME.value
-            ).load(),
         ),
         base_model="litellm",
     )
@@ -95,6 +94,9 @@ encoder_registry.register_encoder(
             prompt_for_text=prompt_registry.get_prompt_metadata(
                 encoder_registry.DOCUMENT_PROMPT_NAME.value
             ).load(),
+            normalizer_for_text=lambda x: re.sub(
+                r"\[\d+\]", "", x.lower()
+            ),
         ),
         base_model="litellm",
     )
