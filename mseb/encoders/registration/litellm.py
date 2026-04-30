@@ -43,6 +43,7 @@ encoder_registry.register_encoder(
         params=lambda: dict(
             model_name=litellm_embedding_encoder.LITELLM_EMBEDDING_MODEL_NAME.value,
             api_key=litellm_embedding_encoder.LITELLM_EMBEDDING_API_KEY.value,
+            min_audio_length_sec=1.0,
         ),
         base_model="litellm",
     )

@@ -15,6 +15,7 @@
 """Encoder using the LiteLLM Embedding API."""
 
 import base64
+import io
 import time
 from typing import Callable, Optional
 
@@ -27,6 +28,7 @@ from mseb.encoders import converter
 from mseb.encoders import prompt as prompt_lib
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder
 import numpy as np
+from scipy.io import wavfile
 
 LITELLM_EMBEDDING_API_KEY = flags.DEFINE_string(
     'litellm_embedding_api_key',
@@ -41,6 +43,34 @@ LITELLM_EMBEDDING_MODEL_NAME = flags.DEFINE_string(
 )
 
 
+def _PadWavBytesWithSilence(
+    wav_bytes: bytes,
+    target_length_sec: float,
+) -> bytes:
+  """Pads the WAV bytes with silence to the target length.
+
+  Args:
+    wav_bytes: The WAV bytes to pad.
+    target_length_sec: The target length in seconds.
+
+  Returns:
+    The padded WAV bytes.
+  """
+  sample_rate, data = wavfile.read(io.BytesIO(wav_bytes))
+  pad_length = int(target_length_sec * sample_rate) - len(data)
+  if pad_length <= 0:
+    return wav_bytes
+  # Determine the correct silence value based on data type
+  # For 8-bit PCM, silence is 128. For 16-bit/32-bit, it is 0.
+  silence_val = 128 if data.dtype == np.uint8 else 0
+  # Assumes mono audio
+  padding = np.full(pad_length, silence_val, dtype=data.dtype)
+  padded_data = np.concatenate([data, padding])
+  with io.BytesIO() as out_f:
+    wavfile.write(out_f, sample_rate, padded_data)
+    return out_f.getvalue()
+
+
 class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
   """Encode texts and sounds using the LiteLLM Embedding API."""
 
@@ -52,6 +82,7 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
       prompt: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
       max_num_retry: int = 1,
       wait_time: float = 1.0,
+      min_audio_length_sec: float | None = None,
       embedding_dim: int | None = None,
   ):
     """Initializes the OpenAI Speech-to-text encoder.
@@ -66,6 +97,8 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
       prompt: Prompt object definining the format of the prompt to be used.
       max_num_retry: The maximum number of retries for the model.
       wait_time: The wait time in seconds between retries.
+      min_audio_length_sec: The minimum length of the audio in seconds. If set,
+        the audio will be padded with silence to this length before encoding.
       embedding_dim: The dimension of the embedding vectors. If None, it will be
         inferred from the model.
     """
@@ -74,6 +107,7 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
     self._model_name = model_name
     self._max_try = max_num_retry
     self._wait_time = wait_time
+    self._min_audio_length_sec = min_audio_length_sec
     self.embedding_dim = embedding_dim
     if self.embedding_dim is None:
       model_info = litellm.get_model_info(model=self._model_name)
@@ -94,6 +128,7 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
                 embedding_dim=self.embedding_dim,
                 max_try=self._max_try,
                 wait_time=self._wait_time,
+                min_audio_length_sec=self._min_audio_length_sec,
             )
             for prompt in prompts
         ],
@@ -107,15 +142,21 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
       model_name: str,
       api_key: str,
       embedding_dim: int,
-      max_try: int = 1,
-      wait_time: float = 1.0,
+      max_try: int,
+      wait_time: float,
+      min_audio_length_sec: float | None,
   ) -> np.ndarray:
     """Returns the embeddings for the given request prompts."""
     input_content = []
     if request_prompt[0]:
       input_content.append(request_prompt[0])
     if request_prompt[1] is not None:
-      audio_data = base64.b64encode(request_prompt[1]).decode('utf-8')
+      audio_bytes = request_prompt[1]
+      if min_audio_length_sec is not None:
+        audio_bytes = _PadWavBytesWithSilence(
+            audio_bytes, min_audio_length_sec
+        )
+      audio_data = base64.b64encode(audio_bytes).decode('utf-8')
       input_content.append(f'data:audio/wav;base64,{audio_data}')
     response = None
     for n_try in range(max_try):
@@ -147,6 +188,7 @@ def LiteLLMEmbeddingOrLiteLLMEmbeddingEncoder(
     prompt_for_sound: prompt_lib.Prompt = prompt_lib.DefaultPrompt(''),
     normalizer_for_text: Callable[[str], str] | None = None,
     prompt_for_text: prompt_lib.Prompt = prompt_lib.DefaultPrompt(),
+    min_audio_length_sec: float | None = None,
 ) -> encoder.CollectionEncoder:
   """Pair Sound and Text encoder as for sound to text retrieval."""
   sound_encoder = LiteLLMEmbeddingEncoder(
@@ -154,6 +196,7 @@ def LiteLLMEmbeddingOrLiteLLMEmbeddingEncoder(
       api_key=api_key,
       normalizer=normalizer_for_sound,
       prompt=prompt_for_sound,
+      min_audio_length_sec=min_audio_length_sec,
   )
   text_encoder = LiteLLMEmbeddingEncoder(
       model_name=model_name,
