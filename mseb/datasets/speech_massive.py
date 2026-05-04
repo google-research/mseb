@@ -15,6 +15,7 @@
 """Speech-MASSIVE dataset."""
 
 import fnmatch
+import functools
 import os
 from typing import Any, Mapping
 
@@ -41,6 +42,43 @@ bcp47_by_locale = {
     "vi_vn": "vi-VN",
 }
 locale_by_bcp47 = {v: k for k, v in bcp47_by_locale.items()}
+
+
+@functools.cache
+def _cached_read_parquet(
+    base_path: str, filename: str, repo_id: str
+) -> pd.DataFrame:
+  """Memoized loading of SpeechMassive dataset from parquet files."""
+  parquet_path = os.path.join(base_path, filename)
+  parquet_files = tuple(
+      epath.Path(os.path.dirname(parquet_path)).glob(
+          os.path.basename(parquet_path)
+      )
+  )
+
+  if not parquet_files:
+    utils.download_from_hf(repo_id, base_path)
+    parquet_files = tuple(
+        epath.Path(os.path.dirname(parquet_path)).glob(
+            os.path.basename(parquet_path)
+        )
+    )
+
+  if not parquet_files:
+    raise FileNotFoundError(f"No parquet files found for {parquet_path}")
+
+  dfs = [pd.read_parquet(file) for file in parquet_files]
+  df = pd.concat(dfs)
+
+  def _wav_bytes_to_waveform(x):
+    if "bytes" in x:
+      samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
+      return {"samples": samples, "sample_rate": sample_rate}
+    else:
+      return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
+
+  df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
+  return df
 
 
 class SpeechMassiveDataset(base.MsebDataset):
@@ -136,37 +174,19 @@ class SpeechMassiveDataset(base.MsebDataset):
             for f in filtered_files
         ]
         df = pd.concat(dfs)
+
+      def _wav_bytes_to_waveform(x):
+        if "bytes" in x:
+          samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
+          return {"samples": samples, "sample_rate": sample_rate}
+        else:
+          return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
+
+      df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
+      return df
     else:
-      parquet_path = os.path.join(self.base_path, self.filename)
-      parquet_files = tuple(
-          epath.Path(os.path.dirname(parquet_path)).glob(
-              os.path.basename(parquet_path)
-          )
-      )
-
-      if not parquet_files:
-        self._download_and_prepare()
-        parquet_files = tuple(
-            epath.Path(os.path.dirname(parquet_path)).glob(
-                os.path.basename(parquet_path)
-            )
-        )
-
-      if not parquet_files:
-        raise FileNotFoundError(f"No parquet files found for {parquet_path}")
-
-      dfs = [pd.read_parquet(file) for file in parquet_files]
-      df = pd.concat(dfs)
-
-    def _wav_bytes_to_waveform(x):
-      if "bytes" in x:
-        samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
-        return {"samples": samples, "sample_rate": sample_rate}
-      else:
-        return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
-
-    df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
-    return df
+      df = _cached_read_parquet(self.base_path, self.filename, self.repo_id)
+      return df
 
   def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Converts a single row of the dataset to a Sound object."""

@@ -25,6 +25,7 @@ class SpeechMassiveTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
+    speech_massive._cached_read_parquet.cache_clear()
     self.testdata_dir = self.create_tempdir()
 
     lang_dir = os.path.join(self.testdata_dir.full_path, "de-DE")
