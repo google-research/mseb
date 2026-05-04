@@ -16,6 +16,9 @@ import os
 from unittest import mock
 
 from absl.testing import absltest
+import apache_beam as beam
+from apache_beam.testing import test_pipeline
+from apache_beam.testing import util as beam_util
 from mseb.datasets import speech_massive
 import numpy as np
 import pandas as pd
@@ -25,7 +28,6 @@ class SpeechMassiveTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    speech_massive._cached_read_parquet.cache_clear()
     self.testdata_dir = self.create_tempdir()
 
     lang_dir = os.path.join(self.testdata_dir.full_path, "de-DE")
@@ -43,21 +45,19 @@ class SpeechMassiveTest(absltest.TestCase):
         annot_utt=["stille für [time : zwei stunden]"],
         worker_id=["8"],
         slot_method=[{
-            "slot": np.array(["time"], dtype=object),
-            "method": np.array(["translation"], dtype=object),
+            "slot": np.array(["time"]),
+            "method": np.array(["translation"]),
         }],
         judgments=[{
-            "worker_id": np.array(["27", "28", "8"], dtype=object),
+            "worker_id": np.array(["27", "28", "8"]),
             "intent_score": np.array([1, 1, 1], dtype=np.int8),
             "slots_score": np.array([1, 1, 1], dtype=np.int8),
             "grammar_score": np.array([3, 4, 4], dtype=np.int8),
             "spelling_score": np.array([2, 2, 2], dtype=np.int8),
-            "language_identification": np.array(
-                ["target", "target", "target"], dtype=object
-            ),
+            "language_identification": np.array(["target", "target", "target"]),
         }],
-        tokens=[np.array(["stille", "für", "zwei", "stunden"], dtype=object)],
-        labels=[np.array(["Other", "Other", "time", "time"], dtype=object)],
+        tokens=[np.array(["stille", "für", "zwei", "stunden"])],
+        labels=[np.array(["Other", "Other", "time", "time"])],
         audio=[{
             "bytes": (
                 b"RIFF$\x00\x00\x00WAVEfmt"
@@ -93,6 +93,7 @@ class SpeechMassiveTest(absltest.TestCase):
     task_df = dataset.get_task_data()
     self.assertIsInstance(task_df, pd.DataFrame)
     self.assertLen(task_df, 1)
+    self.assertNotIn("audio", task_df.columns)
 
     record = task_df.iloc[0]
     self.assertEqual(record.locale, "de-DE")
@@ -109,7 +110,7 @@ class SpeechMassiveTest(absltest.TestCase):
         base_path=self.testdata_dir.full_path,
         filename="de-DE/test-?????-of-?????.parquet",
     )
-    record = dataset.get_task_data().iloc[0]
+    record = dataset.get_task_data(with_audio=True).iloc[0]
     sound = dataset.get_sound(record)
     self.assertEqual(
         sound.context.id, "test/c15b5445ba46918a8d678e7b59b80aa6.wav"
@@ -119,6 +120,62 @@ class SpeechMassiveTest(absltest.TestCase):
     self.assertEqual(sound.context.speaker_age, 40)
     self.assertEqual(sound.context.speaker_gender, "Female")
     self.assertAlmostEqual(sound.context.waveform_end_second, 0.0)
+
+  @mock.patch("mseb.utils.download_from_hf")
+  def test_get_task_data_beam(self, _):
+    dataset = speech_massive.SpeechMassiveDataset(
+        base_path=self.testdata_dir.full_path,
+        filename="de-DE/test-?????-of-?????.parquet",
+    )
+    with test_pipeline.TestPipeline() as p:
+      pcoll = p | dataset.get_task_data_beam()
+
+      expected_output = [{
+          "locale": "de-DE",
+          "partition": "test",
+          "speaker_id": "5f32d5f107d49607c3f6cf7a",
+          "text": "stille für zwei stunden",
+      }]
+
+      beam_util.assert_that(
+          pcoll
+          | "MapToSimpleDict"
+          >> beam.Map(
+              lambda x: {
+                  "locale": x["locale"],
+                  "partition": x["partition"],
+                  "speaker_id": x["speaker_id"],
+                  "text": x["sound"].context.text,
+              }
+          ),
+          beam_util.equal_to(expected_output),
+      )
+
+  @mock.patch("mseb.utils.download_from_hf")
+  def test_get_task_sounds_beam(self, _):
+    dataset = speech_massive.SpeechMassiveDataset(
+        base_path=self.testdata_dir.full_path,
+        filename="de-DE/test-?????-of-?????.parquet",
+    )
+    with test_pipeline.TestPipeline() as p:
+      pcoll = p | dataset.get_task_sounds_beam(locale="de_de")
+
+      expected_output = [{
+          "id": "test/c15b5445ba46918a8d678e7b59b80aa6.wav",
+          "language": "de_de",
+      }]
+
+      beam_util.assert_that(
+          pcoll
+          | "MapToSimpleDict"
+          >> beam.Map(
+              lambda x: {
+                  "id": x.context.id,
+                  "language": x.context.language,
+              }
+          ),
+          beam_util.equal_to(expected_output),
+      )
 
 
 if __name__ == "__main__":

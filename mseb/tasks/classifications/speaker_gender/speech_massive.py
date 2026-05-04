@@ -51,8 +51,11 @@ class SpeechMassiveSpeakerGenderClassification(
 
   def sounds(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
-    for example in dataset.get_task_data().to_dict("records"):
+    for example in dataset.get_task_data(with_audio=True).to_dict("records"):
       yield dataset.get_sound(example)
+
+  def sounds_beam(self):
+    return self._get_dataset().get_task_sounds_beam()
 
   def examples(
       self, sub_task: str

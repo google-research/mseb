@@ -15,16 +15,17 @@
 """Speech-MASSIVE dataset."""
 
 import fnmatch
-import functools
 import os
 from typing import Any, Mapping
 
+import apache_beam as beam
 from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
 from mseb.datasets import base
 import pandas as pd
+import pyarrow.parquet as pq
 
 
 bcp47_by_locale = {
@@ -42,43 +43,6 @@ bcp47_by_locale = {
     "vi_vn": "vi-VN",
 }
 locale_by_bcp47 = {v: k for k, v in bcp47_by_locale.items()}
-
-
-@functools.cache
-def _cached_read_parquet(
-    base_path: str, filename: str, repo_id: str
-) -> pd.DataFrame:
-  """Memoized loading of SpeechMassive dataset from parquet files."""
-  parquet_path = os.path.join(base_path, filename)
-  parquet_files = tuple(
-      epath.Path(os.path.dirname(parquet_path)).glob(
-          os.path.basename(parquet_path)
-      )
-  )
-
-  if not parquet_files:
-    utils.download_from_hf(repo_id, base_path)
-    parquet_files = tuple(
-        epath.Path(os.path.dirname(parquet_path)).glob(
-            os.path.basename(parquet_path)
-        )
-    )
-
-  if not parquet_files:
-    raise FileNotFoundError(f"No parquet files found for {parquet_path}")
-
-  dfs = [pd.read_parquet(file) for file in parquet_files]
-  df = pd.concat(dfs)
-
-  def _wav_bytes_to_waveform(x):
-    if "bytes" in x:
-      samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
-      return {"samples": samples, "sample_rate": sample_rate}
-    else:
-      return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
-
-  df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
-  return df
 
 
 class SpeechMassiveDataset(base.MsebDataset):
@@ -110,7 +74,13 @@ class SpeechMassiveDataset(base.MsebDataset):
     self.filename = filename
     self.streaming = streaming
     self.token = token
-    self._data = self._load_data()
+    self._data_cache = None
+
+  @property
+  def _data(self) -> pd.DataFrame:
+    if self._data_cache is None:
+      self._data_cache = self._load_data(with_audio=False)
+    return self._data_cache
 
   @property
   def metadata(self) -> types.DatasetMetadata:
@@ -140,20 +110,11 @@ class SpeechMassiveDataset(base.MsebDataset):
     """Downloads the dataset from Hugging Face."""
     utils.download_from_hf(self.repo_id, self.base_path)
 
-  def _load_data(self) -> pd.DataFrame:
-    """Loads the task data for the given task name.
-
-    Returns:
-      A pandas DataFrame containing the task data.
-
-    Raises:
-      FileNotFoundError: If the task file does not exist.
-    """
+  def _get_files(self) -> list[str]:
+    """Returns the list of files to read."""
     if self.streaming:
       if "*" not in self.filename:
-        df = utils.read_hf_parquet(
-            self.repo_id, self.filename, token=self.token
-        )
+        return [self.filename]
       else:
         all_files = utils.list_hf_files(
             self.repo_id, path=os.path.dirname(self.filename), token=self.token
@@ -169,24 +130,66 @@ class SpeechMassiveDataset(base.MsebDataset):
           raise FileNotFoundError(
               f"No match for {self.filename} in {self.repo_id}"
           )
-        dfs = [
-            utils.read_hf_parquet(self.repo_id, f, token=self.token)
-            for f in filtered_files
-        ]
-        df = pd.concat(dfs)
-
-      def _wav_bytes_to_waveform(x):
-        if "bytes" in x:
-          samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
-          return {"samples": samples, "sample_rate": sample_rate}
-        else:
-          return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
-
-      df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
-      return df
+        return filtered_files
     else:
-      df = _cached_read_parquet(self.base_path, self.filename, self.repo_id)
-      return df
+      parquet_path = os.path.join(self.base_path, self.filename)
+      parquet_files = tuple(
+          epath.Path(os.path.dirname(parquet_path)).glob(
+              os.path.basename(parquet_path)
+          )
+      )
+
+      if not parquet_files:
+        self._download_and_prepare()
+        parquet_files = tuple(
+            epath.Path(os.path.dirname(parquet_path)).glob(
+                os.path.basename(parquet_path)
+            )
+        )
+
+      if not parquet_files:
+        raise FileNotFoundError(f"No parquet files found for {parquet_path}")
+
+      return [os.fspath(file) for file in parquet_files]
+
+  def _load_data(self, with_audio: bool = False) -> pd.DataFrame:
+    """Loads the task data for the given task name.
+
+    Args:
+      with_audio: Whether to include the audio column.
+
+    Returns:
+      A pandas DataFrame containing the task data.
+
+    Raises:
+      FileNotFoundError: If the task file does not exist.
+    """
+    files = self._get_files()
+    dfs = []
+    for f in files:
+      if self.streaming:
+        df = utils.read_hf_parquet(self.repo_id, f, token=self.token)
+      else:
+        schema = pq.read_schema(f)
+        cols = [c.name for c in schema]
+        if not with_audio and "audio" in cols:
+          cols.remove("audio")
+        df = pd.read_parquet(f, columns=cols)
+      dfs.append(df)
+
+    df = pd.concat(dfs)
+
+    def _wav_bytes_to_waveform(x):
+      if "bytes" in x:
+        samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
+        return {"samples": samples, "sample_rate": sample_rate}
+      else:
+        return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
+
+    if "audio" in df.columns:
+      df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
+
+    return df
 
   def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Converts a single row of the dataset to a Sound object."""
@@ -213,13 +216,17 @@ class SpeechMassiveDataset(base.MsebDataset):
     return types.Sound(waveform=samples, context=context)
 
   def get_task_data(
-      self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
+      self,
+      task_name: str | None = None,
+      dtype: Mapping[str, Any] | None = None,
+      with_audio: bool = False,
   ) -> pd.DataFrame:
     r"""Returns the entire dataset as a DataFrame.
 
     Args:
       task_name: The name of the task.
       dtype: The data types of the columns.
+      with_audio: Whether to include the audio column.
 
     Attributes with example values:
     id                           2205
@@ -249,4 +256,93 @@ class SpeechMassiveDataset(base.MsebDataset):
     speaker_nationality          Germany
     speaker_first_language       German
     """
+    if with_audio:
+      return self._load_data(with_audio=True)
     return self._data
+
+  def get_task_data_beam(self, task_name: str | None = None) -> beam.PTransform:
+    """Loads the task data with audio for the given task name with beam."""
+    return ReadTaskData(
+        filename=self.filename,
+        base_path=self.base_path,
+        repo_id=self.repo_id,
+        streaming=self.streaming,
+        token=self.token,
+        files=self._get_files(),
+    )
+
+  def get_task_sounds_beam(
+      self, task_name: str | None = None, locale: str | None = None
+  ) -> beam.PTransform:
+    """Loads the task data with audio for the given task name with beam."""
+    transform = self.get_task_data_beam(task_name) | "TakeSound" >> beam.Map(
+        lambda x: x["sound"]
+    )
+
+    if locale:
+      transform = transform | f"FilterSoundsByLocale_{locale}" >> beam.Filter(
+          lambda x: x.context.language == locale
+      )
+
+    return transform
+
+
+class _LoadFileFn(beam.DoFn):
+  """Loads audio and features for a single file."""
+
+  def __init__(self, kwargs: dict[str, Any]):
+    self.kwargs = kwargs
+
+  def process(self, filename: str):
+    streaming = self.kwargs.get("streaming", False)
+    repo_id = self.kwargs.get("repo_id", "FBK-MT/Speech-MASSIVE-test")
+    token = self.kwargs.get("token")
+
+    if streaming:
+      df = utils.read_hf_parquet(repo_id, filename, token=token)
+    else:
+      df = pd.read_parquet(filename)
+
+    def _wav_bytes_to_waveform(x):
+      if "bytes" in x:
+        samples, sample_rate = utils.wav_bytes_to_waveform(x.get("bytes"))
+        return {"samples": samples, "sample_rate": sample_rate}
+      else:
+        return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
+
+    df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
+
+    ds = SpeechMassiveDataset(**self.kwargs)
+
+    for record in df.to_dict("records"):
+      sound = ds.get_sound(record)
+      yield dict(record, sound=sound)
+
+
+class ReadTaskData(beam.PTransform):
+  """A PTransform that reads SpeechMassive task data and loads audio."""
+
+  def __init__(
+      self,
+      filename: str,
+      base_path: str | None,
+      repo_id: str,
+      streaming: bool,
+      token: str | None,
+      files: list[str],
+  ):
+    self._kwargs = {
+        "filename": filename,
+        "base_path": base_path,
+        "repo_id": repo_id,
+        "streaming": streaming,
+        "token": token,
+    }
+    self._files = files
+
+  def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
+    return (
+        pcoll
+        | "CreateFiles" >> beam.Create(self._files)
+        | "LoadFiles" >> beam.ParDo(_LoadFileFn(self._kwargs))
+    )
