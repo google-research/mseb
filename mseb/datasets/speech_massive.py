@@ -170,11 +170,13 @@ class SpeechMassiveDataset(base.MsebDataset):
       if self.streaming:
         df = utils.read_hf_parquet(self.repo_id, f, token=self.token)
       else:
-        schema = pq.read_schema(f)
-        cols = [c.name for c in schema]
-        if not with_audio and "audio" in cols:
-          cols.remove("audio")
-        df = pd.read_parquet(f, columns=cols)
+        with epath.Path(f).open("rb") as parquet_f:
+          schema = pq.read_schema(parquet_f)
+          cols = [c.name for c in schema]
+          if not with_audio and "audio" in cols:
+            cols.remove("audio")
+          parquet_f.seek(0)
+          df = pd.read_parquet(parquet_f, columns=cols)
       dfs.append(df)
 
     df = pd.concat(dfs)
