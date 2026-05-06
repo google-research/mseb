@@ -188,6 +188,8 @@ class ClassificationPrompt(Prompt):
         key_to_value_map=None,
         invalid_response_value=self.INVALID_ANSWER_STR,
     )
+    if isinstance(result, list):
+      result = ' '.join([str(x) for x in result])
     if result not in self.class_labels:
       return self.INVALID_ANSWER_STR
     return result
