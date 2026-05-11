@@ -99,7 +99,8 @@ def read_audio(
     file_path: str, target_sr: Optional[int] = None
 ) -> tuple[np.ndarray, int]:
   """Reads an audio file."""
-  waveform, orig_sr = soundfile.read(file_path, dtype="float32")
+  with epath.Path(file_path).open("rb") as f:
+    waveform, orig_sr = soundfile.read(io.BytesIO(f.read()), dtype="float32")
 
   # Convert to mono
   if waveform.ndim > 1:
