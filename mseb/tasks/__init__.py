@@ -115,6 +115,11 @@ except ImportError:
   pass
 
 try:
+  from .retrievals.speech_to_image.flickr8k import *
+except ImportError:
+  pass
+
+try:
   from .retrievals.speech_to_image.spoken_coco import *
 except ImportError:
   pass

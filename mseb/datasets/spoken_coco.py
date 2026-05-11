@@ -26,100 +26,22 @@ When no base_path is provided, the dataset is automatically downloaded from:
 Reference: https://groups.csail.mit.edu/sls/downloads/placesaudio/
 """
 
-import io
 import json
 import logging
 import os
-import tarfile
-import tempfile
-from typing import Any, Mapping, Sequence
-import urllib.request
-import zipfile
+from typing import Any, Mapping
 
 from etils import epath
+from mseb import dataset
 from mseb import types
-from mseb import utils
-from mseb.datasets import base
-import numpy as np
+from mseb.datasets import audio_image_base
 import pandas as pd
-from PIL import Image as PILImage
 
 logger = logging.getLogger(__name__)
 
 
 _SPOKEN_COCO_URL = 'https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz'
 _MSCOCO_VAL2014_URL = 'http://images.cocodataset.org/zips/val2014.zip'
-
-
-def _download_file(url: str, dest_path: str) -> None:
-  """Downloads a file from url to dest_path with progress logging."""
-  logger.info('Downloading %s -> %s', url, dest_path)
-  response = urllib.request.urlopen(url)  # pylint: disable=missing-timeout
-  total_size = response.headers.get('Content-Length')
-  total_size = int(total_size) if total_size else None
-
-  block_size = 8 * 1024 * 1024  # 8 MB
-  downloaded = 0
-  log_interval = 500 * 1024 * 1024  # Log every 500 MB
-  next_log_at = log_interval
-
-  with epath.Path(dest_path).open('wb') as f:
-    while True:
-      chunk = response.read(block_size)
-      if not chunk:
-        break
-      f.write(chunk)
-      downloaded += len(chunk)
-      if downloaded >= next_log_at:
-        if total_size:
-          pct = 100.0 * downloaded / total_size
-          logger.info(
-              '  Downloaded %.1f GB / %.1f GB (%.1f%%)',
-              downloaded / 1e9,
-              total_size / 1e9,
-              pct,
-          )
-        else:
-          logger.info('  Downloaded %.1f GB', downloaded / 1e9)
-        next_log_at += log_interval
-
-  logger.info('Download complete: %s (%.1f GB)', dest_path, downloaded / 1e9)
-
-
-def _copy_tree(src_dir: str | epath.Path, dst_dir: str | epath.Path) -> None:
-  """Copies the contents of src_dir to dst_dir."""
-  src_dir = epath.Path(src_dir)
-  dst_dir = epath.Path(dst_dir)
-  dst_dir.mkdir(parents=True, exist_ok=True)
-  for src_path in src_dir.iterdir():
-    dst_path = epath.Path(os.path.join(dst_dir, src_path.name))
-    if src_path.is_dir():
-      _copy_tree(src_path, dst_path)
-    else:
-      src_path.copy(dst_path, overwrite=True)
-      src_path.unlink()
-
-
-def _extract_tar_gz(tar_path: str, dest_dir: str) -> None:
-  """Extracts a .tar.gz file to dest_dir."""
-  logger.info('Extracting %s -> %s', tar_path, dest_dir)
-  with epath.Path(tar_path).open('rb') as tar_file:
-    with tarfile.open(fileobj=tar_file, mode='r:gz') as tar:
-      local_dir = tempfile.mkdtemp()
-      tar.extractall(local_dir)
-      _copy_tree(local_dir, dest_dir)
-  logger.info('Extraction complete.')
-
-
-def _extract_zip(zip_path: str, dest_dir: str) -> None:
-  """Extracts a .zip file to dest_dir."""
-  logger.info('Extracting %s -> %s', zip_path, dest_dir)
-  with epath.Path(zip_path).open('rb') as zip_file:
-    with zipfile.ZipFile(zip_file, 'r') as zf:
-      local_dir = tempfile.mkdtemp()
-      zf.extractall(local_dir)
-      _copy_tree(local_dir, dest_dir)
-  logger.info('Extraction complete.')
 
 
 def maybe_download_spoken_coco(dest_dir: str, split: str = 'val') -> None:
@@ -141,8 +63,8 @@ def maybe_download_spoken_coco(dest_dir: str, split: str = 'val') -> None:
   if not epath.Path(json_path).exists() or not epath.Path(wavs_dir).is_dir():
     tar_path = os.path.join(dest_dir, 'SpokenCOCO.tar.gz')
     if not epath.Path(tar_path).exists():
-      _download_file(_SPOKEN_COCO_URL, tar_path)
-    _extract_tar_gz(tar_path, dest_dir)
+      audio_image_base.download_file(_SPOKEN_COCO_URL, tar_path)
+    audio_image_base.extract_tar_gz(tar_path, dest_dir)
     # The tar may extract into a subdirectory; move files up if needed.
     inner_dir = os.path.join(dest_dir, 'SpokenCOCO')
     if epath.Path(inner_dir).is_dir():
@@ -159,14 +81,14 @@ def maybe_download_spoken_coco(dest_dir: str, split: str = 'val') -> None:
   if not epath.Path(images_dir).is_dir():
     zip_path = os.path.join(dest_dir, 'val2014.zip')
     if not epath.Path(zip_path).exists():
-      _download_file(_MSCOCO_VAL2014_URL, zip_path)
-    _extract_zip(zip_path, dest_dir)
+      audio_image_base.download_file(_MSCOCO_VAL2014_URL, zip_path)
+    audio_image_base.extract_zip(zip_path, dest_dir)
     logger.info('MSCOCO val2014 images ready at %s', images_dir)
   else:
     logger.info('MSCOCO val2014 images already exist at %s', images_dir)
 
 
-class SpokenCocoDataset(base.MsebDataset):
+class SpokenCocoDataset(audio_image_base.AudioImageDataset):
   """Spoken COCO dataset for audio-image retrieval.
 
   The dataset consists of images from MS COCO paired with multiple spoken
@@ -207,6 +129,7 @@ class SpokenCocoDataset(base.MsebDataset):
       split: Dataset split ('val' or 'train').
     """
     super().__init__(base_path=base_path, split=split)
+    self.base_path = dataset.get_base_path(self.base_path)
     maybe_download_spoken_coco(dest_dir=self.base_path, split=split)
     self._data = None
 
@@ -273,38 +196,3 @@ class SpokenCocoDataset(base.MsebDataset):
     if dtype:
       df = df.astype(dtype)
     return df
-
-  def get_sound(self, record: Mapping[str, Any]) -> types.Sound:
-    """Loads a Sound object from a dataset record."""
-    wav_path = os.path.join(self.base_path, record['wav'])
-    waveform, sample_rate = utils.read_audio(wav_path)
-    context = types.SoundContextParams(
-        id=record['uttid'],
-        sample_rate=sample_rate,
-        length=len(waveform),
-        language='en',
-        speaker_id=record.get('speaker'),
-        text=record.get('text'),
-    )
-    return types.Sound(waveform=waveform, context=context)
-
-  def get_image(self, record: Mapping[str, Any]) -> types.Image:
-    """Loads an Image object from a dataset record."""
-    image_path = os.path.join(self.base_path, record['image'])
-    with epath.Path(image_path).open('rb') as f:
-      pil_image = PILImage.open(io.BytesIO(f.read()))
-      pil_image = pil_image.convert('RGB')
-    image_array = np.array(pil_image, dtype=np.uint8)
-    context = types.ImageContextParams(
-        id=record['image'],
-        height=image_array.shape[0],
-        width=image_array.shape[1],
-        channels=image_array.shape[2],
-    )
-    return types.Image(image=image_array, context=context)
-
-  def get_unique_images(self) -> Sequence[Mapping[str, str]]:
-    """Returns a list of unique image records (one per image)."""
-    data = self._load_data()
-    unique_images = {item['image']: {'image': item['image']} for item in data}
-    return list(unique_images.values())

@@ -21,7 +21,6 @@ from unittest import mock
 import zipfile
 
 from absl.testing import absltest
-from mseb import types
 from mseb.datasets import spoken_coco
 import numpy as np
 import pandas as pd
@@ -145,43 +144,6 @@ class SpokenCocoDatasetTest(absltest.TestCase):
     df = self.dataset.get_task_data(dtype={'uttid': str, 'speaker': str})
     self.assertEqual(df['uttid'].dtype, object)  # str stored as object in pd
 
-  def test_get_sound(self):
-    df = self.dataset.get_task_data()
-    record = df.iloc[0].to_dict()
-    sound = self.dataset.get_sound(record)
-
-    self.assertIsInstance(sound, types.Sound)
-    self.assertEqual(sound.context.id, 'speaker1-utt1_1_100')
-    self.assertEqual(sound.context.sample_rate, 16000)
-    self.assertEqual(sound.context.language, 'en')
-    self.assertEqual(sound.context.speaker_id, 'speaker1')
-    self.assertEqual(sound.context.text, 'A DOG SITTING ON A COUCH')
-    self.assertEqual(sound.context.length, 8000)  # 0.5s at 16kHz
-    self.assertLen(sound.waveform, 8000)
-    self.assertEqual(sound.waveform.dtype, np.float32)
-
-  def test_get_image(self):
-    record = {'image': 'val2014/COCO_val2014_000000000001.jpg'}
-    image = self.dataset.get_image(record)
-
-    self.assertIsInstance(image, types.Image)
-    self.assertEqual(image.context.id, 'val2014/COCO_val2014_000000000001.jpg')
-    self.assertEqual(image.context.height, 32)
-    self.assertEqual(image.context.width, 48)
-    self.assertEqual(image.context.channels, 3)
-    self.assertEqual(image.image.shape, (32, 48, 3))
-    self.assertEqual(image.image.dtype, np.uint8)
-
-  def test_get_unique_images(self):
-    unique_images = self.dataset.get_unique_images()
-    self.assertLen(unique_images, 2)
-    self.assertEqual(
-        unique_images[0]['image'], 'val2014/COCO_val2014_000000000001.jpg'
-    )
-    self.assertEqual(
-        unique_images[1]['image'], 'val2014/COCO_val2014_000000000002.jpg'
-    )
-
   def test_data_is_cached(self):
     """Verify that _load_data caches the parsed JSON."""
     _ = self.dataset.get_task_data()
@@ -189,15 +151,6 @@ class SpokenCocoDatasetTest(absltest.TestCase):
     _ = self.dataset.get_task_data()
     data2 = self.dataset._data  # pylint: disable=protected-access
     self.assertIs(data1, data2)
-
-  def test_multiple_sounds_from_same_image(self):
-    """All captions for the same image should map to the same image path."""
-    df = self.dataset.get_task_data()
-    image1_rows = df[df['image'] == 'val2014/COCO_val2014_000000000001.jpg']
-    self.assertLen(image1_rows, 2)
-    for _, row in image1_rows.iterrows():
-      sound = self.dataset.get_sound(row.to_dict())
-      self.assertIsInstance(sound, types.Sound)
 
   def test_base_path_with_explicit_path(self):
     """When base_path is provided, it should be used directly."""
@@ -233,7 +186,7 @@ class DownloadSpokenCocoTest(absltest.TestCase):
     with zipfile.ZipFile(zip_path, 'w') as zf:
       zf.write(img_path, 'val2014/img.jpg')
 
-  @mock.patch.object(spoken_coco, '_download_file')
+  @mock.patch.object(spoken_coco.audio_image_base, 'download_file')
   def test_download_creates_expected_structure(self, mock_dl):
     """Test that download_spoken_coco produces the expected directory layout."""
     dest_dir = self.create_tempdir().full_path
@@ -268,7 +221,9 @@ class DownloadSpokenCocoTest(absltest.TestCase):
     os.makedirs(os.path.join(dest_dir, 'wavs'))
     os.makedirs(os.path.join(dest_dir, 'val2014'))
 
-    with mock.patch.object(spoken_coco, '_download_file') as mock_dl:
+    with mock.patch.object(
+        spoken_coco.audio_image_base, 'download_file'
+    ) as mock_dl:
       spoken_coco.maybe_download_spoken_coco(dest_dir=dest_dir, split='val')
       mock_dl.assert_not_called()
 
