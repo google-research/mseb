@@ -101,7 +101,10 @@ def _compute_metrics(
       'no_response': [],
   }
   for reference_id in reference_ids:
-    prediction = predictions[reference_id.sound_id]
+    if reference_id.sound_id in predictions:
+      prediction = predictions[reference_id.sound_id]
+    else:
+      prediction = types.NoResponseListPrediction()
     if isinstance(prediction, types.ValidListPrediction):
       prediction.normalize(k=top_k)
       ranked_doc_ids = [x['id'] for x in prediction.items]

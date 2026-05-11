@@ -132,6 +132,34 @@ class Sound:
 
 
 @dataclasses.dataclass
+class ImageContextParams:
+  """Parameters for an image example."""
+  id: str  # Identifier for the image example unique within the dataset.
+  height: int
+  width: int
+  channels: int
+
+  text: Optional[str] = None
+  debug_text: Optional[str] = None  # Text for debugging purposes.
+
+
+@dataclasses.dataclass
+class Image:
+  """An image with context."""
+
+  image: (
+      jaxtyping.Float[jaxtyping.Array, "H W C"]
+      | jaxtyping.Int[jaxtyping.Array, "H W C"]
+  )
+  context: ImageContextParams
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the image in bytes."""
+    return self.image.size * self.image.dtype.itemsize
+
+
+@dataclasses.dataclass
 class SoundEmbedding:
   """A sound embedding with context."""
   # N embeddings, where the embeddings are either all float vectors or strings.
@@ -181,6 +209,36 @@ class TextEmbedding:
   spans: jaxtyping.Int[jaxtyping.Array, "M 2"]
   context: TextContextParams
   encoding_stats: Optional[EncodingStats] = None
+
+  @property
+  def size_bytes(self) -> int:
+    """Returns the size of the embedding in bytes."""
+    return self.embedding.size * self.embedding.dtype.itemsize
+
+
+@dataclasses.dataclass
+class ImageEmbedding:
+  """An image embedding with context."""
+  # N embeddings, where the embeddings are either all float vectors or strings.
+  embedding: (
+      jaxtyping.Float[jaxtyping.Array, "N D"]
+      | jaxtyping.Shaped[np.ndarray, "N"]
+  )
+  # Each row corresponds to a patch in the image, represented as a
+  # [height_start, height_end, width_start, width_end] tuple.
+  # There are two common cases for the relation between embeddings (n) and
+  # patch indices (m):
+  #    - Patch-Aligned (m == number of patches): The i-th patch index tuple
+  #      corresponds directly to the i-th embedding vector.
+  #    - Image-Level (m == 1): A single patch represents the entire image from
+  #      which the embeddings were extracted.
+  patch_indices: jaxtyping.Int[jaxtyping.Array, "M 4"]
+  context: ImageContextParams
+  encoding_stats: Optional[EncodingStats] = None
+  # Optional field for scores associated with each embedding vector. This can
+  # serve as confidence score, or saliency score, or any other score relevant
+  # for each task.
+  scores: Optional[jaxtyping.Float[jaxtyping.Array, "N"]] = None
 
   @property
   def size_bytes(self) -> int:
@@ -445,12 +503,14 @@ class TaskMetadata:
 MultiModalEmbedding = (
     SoundEmbedding
     | TextEmbedding
+    | ImageEmbedding
     | TextPrediction
     | SoundEmbeddingCollection
 )
 MultiModalObject = (
     Sound
     | Text
+    | Image
     | MultiModalEmbedding
 )
 MultiModalEmbeddingCache = Mapping[str, MultiModalEmbedding]
