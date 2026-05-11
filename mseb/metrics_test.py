@@ -205,6 +205,65 @@ class MetricsTest(parameterized.TestCase):
     self.assertEqual(res['raw_distance'], 0.0)
     self.assertEqual(res['reference_length'], 0.0)
 
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='reference_at_rank_1',
+          reference='a',
+          predicted_neighbors=['a', 'b', 'c'],
+          k=10,
+          expected_ndcg=1.0,  # 1/log2(2) = 1.0
+      ),
+      dict(
+          testcase_name='reference_at_rank_2',
+          reference='b',
+          predicted_neighbors=['a', 'b', 'c'],
+          k=10,
+          expected_ndcg=1.0 / np.log2(3),  # ≈ 0.6309
+      ),
+      dict(
+          testcase_name='reference_at_rank_3',
+          reference='c',
+          predicted_neighbors=['a', 'b', 'c'],
+          k=10,
+          expected_ndcg=1.0 / np.log2(4),  # = 0.5
+      ),
+      dict(
+          testcase_name='reference_not_found',
+          reference='z',
+          predicted_neighbors=['a', 'b', 'c'],
+          k=10,
+          expected_ndcg=0.0,
+      ),
+      dict(
+          testcase_name='empty_neighbors',
+          reference='a',
+          predicted_neighbors=[],
+          k=10,
+          expected_ndcg=0.0,
+      ),
+      dict(
+          testcase_name='k_cutoff_excludes_reference',
+          reference='c',
+          predicted_neighbors=['a', 'b', 'c'],
+          k=2,
+          expected_ndcg=0.0,  # 'c' is at rank 3, beyond k=2
+      ),
+      dict(
+          testcase_name='k_cutoff_includes_reference',
+          reference='b',
+          predicted_neighbors=['a', 'b', 'c'],
+          k=2,
+          expected_ndcg=1.0 / np.log2(3),  # rank 2, within k=2
+      ),
+  )
+  def test_compute_ndcg_at_k(
+      self, reference, predicted_neighbors, k, expected_ndcg
+  ):
+    ndcg = metrics.compute_ndcg_at_k(
+        reference=reference, predicted_neighbors=predicted_neighbors, k=k
+    )
+    self.assertAlmostEqual(ndcg, expected_ndcg, places=6)
+
 
 if __name__ == '__main__':
   absltest.main()

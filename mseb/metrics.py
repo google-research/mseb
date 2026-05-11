@@ -24,9 +24,7 @@ import numpy as np
 
 @numba.njit
 def _jit_edit_distance_core(
-    cost_matrix: np.ndarray,
-    w_ins: float,
-    w_del: float
+    cost_matrix: np.ndarray, w_ins: float, w_del: float
 ) -> float:
   """Compiled Dynamic Programming core for Continuous Edit Distance.
 
@@ -52,9 +50,9 @@ def _jit_edit_distance_core(
     for j in range(1, m + 1):
       # Substitution cost is pulled from the pre-calculated cost_matrix
       dp[i, j] = min(
-          dp[i - 1, j] + w_del,        # Deletion
-          dp[i, j - 1] + w_ins,        # Insertion
-          dp[i - 1, j - 1] + cost_matrix[i - 1, j - 1]  # Substitution
+          dp[i - 1, j] + w_del,  # Deletion
+          dp[i, j - 1] + w_ins,  # Insertion
+          dp[i - 1, j - 1] + cost_matrix[i - 1, j - 1],  # Substitution
       )
   return dp[n, m]
 
@@ -76,9 +74,9 @@ def _jit_dtw_core(dist_matrix: np.ndarray) -> float:
   for i in range(1, n + 1):
     for j in range(1, m + 1):
       dtw_matrix[i, j] = dist_matrix[i - 1, j - 1] + min(
-          dtw_matrix[i - 1, j],     # Vertical (Insertion)
-          dtw_matrix[i, j - 1],     # Horizontal (Deletion)
-          dtw_matrix[i - 1, j - 1]  # Diagonal (Match)
+          dtw_matrix[i - 1, j],  # Vertical (Insertion)
+          dtw_matrix[i, j - 1],  # Horizontal (Deletion)
+          dtw_matrix[i - 1, j - 1],  # Diagonal (Match)
       )
   return dtw_matrix[n, m]
 
@@ -103,6 +101,30 @@ def compute_exact_match(
   """Computes the exact match for the first predicted neighbor."""
   if predicted_neighbors:
     return float(reference == predicted_neighbors[0])
+  return 0.0
+
+
+def compute_ndcg_at_k(
+    reference: str, predicted_neighbors: Sequence[str], k: int = 10
+) -> float:
+  """Computes NDCG@k with binary relevance (single relevant document).
+
+  This matches the pytrec_eval ndcg_cut metric for single-relevant-doc queries:
+  DCG@k  = 1/log2(rank+1)  if the relevant doc appears at position `rank` <= k.
+  IDCG@k = 1/log2(2)  = 1  (ideal: relevant doc at rank 1).
+  NDCG@k = DCG@k / IDCG@k  = 1/log2(rank+1).
+
+  Args:
+    reference: The ground-truth document ID.
+    predicted_neighbors: Ranked list of predicted document IDs.
+    k: Cutoff for the ranked list.
+
+  Returns:
+    NDCG@k score in [0, 1].
+  """
+  for rank, neighbor in enumerate(predicted_neighbors[:k], start=1):
+    if reference == neighbor:
+      return 1.0 / np.log2(rank + 1)
   return 0.0
 
 
@@ -132,7 +154,7 @@ def compute_word_errors(
     truth: str,
     hypothesis: str,
     *,
-    text_transform: Callable[[str], str] | None = None
+    text_transform: Callable[[str], str] | None = None,
 ) -> tuple[float, float]:
   """Computes the word errors."""
 
@@ -157,7 +179,7 @@ def compute_word_errors(
 
 def compute_unit_edit_distance(
     truth_tokens: str | Sequence[int | str],
-    hypothesis_tokens: str | Sequence[int | str]
+    hypothesis_tokens: str | Sequence[int | str],
 ) -> Mapping[str, float]:
   """Computes Unit Edit Distance (UED) statistics for discrete tokens.
 
@@ -167,9 +189,9 @@ def compute_unit_edit_distance(
 
   Args:
     truth_tokens: Sequence of discrete token IDs (integers or strings)
-        representing the reference.
-    hypothesis_tokens: Sequence of discrete token IDs representing the
-        perturbed or predicted output.
+      representing the reference.
+    hypothesis_tokens: Sequence of discrete token IDs representing the perturbed
+      or predicted output.
 
   Returns:
     A mapping containing:
@@ -219,9 +241,7 @@ def compute_unit_edit_distance(
 
 
 def compute_lp_norm(
-    z1: np.ndarray,
-    z2: np.ndarray,
-    p: int = 2
+    z1: np.ndarray, z2: np.ndarray, p: int = 2
 ) -> Mapping[str, float]:
   """Computes the standard L_p norm between two latent sequences.
 
@@ -259,15 +279,11 @@ def compute_lp_norm(
 
   dist = float(np.linalg.norm(z1 - z2, ord=p))
 
-  return {
-      'raw_distance': dist,
-      'reference_length': float(t1)
-  }
+  return {'raw_distance': dist, 'reference_length': float(t1)}
 
 
 def compute_dynamic_time_warping_distance(
-    z1: np.ndarray,
-    z2: np.ndarray
+    z1: np.ndarray, z2: np.ndarray
 ) -> Mapping[str, float]:
   """Computes Dynamic Time Warping (DTW) distance with Euclidean cost.
 
@@ -287,10 +303,7 @@ def compute_dynamic_time_warping_distance(
   sq_norms2 = np.sum(z2**2, axis=1).reshape(1, -1)
   dist_matrix = np.sqrt(np.maximum(sq_norms1 + sq_norms2 - 2 * dot_product, 0))
   raw_dist = float(_jit_dtw_core(dist_matrix))
-  return {
-      'raw_distance': raw_dist,
-      'reference_length': float(len(z1))
-  }
+  return {'raw_distance': raw_dist, 'reference_length': float(len(z1))}
 
 
 def compute_continuous_edit_distance(
@@ -298,7 +311,7 @@ def compute_continuous_edit_distance(
     z2: np.ndarray,
     w_ins: float = 2.0,
     w_del: float = 2.0,
-    unit_sphere_scaling: bool = True
+    unit_sphere_scaling: bool = True,
 ) -> Mapping[str, float]:
   """Computes Continuous Edit Distance (CED) with global max-norm scaling.
 
@@ -314,8 +327,8 @@ def compute_continuous_edit_distance(
     z2: Array of shape (M, d) representing the hypothesis sequence.
     w_ins: Penalty for an insertion. Default 2.0 (matches unit sphere diameter).
     w_del: Penalty for a deletion. Default 2.0.
-    unit_sphere_scaling: If True, scales each sequence by its maximum
-        internal norm so that all vectors reside within a unit sphere.
+    unit_sphere_scaling: If True, scales each sequence by its maximum internal
+      norm so that all vectors reside within a unit sphere.
 
   Returns:
     A mapping containing:

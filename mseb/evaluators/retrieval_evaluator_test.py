@@ -132,7 +132,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 6)
+    self.assertLen(scores, 7)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -152,6 +152,11 @@ class RetrievalEvaluatorTest(absltest.TestCase):
       elif score.metric == 'NoResultRate':
         npt.assert_equal(score.value, 0.0)
         npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'NDCG@10':
+        # Query '1': ref='bla' at rank 2 → 1/log2(3) ≈ 0.6309
+        # Query '2': ref='bli' at rank 1 → 1/log2(2) = 1.0
+        expected = (1.0 / np.log2(3) + 1.0) / 2
+        npt.assert_almost_equal(score.value, expected, decimal=4)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 
@@ -215,7 +220,7 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 6)
+    self.assertLen(scores, 7)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -235,6 +240,9 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
       elif score.metric == 'NoResultRate':
         npt.assert_equal(score.value, 0.0)
         npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'NDCG@10':
+        expected = (1.0 / np.log2(3) + 1.0) / 2
+        npt.assert_almost_equal(score.value, expected, decimal=4)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 
@@ -327,7 +335,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 6)
+    self.assertLen(scores, 7)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -347,6 +355,9 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
       elif score.metric == 'NoResultRate':
         npt.assert_equal(score.value, 0.0)
         npt.assert_equal(score.std, 0.0)
+      elif score.metric == 'NDCG@10':
+        expected = (1.0 / np.log2(3) + 1.0) / 2
+        npt.assert_almost_equal(score.value, expected, decimal=4)
       else:
         raise ValueError(f'Unexpected metric: {score.metric}')
 

@@ -99,6 +99,7 @@ def _compute_metrics(
       'recall_at_inf': [],
       'invalid': [],
       'no_response': [],
+      'ndcg': [],
   }
   for reference_id in reference_ids:
     if reference_id.sound_id in predictions:
@@ -138,6 +139,13 @@ def _compute_metrics(
               )
           )
       )
+      values_by_metric['ndcg'].append(
+          types.WeightedValue(
+              value=metrics_lib.compute_ndcg_at_k(
+                  reference_id.reference_id, ranked_doc_ids, k=10
+              )
+          )
+      )
       values_by_metric['invalid'].append(types.WeightedValue(value=0.0))
       values_by_metric['no_response'].append(types.WeightedValue(value=0.0))
     else:
@@ -145,6 +153,7 @@ def _compute_metrics(
       values_by_metric['em'].append(types.WeightedValue(value=0.0))
       values_by_metric['recall_at_k'].append(types.WeightedValue(value=0.0))
       values_by_metric['recall_at_inf'].append(types.WeightedValue(value=0.0))
+      values_by_metric['ndcg'].append(types.WeightedValue(value=0.0))
       values_by_metric['invalid'].append(
           types.WeightedValue(
               value=float(
@@ -211,6 +220,18 @@ def _compute_metrics(
       std=no_result_rate[1],
   )
 
+  ndcg = evaluator_lib.compute_weighted_average_and_std(
+      values_by_metric['ndcg']
+  )
+  ndcg_score = types.Score(
+      metric='NDCG@10',
+      description='Normalized Discounted Cumulative Gain at 10',
+      value=ndcg[0],
+      min=0,
+      max=1,
+      std=ndcg[1],
+  )
+
   return [
       mrr_score,
       em_score,
@@ -218,6 +239,7 @@ def _compute_metrics(
       recall_at_inf_score,
       invalid_result_score,
       no_result_score,
+      ndcg_score,
   ]
 
 
@@ -321,12 +343,8 @@ class RetrievalEvaluatorPartitioned:
         if sound_id not in predictions:
           predictions[sound_id] = predictions_for_sound_id
         else:
-          assert isinstance(
-              predictions[sound_id], types.ValidListPrediction
-          )
-          assert isinstance(
-              predictions_for_sound_id, types.ValidListPrediction
-          )
+          assert isinstance(predictions[sound_id], types.ValidListPrediction)
+          assert isinstance(predictions_for_sound_id, types.ValidListPrediction)
           predictions[sound_id].merge(predictions_for_sound_id)
 
     return predictions  # pytype: disable=bad-return-type
