@@ -58,7 +58,7 @@ class StabilityTaskTest(unittest.TestCase):
         sounds_data=[np.zeros(10), np.zeros(10)],
         num_augmentations=2
     )
-    all_sounds = list(task.sounds())
+    all_sounds = list(task.multimodal_inputs())
     self.assertEqual(len(all_sounds), 6)
     # Check first triplet
     self.assertEqual(all_sounds[0].context.id, "sample_0")

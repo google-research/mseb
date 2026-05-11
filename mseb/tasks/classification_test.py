@@ -46,7 +46,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_class"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:
@@ -88,7 +88,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_class"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:
@@ -153,7 +153,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_label"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:
@@ -203,7 +203,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_class"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:
@@ -265,7 +265,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_class"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:
@@ -328,7 +328,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_class"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:
@@ -403,7 +403,7 @@ class ClassificationTest(absltest.TestCase):
       def task_type(self) -> str:
         return "multi_label"
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def class_labels(self) -> Iterable[str]:

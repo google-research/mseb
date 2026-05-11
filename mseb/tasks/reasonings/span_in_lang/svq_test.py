@@ -69,7 +69,7 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
 
   def test_svq_span_in_lang_reasoning_sounds(self):
     task = svq.SVQEnUsSpanInLangReasoning()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 2)
     sound = sounds[0]
     self.assertEqual(sound.context.id, "utt_11697423627206642872")

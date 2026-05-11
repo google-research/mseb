@@ -102,7 +102,7 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
 
   def test_svq_query_reranking_sounds(self):
     task = svq.SVQEnUsQueryReranking()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 2)
     sound = sounds[0]
     self.assertIsInstance(sound, types.SoundWithTitleAndContext)

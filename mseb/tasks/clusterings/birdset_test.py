@@ -107,7 +107,7 @@ class BirdsetClusteringTest(absltest.TestCase):
   def test_sounds(self):
     task = birdset.BirdsetClusteringHSN()
     task.setup()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 4)
     self.assertIsInstance(sounds[0], types.Sound)
     self.assertEqual(sounds[0].context.id, "fake/path/audio.ogg")

@@ -47,11 +47,11 @@ class SVQClustering(clustering.ClusteringTask):
   def sub_tasks(self) -> list[str]:
     return ['speaker_gender', 'speaker_age', 'speaker_id']
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     for example in self._task_data().to_dict('records'):
       yield self._svq_dataset.get_sound(example)
 
-  def sounds_beam(self):
+  def multimodal_inputs_beam(self):
     return self._svq_dataset.get_task_sounds_beam(
         'utt_index', locale=self.locale
     )

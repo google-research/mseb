@@ -59,7 +59,7 @@ class SVQEnUsPassageInLangRetrievalTest(absltest.TestCase):
 
   def test_svq_en_us_passage_in_lang_retrieval_sounds(self):
     task = svq.SVQEnUsPassageInLangRetrieval()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 2)
     sound = sounds[0]
     self.assertEqual(sound.context.id, "utt_11697423627206642872")

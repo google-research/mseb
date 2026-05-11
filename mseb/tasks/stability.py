@@ -159,7 +159,7 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
     """
     ...
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     """Yields Clean reference followed by N Augmented variants.
 
     Uses deterministic seeding based on the sound ID to ensure reproducibility

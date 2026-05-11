@@ -59,7 +59,7 @@ class SegmentationTask(task.MSEBTask):
     ...
 
   @abc.abstractmethod
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     """Iterate all sounds in the corpus for this task."""
     ...
 

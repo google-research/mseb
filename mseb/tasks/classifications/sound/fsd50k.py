@@ -46,7 +46,7 @@ class FSD50KClassification(classification.ClassificationTask):
     fsd_dataset = fsd50k.FSD50KDataset(split="test")
     return fsd_dataset.class_labels
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     fsd_dataset = self._get_dataset()
     for record in fsd_dataset.get_task_data().to_dict("records"):
       yield fsd_dataset.get_sound(record)

@@ -138,7 +138,7 @@ class FSD50KClusteringTest(absltest.TestCase):
   def test_test_clustering_sounds(self):
     task = fsd50k.FSD50KTestClustering()
     task.setup()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 2)
     self.assertIsInstance(sounds[0], types.Sound)
     self.assertEqual(sounds[0].context.id, '37199')

@@ -62,7 +62,7 @@ class SVQClusteringTest(absltest.TestCase):
     self.assertEqual(
         task.sub_tasks, ["speaker_gender", "speaker_age", "speaker_id"]
     )
-    embeddings = runner.run(task.sounds())
+    embeddings = runner.run(task.multimodal_inputs())
     scores = task.compute_scores(embeddings)
     self.assertLen(scores, 3)
     self.assertIn("speaker_gender", scores)

@@ -100,7 +100,7 @@ class SVQQueryReranking(reranking.RerankingTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
-  def sounds(self) -> Iterable[types.SoundWithTitleAndContext]:
+  def multimodal_inputs(self) -> Iterable[types.SoundWithTitleAndContext]:
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'query_reranking',

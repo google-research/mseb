@@ -78,7 +78,7 @@ class BirdsetClustering(clustering.ClusteringTask):
   def sub_tasks(self) -> list[str]:
     return ["clustering"]
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     for example in self._task_data().to_dict("records"):
       yield self._birdset_dataset.get_sound(example)
 

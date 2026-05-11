@@ -54,7 +54,7 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'speech_transcription',

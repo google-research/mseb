@@ -48,7 +48,7 @@ class FSD50KClustering(clustering.ClusteringTask):
     labels = record["labels"].split(",")
     return labels[0] if labels else "no_label"
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     for record in self._fsd_dataset.get_task_data().to_dict("records"):
       yield self._fsd_dataset.get_sound(record)
 

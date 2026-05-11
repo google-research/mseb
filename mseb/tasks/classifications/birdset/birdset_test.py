@@ -85,7 +85,7 @@ class BirdsetHSNClassificationTest(absltest.TestCase):
 
   def test_birdset_classification_sounds(self):
     task = birdset.BirdsetHSNClassification()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 3)
     self.assertEqual(sounds[0].context.id, "fake/path/audio.ogg")
     self.assertEqual(sounds[0].context.text, "astcal")

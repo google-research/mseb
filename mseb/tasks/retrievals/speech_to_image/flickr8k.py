@@ -18,7 +18,7 @@ Audio-to-image retrieval on the Flickr8k Audio dataset. Given a spoken caption,
 retrieve the matching image from the Flickr8k test set.
 
 The task yields:
-  - sounds(): spoken captions as Sound objects (queries)
+  - multimodal_inputs(): spoken captions as Sound objects (queries)
   - documents(): Flickr8k images as Image objects (documents for index building)
 
 Evaluation uses the standard RetrievalTask ScaNN-based pipeline: build an index
@@ -65,7 +65,7 @@ class Flickr8kImageRetrieval(retrieval.RetrievalTask):
     for record in dataset.get_unique_images():
       yield dataset.get_image(record)
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     """Yields Sound objects for each spoken caption in the dataset."""
     dataset = self._get_dataset()
     for record in dataset.get_task_data().to_dict('records'):

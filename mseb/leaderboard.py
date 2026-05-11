@@ -107,9 +107,9 @@ def run_benchmark(
   """Run a task evaluation."""
   runner.set_task(task)
   if isinstance(runner, runner_lib.BeamRunner):
-    embeddings = runner.run(task.sounds_beam())
+    embeddings = runner.run(task.multimodal_inputs_beam())
   else:
-    embeddings = runner.run(task.sounds())
+    embeddings = runner.run(task.multimodal_inputs())
   scores = task.compute_scores(embeddings)
   encoding_scores = get_encoding_scores(embeddings)
 

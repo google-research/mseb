@@ -81,7 +81,7 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
           context=types.TextContextParams(id=title, title=title),
       )
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     truncation = None
     backfill = None
     svq_dataset = self._get_svq_dataset()

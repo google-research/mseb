@@ -68,7 +68,7 @@ class SVQSpeakerGenderClassification(classification.ClassificationTask):
   def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
     for example in dataset.get_task_data('utt_index').to_dict('records'):
       if example['locale'] == self.locale:

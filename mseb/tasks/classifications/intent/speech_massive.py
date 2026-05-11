@@ -48,7 +48,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
   def _get_dataset(self) -> speech_massive.SpeechMassiveDataset:
     return speech_massive.SpeechMassiveDataset(filename=self.filename)
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()
     for example in dataset.get_task_data(with_audio=True).to_dict("records"):
       yield dataset.get_sound(example)

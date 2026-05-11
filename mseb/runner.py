@@ -377,7 +377,7 @@ class BeamRunner(EncoderRunner):
 
     _ = (
         pcoll
-        | 'ReshuffleSounds' >> beam.Reshuffle()
+        | 'ReshuffleElements' >> beam.Reshuffle()
         | 'Encode'
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)

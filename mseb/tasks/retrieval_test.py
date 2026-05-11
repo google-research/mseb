@@ -50,7 +50,7 @@ class RetrievalTest(absltest.TestCase):
       def index_dir(self) -> str:
         return os.path.join(super().index_dir, 'svq_passage_retrieval_in_lang')
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         return [
             types.Sound(
                 waveform=np.zeros(16000),
@@ -149,7 +149,7 @@ class RetrievalTest(absltest.TestCase):
             for i in range(16)
         ]
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def examples(

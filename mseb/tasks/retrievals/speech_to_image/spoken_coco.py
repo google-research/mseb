@@ -18,7 +18,7 @@ Audio-to-image retrieval on the SpokenCOCO dataset. Given a spoken caption,
 retrieve the matching image from the MS COCO val set.
 
 The task yields:
-  - sounds(): spoken captions as Sound objects (queries)
+  - multimodal_inputs(): spoken captions as Sound objects (queries)
   - images(): COCO images as Image objects (documents for index building)
 
 Evaluation uses the standard RetrievalTask ScaNN-based pipeline: build an index
@@ -65,7 +65,7 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
     for record in dataset.get_unique_images():
       yield dataset.get_image(record)
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     """Yields Sound objects for each spoken caption in the dataset."""
     dataset = self._get_dataset()
     for record in dataset.get_task_data().to_dict('records'):

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
-
 from absl.testing import absltest
 from mseb import encoder
 from mseb import evaluator
@@ -99,11 +97,9 @@ class MockTask(task.MSEBTask):
 
   def __init__(
       self,
-      sound_encoder: encoder.MultiModalEncoder,
-      evaluator_kwargs: dict[str, Any] | None = None,
       dataset_size: int = 5,
   ):
-    super().__init__(sound_encoder, evaluator_kwargs)
+    super().__init__()
     self._dataset_size = dataset_size
 
   def load_data(self):
@@ -114,6 +110,12 @@ class MockTask(task.MSEBTask):
               sample_rate=16000, length=16000, id=str(i)
           ),
       )
+
+  def multimodal_inputs(self) -> task.Iterable[types.Sound]:
+    return self.load_data()
+
+  def compute_scores(self, cache: types.MultiModalEmbeddingCache):
+    raise NotImplementedError()
 
 
 class MSEBTaskTest(absltest.TestCase):
@@ -133,6 +135,17 @@ class MSEBTaskTest(absltest.TestCase):
   def test_get_task_by_name_not_found(self):
     with self.assertRaises(ValueError):
       task.get_task_by_name("not_found")
+
+  def test_sounds_deprecation_warning(self):
+    with self.assertLogs(level="WARNING") as cm:
+      sounds = list(MockTask().sounds())
+      self.assertLen(sounds[0].waveform, 16000)
+    self.assertTrue(
+        any("sounds() is deprecated" in msg for msg in cm.output)
+    )
+
+  def test_multimodal_inputs(self):
+    self.assertLen(list(MockTask().multimodal_inputs()), 5)
 
 
 if __name__ == "__main__":

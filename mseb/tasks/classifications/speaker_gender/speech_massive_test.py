@@ -44,7 +44,7 @@ class SpeechMassiveDeDeSpeakerGenderClassificationTest(absltest.TestCase):
   @mock.patch("mseb.utils.download_from_hf")
   def test_speech_massive_speaker_gender_classification_sounds(self, _):
     task = speech_massive.SpeechMassiveDeDeSpeakerGenderClassification()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 2)
     sound = sounds[0]
     self.assertEqual(

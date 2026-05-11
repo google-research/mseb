@@ -54,7 +54,7 @@ class SVQStabilityTest(absltest.TestCase):
     """Verifies that only 'clean' environment sounds are picked as anchors."""
     # num_augmentations=0 to only count the base anchor sounds.
     task = svq.SVQEnUsContinuousStability(num_augmentations=0)
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     # Based on the jsonl, there are exactly 3 'clean' en_us utterances.
     self.assertLen(sounds, 3)
     for sound in sounds:
@@ -71,7 +71,7 @@ class SVQStabilityTest(absltest.TestCase):
     """Verifies that sounds are correctly expanded by the number of augmentations."""
     # 3 clean anchors * (1 clean + 2 augmented) = 9 total sounds.
     task = svq.SVQEnUsContinuousStability(num_augmentations=2)
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 9)
     # Check naming convention of an augmented sample
     # (StabilityTask usually names them {base_id}_aug_{n})

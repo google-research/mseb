@@ -77,7 +77,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
           ),
       )
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     truncation = None
     backfill = None
     svq_dataset = self._get_dataset()

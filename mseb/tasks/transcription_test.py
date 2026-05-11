@@ -28,7 +28,7 @@ transcription_evaluator = pytest.importorskip(
 
 class MockTranscriptionTask(transcription.TranscriptionTask):
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     return [
         types.Sound(
             waveform=np.zeros(16000),

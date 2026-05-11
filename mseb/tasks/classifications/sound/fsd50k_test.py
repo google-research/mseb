@@ -80,7 +80,7 @@ class FSD50KTestClassificationTest(absltest.TestCase):
 
   def test_sounds(self):
     task = fsd50k.FSD50KTestClassification()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 3)
     self.assertEqual(sounds[0].context.id, '1234')
     self.assertEqual(sounds[1].context.id, '5678')

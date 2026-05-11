@@ -44,7 +44,7 @@ class SVQEnUsSpeakerGenderClassificationTest(absltest.TestCase):
   @mock.patch("mseb.utils.download_from_hf")
   def test_svq_speaker_gender_classification_sounds(self, _):
     task = svq.SVQEnUsSpeakerGenderClassification()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 10)
     sound = sounds[0]
     self.assertEqual(

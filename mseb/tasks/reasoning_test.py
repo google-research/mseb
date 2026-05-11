@@ -52,7 +52,7 @@ class ReasoningTest(absltest.TestCase):
             super().embeddings_dir, 'svq_en_us_span_reasoning_in_lang'
         )
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def examples(
@@ -164,7 +164,7 @@ class ReasoningTest(absltest.TestCase):
             for _ in range(2)
         ]
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def examples(
@@ -206,7 +206,7 @@ class ReasoningTest(absltest.TestCase):
       def embeddings_dir(self) -> str:
         raise FileNotFoundError()  # setup() logic relies on this exception.
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def examples(

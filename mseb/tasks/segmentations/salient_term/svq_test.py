@@ -98,7 +98,7 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
 
   def test_svq_salient_term_segmentation_sounds(self):
     task = svq.SVQEnUsSalientTermSegmentation()
-    sounds = list(task.sounds())
+    sounds = list(task.multimodal_inputs())
 
     self.assertLen(sounds, 3)
     self.mock_get_sound.assert_any_call({"utt_id": "en_us_001"})

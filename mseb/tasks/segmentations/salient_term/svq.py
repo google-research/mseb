@@ -49,7 +49,7 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     if self.locale is None:
       raise ValueError("`locale` must be set by a concrete task subclass.")
 

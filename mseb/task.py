@@ -66,13 +66,24 @@ class MSEBTask(abc.ABC):
   ) -> dict[str, list[types.Score]]:
     """Evaluate the task."""
 
-  @abc.abstractmethod
   def sounds(self) -> Iterable[types.Sound]:
     """Iterate all of the sounds in the corpus for this task."""
+    logging.warning(
+        "sounds() is deprecated. Update to use multimodal_inputs() instead. "
+    )
+    return self.multimodal_inputs()
 
   def sounds_beam(self) -> beam.PCollection[types.Sound]:
     """Beam transform to iterate all of the sounds in the corpus for this task."""
     return beam.Create(list(self.sounds()))
+
+  @abc.abstractmethod
+  def multimodal_inputs(self) -> Iterable[types.MultiModalObject]:
+    """Iterate all of the multimodal inputs in the corpus for this task."""
+
+  def multimodal_inputs_beam(self) -> beam.PCollection[types.MultiModalObject]:
+    """Beam transform to iterate all of the multimodal inputs in the corpus for this task."""
+    return beam.Create(list(self.multimodal_inputs()))
 
 
 def get_name_to_task() -> dict[str, Type[MSEBTask]]:

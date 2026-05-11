@@ -49,7 +49,7 @@ class SegmentationTaskTest(absltest.TestCase):
       def examples(self, sub_task):
         return []
 
-      def sounds(self):
+      def multimodal_inputs(self):
         return []
 
     task = MockTask(tau=0.25)
@@ -68,7 +68,7 @@ class SegmentationTaskTest(absltest.TestCase):
       def examples(self, sub_task):
         return []
 
-      def sounds(self):
+      def multimodal_inputs(self):
         return []
 
     task = MockTask()
@@ -96,7 +96,7 @@ class SegmentationTaskTest(absltest.TestCase):
           ]
         return []
 
-      def sounds(self):
+      def multimodal_inputs(self):
         raise NotImplementedError()
 
     task = MockTask(tau=0.1)

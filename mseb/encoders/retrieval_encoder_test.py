@@ -67,7 +67,7 @@ class MockRetrievalTask(retrieval_task.RetrievalTask):
         ),
     ]
 
-  def sounds(self) -> Iterable[types.Sound]:
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
     raise NotImplementedError('Not used in this test.')
 
   def examples(

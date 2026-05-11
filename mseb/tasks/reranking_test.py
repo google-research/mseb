@@ -49,7 +49,7 @@ class RerankingTest(absltest.TestCase):
       def embeddings_dir(self) -> str:
         return os.path.join(super().embeddings_dir, 'svq_en_us_query_reranking')
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def examples(
@@ -179,7 +179,7 @@ class RerankingTest(absltest.TestCase):
             ],
         ]
 
-      def sounds(self) -> Iterable[types.Sound]:
+      def multimodal_inputs(self) -> Iterable[types.Sound]:
         raise NotImplementedError()
 
       def examples(

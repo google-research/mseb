@@ -105,8 +105,8 @@ class Flickr8kImageRetrievalTest(absltest.TestCase):
   def test_sub_tasks(self):
     self.assertEqual(self.task.sub_tasks, ['image_retrieval'])
 
-  def test_sounds(self):
-    sounds = list(self.task.sounds())
+  def test_multimodal_inputs(self):
+    sounds = list(self.task.multimodal_inputs())
     self.assertLen(sounds, 3)
     for s in sounds:
       self.assertIsInstance(s, types.Sound)
@@ -134,9 +134,9 @@ class Flickr8kImageRetrievalTest(absltest.TestCase):
     self.assertEqual(ref_by_sound['img_001_0'], ref_by_sound['img_001_1'])
     self.assertNotEqual(ref_by_sound['img_001_0'], ref_by_sound['img_002_0'])
 
-  def test_sounds_and_examples_have_matching_ids(self):
-    """sound IDs from sounds() should match sound_ids in examples()."""
-    sound_ids = {s.context.id for s in self.task.sounds()}
+  def test_multimodal_inputs_and_examples_have_matching_ids(self):
+    """sound IDs from multimodal_inputs() should match sound_ids in examples()."""
+    sound_ids = {s.context.id for s in self.task.multimodal_inputs()}
     example_sound_ids = {
         e.sound_id for e in self.task.examples('image_retrieval')
     }

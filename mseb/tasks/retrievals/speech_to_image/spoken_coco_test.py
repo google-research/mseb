@@ -132,8 +132,8 @@ class SpokenCocoImageRetrievalTest(absltest.TestCase):
   def test_sub_tasks(self):
     self.assertEqual(self.task.sub_tasks, ['image_retrieval'])
 
-  def test_sounds(self):
-    sounds = list(self.task.sounds())
+  def test_multimodal_inputs(self):
+    sounds = list(self.task.multimodal_inputs())
     self.assertLen(sounds, 3)
 
     # First caption of first image.
@@ -195,8 +195,8 @@ class SpokenCocoImageRetrievalTest(absltest.TestCase):
     self.assertNotEqual(examples[0].reference_id, examples[2].reference_id)
 
   def test_sounds_and_examples_have_matching_ids(self):
-    """sound IDs from sounds() should match sound_ids in examples()."""
-    sound_ids = {s.context.id for s in self.task.sounds()}
+    """sound IDs from multimodal_inputs() should match sound_ids in examples()."""
+    sound_ids = {s.context.id for s in self.task.multimodal_inputs()}
     example_sound_ids = {
         e.sound_id for e in self.task.examples('image_retrieval')
     }
