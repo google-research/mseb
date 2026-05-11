@@ -58,11 +58,15 @@ def em(value: float = 0.0, std: float | None = None):
 
 
 def compute_recall_at_k(
-    reference: str, predicted_neighbors: Sequence[str], k: int = 10
+    reference: str | Sequence[str],
+    predicted_neighbors: Sequence[str],
+    k: int = 10,
 ) -> float:
   """Computes the recall at k."""
+  if isinstance(reference, str):
+    reference = [reference]
   for neighbor in predicted_neighbors[:k]:
-    if reference == neighbor:
+    if neighbor in reference:
       return 1.0
   return 0.0
 
@@ -70,7 +74,7 @@ def compute_recall_at_k(
 @dataclasses.dataclass
 class RetrievalReferenceId:
   sound_id: str
-  reference_id: str
+  reference_id: str | Sequence[str]
 
 
 RetrievalPredictionsCache = Mapping[str, types.ListPrediction]

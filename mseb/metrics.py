@@ -82,12 +82,14 @@ def _jit_dtw_core(dist_matrix: np.ndarray) -> float:
 
 
 def compute_reciprocal_rank(
-    reference: str, predicted_neighbors: Sequence[str]
+    reference: str | Sequence[str], predicted_neighbors: Sequence[str]
 ) -> float:
   """Computes the reciprocal rank for mean reciprocal rank (MRR)."""
+  if isinstance(reference, str):
+    reference = [reference]
   rank = 0
   for i, neighbor in enumerate(predicted_neighbors):
-    if reference == neighbor:
+    if neighbor in reference:
       # Matched the reference at this position in the ranking.
       rank = i + 1
       break
@@ -96,11 +98,13 @@ def compute_reciprocal_rank(
 
 
 def compute_exact_match(
-    reference: str, predicted_neighbors: Sequence[str]
+    reference: str | Sequence[str], predicted_neighbors: Sequence[str]
 ) -> float:
   """Computes the exact match for the first predicted neighbor."""
+  if isinstance(reference, str):
+    reference = [reference]
   if predicted_neighbors:
-    return float(reference == predicted_neighbors[0])
+    return float(predicted_neighbors[0] in reference)
   return 0.0
 
 

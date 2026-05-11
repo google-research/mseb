@@ -39,6 +39,30 @@ class MetricsTest(parameterized.TestCase):
           predicted_neighbors=['neighbor1', 'reference'],
           expected_reciprocal_rank=1 / 2,
       ),
+      dict(
+          testcase_name='multi_ref_first_match',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['ref_a', 'neighbor1'],
+          expected_reciprocal_rank=1.0,
+      ),
+      dict(
+          testcase_name='multi_ref_second_match',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['neighbor1', 'ref_b', 'neighbor2'],
+          expected_reciprocal_rank=1 / 2,
+      ),
+      dict(
+          testcase_name='multi_ref_no_match',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['neighbor1', 'neighbor2'],
+          expected_reciprocal_rank=0.0,
+      ),
+      dict(
+          testcase_name='multi_ref_earliest_wins',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['neighbor1', 'ref_b', 'ref_a'],
+          expected_reciprocal_rank=1 / 2,
+      ),
   )
   def test_compute_reciprocal_rank(
       self, reference, predicted_neighbors, expected_reciprocal_rank
@@ -70,6 +94,30 @@ class MetricsTest(parameterized.TestCase):
       dict(
           testcase_name='no_neighbors',
           reference='reference',
+          predicted_neighbors=[],
+          expected_exact_match=0.0,
+      ),
+      dict(
+          testcase_name='multi_ref_first_matches',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['ref_a', 'neighbor1'],
+          expected_exact_match=1.0,
+      ),
+      dict(
+          testcase_name='multi_ref_second_matches',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['ref_b', 'neighbor1'],
+          expected_exact_match=1.0,
+      ),
+      dict(
+          testcase_name='multi_ref_no_match_at_top',
+          reference=['ref_a', 'ref_b'],
+          predicted_neighbors=['neighbor1', 'ref_a'],
+          expected_exact_match=0.0,
+      ),
+      dict(
+          testcase_name='multi_ref_empty_neighbors',
+          reference=['ref_a', 'ref_b'],
           predicted_neighbors=[],
           expected_exact_match=0.0,
       ),

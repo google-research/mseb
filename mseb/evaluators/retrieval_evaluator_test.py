@@ -54,6 +54,36 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         1.0,
     )
 
+  def test_compute_recall_at_k_multi_reference(self):
+    """recall_at_k with multiple valid references."""
+    reference = ['bla', 'blo']
+    predicted_neighbors = ['bli', 'blo', 'bla', 'blu']
+    # k=1: 'bli' not in reference -> 0.0
+    self.assertEqual(
+        retrieval_evaluator.compute_recall_at_k(
+            reference, predicted_neighbors, k=1
+        ),
+        0.0,
+    )
+    # k=2: 'blo' in reference -> 1.0
+    self.assertEqual(
+        retrieval_evaluator.compute_recall_at_k(
+            reference, predicted_neighbors, k=2
+        ),
+        1.0,
+    )
+
+  def test_compute_recall_at_k_multi_reference_no_match(self):
+    """No match among any of the multi-references."""
+    reference = ['x', 'y']
+    predicted_neighbors = ['a', 'b', 'c']
+    self.assertEqual(
+        retrieval_evaluator.compute_recall_at_k(
+            reference, predicted_neighbors, k=3
+        ),
+        0.0,
+    )
+
   def test_compute_predictions(self):
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
     searcher = (
