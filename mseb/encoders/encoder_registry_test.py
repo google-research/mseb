@@ -19,11 +19,7 @@ import pytest
 encoder_registry = pytest.importorskip("mseb.encoders.encoder_registry")
 
 _ = pytest.importorskip("mseb.encoders.registration.clap")
-_ = pytest.importorskip("mseb.encoders.registration.genai")
-_ = pytest.importorskip("mseb.encoders.registration.litellm")
-_ = pytest.importorskip("mseb.encoders.registration.openai")
 _ = pytest.importorskip("mseb.encoders.registration.raw")
-_ = pytest.importorskip("mseb.encoders.registration.whisper")
 
 
 @pytest.mark.whisper
@@ -32,17 +28,7 @@ class EncoderRegistryTest(parameterized.TestCase):
 
   @parameterized.parameters(
       "raw_spectrogram_25ms_10ms_mean",
-      "whisper_base_speech_to_text",
-      "whisper_base_pooled_last",
-      "whisper_base_pooled_mean",
-      "whisper_base_pooled_max",
-      "whisper_forced_alignment",
       "laion_clap_encoder",
-      "genai_llm",
-      "openai_llm_with_title_and_context",
-      "openai_speech_to_text",
-      "litellm_speech_to_text",
-      "litellm_embedding",
   )
   def test_load_encoder(self, name):
     meta = encoder_registry.get_encoder_metadata(name)

@@ -16,10 +16,12 @@
 
 import dataclasses
 import json
+import logging
 from typing import Callable, Mapping, Optional, Sequence, Tuple, final
 
 import jaxtyping
 from mseb import encoder
+from mseb import tasks
 from mseb import types
 from mseb import utils
 from mseb.encoders import prompt as prompt_lib
@@ -100,14 +102,35 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       )
 
   def _get_normalized_text_prompt(
-      self, text: str, title: str | None = None, context: str | None = None
+      self,
+      text: str,
+      title: str | None = None,
+      context: str | None = None,
+      task_name: str | None = None,
   ) -> str:
     """Returns the prompt to be used for encoding."""
     prompt = self.prompt
-    if self.task_prompts and self._current_task:
-      task_name = self._current_task.metadata.name
-      if task_name in self.task_prompts:
-        prompt = self.task_prompts[task_name]
+    metadata = None
+    if task_name:
+      try:
+        task_cls = tasks.get_task_by_name(task_name)
+        metadata = task_cls.metadata
+      except Exception as e:  # pylint: disable=broad-except
+        logging.warning('Failed to get task by name %s: %s', task_name, e)
+    elif self._current_task:
+      metadata = self._current_task.metadata
+
+    if self.task_prompts and metadata:
+      # Hierarchical lookup: Name -> Type -> Category
+      if metadata.name in self.task_prompts:
+        prompt = self.task_prompts[metadata.name]
+      elif metadata.type in self.task_prompts:
+        prompt = self.task_prompts[metadata.type]
+      elif metadata.category in self.task_prompts:
+        prompt = self.task_prompts[metadata.category]
+
+    if hasattr(prompt, 'load'):
+      prompt = prompt.load()
 
     self._last_used_prompt = prompt
     prompt_template = prompt.GetPromptTemplate()
@@ -137,23 +160,39 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
     """Encodes a batch of text or audio sources."""
     prompt_batch = []
     for example in batch:
+      ctx_task_name = getattr(example.context, 'task_name', None)
+      if (
+          ctx_task_name is None
+          and hasattr(example.context, 'id')
+          and ':' in example.context.id
+      ):
+        ctx_task_name = example.context.id.split(':')[0]
+
       if isinstance(example, types.TextWithTitleAndContext):
         prompt_text = self._get_normalized_text_prompt(
-            example.text, title=example.title_text, context=example.context_text
+            example.text,
+            title=example.title_text,
+            context=example.context_text,
+            task_name=ctx_task_name,
         )
         prompt_audio = None
       elif isinstance(example, types.Text):
-        prompt_text = self._get_normalized_text_prompt(example.text)
+        prompt_text = self._get_normalized_text_prompt(
+            example.text, task_name=ctx_task_name
+        )
         prompt_audio = None
       elif isinstance(example, types.SoundWithTitleAndContext):
         prompt_text = self._get_normalized_text_prompt(
             self.TEXT_FOR_AUDIO,
             title=example.title_text,
             context=example.context_text,
+            task_name=ctx_task_name,
         )
         prompt_audio = utils.sound_to_wav_bytes(example)
       elif isinstance(example, types.Sound):
-        prompt_text = self._get_normalized_text_prompt(self.TEXT_FOR_AUDIO)
+        prompt_text = self._get_normalized_text_prompt(
+            self.TEXT_FOR_AUDIO, task_name=ctx_task_name
+        )
         prompt_audio = utils.sound_to_wav_bytes(example)
       else:
         raise ValueError('Unexpected input type.')
@@ -161,9 +200,38 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
 
     assert self.prompt_encode_fn is not None
     response_batch = self.prompt_encode_fn(prompt_batch)
-    embeddings_batch = [
-        self.prompt.ProcessResponse(response) for response in response_batch
-    ]
+
+    embeddings_batch = []
+    for response, example in zip(response_batch, batch):
+      ctx_task_name = getattr(example.context, 'task_name', None)
+      if (
+          ctx_task_name is None
+          and hasattr(example.context, 'id')
+          and ':' in example.context.id
+      ):
+        ctx_task_name = example.context.id.split(':')[0]
+
+      prompt = self.prompt
+      metadata = None
+      if ctx_task_name:
+        try:
+          task_cls = tasks.get_task_by_name(ctx_task_name)
+          metadata = task_cls.metadata
+        except Exception:  # pylint: disable=broad-except
+          pass
+
+      if self.task_prompts and metadata:
+        if metadata.name in self.task_prompts:
+          prompt = self.task_prompts[metadata.name]
+        elif metadata.type in self.task_prompts:
+          prompt = self.task_prompts[metadata.type]
+        elif metadata.category in self.task_prompts:
+          prompt = self.task_prompts[metadata.category]
+
+      if hasattr(prompt, 'load'):
+        prompt = prompt.load()
+
+      embeddings_batch.append(prompt.ProcessResponse(response))
 
     outputs = []
     for embeddings, example, response in zip(

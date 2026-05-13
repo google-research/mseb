@@ -40,10 +40,11 @@ class LeaderboardResult:
   base_model: str | None = None  # Base model name for grouping.
   tags: list[str] = dataclasses.field(default_factory=list)
   prompt: str | None = None
+  task_specific_data: dict[str, Any] | None = None
 
   def to_json(self) -> str:
     """Convert metrics to JSON string."""
-    return json.dumps(dataclasses.asdict(self), indent=2)
+    return json.dumps(dataclasses.asdict(self))
 
   @staticmethod
   def from_json(json_str: str) -> 'LeaderboardResult':
@@ -96,21 +97,22 @@ def get_encoding_scores(
   ]
 
 
-def run_benchmark(
-    encoder_name: str,  # Maybe this can come from Encoder metadata?
-    runner: runner_lib.EncoderRunner,
+def evaluate_task(
+    encoder_name: str,
     task: task_lib.MSEBTask,
+    embeddings: types.MultiModalEmbeddingCache,
+    runner: runner_lib.EncoderRunner,
     url: str | None = None,
     base_model: str | None = None,
     tags: list[str] | None = None,
 ) -> list[LeaderboardResult]:
-  """Run a task evaluation."""
-  runner.set_task(task)
-  if isinstance(runner, runner_lib.BeamRunner):
-    embeddings = runner.run(task.multimodal_inputs_beam())
+  """Evaluates a task on already-computed embeddings."""
+  results = task.compute_scores(embeddings)
+  if isinstance(results, tuple):
+    scores, task_specific_data = results
   else:
-    embeddings = runner.run(task.multimodal_inputs())
-  scores = task.compute_scores(embeddings)
+    scores = results
+    task_specific_data = None
   encoding_scores = get_encoding_scores(embeddings)
 
   prompt_str = None
@@ -129,9 +131,37 @@ def run_benchmark(
           base_model=base_model,
           tags=tags if tags is not None else [],
           prompt=prompt_str,
+          task_specific_data=task_specific_data.get(sub_task_name)
+          if task_specific_data
+          else None,
       )
       for sub_task_name, scores in scores.items()
   ]
+
+
+def run_benchmark(
+    encoder_name: str,  # Maybe this can come from Encoder metadata?
+    runner: runner_lib.EncoderRunner,
+    task: task_lib.MSEBTask,
+    url: str | None = None,
+    base_model: str | None = None,
+    tags: list[str] | None = None,
+) -> list[LeaderboardResult]:
+  """Run a task evaluation."""
+  runner.set_task(task)
+  if isinstance(runner, runner_lib.BeamRunner):
+    embeddings = runner.run(task.multimodal_inputs_beam())
+  else:
+    embeddings = runner.run(task.multimodal_inputs())
+  return evaluate_task(
+      encoder_name=encoder_name,
+      task=task,
+      embeddings=embeddings,
+      runner=runner,
+      url=url,
+      base_model=base_model,
+      tags=tags,
+  )
 
 
 @dataclasses.dataclass
