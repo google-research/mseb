@@ -142,7 +142,7 @@ class SpokenCocoDatasetTest(absltest.TestCase):
 
   def test_get_task_data_with_dtype(self):
     df = self.dataset.get_task_data(dtype={'uttid': str, 'speaker': str})
-    self.assertEqual(df['uttid'].dtype, object)  # str stored as object in pd
+    self.assertEqual(df['uttid'].dtype, pd.StringDtype)
 
   def test_data_is_cached(self):
     """Verify that _load_data caches the parsed JSON."""
