@@ -4,7 +4,7 @@
 name = "mseb"
 description = ""
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [{name = "mseb authors", email="mseb@google.com"}]
 classifiers = [  # List of https://pypi.org/classifiers/
@@ -34,7 +34,7 @@ dependencies = [
     "numba",
     "numpy",
     "openai",
-    "pandas",
+    "pandas<3.0",
     "protobuf",
     "pyarrow",
     "pygtrie",
