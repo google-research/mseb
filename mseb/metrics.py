@@ -136,22 +136,13 @@ def _compute_levenshtein_stats(
     truth: str, hypothesis: str
 ) -> Mapping[str, float]:
   """Wrapper around jiwer library to compute Levenshtein statistics."""
-  try:
-    stats = jiwer.compute_measures(truth=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
-    return {
-        'substitutions': stats['substitutions'],
-        'deletions': stats['deletions'],
-        'insertions': stats['insertions'],
-        'hits': stats['hits'],
-    }
-  except AttributeError:
-    stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
-    return {
-        'substitutions': stats.substitutions,
-        'deletions': stats.deletions,
-        'insertions': stats.insertions,
-        'hits': stats.hits,
-    }
+  stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
+  return {
+      'substitutions': stats.substitutions,
+      'deletions': stats.deletions,
+      'insertions': stats.insertions,
+      'hits': stats.hits,
+  }
 
 
 def compute_word_errors(

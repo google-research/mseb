@@ -443,16 +443,16 @@ class SegmentationEvaluator:
         num_ref_words = 0
         ndcg = 0.0
       else:
-        measures = jiwer.compute_measures(gt_sentence, pred_sentence)
+        measures = jiwer.process_words(gt_sentence, pred_sentence)
         edit_dist = (
-            measures["substitutions"] +
-            measures["deletions"] +
-            measures["insertions"]
+            measures.substitutions +
+            measures.deletions +
+            measures.insertions
         )
         num_ref_words = int(
-            measures["hits"] +
-            measures["substitutions"] +
-            measures["deletions"]
+            measures.hits +
+            measures.substitutions +
+            measures.deletions
         )
         dcg = sum(
             1.0 / np.log2(i + 2)

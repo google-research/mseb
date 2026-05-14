@@ -4,7 +4,7 @@
 name = "mseb"
 description = ""
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {file = "LICENSE"}
 authors = [{name = "mseb authors", email="mseb@google.com"}]
 classifiers = [  # List of https://pypi.org/classifiers/
@@ -28,7 +28,7 @@ dependencies = [
     "huggingface_hub",
     "jax",
     "jaxtyping",
-    "jiwer>=2.0,<3.0",
+    "jiwer>=3.0",
     "librosa",
     "litellm",
     "numba",
