@@ -58,34 +58,9 @@ class TranscriptionTask(task.MSEBTask):
     else:
       transcript_by_sound_id = embeddings
 
-    # Check if the first item has a stashed transcript in its context.
-    first_emb = next(iter(embeddings.values()))
-    has_cached_truths = (
-        isinstance(first_emb.context, types.SoundContextParams)
-        and first_emb.context.text is not None
-    )
-
     scores = {}
     for sub_task in self.sub_tasks:
-      if has_cached_truths:
-        logging.info('Using stashed transcripts from cached embeddings.')
-        transcript_truths = []
-        for sound_id, sound_emb in embeddings.items():
-          if isinstance(sound_emb.context, types.SoundContextParams):
-            transcript_truths.append(
-                transcription_evaluator.TranscriptTruth(
-                    sound_id=sound_id,
-                    text=sound_emb.context.text,
-                    language=sound_emb.context.language or 'en-US',
-                )
-            )
-          else:
-            logging.warning('Unexpected context type for sound %s', sound_id)
-        truths = tuple(transcript_truths)
-      else:
-        # Fallback to the task-specific implementation (which might be slow)
-        truths = tuple(self.examples(sub_task))
-
+      truths = tuple(self.examples(sub_task))
       scores[sub_task] = self._evaluator.compute_metrics(
           transcript_by_sound_id=transcript_by_sound_id,
           transcript_truths=truths,
