@@ -20,7 +20,7 @@
     <p>For more information, see the <a href="https://github.com/google-research/mseb">MSEB GitHub repository</a>.</p>
 
 <table class="summary-table">
-  <tr><td>Tasks:</td><td>882</td></tr>
+  <tr><td>Tasks:</td><td>938</td></tr>
   <tr><td>Task Types:</td><td>12</td></tr>
   <tr><td>Languages:</td><td>37</td></tr>
 </table>
@@ -65,7 +65,7 @@
   </thead>
   <tbody>
     <tr>
-     <td><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/embeddings/get-text-embeddings">gecko</a></td>
+     <td><a href="https://github.com/openai/whisper">gecko</a></td>
       <td>0.44</td>
       <td>0.42 (&Delta;-0.02, -4.74%)</td>
       <td>N/A</td>
@@ -80,7 +80,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td><a href="https://ai.google.dev/gemma">gemini</a></td>
+     <td><a href="https://ai.google.dev/gemini-api">gemini</a></td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -149,8 +149,9 @@
     <tr>
       <th>Rank</th>
       <th>Encoder Name</th>
-      <th title="Mean Average Precision (Macro)"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Overall classification accuracy"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
       <th title="V-measure clustering metric: Normalised mutal information against a set of labels."><a href="#clustering">clustering (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Geometric mean F1 score"><a href="#reasoning">reasoning (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Average Precision"><a href="#reranking">reranking (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Reciprocal Rank"><a href="#retrieval">retrieval (mean)</a> <span class="sort-icon"></span></th>
       <th title="Normalized Discounted Cumulative Gain. A metric that evaluates the quality of a sequence by rewarding correct terms found in the correct order."><a href="#segmentation">segmentation (mean)</a> <span class="sort-icon"></span></th>
@@ -167,6 +168,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>2</td>
@@ -177,12 +179,14 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
      <td>3</td>
-     <td><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch</a></td>
+     <td>perch</td>
       <td>0.58 ± 0.00</td>
       <td>0.39 ± 0.00</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -190,9 +194,10 @@
     </tr>
     <tr>
      <td>4</td>
-     <td><a href="https://huggingface.co/laion/clap-htsat-unfused">clap</a></td>
+     <td>clap</td>
       <td>0.43 ± 0.00</td>
       <td>0.50 ± 0.25</td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -206,21 +211,24 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
       <td>0.29 ± 0.05</td>
     </tr>
     <tr>
      <td>6</td>
-     <td><a href="https://developers.googleblog.com/introducing-gemini-2-5-flash-image/">gemini</a></td>
+     <td><a href="https://ai.google.dev/gemini-api/docs">gemini</a></td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>0.55 ± 0.10</td>
       <td>N/A</td>
-      <td class="best-value">0.36 ± 0.05</td>
+      <td>0.36 ± 0.05</td>
     </tr>
     <tr>
      <td>7</td>
-     <td><a href="https://ai.google.dev/gemma">gemini_3_flash_preview_with_title_and_context</a></td>
+     <td><a href="https://ai.google.dev/gemini-api/docs">gemini_3_flash_preview_with_title_and_context</a></td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td class="best-value">0.98 ± 0.00</td>
@@ -234,6 +242,7 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
       <td>0.57 ± 0.06</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -241,6 +250,7 @@
     <tr>
      <td>9</td>
      <td><a href="https://ai.google.dev/gemini-api">gemini_3_flash_preview_with_title_and_context_transcript_truth</a></td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -254,13 +264,26 @@
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
       <td>0.57 ± 0.08</td>
       <td>N/A</td>
       <td>N/A</td>
     </tr>
     <tr>
      <td>11</td>
-     <td><a href="https://ai.google.dev/gemini-api/docs/openai">gpt</a></td>
+     <td><a href="https://github.com/google-deepmind/gemma">gemma4</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td class="best-value">0.43 ± 0.01</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td class="best-value">0.63 ± 0.11</td>
+    </tr>
+    <tr>
+     <td>12</td>
+     <td><a href="https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe">gpt</a></td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>0.23 ± 0.01</td>
@@ -269,18 +292,20 @@
       <td>0.28 ± 0.03</td>
     </tr>
     <tr>
-     <td>12</td>
-     <td><a href="https://huggingface.co/facebook/hubert-large-ls960-ft">hubert</a></td>
+     <td>13</td>
+     <td>hubert</td>
       <td>N/A</td>
       <td>0.48 ± 0.38</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
+      <td>N/A</td>
     </tr>
     <tr>
-     <td>13</td>
+     <td>14</td>
      <td><a href="https://ai.google.dev/gemini-api/docs">litellm</a></td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>0.69 ± 0.01</td>
@@ -289,20 +314,11 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>14</td>
-     <td><a href="https://en.wikipedia.org/wiki/Spectrogram">raw_spectrogram_25ms_10ms_mean</a></td>
+     <td>15</td>
+     <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>N/A</td>
       <td>0.48 ± 0.37</td>
       <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-    </tr>
-    <tr>
-     <td>15</td>
-     <td><a href="https://huggingface.co/facebook/wav2vec2-large-960h-lv60">wav2vec2</a></td>
-      <td>N/A</td>
-      <td class="best-value">0.60 ± 0.37</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -310,7 +326,19 @@
     </tr>
     <tr>
      <td>16</td>
+     <td>wav2vec2</td>
+      <td>N/A</td>
+      <td class="best-value">0.60 ± 0.37</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+    </tr>
+    <tr>
+     <td>17</td>
      <td><a href="https://github.com/openai/whisper">whisper</a></td>
+      <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -336,7 +364,7 @@
   </thead>
   <tbody>
     <tr>
-     <td><a href="https://huggingface.co/laion/clap-htsat-unfused">clap</a></td>
+     <td>clap</td>
       <td>N/A</td>
       <td class="best-value">0.43</td>
       <td>N/A</td>
@@ -354,7 +382,7 @@
       <td class="best-value">0.80</td>
     </tr>
     <tr>
-     <td><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch</a></td>
+     <td>perch</td>
       <td class="best-value">0.58</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -379,7 +407,7 @@
   </thead>
   <tbody>
     <tr>
-     <td><a href="https://huggingface.co/laion/clap-htsat-unfused">clap</a></td>
+     <td>clap</td>
       <td>0.32</td>
       <td class="best-value">0.68</td>
       <td>N/A</td>
@@ -387,7 +415,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td><a href="https://huggingface.co/facebook/hubert-large-ls960-ft">hubert</a></td>
+     <td>hubert</td>
       <td>0.08</td>
       <td>N/A</td>
       <td class="best-value">0.76</td>
@@ -395,7 +423,7 @@
       <td>0.85</td>
     </tr>
     <tr>
-     <td><a href="https://www.kaggle.com/models/google/bird-vocalization-classifier/tensorFlow2/perch_v2_cpu/1">perch</a></td>
+     <td>perch</td>
       <td class="best-value">0.39</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -403,7 +431,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td><a href="https://en.wikipedia.org/wiki/Spectrogram">raw_spectrogram_25ms_10ms_mean</a></td>
+     <td>raw_spectrogram_25ms_10ms_mean</td>
       <td>0.09</td>
       <td>N/A</td>
       <td>0.74</td>
@@ -411,12 +439,39 @@
       <td>0.85</td>
     </tr>
     <tr>
-     <td><a href="https://huggingface.co/facebook/wav2vec2-large-960h-lv60">wav2vec2</a></td>
+     <td>wav2vec2</td>
       <td>N/A</td>
       <td>N/A</td>
       <td>0.76</td>
       <td>0.18</td>
       <td class="best-value">0.87</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+<div class="detail-table-section">
+<h2 id="reasoning">reasoning</h2>
+<div class="table-container">
+<table id="details-table-reasoning" border="1">
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th>SVQ/reasoning/span_reasoning_in_lang (GmeanF1) <a href="#type-reasoning" class="doc-link">[?]</a></th>
+      <th>SVQ/reasoning/span_reasoning_in_lang:background_speech (GmeanF1) <a href="#type-reasoning" class="doc-link">[?]</a></th>
+      <th>SVQ/reasoning/span_reasoning_in_lang:clean (GmeanF1) <a href="#type-reasoning" class="doc-link">[?]</a></th>
+      <th>SVQ/reasoning/span_reasoning_in_lang:media_noise (GmeanF1) <a href="#type-reasoning" class="doc-link">[?]</a></th>
+      <th>SVQ/reasoning/span_reasoning_in_lang:traffic_noise (GmeanF1) <a href="#type-reasoning" class="doc-link">[?]</a></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+     <td><a href="https://github.com/google-deepmind/gemma">gemma4</a></td>
+      <td class="best-value">0.43</td>
+      <td class="best-value">0.43</td>
+      <td class="best-value">0.44</td>
+      <td class="best-value">0.43</td>
+      <td class="best-value">0.41</td>
     </tr>
   </tbody>
 </table>
@@ -443,7 +498,7 @@
   </thead>
   <tbody>
     <tr>
-     <td><a href="https://ai.google.dev/gemma">gemini_3_flash_preview_with_title_and_context</a></td>
+     <td><a href="https://ai.google.dev/gemini-api/docs">gemini_3_flash_preview_with_title_and_context</a></td>
       <td class="best-value">0.98</td>
       <td class="best-value">0.99</td>
       <td class="best-value">0.99</td>
@@ -456,7 +511,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td><a href="https://ai.google.dev/gemini-api/docs/openai">gpt</a></td>
+     <td><a href="https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe">gpt</a></td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -531,7 +586,7 @@
   </thead>
   <tbody>
     <tr>
-     <td><a href="https://developers.googleblog.com/introducing-gemini-2-5-flash-image/">gemini</a></td>
+     <td><a href="https://ai.google.dev/gemini-api/docs">gemini</a></td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -569,7 +624,7 @@
       <td class="best-value">0.64</td>
     </tr>
     <tr>
-     <td><a href="https://ai.google.dev/gemma">gemini_3_flash_preview_with_title_and_context</a></td>
+     <td><a href="https://ai.google.dev/gemini-api/docs">gemini_3_flash_preview_with_title_and_context</a></td>
       <td>0.51</td>
       <td>0.52</td>
       <td>0.55</td>
@@ -721,7 +776,7 @@
       <td>0.59</td>
     </tr>
     <tr>
-     <td><a href="https://ai.google.dev/gemini-api/docs/openai">gpt</a></td>
+     <td><a href="https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe">gpt</a></td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -851,15 +906,23 @@
       <td>0.30</td>
     </tr>
     <tr>
-     <td><a href="https://developers.googleblog.com/introducing-gemini-2-5-flash-image/">gemini</a></td>
-      <td class="best-value">0.36</td>
-      <td class="best-value">0.43</td>
-      <td class="best-value">0.29</td>
-      <td class="best-value">0.35</td>
+     <td><a href="https://ai.google.dev/gemini-api/docs">gemini</a></td>
+      <td>0.36</td>
+      <td>0.43</td>
+      <td>0.29</td>
+      <td>0.35</td>
       <td>0.37</td>
     </tr>
     <tr>
-     <td><a href="https://ai.google.dev/gemini-api/docs/openai">gpt</a></td>
+     <td><a href="https://github.com/google-deepmind/gemma">gemma4</a></td>
+      <td class="best-value">0.62</td>
+      <td class="best-value">0.80</td>
+      <td class="best-value">0.48</td>
+      <td class="best-value">0.62</td>
+      <td class="best-value">0.60</td>
+    </tr>
+    <tr>
+     <td><a href="https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe">gpt</a></td>
       <td>0.28</td>
       <td>0.28</td>
       <td>0.24</td>
@@ -872,7 +935,7 @@
       <td>0.35</td>
       <td>0.28</td>
       <td>0.32</td>
-      <td class="best-value">0.37</td>
+      <td>0.37</td>
     </tr>
   </tbody>
 </table>
@@ -993,6 +1056,10 @@ Wikipedia article that answers a voice query.</p>
 <ul>
   <li>SVQ/reasoning/span_reasoning_cross_lang</li>
   <li>SVQ/reasoning/span_reasoning_in_lang</li>
+  <li>SVQ/reasoning/span_reasoning_in_lang:background_speech</li>
+  <li>SVQ/reasoning/span_reasoning_in_lang:clean</li>
+  <li>SVQ/reasoning/span_reasoning_in_lang:media_noise</li>
+  <li>SVQ/reasoning/span_reasoning_in_lang:traffic_noise</li>
 </ul>
 </div>
     <p><a href="#">[Back to top]</a></p>
