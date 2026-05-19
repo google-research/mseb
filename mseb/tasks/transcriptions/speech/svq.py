@@ -81,6 +81,9 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
         'speech_transcription', locale=self.locale
     )
 
+  def multimodal_inputs_beam(self):
+    return self.sounds_beam()
+
   def examples(
       self, sub_task: str
   ) -> Iterable[transcription_evaluator.TranscriptTruth]:

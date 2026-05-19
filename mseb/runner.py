@@ -17,6 +17,7 @@
 import abc
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from concurrent import futures
+import itertools
 import json
 import math
 import os
@@ -85,6 +86,7 @@ class EncoderRunner(abc.ABC):
       elements: Iterable[types.MultiModalObject],
       output_name: str = 'embeddings',
       output_path: str | None = None,
+      num_examples: int | None = None,
   ) -> types.MultiModalEmbeddingCache:
     """Encode the given multimodal objects and return a cache of embeddings."""
 
@@ -136,7 +138,10 @@ class DirectRunner(EncoderRunner):
       elements: Iterable[types.MultiModalObject],
       output_name: str = 'embeddings',
       output_path: str | None = None,
+      num_examples: int | None = None,
   ) -> types.MultiModalEmbeddingCache:
+    if num_examples is not None:
+      elements = itertools.islice(elements, num_examples)
     output_path = output_path or self._output_path
     if output_path is not None:
       output_prefix = os.path.join(output_path, output_name)
@@ -328,6 +333,7 @@ class BeamRunner(EncoderRunner):
       elements: Iterable[types.MultiModalObject] | beam.PTransform,
       output_name: str = 'embeddings',
       output_path: str | None = None,
+      num_examples: int | None = None,
   ) -> types.MultiModalEmbeddingCache:
     output_path = output_path or self._output_path
     output_prefix = os.path.join(output_path, output_name)
@@ -342,6 +348,12 @@ class BeamRunner(EncoderRunner):
 
     if isinstance(elements, beam.PTransform):
       pcoll = pipeline | elements
+      if num_examples is not None:
+        pcoll = (
+            pcoll
+            | beam.combiners.Sample.FixedSizeGlobally(num_examples)
+            | beam.FlatMap(lambda x: x)
+        )
       num_examples = getattr(elements, 'num_examples', None)
       logging.info(
           'Using Beam PTransform for elements. num_examples=%s', num_examples
@@ -351,6 +363,8 @@ class BeamRunner(EncoderRunner):
       start_time = time.time()
       last_log_time = start_time
       elements_list = []
+      if num_examples is not None:
+        elements = itertools.islice(elements, num_examples)
       for element in elements:
         elements_list.append(element)
         current_time = time.time()
