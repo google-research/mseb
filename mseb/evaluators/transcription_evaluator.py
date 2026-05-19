@@ -103,33 +103,33 @@ class TranscriptionEvaluator:
       transcript = transcript_by_sound_id[transcript_truth.sound_id]
 
       if transcript.prediction != types.LLM_NO_RESPONSE_STR:
-        word_errors, word_errors_weight = metrics.compute_word_errors(
+        word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=transcript_truth.text,
             hypothesis=transcript.prediction,
             text_transform=text_transform(transcript_truth.language),
         )
         values_by_metric['wer'].append(
             types.WeightedValue(
-                value=word_errors / word_errors_weight,
-                weight=word_errors_weight,
+                value=word_error_count / ref_word_count,
+                weight=ref_word_count,
             )
         )
         values_by_metric['ser'].append(
-            types.WeightedValue(value=float(word_errors != 0.0))
+            types.WeightedValue(value=float(word_error_count != 0.0))
         )
         values_by_metric['no_response'].append(
             types.WeightedValue(value=0.0, weight=1.0)
         )
       else:
-        word_errors, word_errors_weight = metrics.compute_word_errors(
+        word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=transcript_truth.text,
             hypothesis='',
             text_transform=text_transform(transcript_truth.language),
         )
         values_by_metric['wer'].append(
             types.WeightedValue(
-                value=word_errors / word_errors_weight,
-                weight=word_errors_weight,
+                value=word_error_count / ref_word_count,
+                weight=ref_word_count,
             )
         )
         values_by_metric['ser'].append(
@@ -158,4 +158,24 @@ class TranscriptionEvaluator:
         max=1,
         std=no_result_rate[1],
     )
-    return [wer_score, ser_score, no_result_score]
+    utt_count_score = types.Score(
+        metric='UtteranceCount',
+        description='Number of utterances scored.',
+        value=float(len(transcript_truths)),
+        min=0,
+        max=float('inf'),
+    )
+    word_count_score = types.Score(
+        metric='WordCount',
+        description='Number of words in reference transcripts.',
+        value=float(sum(w.weight for w in values_by_metric['wer'])),
+        min=0,
+        max=float('inf'),
+    )
+    return [
+        wer_score,
+        ser_score,
+        no_result_score,
+        utt_count_score,
+        word_count_score,
+    ]

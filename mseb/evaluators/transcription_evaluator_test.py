@@ -71,7 +71,7 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    npt.assert_equal(len(scores), 3)
+    npt.assert_equal(len(scores), 5)
     self.assertIn('WER', scores[0].metric)
     npt.assert_equal(scores[0].value, 0)
     npt.assert_equal(scores[0].std, 0)
@@ -81,6 +81,10 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
     self.assertIn('NoResultRate', scores[2].metric)
     npt.assert_equal(scores[2].value, 0)
     npt.assert_equal(scores[2].std, 0)
+    self.assertIn('UtteranceCount', scores[3].metric)
+    npt.assert_equal(scores[3].value, 1)
+    self.assertIn('WordCount', scores[4].metric)
+    npt.assert_equal(scores[4].value, 4)
 
 
 if __name__ == '__main__':

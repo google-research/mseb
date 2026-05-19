@@ -187,15 +187,15 @@ class RerankingEvaluator:
           except (IndexError, KeyError):
             item['text'] = ''
 
-        word_errors, word_errors_weight = metrics.compute_word_errors(
+        word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=candidates.texts[0],
             hypothesis=predicted_items[0]['text'],
             text_transform=text_transform(candidates.language),
         )
         values_by_metric['wer'].append(
             types.WeightedValue(
-                value=word_errors / word_errors_weight,
-                weight=word_errors_weight,
+                value=word_error_count / ref_word_count,
+                weight=ref_word_count,
             )
         )
         values_by_metric['cer'].append(
@@ -242,15 +242,15 @@ class RerankingEvaluator:
         values_by_metric['invalid'].append(types.WeightedValue(value=0.0))
         values_by_metric['no_response'].append(types.WeightedValue(value=0.0))
       else:
-        word_errors, word_errors_weight = metrics.compute_word_errors(
+        word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=candidates.texts[0],
             hypothesis='',
             text_transform=text_transform(candidates.language),
         )
         values_by_metric['wer'].append(
             types.WeightedValue(
-                value=word_errors / word_errors_weight,
-                weight=word_errors_weight,
+                value=word_error_count / ref_word_count,
+                weight=ref_word_count,
             )
         )
         values_by_metric['cer'].append(types.WeightedValue(value=1.0))

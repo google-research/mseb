@@ -134,7 +134,7 @@ def compute_ndcg_at_k(
 
 def _compute_levenshtein_stats(
     truth: str, hypothesis: str
-) -> Mapping[str, float]:
+) -> Mapping[str, int]:
   """Wrapper around jiwer library to compute Levenshtein statistics."""
   stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
   return {
@@ -150,8 +150,19 @@ def compute_word_errors(
     hypothesis: str,
     *,
     text_transform: Callable[[str], str] | None = None,
-) -> tuple[float, float]:
-  """Computes the word errors."""
+) -> tuple[int, int]:
+  """Computes the word errors.
+
+  Args:
+    truth: The ground-truth text.
+    hypothesis: The hypothesis text.
+    text_transform: A function to transform the truth and hypothesis text before
+      computing the word errors.
+
+  Returns:
+    A tuple containing the total number of word errors and the total number of
+    words in the truth.
+  """
 
   if text_transform:
     truth = text_transform(truth)
@@ -161,8 +172,8 @@ def compute_word_errors(
   if not truth.strip():
     hyp_words = hypothesis.split()
     return (
-        float(len(hyp_words)),  # All insertions
-        0.0,  # Reference length is 0
+        len(hyp_words),  # All insertions
+        0,  # Reference length is 0
     )
 
   stats = _compute_levenshtein_stats(truth=truth, hypothesis=hypothesis)

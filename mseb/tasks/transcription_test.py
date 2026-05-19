@@ -101,9 +101,16 @@ class RetrievalTest(absltest.TestCase):
     scores = task.compute_scores(embeddings=embeddings)
     self.assertLen(scores, len(task.sub_tasks))
     self.assertIn('test', scores)
+    self.assertLen(scores['test'], 5)
     self.assertEqual(scores['test'][0].metric, 'WER')
+    self.assertEqual(scores['test'][0].value, 0.25)
     self.assertEqual(scores['test'][1].metric, 'SER')
+    self.assertEqual(scores['test'][1].value, 0.5)
     self.assertEqual(scores['test'][2].metric, 'NoResultRate')
+    self.assertEqual(scores['test'][3].metric, 'UtteranceCount')
+    self.assertEqual(scores['test'][3].value, 2.0)
+    self.assertEqual(scores['test'][4].metric, 'WordCount')
+    self.assertEqual(scores['test'][4].value, 8.0)
 
   def test_transcription_task_setup(self):
     task = MockTranscriptionTask()
