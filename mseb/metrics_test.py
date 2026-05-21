@@ -154,6 +154,21 @@ class MetricsTest(parameterized.TestCase):
     self.assertEqual(word_errors, 4.0)
     self.assertEqual(word_errors_weight, 4.0)
 
+  def test_compute_word_errors_empty_trancript_and_transcript_truth(self):
+    word_errors, word_errors_weight = metrics.compute_word_errors(
+        truth='', hypothesis=''
+    )
+    self.assertEqual(word_errors, 0.0)
+    self.assertEqual(word_errors_weight, 0.0)
+
+  def test_compute_word_errors_empty_transcript_truth(self):
+    word_errors, word_errors_weight = metrics.compute_word_errors(
+        truth='',
+        hypothesis='This is a test.',
+    )
+    self.assertEqual(word_errors, 4.0)
+    self.assertEqual(word_errors_weight, 0.0)
+
   def test_compute_unit_edit_distance_empty_reference(self):
     res = metrics.compute_unit_edit_distance([], [1, 2, 3])
     self.assertEqual(res['reference_length'], 0.0)

@@ -109,10 +109,7 @@ class TranscriptionEvaluator:
             text_transform=text_transform(transcript_truth.language),
         )
         values_by_metric['wer'].append(
-            types.WeightedValue(
-                value=word_error_count / ref_word_count,
-                weight=ref_word_count,
-            )
+            types.WeightedValue(value=word_error_count, weight=ref_word_count)
         )
         values_by_metric['ser'].append(
             types.WeightedValue(value=float(word_error_count != 0.0))
@@ -127,10 +124,7 @@ class TranscriptionEvaluator:
             text_transform=text_transform(transcript_truth.language),
         )
         values_by_metric['wer'].append(
-            types.WeightedValue(
-                value=word_error_count / ref_word_count,
-                weight=ref_word_count,
-            )
+            types.WeightedValue(value=word_error_count, weight=ref_word_count)
         )
         values_by_metric['ser'].append(
             types.WeightedValue(value=1.0, weight=1.0)

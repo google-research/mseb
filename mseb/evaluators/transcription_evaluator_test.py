@@ -59,7 +59,7 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
     scores = evaluator.compute_metrics(
         transcript_by_sound_id={
             'test': types.TextPrediction(
-                prediction='This is a test.',
+                prediction='This is toast.',
                 context=types.PredictionContextParams(id='test'),
             )
         },
@@ -73,16 +73,66 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
     )
     npt.assert_equal(len(scores), 5)
     self.assertIn('WER', scores[0].metric)
-    npt.assert_equal(scores[0].value, 0)
+    npt.assert_equal(scores[0].value, 2 / 4)
     npt.assert_equal(scores[0].std, 0)
     self.assertIn('SER', scores[1].metric)
-    npt.assert_equal(scores[1].value, 0)
+    npt.assert_equal(scores[1].value, 1)
     npt.assert_equal(scores[1].std, 0)
     self.assertIn('NoResultRate', scores[2].metric)
     npt.assert_equal(scores[2].value, 0)
     npt.assert_equal(scores[2].std, 0)
     self.assertIn('UtteranceCount', scores[3].metric)
     npt.assert_equal(scores[3].value, 1)
+    self.assertIn('WordCount', scores[4].metric)
+    npt.assert_equal(scores[4].value, 4)
+
+  def test_compute_metrics_with_empty_transcript_truth(self):
+    evaluator = transcription_evaluator.TranscriptionEvaluator()
+    scores = evaluator.compute_metrics(
+        transcript_by_sound_id={
+            'test1': types.TextPrediction(
+                prediction='This is a toast.',
+                context=types.PredictionContextParams(id='test1'),
+            ),
+            'test2': types.TextPrediction(
+                prediction='',
+                context=types.PredictionContextParams(id='test2'),
+            ),
+            'test3': types.TextPrediction(
+                prediction='This should be empty.',
+                context=types.PredictionContextParams(id='test3'),
+            ),
+        },
+        transcript_truths=[
+            transcription_evaluator.TranscriptTruth(
+                sound_id='test1',
+                text='This is a test.',
+                language='en',
+            ),
+            transcription_evaluator.TranscriptTruth(
+                sound_id='test2',
+                text='',
+                language='en',
+            ),
+            transcription_evaluator.TranscriptTruth(
+                sound_id='test3',
+                text='',
+                language='en',
+            ),
+        ],
+    )
+    npt.assert_equal(len(scores), 5)
+    self.assertIn('WER', scores[0].metric)
+    npt.assert_equal(scores[0].value, 5 / 4)
+    npt.assert_equal(scores[0].std, 1)
+    self.assertIn('SER', scores[1].metric)
+    npt.assert_equal(scores[1].value, 2 / 3)
+    npt.assert_equal(scores[1].std**2, 2 / 9)
+    self.assertIn('NoResultRate', scores[2].metric)
+    npt.assert_equal(scores[2].value, 0)
+    npt.assert_equal(scores[2].std, 0)
+    self.assertIn('UtteranceCount', scores[3].metric)
+    npt.assert_equal(scores[3].value, 3)
     self.assertIn('WordCount', scores[4].metric)
     npt.assert_equal(scores[4].value, 4)
 

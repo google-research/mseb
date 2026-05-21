@@ -193,10 +193,7 @@ class RerankingEvaluator:
             text_transform=text_transform(candidates.language),
         )
         values_by_metric['wer'].append(
-            types.WeightedValue(
-                value=word_error_count / ref_word_count,
-                weight=ref_word_count,
-            )
+            types.WeightedValue(value=word_error_count, weight=ref_word_count)
         )
         values_by_metric['cer'].append(
             types.WeightedValue(
@@ -248,10 +245,7 @@ class RerankingEvaluator:
             text_transform=text_transform(candidates.language),
         )
         values_by_metric['wer'].append(
-            types.WeightedValue(
-                value=word_error_count / ref_word_count,
-                weight=ref_word_count,
-            )
+            types.WeightedValue(value=word_error_count, weight=ref_word_count)
         )
         values_by_metric['cer'].append(types.WeightedValue(value=1.0))
         values_by_metric['mrr'].append(types.WeightedValue(value=0.0))

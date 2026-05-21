@@ -122,12 +122,23 @@ class EvaluatorTest(absltest.TestCase):
     mean, std = evaluator.compute_weighted_average_and_std(
         values=[
             types.WeightedValue(value=3.0),
-            types.WeightedValue(value=2.0, weight=2.0),
-            types.WeightedValue(value=1.0, weight=3.0),
+            types.WeightedValue(value=2.0 * 2.0, weight=2.0),
+            types.WeightedValue(value=1.0 * 3.0, weight=3.0),
         ],
     )
     npt.assert_almost_equal(mean, 5 / 3)
     npt.assert_almost_equal(std**2, 5 / 9)
+
+  def test_compute_weighted_average_and_std_with_weights_with_zero_weight(self):
+    mean, std = evaluator.compute_weighted_average_and_std(
+        values=[
+            types.WeightedValue(value=3.0),
+            types.WeightedValue(value=2.0 * 2.0, weight=2.0),
+            types.WeightedValue(value=3.0, weight=0.0),
+        ],
+    )
+    npt.assert_almost_equal(mean, 10 / 3)
+    npt.assert_almost_equal(std**2, 11 / 9)
 
   def test_top_1(self):
     scores = np.array([2, 8, 5, 0])

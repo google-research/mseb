@@ -125,21 +125,20 @@ class SoundEmbeddingEvaluator(abc.ABC):
 def compute_weighted_average_and_std(
     values: list[types.WeightedValue],
 ) -> tuple[float, float]:
-  """Computes weighted average and standard deviation for a list of values."""
+  """Computes weighted mean and standard deviation for a list of values."""
 
   weights = np.array([x.weight for x in values])
-  mean = np.average(
-      np.array([x.value for x in values]),
-      weights=weights,
-  )
+  values = np.array([x.value for x in values])
+  weight = np.sum(weights)
+  mean = np.sum(values) / weight
   std = (
       np.average(
-          (np.array([x.value for x in values]) - mean) ** 2,
+          (np.where(weights == 0, values, values / weights) - mean) ** 2,
           weights=weights,
       )
       ** 0.5
   )
-  return mean, std
+  return float(mean), float(std)
 
 
 DistanceFn = Callable[
