@@ -339,13 +339,13 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
 
   def _get_task_path(self, task_name: str) -> str:
     """Returns the path to the task file for the given task name."""
-    parquet_path = os.path.join(self.base_path, f"{task_name}.parquet")
-    if epath.Path(parquet_path).exists():
-      return parquet_path
-
     jsonl_path = os.path.join(self.base_path, f"{task_name}.jsonl")
     if epath.Path(jsonl_path).exists():
       return jsonl_path
+
+    parquet_path = os.path.join(self.base_path, f"{task_name}.parquet")
+    if epath.Path(parquet_path).exists():
+      return parquet_path
 
     raise FileNotFoundError(
         f"Task file not found for task '{task_name}' in {self.base_path}. "
@@ -385,10 +385,6 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       self, task_name: str, locale: str | None = None
   ) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""
-    task_data = self.get_task_data(task_name)
-    if locale:
-      task_data = task_data[task_data["locale"] == locale]
-
     transform = self.get_task_data_beam(task_name) | "TakeSound" >> beam.Map(
         lambda x: x["sound"]
     )
@@ -398,5 +394,4 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
           lambda x: x.context.language == locale
       )
 
-    transform.num_examples = len(task_data)
     return transform
