@@ -149,7 +149,7 @@
     <tr>
       <th>Rank</th>
       <th>Encoder Name</th>
-      <th title="Overall classification accuracy"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
+      <th title="Mean Average Precision (Macro)"><a href="#classification">classification (mean)</a> <span class="sort-icon"></span></th>
       <th title="V-measure clustering metric: Normalised mutal information against a set of labels."><a href="#clustering">clustering (mean)</a> <span class="sort-icon"></span></th>
       <th title="Geometric mean F1 score"><a href="#reasoning">reasoning (mean)</a> <span class="sort-icon"></span></th>
       <th title="Mean Average Precision"><a href="#reranking">reranking (mean)</a> <span class="sort-icon"></span></th>
@@ -194,6 +194,17 @@
     </tr>
     <tr>
      <td>4</td>
+     <td><a href="https://github.com/google-deepmind/gemma">gemma4</a></td>
+      <td>0.45 ± 0.00</td>
+      <td>N/A</td>
+      <td class="best-value">0.43 ± 0.01</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td class="best-value">0.58 ± 0.11</td>
+    </tr>
+    <tr>
+     <td>5</td>
      <td>clap</td>
       <td>0.43 ± 0.00</td>
       <td>0.50 ± 0.25</td>
@@ -204,7 +215,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>5</td>
+     <td>6</td>
      <td><a href="https://elevenlabs.io/docs/overview/models#scribe-v2">elevenlabs</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -215,7 +226,7 @@
       <td>0.29 ± 0.05</td>
     </tr>
     <tr>
-     <td>6</td>
+     <td>7</td>
      <td><a href="https://ai.google.dev/gemini-api/docs">gemini</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -226,7 +237,7 @@
       <td>0.36 ± 0.05</td>
     </tr>
     <tr>
-     <td>7</td>
+     <td>8</td>
      <td><a href="https://ai.google.dev/gemini-api/docs">gemini_3_flash_preview_with_title_and_context</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -237,7 +248,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>8</td>
+     <td>9</td>
      <td><a href="https://ai.google.dev/gemini-api">gemini_3_flash_preview_with_title_and_context_gpt_4o_transcribe</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -248,7 +259,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>9</td>
+     <td>10</td>
      <td><a href="https://ai.google.dev/gemini-api">gemini_3_flash_preview_with_title_and_context_transcript_truth</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -259,7 +270,7 @@
       <td>N/A</td>
     </tr>
     <tr>
-     <td>10</td>
+     <td>11</td>
      <td><a href="https://ai.google.dev/gemini-api/docs/embeddings">gemini_embedding_001</a></td>
       <td>N/A</td>
       <td>N/A</td>
@@ -268,17 +279,6 @@
       <td>0.57 ± 0.08</td>
       <td>N/A</td>
       <td>N/A</td>
-    </tr>
-    <tr>
-     <td>11</td>
-     <td><a href="https://github.com/google-deepmind/gemma">gemma4</a></td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td class="best-value">0.43 ± 0.01</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td>N/A</td>
-      <td class="best-value">0.58 ± 0.11</td>
     </tr>
     <tr>
      <td>12</td>
@@ -337,7 +337,7 @@
     </tr>
     <tr>
      <td>17</td>
-     <td><a href="https://github.com/openai/whisper">whisper</a></td>
+     <td><a href="https://whisperai.com/">whisper</a></td>
       <td>N/A</td>
       <td>N/A</td>
       <td>N/A</td>
@@ -380,6 +380,12 @@
       <td>N/A</td>
       <td>N/A</td>
       <td class="best-value">0.80</td>
+    </tr>
+    <tr>
+     <td><a href="https://github.com/google-deepmind/gemma">gemma4</a></td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0.45</td>
     </tr>
     <tr>
      <td>perch</td>
@@ -871,7 +877,7 @@
   </thead>
   <tbody>
     <tr>
-     <td><a href="https://github.com/openai/whisper">whisper</a></td>
+     <td><a href="https://whisperai.com/">whisper</a></td>
       <td class="best-value">0.40</td>
       <td class="best-value">0.39</td>
       <td class="best-value">0.44</td>
@@ -930,7 +936,7 @@
       <td>0.34</td>
     </tr>
     <tr>
-     <td><a href="https://github.com/openai/whisper">whisper</a></td>
+     <td><a href="https://whisperai.com/">whisper</a></td>
       <td>0.33</td>
       <td>0.35</td>
       <td>0.28</td>
