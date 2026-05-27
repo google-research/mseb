@@ -28,7 +28,6 @@ NO_ANSWER_STR = reasoning_evaluator.NO_ANSWER_STR
 INVALID_ANSWER_STR = reasoning_evaluator.INVALID_ANSWER_STR
 
 
-@pytest.mark.whisper
 @pytest.mark.optional
 class LiteLLMTextEncoderTest(absltest.TestCase):
 
