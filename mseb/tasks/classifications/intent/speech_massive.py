@@ -53,7 +53,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
     for example in dataset.get_task_data(with_audio=True).to_dict("records"):
       yield dataset.get_sound(example)
 
-  def sounds_beam(self):
+  def multimodal_inputs_beam(self):
     return self._get_dataset().get_task_sounds_beam()
 
   def examples(

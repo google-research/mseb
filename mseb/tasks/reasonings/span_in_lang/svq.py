@@ -81,11 +81,6 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
             context=sound.context,
         )
 
-  def sounds_beam(self):
-    return self._get_dataset().get_task_sounds_beam(
-        'span_reasoning_in_lang', locale=self.locale
-    )
-
   def examples(
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:

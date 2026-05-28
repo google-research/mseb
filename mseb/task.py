@@ -16,7 +16,7 @@
 
 import abc
 import logging
-from typing import Iterable, Type
+from typing import Iterable, Type, final
 
 from absl import flags
 import apache_beam as beam
@@ -66,6 +66,7 @@ class MSEBTask(abc.ABC):
   ) -> dict[str, list[types.Score]]:
     """Evaluate the task."""
 
+  @final
   def sounds(self) -> Iterable[types.Sound]:
     """Iterate all of the sounds in the corpus for this task."""
     logging.warning(
@@ -73,9 +74,14 @@ class MSEBTask(abc.ABC):
     )
     return self.multimodal_inputs()
 
+  @final
   def sounds_beam(self) -> beam.PCollection[types.Sound]:
     """Beam transform to iterate all of the sounds in the corpus for this task."""
-    return beam.Create(list(self.sounds()))
+    logging.warning(
+        "sounds_beam() is deprecated. Update to use multimodal_inputs_beam() "
+        "instead. "
+    )
+    return self.multimodal_inputs_beam()
 
   @abc.abstractmethod
   def multimodal_inputs(self) -> Iterable[types.MultiModalObject]:
