@@ -209,6 +209,30 @@ class CascadeEncoder(MultiModalEncoder):
     return self._encoders[-1].output_type()
 
 
+class IdentityEncoder(MultiModalEncoder):
+  """No-op encoder."""
+
+  def __init__(
+      self,
+      output_type: type[types.MultiModalEmbedding] = types.MultiModalEmbedding,
+  ):
+    super().__init__()
+    self._output_type = output_type
+
+  def _setup(self):
+    pass
+
+  def _check_input_types(self, batch):
+    pass
+
+  def _encode(self, batch):
+    return batch
+
+  def output_type(self) -> type[types.MultiModalEmbedding]:
+    """The type of the output of the encoder."""
+    return self._output_type
+
+
 class CollectionEncoder(MultiModalEncoder):
   """Collection encoder interface.
 

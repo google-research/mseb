@@ -146,6 +146,29 @@ class CascadeEncoderTest(absltest.TestCase):
     self.assertEqual(enc.output_type(), types.SoundEmbedding)
 
 
+class IdentityEncoderTest(absltest.TestCase):
+
+  def test_initialization(self):
+    enc = encoder.IdentityEncoder(output_type=types.TextEmbedding)
+    enc.setup()
+    self.assertEqual(enc._output_type, types.TextEmbedding)
+    outputs = enc.encode(
+        [
+            types.TextEmbedding(
+                embedding=np.zeros((10, 8)),
+                spans=np.zeros((10, 2)),
+                context=types.TextContextParams(id="test"),
+            )
+        ]
+    )
+    self.assertLen(outputs, 1)
+    output = outputs[0]
+    self.assertIsInstance(output, types.TextEmbedding)
+    self.assertEqual(output.embedding.shape, (10, 8))
+    self.assertEqual(output.spans.shape, (10, 2))
+    self.assertEqual(output.context.id, "test")
+
+
 class CollectionEncoderTest(absltest.TestCase):
 
   def test_initialization(self):
