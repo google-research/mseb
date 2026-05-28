@@ -234,11 +234,12 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       embeddings_batch.append(prompt.ProcessResponse(response))
 
     outputs = []
-    for embeddings, example, response in zip(
-        embeddings_batch, batch, response_batch
+    for embeddings, example, response, example_prompt in zip(
+        embeddings_batch, batch, response_batch, prompt_batch
     ):
       if isinstance(response, str):
-        debug_text = json.dumps({'model_response': response})
+        debug_text = json.dumps({'prompt_text': example_prompt[0],
+                                 'model_response': response})
       else:
         debug_text = None
       assert isinstance(example, types.Text) or isinstance(example, types.Sound)

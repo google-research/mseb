@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 from typing import Callable
 from unittest import mock
@@ -21,6 +22,7 @@ from mseb import types
 from mseb.encoders import prompt as prompt_lib
 import numpy as np
 import pytest
+
 
 text_encoder_with_prompt = pytest.importorskip(
     "mseb.encoders.text_encoder_with_prompt"
@@ -167,6 +169,73 @@ class TextEncoderWithPromptTest(absltest.TestCase):
     self.assertEqual(
         mock_encoder._get_normalized_text_prompt("hello"),
         "default: hello",
+    )
+
+  def test_encode_with_task_prompts(self):
+    mock_encoder = MockTextEncoderWithPrompt(
+        prompt_template="default: {text}",
+        prompt_encode_fn=lambda prompts: [
+            prompt[0].split(":")[0].upper() for prompt in prompts
+        ],
+    )
+    mock_encoder.task_prompts = {
+        "Task1": prompt_lib.DefaultPrompt("task1 prompt: {text}"),
+    }
+
+    mock_task1 = mock.MagicMock()
+    mock_task1.metadata.name = "Task1"
+
+    mock_task2 = mock.MagicMock()
+    mock_task2.metadata.name = "Task2"
+
+    mock_encoder.set_task(mock_task1)
+    embedding = mock_encoder.encode(
+        [
+            types.Text(
+                text="hello",
+                context=types.TextContextParams(id="id1"),
+            )
+        ]
+    )[0]
+    self.assertEqual(
+        embedding.embedding,
+        np.array("TASK1 PROMPT"),
+    )
+    self.assertEqual(
+        embedding.context,
+        types.TextContextParams(
+            id="id1",
+            text="hello",
+            debug_text=json.dumps(
+                {"prompt_text": "task1 prompt: hello",
+                 "model_response": "TASK1 PROMPT"}
+            ),
+        ),
+    )
+
+    mock_encoder.set_task(mock_task2)
+    embedding = mock_encoder.encode(
+        [
+            types.Text(
+                text="hello",
+                context=types.TextContextParams(id="id1"),
+            )
+        ]
+    )[0]
+    self.assertEqual(
+        embedding.embedding,
+        np.array("DEFAULT"),
+    )
+    self.assertEqual(
+        embedding.context,
+        types.TextContextParams(
+            id="id1",
+            text="hello",
+            debug_text=json.dumps(
+                {"prompt_text": "default: hello",
+                 "model_response": "DEFAULT"}
+            ),
+        ),
     )
 
 
