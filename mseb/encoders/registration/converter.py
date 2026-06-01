@@ -19,8 +19,8 @@ from mseb.encoders import encoder_registry
 
 encoder_registry.register_encoder(
     encoder_registry.EncoderMetadata(
-        name="sound_embedding_to_text",
-        encoder=converter.SoundEmbeddingToTextConverter,
-        params=lambda: dict,
+        name="sound_to_text_or_identity",
+        encoder=converter.SoundToTextOrIdentity,
+        params=dict,
     )
 )

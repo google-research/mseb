@@ -246,3 +246,14 @@ class SoundToTextWithTitleAndContextConverter(Converter):
         )
       outputs.append(text)
     return outputs
+
+
+def SoundToTextOrIdentity() -> encoder.CollectionEncoder:
+  """Converter between SoundEmbedding and TextPrediction objects."""
+  return encoder.CollectionEncoder(
+      encoder_by_input_type={
+          types.Sound: SoundToTextWithTitleAndContextConverter(),
+          types.Text: encoder.IdentityEncoder(),
+          types.Image: encoder.IdentityEncoder(),
+      }
+  )
