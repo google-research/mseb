@@ -25,6 +25,9 @@ from mseb import types
 from mseb import utils
 from mseb.datasets import base
 import pandas as pd
+from pyarrow import parquet as pq
+
+_PARQUET_BATCH_SIZE = 1024
 
 
 class FSD50KDataset(base.MsebDataset):
@@ -166,9 +169,15 @@ class FSD50KDataset(base.MsebDataset):
           'Loading FSD50K %s split from cache...', self.split
       )
       with epath.Path(cache_path).open('rb') as f:
-        return pd.read_parquet(f)
+        parquet_file = pq.ParquetFile(f)
+        df = pd.DataFrame()
+        for batch in parquet_file.iter_batches(batch_size=_PARQUET_BATCH_SIZE):
+          batch_df = batch.to_pandas()
+          df = pd.concat([df, batch_df])
+        return df
     logging.info(
-        'Cache not found. Processing FSD50K %s split from source...'
+        'Cache not found. Processing FSD50K %s split from source...',
+        self.split,
     )
     if not self.streaming:
       utils.download_from_hf(self.repo_id, self.base_path)
