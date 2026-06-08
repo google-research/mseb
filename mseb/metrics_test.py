@@ -169,6 +169,53 @@ class MetricsTest(parameterized.TestCase):
     self.assertEqual(word_errors, 4.0)
     self.assertEqual(word_errors_weight, 0.0)
 
+  def test_compute_character_errors_correct(self):
+    char_errors, char_errors_weight = metrics.compute_character_errors(
+        truth='This is a test.',  # 14 characters long.
+        hypothesis='This is a test.',
+    )
+    self.assertEqual(char_errors, 0.0)
+    self.assertEqual(char_errors_weight, 14.0)
+
+  def test_compute_character_errors_normalization(self):
+    char_errors, char_errors_weight = metrics.compute_character_errors(
+        truth='This is a test.',  # 14 characters long.
+        hypothesis='THIS,   is   a   test!!!',
+    )
+    self.assertEqual(char_errors, 0.0)
+    self.assertEqual(char_errors_weight, 14.0)
+
+  def test_compute_character_errors_incorrect(self):
+    char_errors, char_errors_weight = metrics.compute_character_errors(
+        truth='This is a test.',
+        hypothesis='Thiz is a test.',
+    )
+    self.assertEqual(char_errors, 1.0)  # 's' -> 'z'
+    self.assertEqual(char_errors_weight, 14.0)
+
+  def test_compute_character_errors_empty_transcript(self):
+    char_errors, char_errors_weight = metrics.compute_character_errors(
+        truth='This is a test.',
+        hypothesis='',
+    )
+    self.assertEqual(char_errors, 14.0)
+    self.assertEqual(char_errors_weight, 14.0)
+
+  def test_compute_character_errors_empty_transcript_and_transcript_truth(self):
+    char_errors, char_errors_weight = metrics.compute_character_errors(
+        truth='', hypothesis=''
+    )
+    self.assertEqual(char_errors, 0.0)
+    self.assertEqual(char_errors_weight, 0.0)
+
+  def test_compute_character_errors_empty_transcript_truth(self):
+    char_errors, char_errors_weight = metrics.compute_character_errors(
+        truth='',
+        hypothesis='This is a test.',
+    )
+    self.assertEqual(char_errors, 15.0)
+    self.assertEqual(char_errors_weight, 0.0)
+
   def test_compute_unit_edit_distance_empty_reference(self):
     res = metrics.compute_unit_edit_distance([], [1, 2, 3])
     self.assertEqual(res['reference_length'], 0.0)

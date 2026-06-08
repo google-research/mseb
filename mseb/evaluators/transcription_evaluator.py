@@ -57,6 +57,13 @@ class TranscriptTruth:
   language: str  # For text normalization.
 
 
+def text_transform(language: str) -> Callable[[str], str]:
+  if language.split('_')[0].lower() == 'en':
+    return english.EnglishTextNormalizer()
+  else:
+    return basic.BasicTextNormalizer()
+
+
 class TranscriptionEvaluator:
   """Evaluator for transcription tasks."""
 
@@ -87,12 +94,6 @@ class TranscriptionEvaluator:
       transcript_truths: Sequence[TranscriptTruth],
   ) -> list[types.Score]:
     """Returns quality metrics of the transcriptions."""
-
-    def text_transform(language: str) -> Callable[[str], str]:
-      if language.split('_')[0].lower() == 'en':
-        return english.EnglishTextNormalizer()
-      else:
-        return basic.BasicTextNormalizer()
 
     values_by_metric: dict[str, list[types.WeightedValue]] = {
         'wer': [],

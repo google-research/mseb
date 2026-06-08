@@ -363,3 +363,54 @@ def compute_continuous_edit_distance(
       'normalized_distance': float(raw_cost / (2.0 * max(n, 1))),
       'reference_length': float(n),
   }
+
+
+ctransforms = jiwer.Compose([
+    jiwer.ToLowerCase(),
+    jiwer.ExpandCommonEnglishContractions(),
+    jiwer.RemoveEmptyStrings(),
+    jiwer.RemoveMultipleSpaces(),
+    jiwer.Strip(),
+    jiwer.RemovePunctuation(),
+])
+
+
+def compute_character_errors(
+    truth: str,
+    hypothesis: str,
+    *,
+    reference_transform: Callable[[str], str] | None = ctransforms,
+    hypothesis_transform: Callable[[str], str] | None = ctransforms,
+) -> tuple[int, int]:
+  """Computes the character errors.
+
+  Args:
+    truth: The ground-truth text.
+    hypothesis: The hypothesis text.
+    reference_transform: A function to transform the truth and text
+      before computing the character errors.
+    hypothesis_transform: A function to transform the hypothesis text before
+      computing the character errors.
+
+  Returns:
+    A tuple containing the total number of character errors and the total number
+    of characters in the truth.
+  """
+  # Guard for empty reference to prevent jiwer ValueError.
+  if not truth.strip():
+    return (
+        len(hypothesis),  # All insertions.
+        0,  # Reference length is 0.
+    )
+  if reference_transform:
+    truth = reference_transform(truth)
+  if hypothesis_transform:
+    hypothesis = hypothesis_transform(hypothesis)
+  stats = jiwer.process_characters(
+      reference=truth,
+      hypothesis=hypothesis,
+  )
+  return (
+      stats.substitutions + stats.deletions + stats.insertions,
+      stats.hits + stats.substitutions + stats.deletions,
+  )
