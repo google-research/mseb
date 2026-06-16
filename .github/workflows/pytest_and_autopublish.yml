@@ -71,24 +71,25 @@ jobs:
     - name: All tests passed
       run: echo "Test matrix completed successfully."
 
-  # Auto-publish when version is increased
-  publish-job:
-    # Only try to publish if:
-    # * Repo is self (prevents running from forks)
-    # * Branch is `main`
-    if: |
-      github.repository == 'google-research/mseb'
-      && github.ref == 'refs/heads/main'
-    needs: pytest-job  # Only publish after tests are successful
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    timeout-minutes: 30
+  # TODO(wuke): Re-enable when there is actually a PyPI package.
+  # # Auto-publish when version is increased
+  # publish-job:
+  #   # Only try to publish if:
+  #   # * Repo is self (prevents running from forks)
+  #   # * Branch is `main`
+  #   if: |
+  #     github.repository == 'google-research/mseb'
+  #     && github.ref == 'refs/heads/main'
+  #   needs: pytest-job  # Only publish after tests are successful
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #   timeout-minutes: 30
 
-    steps:
-    # Publish the package (if local `__version__` > pip version)
-    - uses: etils-actions/pypi-auto-publish@v1
-      with:
-        pypi-token: ${{ secrets.PYPI_API_TOKEN }}
-        gh-token: ${{ secrets.GITHUB_TOKEN }}
-        parse-changelog: true
+  #   steps:
+  #   # Publish the package (if local `__version__` > pip version)
+  #   - uses: etils-actions/pypi-auto-publish@v1
+  #     with:
+  #       pypi-token: ${{ secrets.PYPI_API_TOKEN }}
+  #       gh-token: ${{ secrets.GITHUB_TOKEN }}
+  #       parse-changelog: true
