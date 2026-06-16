@@ -97,47 +97,37 @@ class SoundEmbeddingCollectionTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.ctx = types.SoundContextParams(
-        id="test_id",
-        sample_rate=16000,
-        length=16000
+        id="test_id", sample_rate=16000, length=16000
     )
     # Create a mock continuous embedding
     self.sound_emb = types.SoundEmbedding(
         embedding=np.zeros((10, 128), dtype=np.float32),
         timestamps=np.zeros((10, 2)),
-        context=self.ctx
+        context=self.ctx,
     )
     # Create a mock discrete prediction
     self.text_pred = types.TextPrediction(
         prediction="token1 token2 token3",
-        context=types.PredictionContextParams(id="test_id")
+        context=types.PredictionContextParams(id="test_id"),
     )
 
   def test_composite_instantiation_and_access(self):
     composite = types.SoundEmbeddingCollection(
-        embeddings={
-            "continuous": self.sound_emb,
-            "discrete": self.text_pred
-        },
-        context=self.ctx
+        embeddings={"continuous": self.sound_emb, "discrete": self.text_pred},
+        context=self.ctx,
     )
     self.assertIsInstance(
-        composite.embeddings["continuous"],
-        types.SoundEmbedding
+        composite.embeddings["continuous"], types.SoundEmbedding
     )
     self.assertIsInstance(
-        composite.embeddings["discrete"],
-        types.TextPrediction
+        composite.embeddings["discrete"], types.TextPrediction
     )
     self.assertEqual(composite.context.id, "test_id")
 
   def test_composite_size_bytes_summation(self):
     composite = types.SoundEmbeddingCollection(
-        embeddings={
-            "continuous": self.sound_emb,
-            "discrete": self.text_pred
-        },
-        context=self.ctx
+        embeddings={"continuous": self.sound_emb, "discrete": self.text_pred},
+        context=self.ctx,
     )
     expected_size = self.sound_emb.size_bytes + self.text_pred.size_bytes
     self.assertEqual(composite.size_bytes, expected_size)
@@ -145,8 +135,7 @@ class SoundEmbeddingCollectionTest(parameterized.TestCase):
   def test_composite_in_multimodal_alias(self):
     # This test ensures type-checking tools would accept Composite in the Union
     composite = types.SoundEmbeddingCollection(
-        embeddings={"head": self.sound_emb},
-        context=self.ctx
+        embeddings={"head": self.sound_emb}, context=self.ctx
     )
     # Simulate a cache lookup
     cache: types.MultiModalEmbeddingCache = {"sample_1": composite}
@@ -249,7 +238,7 @@ class TaskMetadataTest(parameterized.TestCase):
           "type",
           "category",
           "main_score",
-          "revision"
+          "revision",
       ],
       invalid_value=[None, ""],
   )
@@ -257,29 +246,18 @@ class TaskMetadataTest(parameterized.TestCase):
     params = self._get_valid_params()
     params[field] = invalid_value
     with self.assertRaisesRegex(
-        TypeError,
-        f"Metadata attribute '{field}' must be a non-empty string."
+        TypeError, f"Metadata attribute '{field}' must be a non-empty string."
     ):
       types.TaskMetadata(**params)
 
   @parameterized.named_parameters(
-      (
-          "not_a_list",
-          "eval_splits",
-          "not-a-list",
-          "must be a list"
-      ),
-      (
-          "non_empty_list_fail",
-          "eval_langs",
-          [],
-          "must be a non-empty list"
-      ),
+      ("not_a_list", "eval_splits", "not-a-list", "must be a list"),
+      ("non_empty_list_fail", "eval_langs", [], "must be a non-empty list"),
       (
           "non_string_item",
           "domains",
           ["Legal", None],
-          "All items.*must be strings"
+          "All items.*must be strings",
       ),
   )
   def test_invalid_list_fields(self, field, invalid_value, message):
@@ -290,8 +268,7 @@ class TaskMetadataTest(parameterized.TestCase):
 
   def test_dataset_instantiation_requires_path(self):
     with self.assertRaisesRegex(
-        TypeError,
-        "got an unexpected keyword argument 'wrong_key'"
+        TypeError, "got an unexpected keyword argument 'wrong_key'"
     ):
       types.Dataset(wrong_key="some-path")  # type: ignore
 
@@ -299,8 +276,7 @@ class TaskMetadataTest(parameterized.TestCase):
     params = self._get_valid_params()
     params["main_score"] = "accuracy"
     with self.assertRaisesRegex(
-        ValueError,
-        "main_score 'accuracy' is not defined in the 'scores' list."
+        ValueError, "main_score 'accuracy' is not defined in the 'scores' list."
     ):
       types.TaskMetadata(**params)
 
@@ -330,9 +306,7 @@ class ListPredictionTest(parameterized.TestCase):
 
   def test_no_response_list_prediction_init(self):
     prediction = types.NoResponseListPrediction()
-    self.assertEqual(
-        prediction.to_json(), types.ListPrediction.NO_RESPONSE_STR
-    )
+    self.assertEqual(prediction.to_json(), types.ListPrediction.NO_RESPONSE_STR)
 
   def test_valid_list_prediction_to_json(self):
     prediction = types.ValidListPrediction([
@@ -378,9 +352,7 @@ class ListPredictionTest(parameterized.TestCase):
     prediction = types.NoResponseListPrediction.from_json(
         types.ListPrediction.NO_RESPONSE_STR
     )
-    self.assertEqual(
-        prediction.to_json(), types.ListPrediction.NO_RESPONSE_STR
-    )
+    self.assertEqual(prediction.to_json(), types.ListPrediction.NO_RESPONSE_STR)
 
   def test_invalid_answer_list_prediction_from_json(self):
     prediction = types.InvalidAnswerListPrediction.from_json(
@@ -418,6 +390,162 @@ class ListPredictionTest(parameterized.TestCase):
         prediction_1.items,
         [{"id": "bli", "score": 1.0}, {"id": "blu", "score": 1.0}],
     )
+
+
+class StreamingSpeechToTextEventTest(absltest.TestCase):
+
+  def test_validate_empty(self):
+    # An empty sequence of events is valid.
+    types.StreamingSpeechToTextEvent.validate([])
+
+  def test_validate_no_timestamp(self):
+    # A sequence of events all without any timestamp is valid.
+    # TODO(wuke): Maybe we should raise an error instead?
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=None, finalized="", partial=""
+        ),
+    ]
+    types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_content_time_all_present(self):
+    # A sequence of events all with content time is valid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=0.0, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=1.0, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=2.0, wall_time=None, finalized="", partial=""
+        ),
+    ]
+    types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_content_time_some_missing(self):
+    # A sequence of events with some missing content time is invalid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=0.0, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=2.0, wall_time=None, finalized="", partial=""
+        ),
+    ]
+    with self.assertRaisesRegex(
+        ValueError,
+        "Events should either all have content time or all not have content"
+        " time",
+    ):
+      types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_wall_time_all_present(self):
+    # A sequence of events all with wall time is valid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=0.0, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=1.0, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=2.0, finalized="", partial=""
+        ),
+    ]
+    types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_wall_time_some_missing(self):
+    # A sequence of events with some missing wall time is invalid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=0.0, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=1.0, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=None, finalized="", partial=""
+        ),
+    ]
+    with self.assertRaisesRegex(
+        ValueError,
+        "Events should either all have wall time or all not have wall time",
+    ):
+      types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_content_time_negative_start(self):
+    # A sequence of events with a negative content time at the start is invalid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=-1.0, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=0.0, wall_time=None, finalized="", partial=""
+        ),
+    ]
+    with self.assertRaisesRegex(
+        ValueError,
+        "Content time cannot be negative",
+    ):
+      types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_wall_time_negative_start(self):
+    # A sequence of events with a negative wall time at the start is invalid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=-1.0, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=0.0, finalized="", partial=""
+        ),
+    ]
+    with self.assertRaisesRegex(
+        ValueError,
+        "Wall time cannot be negative",
+    ):
+      types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_content_time_decreasing(self):
+    # A sequence of events with decreasing content time is invalid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=1.0, wall_time=None, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=0.0, wall_time=None, finalized="", partial=""
+        ),
+    ]
+    with self.assertRaisesRegex(
+        ValueError,
+        "Content time should be non-decreasing",
+    ):
+      types.StreamingSpeechToTextEvent.validate(events)
+
+  def test_validate_wall_time_decreasing(self):
+    # A sequence of events with decreasing wall time is invalid.
+    events = [
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=1.0, finalized="", partial=""
+        ),
+        types.StreamingSpeechToTextEvent(
+            content_time=None, wall_time=0.0, finalized="", partial=""
+        ),
+    ]
+    with self.assertRaisesRegex(
+        ValueError,
+        "Wall time should be non-decreasing",
+    ):
+      types.StreamingSpeechToTextEvent.validate(events)
 
 
 if __name__ == "__main__":

@@ -23,13 +23,13 @@ from typing import Any, Mapping, Optional, Sequence
 import jaxtyping
 import numpy as np
 
-
 logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass(frozen=True)
 class DatasetMetadata:
   """Structured high-level information about a dataset."""
+
   name: str
   description: str
   homepage: str
@@ -42,6 +42,7 @@ class DatasetMetadata:
 @dataclasses.dataclass(frozen=True)
 class EncodingStats:
   """Information about how an embedding was encoded."""
+
   input_size_bytes: int  # Size of the input in bytes.
   embedding_size_bytes: int  # Size of the embedding in bytes.
   flops: Optional[int] = None  # Number of floating point operations.
@@ -55,6 +56,7 @@ class EncodingStats:
 @dataclasses.dataclass
 class TextContextParams:
   """Parameters for a text example."""
+
   id: str  # Identifier for the text example unique within the dataset.
   title: Optional[str] = None
   context: Optional[str] = None
@@ -67,6 +69,7 @@ class TextContextParams:
 @dataclasses.dataclass
 class Text:
   """A dataclass for a text."""
+
   text: str
   context: TextContextParams
 
@@ -79,6 +82,7 @@ class Text:
 @dataclasses.dataclass
 class SoundContextParams:
   """Parameters for a sound example."""
+
   id: str  # Identifier for the sound example unique within the dataset.
   sample_rate: int
   length: int
@@ -107,6 +111,7 @@ class SoundEmbeddingCollection:
   This allows an encoder to return a 'bundle' of embeddings (e.g.,
   continuous bottleneck latents + discrete codebook indices) in a single pass.
   """
+
   # A mapping of head names to their respective embedding objects.
   # e.g., {"latents": SoundEmbedding(...), "codes": TextPrediction(...)}
   embeddings: Mapping[str, "MultiModalEmbedding"]
@@ -138,6 +143,7 @@ class Sound:
 @dataclasses.dataclass
 class ImageContextParams:
   """Parameters for an image example."""
+
   id: str  # Identifier for the image example unique within the dataset.
   height: int
   width: int
@@ -166,6 +172,7 @@ class Image:
 @dataclasses.dataclass
 class SoundEmbedding:
   """A sound embedding with context."""
+
   # N embeddings, where the embeddings are either all float vectors or strings.
   embedding: (
       jaxtyping.Float[jaxtyping.Array, "N D"]
@@ -197,6 +204,7 @@ class SoundEmbedding:
 @dataclasses.dataclass
 class TextEmbedding:
   """A dataclass for text embeddings."""
+
   # N embeddings, where the embeddings are either all float vectors or strings.
   embedding: (
       jaxtyping.Float[jaxtyping.Array, "N D"]
@@ -223,6 +231,7 @@ class TextEmbedding:
 @dataclasses.dataclass
 class ImageEmbedding:
   """An image embedding with context."""
+
   # N embeddings, where the embeddings are either all float vectors or strings.
   embedding: (
       jaxtyping.Float[jaxtyping.Array, "N D"]
@@ -253,6 +262,7 @@ class ImageEmbedding:
 @dataclasses.dataclass
 class PredictionContextParams:
   """Parameters for a reasoning example."""
+
   id: str  # Identifier for the task example unique within the dataset.
   debug_text: Optional[str] = None  # Text for debugging purposes.
   task_name: Optional[str] = None
@@ -262,6 +272,7 @@ class PredictionContextParams:
 @dataclasses.dataclass
 class TextPrediction:
   """A dataclass for textual predictions."""
+
   prediction: str
   context: PredictionContextParams
   encoding_stats: Optional[EncodingStats] = None
@@ -370,6 +381,7 @@ class NoResponseListPrediction(ListPrediction):
 @dataclasses.dataclass
 class TextWithTitleAndContext(Text):
   """A text with title and context."""
+
   title_text: str | None = None
   context_text: str | None = None
 
@@ -377,6 +389,7 @@ class TextWithTitleAndContext(Text):
 @dataclasses.dataclass
 class SoundWithTitleAndContext(Sound):
   """A sound with title and context."""
+
   title_text: str | None = None
   context_text: str | None = None
 
@@ -389,6 +402,7 @@ class SoundWithTitleAndContext(Sound):
 @dataclasses.dataclass
 class SoundEmbeddingWithTitleAndContext(SoundEmbedding):
   """A sound embedding with title and context."""
+
   title_text: str | None = None
   context_text: str | None = None
 
@@ -431,6 +445,7 @@ class Score:
 @dataclasses.dataclass(frozen=True)
 class WeightedValue:
   """A dataclass for a single weighted value."""
+
   value: float
   weight: float = 1.0
 
@@ -438,6 +453,7 @@ class WeightedValue:
 @dataclasses.dataclass(frozen=True)
 class Dataset:
   """A dataclass for dataset metadata."""
+
   path: str
   revision: str
   documentation_file: Optional[str] = None
@@ -482,7 +498,8 @@ class TaskMetadata:
       value = getattr(self, field.name)
       if field.type is str and not value:
         raise TypeError(
-            f"Metadata attribute '{field.name}' must be a non-empty string.")
+            f"Metadata attribute '{field.name}' must be a non-empty string."
+        )
 
     for attr_name in ["eval_splits", "eval_langs", "scores"]:
       if not getattr(self, attr_name):
@@ -506,6 +523,132 @@ class TaskMetadata:
       )
 
 
+@dataclasses.dataclass
+class StreamingSpeechToTextEvent:
+  """A streaming speech-to-text event.
+
+  We can view a streaming speech-to-text service as a pair of (in, out) streams.
+  We feed audio to `in`, and get events from `out`. An event from `out` is
+  essentially timestamped hypothesis text, of what the model has recognized so
+  far.
+
+  ## Hypothesis text
+
+  The hypothesis text in a single event consists of two parts,
+  -   The first part is the _finalized_ text, which will not change in the
+      future.
+  -   The second part is the _partial_ text, which always comes after the
+      finalized text, which may still change in the future.
+
+  At any point in time, the hypothesis text of what has been recognized so far
+  is the concatenation of all the finalized texts so far, and the last partial
+  text.
+
+  For example, suppose we sent a recording of the pronunciation of the
+  word "homophone", and received the following events (we use the letters in
+  lieu of timestamps):
+  -   At time "ho",
+      -   We received finalized text "", and partial text "ho".
+      -   The hypothesis text is "" (finalized) + "ho" (partial) == "ho".
+  -   At time "homo",
+      -   We received finalized text "homo", and partial text " ".
+      -   The hypothesis text is "" (finalized) + "homo" (finalized) + " "
+          (partial) == "homo ".
+  -   At time "homoph",
+      -   We received finalized text "", and partial text " f".
+      -   The hypothesis text is "" (finalized) + "homo" (finalized) + ""
+          (finalized) + " f" == "homo f".
+  -   At time "homophone",
+      -   We received finalized text "phon", and partial text "e".
+      -   The hypothesis text is "" (finalized) + "homo" (finalized) + ""
+          (finalized) + "phon" (finalized) + "e" (partial) == "homophone".
+
+  ## Timestamps
+
+  Extra caution should be taken when discussing timestamps when evaluating
+  streaming ASR. In most cases, we are interested in the *content time*, which
+  is the amount of audio the model has seen when this event is produced. Content
+  time is an intrinsic property of a model, making it reproducible across
+  inference setups and free of various kinds of noise.
+
+  An event may also be associated with a *wall time*, which is the real-world
+  clock time elapsed since some pre-specified reference point. When comparing
+  wall time based results, it's extremely important to make sure two systems
+  report wall time in the same manner.
+
+  Attributes:
+    content_time: Content time timestamp in seconds, or None if not available.
+    wall_time: Wall time timestamp in seconds, or None if not available.
+    finalized: Hypothesis text that will no longer change.
+    partial: Hypothesis text that may still change.
+  """
+
+  content_time: float | None
+  wall_time: float | None
+  finalized: str
+  partial: str
+
+  @classmethod
+  def validate(cls, events: Sequence["StreamingSpeechToTextEvent"]) -> None:
+    """Performs basic validation on a sequence of events.
+
+    A valid sequence of events should meet the following requirements:
+    -   Timestamps should be non-negative.
+    -   Events should either all have content time or all not have content time.
+    -   Events should either all have wall time or all not have wall time.
+    -   If available, content time should be non-decreasing.
+    -   If available, wall time should be non-decreasing.
+
+    Args:
+      events: A sequence of events to validate.
+    """
+    if not events:
+      return
+    iterator = iter(events)
+    event = next(iterator)
+    has_content_time = event.content_time is not None
+    if has_content_time and event.content_time < 0:
+      raise ValueError(
+          f"Content time cannot be negative, got {event.content_time=} for the"
+          " first event."
+      )
+    has_wall_time = event.wall_time is not None
+    if has_wall_time and event.wall_time < 0:
+      raise ValueError(
+          f"Wall time cannot be negative, got {event.wall_time=} for the first"
+          " event."
+      )
+    last_content_time = event.content_time
+    last_wall_time = event.wall_time
+    for event in iterator:
+      event_has_content_time = event.content_time is not None
+      if has_content_time != event_has_content_time:
+        raise ValueError(
+            "Events should either all have content time or all not have"
+            f" content time, got {has_content_time=} from previous events but"
+            f" {event=}."
+        )
+      if has_content_time and event.content_time < last_content_time:
+        raise ValueError(
+            f"Content time should be non-decreasing, got {last_content_time=}"
+            f" but {event=}."
+        )
+      last_content_time = event.content_time
+
+      event_has_wall_time = event.wall_time is not None
+      if has_wall_time != event_has_wall_time:
+        raise ValueError(
+            "Events should either all have wall time or all not have wall"
+            f" time, got {has_wall_time=} from previous events but {event=}"
+        )
+      if has_wall_time and event.wall_time < last_wall_time:
+        raise ValueError(
+            f"Wall time should be non-decreasing, got {last_wall_time=}"
+            f" but {event=}."
+        )
+      last_wall_time = event.wall_time
+
+
 MultiModalEmbedding = (
     SoundEmbedding
     | TextEmbedding
@@ -513,10 +656,5 @@ MultiModalEmbedding = (
     | TextPrediction
     | SoundEmbeddingCollection
 )
-MultiModalObject = (
-    Sound
-    | Text
-    | Image
-    | MultiModalEmbedding
-)
+MultiModalObject = Sound | Text | Image | MultiModalEmbedding
 MultiModalEmbeddingCache = Mapping[str, MultiModalEmbedding]
