@@ -113,10 +113,7 @@ def _frechet_distance(
 
   # Calculate product and sqrtm
   try:
-    covmean_sqrtm, _ = scipy.linalg.sqrtm(
-        cov_x_stable.dot(cov_y_stable),
-        disp=False
-    )
+    covmean_sqrtm = scipy.linalg.sqrtm(cov_x_stable.dot(cov_y_stable))
   # pylint: disable=broad-except
   except Exception as e:
     logger.error(
