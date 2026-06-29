@@ -112,18 +112,6 @@ class DirectRunner(EncoderRunner):
     self._num_threads = num_threads
     self._output_path = output_path
 
-  def _batch_elements(self, elements: Iterable[types.MultiModalObject]):
-    """Yields batches of elements (sounds or texts)."""
-    batch = []
-    for element in elements:
-      batch.append(element)
-      if len(batch) == self._batch_size:
-        yield batch
-        batch = []
-    if batch:
-      # TODO(tombagby): What do we do about short batches? Is this well defined?
-      yield batch
-
   def _encode_batch(
       self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[tuple[str, types.MultiModalEmbedding]]:
@@ -160,15 +148,16 @@ class DirectRunner(EncoderRunner):
           max_workers=self._num_threads
       ) as executor:
         for element_id_and_embedding_batch in tqdm(
-            executor.map(self._encode_batch, self._batch_elements(elements)),
-            desc='Encoding batches of elements',
+            executor.map(self._encode_batch,
+                         itertools.batched(elements, self._batch_size)),
+            desc=f'Encoding batches of {self._batch_size} elements',
         ):
           for element_id, embedding in element_id_and_embedding_batch:
             embeddings[element_id] = embedding
     else:
       for batch in tqdm(
-          self._batch_elements(elements),
-          desc='Encoding batches of elements',
+          itertools.batched(elements, self._batch_size),
+          desc=f'Encoding batches of {self._batch_size} elements',
       ):
         encoded = self._encoder.encode(batch)
         for element, embedding in zip(batch, encoded):
