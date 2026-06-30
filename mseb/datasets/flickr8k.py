@@ -70,14 +70,13 @@ def maybe_download_flickr8k(dest_dir: str) -> None:
   Args:
     dest_dir: Directory to download to.
   """
-  epath.Path(dest_dir).mkdir(parents=True, exist_ok=True)
-
   audio_dir = os.path.join(dest_dir, 'flickr_audio')
   images_dir = os.path.join(dest_dir, 'Images')
   captions_path = os.path.join(dest_dir, 'captions.txt')
 
   # Download and extract Flickr8k audio (wav files + metadata).
   if not epath.Path(audio_dir).is_dir():
+    epath.Path(dest_dir).mkdir(parents=True, exist_ok=True)
     tar_path = os.path.join(dest_dir, 'flickr_audio.tar.gz')
     if not epath.Path(tar_path).exists():
       audio_image_base.download_file(_FLICKR8K_AUDIO_URL, tar_path)

@@ -53,14 +53,13 @@ def maybe_download_spoken_coco(dest_dir: str, split: str = 'val') -> None:
     dest_dir: Directory to download to.
     split: The dataset split (used to verify the JSON file exists).
   """
-  epath.Path(dest_dir).mkdir(parents=True, exist_ok=True)
-
   json_path = os.path.join(dest_dir, f'SpokenCOCO_{split}.json')
   wavs_dir = os.path.join(dest_dir, 'wavs')
   images_dir = os.path.join(dest_dir, 'val2014')
 
   # Download and extract SpokenCOCO (audio + JSON metadata).
   if not epath.Path(json_path).exists() or not epath.Path(wavs_dir).is_dir():
+    epath.Path(dest_dir).mkdir(parents=True, exist_ok=True)
     tar_path = os.path.join(dest_dir, 'SpokenCOCO.tar.gz')
     if not epath.Path(tar_path).exists():
       audio_image_base.download_file(_SPOKEN_COCO_URL, tar_path)
