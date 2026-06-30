@@ -25,7 +25,6 @@ from mseb.tasks import retrieval
 from mseb.tasks.retrievals import utils
 import tensorflow_datasets as tfds
 
-
 _filter_fn_by_sub_task = {
     'document_retrieval_cross_lang': lambda x: True,
     'document_retrieval_cross_lang:clean': (
@@ -63,12 +62,12 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
-  def get_documents_source(self) -> str:
+  def get_documents_source(self) -> Any:
     return 'wikipedia/20190301.en'
 
   @staticmethod
-  def documents_generator(wikipedia_dataset: Any) -> Iterable[types.Text]:
-    ds = tfds.load(wikipedia_dataset, split='train')
+  def documents_generator(dataset: Any) -> Iterable[types.Text]:
+    ds = tfds.load(dataset, split='train')
     for example in ds.as_numpy_iterator():
       title = example['title'].decode('utf-8')
       yield types.Text(
@@ -134,476 +133,110 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
         )
 
 
-class SVQArEgDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ar_eg'
-  metadata = types.TaskMetadata(
-      name='SVQArEgDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-EG'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
+class SVQDocumentCrossLangRetrievalSmallIndex(SVQDocumentCrossLangRetrieval):
+  """SVQ document cross-lang retrieval with small index."""
+
+  @property
+  def index_dir(self) -> str:
+    return os.path.join(
+        super(SVQDocumentCrossLangRetrieval, self).index_dir,
+        'svq_document_retrieval_cross_lang_small_index',
+    )
+
+  def get_documents_source(self) -> Any:
+    return self._get_svq_dataset()
+
+  @staticmethod
+  def documents_generator(dataset: Any) -> Iterable[types.Text]:
+    for example in dataset.get_task_data(
+        'document_retrieval_cross_lang_small_index',
+        dtype={'title': str, 'text': str},
+    ).to_dict('records'):
+      yield types.Text(
+          text=example['text'],
+          context=types.TextContextParams(
+              id=example['title'],
+              title=example['title'],
+          ),
+      )
+
+
+# Locale -> (ClassName suffix, eval_lang)
+_SVQ_LOCALES = {
+    'ar_eg': ('ArEg', 'ar-EG'),
+    'ar_x_gulf': ('ArXGulf', 'ar-x-gulf'),
+    'ar_x_levant': ('ArXLevant', 'ar-x-levant'),
+    'ar_x_maghrebi': ('ArXMaghrebi', 'ar-x-maghrebi'),
+    'bn_bd': ('BnBd', 'bn-BD'),
+    'bn_in': ('BnIn', 'bn-IN'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+    'gu_in': ('GuIn', 'gu-IN'),
+    'hi_in': ('HiIn', 'hi-IN'),
+    'ja_jp': ('JaJp', 'ja-JP'),
+    'kn_in': ('KnIn', 'kn-IN'),
+    'ko_kr': ('KoKr', 'ko-KR'),
+    'ml_in': ('MlIn', 'ml-IN'),
+    'mr_in': ('MrIn', 'mr-IN'),
+    'ru_ru': ('RuRu', 'ru-RU'),
+    'ta_in': ('TaIn', 'ta-IN'),
+    'te_in': ('TeIn', 'te-IN'),
+    'ur_in': ('UrIn', 'ur-IN'),
+    'ur_pk': ('UrPk', 'ur-PK'),
+}
+
+
+def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+  """Dynamically create a locale-specific task class."""
+  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          'locale': locale,
+          'metadata': types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference='https://huggingface.co/datasets/google/svq',
+              documentation_file='svq_retrieval.md',
+              dataset_documentation_file='dataset_svq.md',
+              type='DocumentCrossLangRetrieval',
+              category='speech',
+              main_score='MRR',
+              revision='1.0.0',
+              dataset=types.Dataset(
+                  name='SVQ',
+                  path='https://huggingface.co/datasets/google/svq',
+                  revision='1.0.0',
+              ),
+              scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+              eval_splits=['test'],
+              eval_langs=[eval_lang],
+              domains=['speech'],
+              task_subtypes=['retrieval'],
+          ),
+      },
   )
+  return cls
 
 
-class SVQArXGulfDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ar_x_gulf'
-  metadata = types.TaskMetadata(
-      name='SVQArXGulfDocumentCrossLangRetrieval',
+# Generate all locale-specific classes and register them in the module.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  # Full index variant.
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQDocumentCrossLangRetrieval,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
       description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-gulf'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
   )
+  globals()[_cls.__name__] = _cls
 
-
-class SVQArXLevantDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ar_x_levant'
-  metadata = types.TaskMetadata(
-      name='SVQArXLevantDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-levant'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
+  # Small index variant.
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQDocumentCrossLangRetrievalSmallIndex,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Document cross-lang retrieval task with small index.',
   )
-
-
-class SVQArXMaghrebiDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ar_x_maghrebi'
-  metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-maghrebi'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQBnBdDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'bn_bd'
-  metadata = types.TaskMetadata(
-      name='SVQBnBdDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['bn-BD'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQBnInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'bn_in'
-  metadata = types.TaskMetadata(
-      name='SVQBnInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['bn-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQFiFiDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'fi_fi'
-  metadata = types.TaskMetadata(
-      name='SVQFiFiDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['fi-FI'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQGuInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'gu_in'
-  metadata = types.TaskMetadata(
-      name='SVQGuInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['gu-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQHiInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'hi_in'
-  metadata = types.TaskMetadata(
-      name='SVQHiInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['hi-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQJaJpDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ja_jp'
-  metadata = types.TaskMetadata(
-      name='SVQJaJpDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ja-JP'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQKnInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'kn_in'
-  metadata = types.TaskMetadata(
-      name='SVQKnInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['kn-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQKoKrDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ko_kr'
-  metadata = types.TaskMetadata(
-      name='SVQKoKrDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ko-KR'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQMlInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ml_in'
-  metadata = types.TaskMetadata(
-      name='SVQMlInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ml-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQMrInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'mr_in'
-  metadata = types.TaskMetadata(
-      name='SVQMrInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['mr-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQRuRuDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ru_ru'
-  metadata = types.TaskMetadata(
-      name='SVQRuRuDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ru-RU'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQTaInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ta_in'
-  metadata = types.TaskMetadata(
-      name='SVQTaInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ta-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQTeInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'te_in'
-  metadata = types.TaskMetadata(
-      name='SVQTeInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['te-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQUrInDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ur_in'
-  metadata = types.TaskMetadata(
-      name='SVQUrInDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ur-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQUrPkDocumentCrossLangRetrieval(SVQDocumentCrossLangRetrieval):
-  locale = 'ur_pk'
-  metadata = types.TaskMetadata(
-      name='SVQUrPkDocumentCrossLangRetrieval',
-      description='Document cross-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='DocumentCrossLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ur-PK'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
+  globals()[_cls.__name__] = _cls
