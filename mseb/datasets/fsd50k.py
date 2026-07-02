@@ -86,7 +86,7 @@ class FSD50KDataset(base.MsebDataset):
     return self._class_labels
 
   def _path(self, *args):
-    return os.path.join(self.base_path, *args)
+    return os.path.join(self.base_path, *args)  # pyrefly: ignore[no-matching-overload]
 
   def _hf_path(self, *parts):
     """Constructs a URL for a file in the Hugging Face repository."""
@@ -147,7 +147,7 @@ class FSD50KDataset(base.MsebDataset):
         df = df[df['split'] == 'val']
       else:
         raise ValueError(f'Unsupported split {self.split} for _load_csv')
-    return df
+    return df  # pyrefly: ignore[unbound-name]
 
   def _load_metadata(self) -> pd.DataFrame:
     """Loads the dataset metadata, utilizing a parquet cache for speed.
@@ -174,13 +174,13 @@ class FSD50KDataset(base.MsebDataset):
         for batch in parquet_file.iter_batches(batch_size=_PARQUET_BATCH_SIZE):
           batch_df = batch.to_pandas()
           df = pd.concat([df, batch_df])
-        return df
+        return df  # pyrefly: ignore[bad-return]
     logging.info(
         'Cache not found. Processing FSD50K %s split from source...',
         self.split,
     )
     if not self.streaming:
-      utils.download_from_hf(self.repo_id, self.base_path)
+      utils.download_from_hf(self.repo_id, self.base_path)  # pyrefly: ignore[bad-argument-type]
     df = self._load_csv()
     if not self.streaming:
       logging.info(

@@ -199,13 +199,13 @@ class Flickr8kDataset(audio_image_base.AudioImageDataset):
           f"Unknown split '{self.split}'. "
           f'Must be one of {list(_SPLIT_TO_FILENAME.keys())}.'
       )
-    split_path = os.path.join(self.base_path, split_file)
+    split_path = os.path.join(self.base_path, split_file)  # pyrefly: ignore[no-matching-overload]
     with epath.Path(split_path).open('r') as f:
       return {line.strip() for line in f if line.strip()}
 
   def _load_captions(self) -> dict[str, list[str]]:
     """Loads captions.txt and returns {image_filename: [caption1, ...]}."""
-    captions_path = os.path.join(self.base_path, 'captions.txt')
+    captions_path = os.path.join(self.base_path, 'captions.txt')  # pyrefly: ignore[no-matching-overload]
     captions: dict[str, list[str]] = {}
     with epath.Path(captions_path).open('r') as f:
       reader = csv.DictReader(f)
@@ -216,7 +216,7 @@ class Flickr8kDataset(audio_image_base.AudioImageDataset):
 
   def _load_wav2capt(self) -> dict[str, tuple[str, str]]:
     """Loads wav2capt.txt and returns {wav_file: (image_file, caption_idx)}."""
-    wav2capt_path = os.path.join(self.base_path, 'flickr_audio', 'wav2capt.txt')
+    wav2capt_path = os.path.join(self.base_path, 'flickr_audio', 'wav2capt.txt')  # pyrefly: ignore[no-matching-overload]
     mapping: dict[str, tuple[str, str]] = {}
     with epath.Path(wav2capt_path).open('r') as f:
       for line in f:
@@ -228,7 +228,7 @@ class Flickr8kDataset(audio_image_base.AudioImageDataset):
 
   def _load_wav2spk(self) -> dict[str, str]:
     """Loads wav2spk.txt and returns {wav_file: speaker_id}."""
-    wav2spk_path = os.path.join(self.base_path, 'flickr_audio', 'wav2spk.txt')
+    wav2spk_path = os.path.join(self.base_path, 'flickr_audio', 'wav2spk.txt')  # pyrefly: ignore[no-matching-overload]
     mapping: dict[str, str] = {}
     with epath.Path(wav2spk_path).open('r') as f:
       for line in f:

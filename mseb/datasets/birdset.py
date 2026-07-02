@@ -103,7 +103,7 @@ class BirdsetDataset(base.MsebDataset):
   def _load_data(self) -> pd.DataFrame:
     """Loads and configures the Hugging Face dataset object."""
     cache_filename = f"birdset_{self.configuration}_{self.split}.parquet"
-    cache_path = os.path.join(self.base_path, cache_filename)
+    cache_path = os.path.join(self.base_path, cache_filename)  # pyrefly: ignore[no-matching-overload]
     if not epath.Path(cache_path).exists():
       raise FileNotFoundError(
           f"Birdset cache file not found at {cache_path}. Please ensure the"
@@ -112,7 +112,7 @@ class BirdsetDataset(base.MsebDataset):
       )
     df = pd.read_parquet(cache_path)
 
-    class_lists_path = os.path.join(self.base_path, "class_lists.json")
+    class_lists_path = os.path.join(self.base_path, "class_lists.json")  # pyrefly: ignore[no-matching-overload]
     if not epath.Path(class_lists_path).exists():
       raise FileNotFoundError(
           f"Class lists file not found at {class_lists_path}."
@@ -120,7 +120,7 @@ class BirdsetDataset(base.MsebDataset):
     with epath.Path(class_lists_path).open("r") as f:
       class_lists = json.load(f)
 
-    config_to_class_list_path = os.path.join(
+    config_to_class_list_path = os.path.join(  # pyrefly: ignore[no-matching-overload]
         self.base_path, "config_to_class_list.json"
     )
     if not epath.Path(config_to_class_list_path).exists():

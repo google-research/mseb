@@ -149,7 +149,7 @@ class SpokenCocoDataset(audio_image_base.AudioImageDataset):
   def _load_data(self) -> list[Mapping[str, Any]]:
     """Loads and caches the SpokenCOCO JSON metadata."""
     if self._data is None:
-      json_path = os.path.join(self.base_path, f'SpokenCOCO_{self.split}.json')
+      json_path = os.path.join(self.base_path, f'SpokenCOCO_{self.split}.json')  # pyrefly: ignore[no-matching-overload]
       logger.info('Loading SpokenCOCO metadata from %s', json_path)
       with epath.Path(json_path).open('r') as f:
         self._data = json.load(f)['data']

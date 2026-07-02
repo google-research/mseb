@@ -58,17 +58,17 @@ def get_leaf_dist(
     if len(shape) == 2:
       # Main metric: Sequence-aware continuous edit distance
       results["CED"] = metrics.compute_continuous_edit_distance(
-          r.embedding, h.embedding)
+          r.embedding, h.embedding)  # pyrefly: ignore[bad-argument-type]
       # Temporal robustness: Non-linear alignment cost
       results["DTW"] = metrics.compute_dynamic_time_warping_distance(
-          r.embedding, h.embedding)
+          r.embedding, h.embedding)  # pyrefly: ignore[bad-argument-type]
       # Rigid alignment: Standard Euclidean distance (if shapes match)
-      results["L2"] = metrics.compute_lp_norm(r.embedding, h.embedding, p=2)
+      results["L2"] = metrics.compute_lp_norm(r.embedding, h.embedding, p=2)  # pyrefly: ignore[bad-argument-type]
 
     # Discrete Suite (Rank 1: [Sequence_Length])
     elif len(shape) == 1:
       results["UED"] = metrics.compute_unit_edit_distance(
-          r.embedding, h.embedding)
+          r.embedding, h.embedding)  # pyrefly: ignore[bad-argument-type]
 
   # 2. Handle Transcription/Text Predictions (Always Discrete)
   elif (isinstance(r, types.TextPrediction) and
@@ -174,12 +174,12 @@ class StabilityTask(task_lib.MSEBTask, abc.ABC):
         seed = utils.get_deterministic_seed(sound.context.id, i)
         rng = np.random.default_rng(seed)
         aug_waveform = utils.apply_specaugment_to_waveform(
-            sound.waveform, config=self.config, rng=rng
+            sound.waveform, config=self.config, rng=rng  # pyrefly: ignore[bad-argument-type]
         )
         new_ctx = dataclasses.replace(
             sound.context, id=f"{sound.context.id}_aug_{i}"
         )
-        yield types.Sound(waveform=aug_waveform, context=new_ctx)
+        yield types.Sound(waveform=aug_waveform, context=new_ctx)  # pyrefly: ignore[bad-argument-type]
 
   def compute_scores(
       self, embeddings: types.MultiModalEmbeddingCache

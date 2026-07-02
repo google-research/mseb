@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 class MSEBTask(abc.ABC):
   """Abstract base class for MSEB tasks."""
 
-  metadata: types.TaskMetadata = None
+  metadata: types.TaskMetadata = None  # pyrefly: ignore[bad-assignment]
 
   def setup(
       self, runner: runner_lib.EncoderRunner | None = None
@@ -72,7 +72,7 @@ class MSEBTask(abc.ABC):
     logging.warning(
         "sounds() is deprecated. Update to use multimodal_inputs() instead. "
     )
-    return self.multimodal_inputs()
+    return self.multimodal_inputs()  # pyrefly: ignore[bad-return]
 
   @final
   def sounds_beam(self) -> beam.PCollection[types.Sound]:

@@ -82,7 +82,7 @@ def get_encoding_scores(
       types.Score(
           metric='mean_encoding_size_bytes',
           description='Mean encoding size in bytes.',
-          value=np.mean([x.embedding_size_bytes for x in stats]),
+          value=np.mean([x.embedding_size_bytes for x in stats]),  # pyrefly: ignore[bad-argument-type]
           min=0,
           max=np.inf,
       ),
@@ -221,14 +221,14 @@ def flatten_leaderboard_results(
               task_subtypes=task_metadata.task_subtypes,
               task_languages=task_metadata.eval_langs,
               main_score_metric=main_score_metric,
-              main_score_value=main_score_value,
+              main_score_value=main_score_value,  # pyrefly: ignore[bad-argument-type]
               metric=score.metric,
               metric_value=score.value,
               metric_description=score.description,
               metric_min=score.min,
               metric_max=score.max,
               metric_std=score.std,
-              dataset_name=task_metadata.dataset.name,
+              dataset_name=task_metadata.dataset.name,  # pyrefly: ignore[bad-argument-type]
               sub_task_name=result.sub_task_name,
               url=result.url,
               documentation_file=task_metadata.documentation_file,
@@ -274,5 +274,5 @@ def write_dataclasses_to_jsonl(
     f: An open file object to write to.
   """
   for result in results:
-    json.dump(dataclasses.asdict(result), f)
-    f.write('\n')
+    json.dump(dataclasses.asdict(result), f)  # pyrefly: ignore[bad-argument-type]
+    f.write('\n')  # pyrefly: ignore[no-matching-overload]

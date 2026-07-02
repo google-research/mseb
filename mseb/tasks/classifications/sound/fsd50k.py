@@ -31,7 +31,7 @@ class FSD50KClassification(classification.ClassificationTask):
   split: str | None = None
 
   def _get_dataset(self):
-    return fsd50k.FSD50KDataset(split=self.split)
+    return fsd50k.FSD50KDataset(split=self.split)  # pyrefly: ignore[bad-argument-type]
 
   @property
   def task_type(self) -> str:

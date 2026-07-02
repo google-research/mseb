@@ -79,7 +79,7 @@ class RetrievalTask(task.MSEBTask):
   @property
   def index_dir(self) -> str:
     """The directory where the index is stored."""
-    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'retrievals')
+    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'retrievals')  # pyrefly: ignore[no-matching-overload]
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the index."""
@@ -109,7 +109,7 @@ class RetrievalTask(task.MSEBTask):
         searcher, id_by_index_id = None, None
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluator(
-        searcher=searcher, id_by_index_id=id_by_index_id
+        searcher=searcher, id_by_index_id=id_by_index_id  # pyrefly: ignore[bad-argument-type]
     )
 
   def setup_partitioned(
@@ -173,7 +173,7 @@ class RetrievalTask(task.MSEBTask):
         ):
           items = []
           for n, item in enumerate(prediction.items, 1):
-            item['score'] = item.get('score', 1 / n)
+            item['score'] = item.get('score', 1 / n)  # pyrefly: ignore[unsupported-operation]
             items.append(item)
           prediction = types.ValidListPrediction(items)
         predictions[sound_id] = prediction

@@ -144,7 +144,7 @@ class _LoadAudioFn(beam.DoFn):
     self._utt_lookup = _UttLookup(self._base_path, self._index_df)
 
   def process(self, record: dict[str, Any]):
-    wav_bytes = self._utt_lookup(record["utt_id"])
+    wav_bytes = self._utt_lookup(record["utt_id"])  # pyrefly: ignore[not-callable]
     waveform, sr = utils.wav_bytes_to_waveform(wav_bytes)
 
     speaker_age_val = record.get("speaker_age")
@@ -154,13 +154,13 @@ class _LoadAudioFn(beam.DoFn):
         length=len(waveform),
         language=record.get("locale"),
         speaker_id=str(record.get("speaker_id")),
-        speaker_age=int(speaker_age_val) if pd.notna(speaker_age_val) else None,
+        speaker_age=int(speaker_age_val) if pd.notna(speaker_age_val) else None,  # pyrefly: ignore[bad-argument-type]
         speaker_gender=record.get("gender"),
         text=record.get("text"),
         waveform_start_second=0.0,
         waveform_end_second=len(waveform) / sr if sr > 0 else 0.0,
     )
-    sound = types.Sound(waveform=waveform, context=context)
+    sound = types.Sound(waveform=waveform, context=context)  # pyrefly: ignore[bad-argument-type]
     yield record | {"sound": sound}
 
 
@@ -258,11 +258,11 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
               f"No parquet files found in {self.repo_id}/audio"
           ) from e
     else:
-      utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")
+      utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")  # pyrefly: ignore[no-matching-overload]
       if epath.Path(utt_index_path).exists():
         return pd.read_json(utt_index_path, lines=True)
 
-      audio_dir = os.path.join(self.base_path, "audio")
+      audio_dir = os.path.join(self.base_path, "audio")  # pyrefly: ignore[no-matching-overload]
       if not epath.Path(audio_dir).exists():
         raise FileNotFoundError(
             f"Master index {utt_index_path} not found and audio dir {audio_dir}"
@@ -329,21 +329,21 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
         length=len(waveform),
         language=record.get("locale"),
         speaker_id=str(record.get("speaker_id")),
-        speaker_age=int(speaker_age_val) if pd.notna(speaker_age_val) else None,
+        speaker_age=int(speaker_age_val) if pd.notna(speaker_age_val) else None,  # pyrefly: ignore[bad-argument-type]
         speaker_gender=record.get("gender"),
         text=record.get("text"),
         waveform_start_second=0.0,
         waveform_end_second=len(waveform) / sr if sr > 0 else 0.0,
     )
-    return types.Sound(waveform=waveform, context=context)
+    return types.Sound(waveform=waveform, context=context)  # pyrefly: ignore[bad-argument-type]
 
   def _get_task_path(self, task_name: str) -> str:
     """Returns the path to the task file for the given task name."""
-    jsonl_path = os.path.join(self.base_path, f"{task_name}.jsonl")
+    jsonl_path = os.path.join(self.base_path, f"{task_name}.jsonl")  # pyrefly: ignore[no-matching-overload]
     if epath.Path(jsonl_path).exists():
       return jsonl_path
 
-    parquet_path = os.path.join(self.base_path, f"{task_name}.parquet")
+    parquet_path = os.path.join(self.base_path, f"{task_name}.parquet")  # pyrefly: ignore[no-matching-overload]
     if epath.Path(parquet_path).exists():
       return parquet_path
 
@@ -367,16 +367,16 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     Raises:
       FileNotFoundError: If the task file does not exist.
     """
-    path = self._get_task_path(task_name)
+    path = self._get_task_path(task_name)  # pyrefly: ignore[bad-argument-type]
     if path.endswith(".parquet"):
       return pd.read_parquet(path)
     else:
-      return pd.read_json(path, lines=True, dtype=dtype)
+      return pd.read_json(path, lines=True, dtype=dtype)  # pyrefly: ignore[no-matching-overload]
 
   def get_task_data_beam(self, task_name: str) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""
     return ReadTaskData(
-        self.base_path,
+        self.base_path,  # pyrefly: ignore[bad-argument-type]
         self._index,
         self._get_task_path(task_name),
     )

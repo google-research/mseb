@@ -93,9 +93,9 @@ class BackFillRetrievedItemTexts:
       items = retrieved_items.items
       for item in items:
         if 'text' not in item:
-          item['text'] = self._text_by_id[item['id']]
+          item['text'] = self._text_by_id[item['id']]  # pyrefly: ignore[unsupported-operation]
         if self._remove_scores:
-          item.pop('score', None)
+          item.pop('score', None)  # pyrefly: ignore[missing-attribute]
     retrieved_items_str = retrieved_items.to_json()
     return retrieved_items_str
 
@@ -144,7 +144,7 @@ class GeminiTokenCount:
         response = self._client.models.count_tokens(
             model=self._model_name, contents=text
         )
-        return response.total_tokens
+        return response.total_tokens  # pyrefly: ignore[bad-return]
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.warning('Failed to count tokens: %s, retrying %d: ', e, n_try)
         time.sleep(int(self._wait_time * 1.5 ** (n_try + 1)))

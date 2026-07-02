@@ -128,12 +128,12 @@ def compute_weighted_average_and_std(
   """Computes weighted mean and standard deviation for a list of values."""
 
   weights = np.array([x.weight for x in values])
-  values = np.array([x.value for x in values])
+  values = np.array([x.value for x in values])  # pyrefly: ignore[bad-assignment]
   weight = np.sum(weights)
-  mean = np.sum(values) / weight
+  mean = np.sum(values) / weight  # pyrefly: ignore[no-matching-overload]
   std = (
       np.average(
-          (np.where(weights == 0, values, values / weights) - mean) ** 2,
+          (np.where(weights == 0, values, values / weights) - mean) ** 2,  # pyrefly: ignore[no-matching-overload]
           weights=weights,
       )
       ** 0.5
@@ -166,7 +166,7 @@ def top_1(
 ]:
   """Returns the top-1 value and its index of scores."""
   top_id = np.argmax(scores)
-  return np.array([scores[top_id]]), np.array([top_id])
+  return np.array([scores[top_id]]), np.array([top_id])  # pyrefly: ignore[bad-return]
 
 
 def top_k(scores: jaxtyping.Float[jaxtyping.Array, '*B N'], k: int) -> tuple[
@@ -178,7 +178,7 @@ def top_k(scores: jaxtyping.Float[jaxtyping.Array, '*B N'], k: int) -> tuple[
   ids_k = np.argpartition(scores, -k, axis=-1)[-k:]
   ids = np.argsort(scores[ids_k], axis=-1)[::-1]
   ids_k = ids_k[ids]
-  return scores[ids_k], ids_k
+  return scores[ids_k], ids_k  # pyrefly: ignore[bad-return]
 
 
 def top_inf(scores: jaxtyping.Float[jaxtyping.Array, '*B N']) -> tuple[
@@ -187,4 +187,4 @@ def top_inf(scores: jaxtyping.Float[jaxtyping.Array, '*B N']) -> tuple[
 ]:
   """Returns the values and their indices of scores in descending order."""
   ids = np.argsort(-scores, axis=-1)
-  return scores[ids], ids
+  return scores[ids], ids  # pyrefly: ignore[bad-return]

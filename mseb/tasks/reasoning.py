@@ -52,7 +52,7 @@ class ReasoningTask(task.MSEBTask):
   @property
   def embeddings_dir(self) -> str:
     """The directory where the span embeddings cache is stored."""
-    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'reasonings')
+    return os.path.join(task.TASK_CACHE_BASEPATH.value, 'reasonings')  # pyrefly: ignore[no-matching-overload]
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Create the span embeddings cache."""

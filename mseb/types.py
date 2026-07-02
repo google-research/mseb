@@ -98,7 +98,7 @@ class SoundContextParams:
   # The exclusive ending second for the segment. The
   # slice of sound segment is `[start:end]`. Defaults to the
   # maximum float32 value to signify "to the end of the waveform."
-  waveform_end_second: float = np.finfo(np.float32).max
+  waveform_end_second: float = np.finfo(np.float32).max  # pyrefly: ignore[bad-assignment]
   debug_text: Optional[str] = None  # Text for debugging purposes.
   task_name: Optional[str] = None
   prompt: Optional[Any] = None
@@ -607,13 +607,13 @@ class StreamingSpeechToTextEvent:
     iterator = iter(events)
     event = next(iterator)
     has_content_time = event.content_time is not None
-    if has_content_time and event.content_time < 0:
+    if has_content_time and event.content_time < 0:  # pyrefly: ignore[unsupported-operation]
       raise ValueError(
           f"Content time cannot be negative, got {event.content_time=} for the"
           " first event."
       )
     has_wall_time = event.wall_time is not None
-    if has_wall_time and event.wall_time < 0:
+    if has_wall_time and event.wall_time < 0:  # pyrefly: ignore[unsupported-operation]
       raise ValueError(
           f"Wall time cannot be negative, got {event.wall_time=} for the first"
           " event."
@@ -628,7 +628,7 @@ class StreamingSpeechToTextEvent:
             f" content time, got {has_content_time=} from previous events but"
             f" {event=}."
         )
-      if has_content_time and event.content_time < last_content_time:
+      if has_content_time and event.content_time < last_content_time:  # pyrefly: ignore[unsupported-operation]
         raise ValueError(
             f"Content time should be non-decreasing, got {last_content_time=}"
             f" but {event=}."
@@ -641,7 +641,7 @@ class StreamingSpeechToTextEvent:
             "Events should either all have wall time or all not have wall"
             f" time, got {has_wall_time=} from previous events but {event=}"
         )
-      if has_wall_time and event.wall_time < last_wall_time:
+      if has_wall_time and event.wall_time < last_wall_time:  # pyrefly: ignore[unsupported-operation]
         raise ValueError(
             f"Wall time should be non-decreasing, got {last_wall_time=}"
             f" but {event=}."

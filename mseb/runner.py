@@ -92,7 +92,7 @@ class EncoderRunner(abc.ABC):
 
   def encoder_output_type(self) -> type[types.MultiModalEmbedding]:
     """The type of the output of the encoder."""
-    return self._encoder.output_type()
+    return self._encoder.output_type()  # pyrefly: ignore[bad-return]
 
 
 class DirectRunner(EncoderRunner):
@@ -128,7 +128,7 @@ class DirectRunner(EncoderRunner):
       self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[tuple[str, types.MultiModalEmbedding]]:
     encoded = self._encoder.encode(batch)
-    return [
+    return [  # pyrefly: ignore[bad-return]
         (element.context.id, embedding)
         for element, embedding in zip(batch, encoded)
     ]
@@ -159,14 +159,14 @@ class DirectRunner(EncoderRunner):
       with futures.ThreadPoolExecutor(
           max_workers=self._num_threads
       ) as executor:
-        for element_id_and_embedding_batch in tqdm(
+        for element_id_and_embedding_batch in tqdm(  # pyrefly: ignore[not-callable]
             executor.map(self._encode_batch, self._batch_elements(elements)),
             desc='Encoding batches of elements',
         ):
           for element_id, embedding in element_id_and_embedding_batch:
             embeddings[element_id] = embedding
     else:
-      for batch in tqdm(
+      for batch in tqdm(  # pyrefly: ignore[not-callable]
           self._batch_elements(elements),
           desc='Encoding batches of elements',
       ):
@@ -240,12 +240,12 @@ def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
   )
   if not output_files:
     raise FileNotFoundError(f'No files found matching {output_pattern}')
-  for filename in tqdm(
+  for filename in tqdm(  # pyrefly: ignore[not-callable]
       output_files, total=len(output_files), desc='Loading embeddings'
   ):
     # But don't know how to read back from TFRecord except via tf.data.
     with tf.device('/CPU:0'):
-      dataset = tf.data.TFRecordDataset(filename)
+      dataset = tf.data.TFRecordDataset(filename)  # pyrefly: ignore[bad-instantiation]
     for record in dataset:
       embedding: types.MultiModalEmbedding = pickle.loads(record.numpy())
       embeddings[embedding.context.id] = embedding

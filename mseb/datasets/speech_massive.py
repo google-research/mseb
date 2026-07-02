@@ -108,7 +108,7 @@ class SpeechMassiveDataset(base.MsebDataset):
 
   def _download_and_prepare(self) -> None:
     """Downloads the dataset from Hugging Face."""
-    utils.download_from_hf(self.repo_id, self.base_path)
+    utils.download_from_hf(self.repo_id, self.base_path)  # pyrefly: ignore[bad-argument-type]
 
   def _get_files(self) -> list[str]:
     """Returns the list of files to read."""
@@ -132,7 +132,7 @@ class SpeechMassiveDataset(base.MsebDataset):
           )
         return filtered_files
     else:
-      parquet_path = os.path.join(self.base_path, self.filename)
+      parquet_path = os.path.join(self.base_path, self.filename)  # pyrefly: ignore[no-matching-overload]
       parquet_files = tuple(
           epath.Path(os.path.dirname(parquet_path)).glob(
               os.path.basename(parquet_path)
@@ -191,7 +191,7 @@ class SpeechMassiveDataset(base.MsebDataset):
     if "audio" in df.columns:
       df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
 
-    return df
+    return df  # pyrefly: ignore[bad-return]
 
   def get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Converts a single row of the dataset to a Sound object."""

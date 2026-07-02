@@ -64,7 +64,7 @@ class AudioImageDataset(base.MsebDataset):
     Returns:
       A types.Sound object with the loaded waveform.
     """
-    wav_path = os.path.join(self.base_path, record['wav'])
+    wav_path = os.path.join(self.base_path, record['wav'])  # pyrefly: ignore[no-matching-overload]
     waveform, sample_rate = utils.read_audio(wav_path)
     context = types.SoundContextParams(
         id=record['uttid'],
@@ -74,7 +74,7 @@ class AudioImageDataset(base.MsebDataset):
         speaker_id=record.get('speaker'),
         text=record.get('text'),
     )
-    return types.Sound(waveform=waveform, context=context)
+    return types.Sound(waveform=waveform, context=context)  # pyrefly: ignore[bad-argument-type]
 
   def get_image(self, record: Mapping[str, Any]) -> types.Image:
     """Loads an Image object from a dataset record.
@@ -86,7 +86,7 @@ class AudioImageDataset(base.MsebDataset):
     Returns:
       A types.Image object with the loaded pixel data.
     """
-    image_path = os.path.join(self.base_path, record['image'])
+    image_path = os.path.join(self.base_path, record['image'])  # pyrefly: ignore[no-matching-overload]
     with epath.Path(image_path).open('rb') as f:
       pil_image = PILImage.open(io.BytesIO(f.read()))
       pil_image = pil_image.convert('RGB')
@@ -97,7 +97,7 @@ class AudioImageDataset(base.MsebDataset):
         width=image_array.shape[1],
         channels=image_array.shape[2],
     )
-    return types.Image(image=image_array, context=context)
+    return types.Image(image=image_array, context=context)  # pyrefly: ignore[bad-argument-type]
 
   def get_unique_images(self) -> Sequence[Mapping[str, str]]:
     """Returns a list of unique image records (one per image).

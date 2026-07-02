@@ -232,7 +232,7 @@ def generate_html_table(
         if task_type in mean_scores_by_type[name]
     ]
     if type_values:
-      max_means_by_type[task_type] = max(type_values)
+      max_means_by_type[task_type] = max(type_values)  # pyrefly: ignore[bad-specialization]
 
   mean_cols_map = {
       task_type: f"{task_type} (mean)" for task_type in main_task_types
@@ -309,7 +309,7 @@ def generate_html_table(
           name_urls,
       )
 
-  return html, details_html, docs_by_type
+  return html, details_html, docs_by_type  # pyrefly: ignore[bad-return]
 
 
 def generate_comparison_html_table(
@@ -601,7 +601,7 @@ def main(argv: Sequence[str]) -> None:
             if x not in docs_by_type[k1][k2][k3]:
               docs_by_type[k1][k2][k3].append(x)
 
-  docs_section = generate_docs_section(docs_by_type)
+  docs_section = generate_docs_section(docs_by_type)  # pyrefly: ignore[bad-argument-type]
 
   html_table = ""
   if transcript_truth_results and cascaded_results:

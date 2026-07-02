@@ -97,7 +97,7 @@ class ClassificationTask(task.MSEBTask):
   @property
   def weights_dir(self) -> str:
     """The directory where the weights of the linear classifier are stored."""
-    return os.path.join(task.TASK_CACHE_BASEPATH.value, "classifications")
+    return os.path.join(task.TASK_CACHE_BASEPATH.value, "classifications")  # pyrefly: ignore[no-matching-overload]
 
   def setup(self, runner: runner_lib.EncoderRunner | None = None):
     """Creates/loads weights and instantiates the correct evaluator."""
@@ -120,14 +120,14 @@ class ClassificationTask(task.MSEBTask):
     if self.task_type == "multi_class":
       self._evaluator = classification_evaluator.ClassificationEvaluator(
           class_labels=class_labels,
-          weights=weights,
+          weights=weights,  # pyrefly: ignore[bad-argument-type]
           top_k_value=self.top_k_value,
       )
     elif self.task_type == "multi_label":
       self._evaluator = (
           classification_evaluator.MultiLabelClassificationEvaluator(
               id_by_class_index=class_labels,
-              weights=weights,
+              weights=weights,  # pyrefly: ignore[bad-argument-type]
           )
       )
     else:
@@ -157,7 +157,7 @@ class ClassificationTask(task.MSEBTask):
         embedding_array = classification_evaluator.get_embedding_array(v)
         embeddings_with_bias[k] = dataclasses.replace(
             v,
-            embedding=np.pad(
+            embedding=np.pad(  # pyrefly: ignore[unexpected-keyword]
                 embedding_array,
                 ((0, 0), (0, 1)),
                 "constant",
@@ -211,6 +211,6 @@ class ClassificationTask(task.MSEBTask):
 
     weights = np.squeeze(np.array(weights, dtype=np.float32), axis=1)
     classification_evaluator.save_linear_classifier(
-        class_labels, weights, self.weights_dir
+        class_labels, weights, self.weights_dir  # pyrefly: ignore[bad-argument-type]
     )
     return class_labels, weights

@@ -46,7 +46,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
     return ["intent_classification"]
 
   def _get_dataset(self) -> speech_massive.SpeechMassiveDataset:
-    return speech_massive.SpeechMassiveDataset(filename=self.filename)
+    return speech_massive.SpeechMassiveDataset(filename=self.filename)  # pyrefly: ignore[bad-argument-type]
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     dataset = self._get_dataset()

@@ -58,7 +58,7 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
     svq_dataset = self._get_dataset()
     for example in svq_dataset.get_task_data(
         'speech_transcription',
-        dtype={
+        dtype={  # pyrefly: ignore[bad-argument-type]
             'locale': str,
             'utt_id': str,
             task_lib.TRANSCRIPT_KEY.value: str,

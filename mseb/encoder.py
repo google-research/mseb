@@ -80,7 +80,7 @@ def resample_sound(
   elif target_dtype == np.float64:
     output_waveform = resampled_waveform.astype(np.float64)
   else:
-    info = np.iinfo(target_dtype)
+    info = np.iinfo(target_dtype)  # pyrefly: ignore[no-matching-overload]
     output_waveform = np.clip(
         resampled_waveform * -info.min, info.min, info.max
     ).astype(target_dtype)
@@ -146,7 +146,7 @@ class MultiModalEncoder(abc.ABC):
     self._check_input_types(batch)
     embeddings = self._encode(batch)
     for features, embedding in zip(batch, embeddings):
-      embedding.encoding_stats = types.EncodingStats(
+      embedding.encoding_stats = types.EncodingStats(  # pyrefly: ignore[missing-attribute]
           input_size_bytes=features.size_bytes,
           embedding_size_bytes=embedding.size_bytes,
           flops=self.get_encode_flops(features),
