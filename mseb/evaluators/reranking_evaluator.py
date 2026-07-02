@@ -95,7 +95,7 @@ class RerankingEvaluator:
           str, Sequence[types.MultiModalEmbedding]
       ],
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
-      predict_fn: evaluator.PredictFn = evaluator.top_inf,
+      predict_fn: evaluator.PredictFn = evaluator.top_inf,  # pyrefly: ignore[bad-function-definition]
       mrr_at_k: int = 10,
   ):
     """Initializes the reranking evaluator.
@@ -127,14 +127,14 @@ class RerankingEvaluator:
     predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
       assert hasattr(embeddings, 'embedding')
-      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
       candidate_embeddings = self.candidate_embeddings_by_sound_id[sound_id]
       embeddings = []
       for embeds in candidate_embeddings:
         assert hasattr(embeds, 'embedding')
-        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
+        embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding  # pyrefly: ignore[bad-assignment]
         embeddings.append(embed[0])
-      scores = self.distance_fn(embedding[0], np.array(embeddings))
+      scores = self.distance_fn(embedding[0], np.array(embeddings))  # pyrefly: ignore[bad-argument-type]
       ranked_candidate_scores, ranked_candidate_ids = self.predict_fn(scores)
       texts = [text.context.id for text in candidate_embeddings]
       ranked_candidate_texts: Sequence[str] = [
@@ -183,9 +183,9 @@ class RerankingEvaluator:
               rank = candidates.rank_by_id[int(item['id'])]
             else:
               rank = int(item['id'])
-            item['text'] = item.get('text', candidates.texts[rank])
+            item['text'] = item.get('text', candidates.texts[rank])  # pyrefly: ignore[unsupported-operation]
           except (IndexError, KeyError):
-            item['text'] = ''
+            item['text'] = ''  # pyrefly: ignore[unsupported-operation]
 
         word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=candidates.texts[0],

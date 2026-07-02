@@ -146,7 +146,7 @@ def _compute_metrics(
       values_by_metric['ndcg'].append(
           types.WeightedValue(
               value=metrics_lib.compute_ndcg_at_k(
-                  reference_id.reference_id, ranked_doc_ids, k=10
+                  reference_id.reference_id, ranked_doc_ids, k=10  # pyrefly: ignore[bad-argument-type]
               )
           )
       )
@@ -275,7 +275,7 @@ class RetrievalEvaluator:
     predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
       assert hasattr(embeddings, 'embedding')
-      embedding: jaxtyping.Float[jaxtyping.Array, 'N D'] = embeddings.embedding
+      embedding: jaxtyping.Float[jaxtyping.Array, 'N D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
       ranked_index_ids, ranked_doc_scores = self.searcher.search_batched(
           embedding.astype(np.float32)
       )
@@ -380,8 +380,8 @@ def build_index(
 
   def _get_embedding(embeddings: types.MultiModalEmbedding) -> np.ndarray:
     assert hasattr(embeddings, 'embedding')
-    embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
-    return embedding[0]
+    embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
+    return embedding[0]  # pyrefly: ignore[bad-return]
 
   candidates = np.array(
       [_get_embedding(embeddings[did]) for did in id_by_index_id], np.float32

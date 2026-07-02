@@ -32,17 +32,17 @@ class RerankingEvaluatorTest(parameterized.TestCase):
             'test': [
                 types.TextEmbedding(
                     embedding=np.array([[3.0, 4.0]], dtype=np.float32),
-                    spans=np.array([[0, -1]]),
+                    spans=np.array([[0, -1]]),  # pyrefly: ignore[bad-argument-type]
                     context=types.TextContextParams(id='b l i'),
                 ),
                 types.TextEmbedding(
                     embedding=np.array([[5.0, 6.0]], dtype=np.float32),
-                    spans=np.array([[0, -1]]),
+                    spans=np.array([[0, -1]]),  # pyrefly: ignore[bad-argument-type]
                     context=types.TextContextParams(id='b l a'),
                 ),
                 types.TextEmbedding(
                     embedding=np.array([[1.0, 2.0]], dtype=np.float32),
-                    spans=np.array([[0, -1]]),
+                    spans=np.array([[0, -1]]),  # pyrefly: ignore[bad-argument-type]
                     context=types.TextContextParams(id='x y z'),
                 ),
             ]
@@ -52,7 +52,7 @@ class RerankingEvaluatorTest(parameterized.TestCase):
         embeddings_by_sound_id={
             'test': types.SoundEmbedding(
                 embedding=np.array([[2.5, 3.0]]),
-                timestamps=np.array([[0.0, 1.0]]),
+                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
                 context=types.SoundContextParams(
                     id='test',
                     sample_rate=16000,

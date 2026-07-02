@@ -110,14 +110,14 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     predictions = evaluator.compute_predictions(
         embeddings_by_sound_id={
             '1': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
+                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='1', sample_rate=16000, length=16000 * 5
                 ),
             ),
             '2': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
+                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='2', sample_rate=16000, length=16000 * 5
@@ -283,14 +283,14 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     predictions = evaluator.compute_predictions(
         embeddings_by_sound_id={
             '1': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
+                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='1', sample_rate=16000, length=16000 * 5
                 ),
             ),
             '2': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),
+                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='2', sample_rate=16000, length=16000 * 5
@@ -395,7 +395,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
     embeddings = {
         str(i): types.TextEmbedding(
             embedding=np.array([[1, 2, 3]]) + i,
-            spans=np.array([[0, 10]]),
+            spans=np.array([[0, 10]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id=str(i)),
         )
         for i in range(16)
@@ -433,7 +433,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
     embeddings = {
         str(i): types.TextEmbedding(
             embedding=np.array([[1, 2, 3]]) + i,
-            spans=np.array([[0, 10]]),
+            spans=np.array([[0, 10]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id=str(i)),
         )
         for i in range(16)

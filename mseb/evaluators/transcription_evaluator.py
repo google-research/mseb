@@ -81,7 +81,7 @@ class TranscriptionEvaluator:
     transcripts_by_sound_id = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
       assert hasattr(embeddings, 'embedding')
-      embedding: jaxtyping.Shaped[np.ndarray, '1'] = embeddings.embedding
+      embedding: jaxtyping.Shaped[np.ndarray, '1'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
       transcripts_by_sound_id[sound_id] = types.TextPrediction(
           prediction=str(embedding[0]),
           context=types.PredictionContextParams(id=sound_id),

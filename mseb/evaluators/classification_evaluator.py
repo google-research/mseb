@@ -207,9 +207,9 @@ def get_embedding_array(
 ) -> np.ndarray:
   """Extracts the embedding numpy array from a MultiModalEmbedding object."""
   if isinstance(embedding_obj, types.SoundEmbedding):
-    return embedding_obj.embedding
+    return embedding_obj.embedding  # pyrefly: ignore[bad-return]
   if isinstance(embedding_obj, types.TextEmbedding):
-    return embedding_obj.embedding
+    return embedding_obj.embedding  # pyrefly: ignore[bad-return]
   raise TypeError(f'Unsupported embedding type: {type(embedding_obj)}')
 
 
@@ -221,7 +221,7 @@ class ClassificationEvaluator:
       class_labels: Sequence[str],
       weights: jaxtyping.Float[jaxtyping.Array, 'C D'] | None,
       distance_fn: evaluator_lib.DistanceFn = evaluator_lib.dot_product,
-      predict_fn: evaluator_lib.PredictFn = functools.partial(
+      predict_fn: evaluator_lib.PredictFn = functools.partial(  # pyrefly: ignore[bad-function-definition]
           evaluator_lib.top_k, k=5
       ),
       top_k_value: int = 5,
@@ -346,7 +346,7 @@ class ClassificationEvaluator:
     for ref in references:
       if ref.example_id in scores:
         y_true_labels.append(self.id_by_label[ref.label_id])
-        _, top_k_indices = self.predict_fn(scores[ref.example_id])
+        _, top_k_indices = self.predict_fn(scores[ref.example_id])  # pyrefly: ignore[bad-argument-type]
         y_pred_labels.append(top_k_indices[0])
         y_top_k_labels.append(top_k_indices[:self.top_k_value])
 

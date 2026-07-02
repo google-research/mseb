@@ -34,7 +34,7 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
         embeddings_by_sound_id={
             'test': types.SoundEmbedding(
                 embedding=np.array(['This is a test.']),
-                timestamps=np.array([[0.0, 1.0]]),
+                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
                 context=types.SoundContextParams(
                     id='test',
                     sample_rate=16000,

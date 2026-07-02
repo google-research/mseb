@@ -303,7 +303,7 @@ class SegmentationEvaluator:
       for i in range(len(embeds)):
         confidence = scores[i] if scores is not None else 1.0
         seg = Segment(
-            str(embeds[i]), timestamps[i, 0], timestamps[i, 1], confidence
+            str(embeds[i]), timestamps[i, 0], timestamps[i, 1], confidence  # pyrefly: ignore[bad-argument-type]
         )
         pred_segments.append(seg)
       has_scores = scores is not None
@@ -378,7 +378,7 @@ class SegmentationEvaluator:
 
       prediction_obj = predictions.get(ref.example_id)
       pred_segments, has_scores, has_invalid_result, has_missing_result = (
-          self.get_segments(prediction_obj)
+          self.get_segments(prediction_obj)  # pyrefly: ignore[bad-argument-type]
       )
       if has_scores:
         for seg in pred_segments:

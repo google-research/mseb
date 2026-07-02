@@ -35,7 +35,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
   def test_initialization_invalid_k_raises_error(self):
     with self.assertRaises(ValueError):
       classification_evaluator.ClassificationEvaluator(
-          weights=self.embedding_table,
+          weights=self.embedding_table,  # pyrefly: ignore[bad-argument-type]
           class_labels=self.class_labels,
           top_k_value=0,
       )
@@ -46,7 +46,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
           'Dummy message to activate logger.'
       )  # Ensure logger is active
       classification_evaluator.ClassificationEvaluator(
-          weights=self.embedding_table,
+          weights=self.embedding_table,  # pyrefly: ignore[bad-argument-type]
           class_labels=self.class_labels,
           top_k_value=3,  # k is equal to the number of classes
       )
@@ -54,12 +54,12 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_compute_predictions_malformed_embedding_raises_error(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        class_labels=self.class_labels, weights=self.embedding_table
+        class_labels=self.class_labels, weights=self.embedding_table  # pyrefly: ignore[bad-argument-type]
     )
     malformed_embeddings = {
         'id_1': types.SoundEmbedding(
             embedding=np.array([]),
-            timestamps=np.array([]),
+            timestamps=np.array([]),  # pyrefly: ignore[bad-argument-type]
             context=types.SoundContextParams(
                 id='id_1',
                 sample_rate=16000,
@@ -74,7 +74,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
     """Tests a scenario where all predictions are correct."""
     evaluator = classification_evaluator.ClassificationEvaluator(
         class_labels=self.class_labels,
-        weights=self.embedding_table,
+        weights=self.embedding_table,  # pyrefly: ignore[bad-argument-type]
         top_k_value=2,
     )
     # Each embedding perfectly matches a class embedding.
@@ -103,7 +103,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
   def test_compute_metrics_top_k_accuracy(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
         class_labels=self.class_labels,
-        weights=self.embedding_table,
+        weights=self.embedding_table,  # pyrefly: ignore[bad-argument-type]
         top_k_value=2,
     )
     # The highest score is for 'dog', but the second
@@ -120,7 +120,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_compute_metrics_balanced_accuracy(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        class_labels=self.class_labels, weights=self.embedding_table
+        class_labels=self.class_labels, weights=self.embedding_table  # pyrefly: ignore[bad-argument-type]
     )
     # Model always predicts 'cat'. Dataset is 3 'cat', 1 'dog'.
     scores = {
@@ -148,7 +148,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_compute_metrics_invalid_and_no_result_rates(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        class_labels=self.class_labels, weights=self.embedding_table
+        class_labels=self.class_labels, weights=self.embedding_table  # pyrefly: ignore[bad-argument-type]
     )
     scores = {
         'ex1': np.array([0.0, 0.0, 0.0, 1.0, 0.0]),
@@ -171,12 +171,12 @@ class ClassificationEvaluatorTest(absltest.TestCase):
 
   def test_multimodality_with_text_embeddings(self):
     evaluator = classification_evaluator.ClassificationEvaluator(
-        class_labels=self.class_labels, weights=self.embedding_table
+        class_labels=self.class_labels, weights=self.embedding_table  # pyrefly: ignore[bad-argument-type]
     )
     text_embeddings = {
         'id_1': types.TextEmbedding(
             embedding=np.array([[1., 0., 0., 0.]]),
-            spans=np.array([[0, 1]]),
+            spans=np.array([[0, 1]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id='id_1')
         ),
     }
@@ -189,7 +189,7 @@ class ClassificationEvaluatorTest(absltest.TestCase):
   def test_save_and_load_linear_classifier(self):
     base_dir = self.create_tempdir().full_path
     classification_evaluator.save_linear_classifier(
-        self.class_labels, self.embedding_table, base_dir
+        self.class_labels, self.embedding_table, base_dir  # pyrefly: ignore[bad-argument-type]
     )
     class_labels_loaded, weights_loaded = (
         classification_evaluator.load_linear_classifier(base_dir)
@@ -210,7 +210,7 @@ class MultiLabelClassificationEvaluatorTest(absltest.TestCase):
     ], dtype=np.float32)
     self.id_by_class_index = ['cat', 'dog', 'bird']
     self.evaluator = classification_evaluator.MultiLabelClassificationEvaluator(
-        weights=self.embedding_table,
+        weights=self.embedding_table,  # pyrefly: ignore[bad-argument-type]
         id_by_class_index=self.id_by_class_index,
     )
 

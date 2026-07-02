@@ -137,7 +137,7 @@ class ReasoningEvaluator:
           str, Sequence[types.MultiModalEmbedding]
       ],
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
-      predict_fn: evaluator.PredictFn = evaluator.top_1,
+      predict_fn: evaluator.PredictFn = evaluator.top_1,  # pyrefly: ignore[bad-function-definition]
       no_answer_threshold: float = 0.0,
   ):
     self.span_embeddings_by_sound_id = span_embeddings_by_sound_id
@@ -163,15 +163,15 @@ class ReasoningEvaluator:
     predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
       assert hasattr(embeddings, 'embedding')
-      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
       span_embeddings = self.span_embeddings_by_sound_id[sound_id]
       if span_embeddings:
         embeddings = []
         for embeds in span_embeddings:
           assert hasattr(embeds, 'embedding')
-          embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding
+          embed: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeds.embedding  # pyrefly: ignore[bad-assignment]
           embeddings.append(embed[0])
-        scores = self.distance_fn(embedding[0], np.array(embeddings))
+        scores = self.distance_fn(embedding[0], np.array(embeddings))  # pyrefly: ignore[bad-argument-type]
         top_span_score, top_span_id = self.predict_fn(scores)
         texts = [text.context.id for text in span_embeddings]
         prediction = (

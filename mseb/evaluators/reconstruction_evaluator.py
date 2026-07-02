@@ -243,7 +243,7 @@ def _get_embedding_array(
     embedding_obj: types.MultiModalEmbedding,
 ) -> np.ndarray:
   if isinstance(embedding_obj, (types.SoundEmbedding, types.TextEmbedding)):
-    return embedding_obj.embedding
+    return embedding_obj.embedding  # pyrefly: ignore[bad-return]
   raise TypeError(
       f'Unsupported embedding type: {type(embedding_obj)}'
   )

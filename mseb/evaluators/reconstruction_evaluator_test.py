@@ -53,24 +53,24 @@ class ReconstructionEvaluatorTest(absltest.TestCase):
     self.references = {
         'ex1': types.SoundEmbedding(
             embedding=self.ref_emb1,
-            timestamps=np.zeros((3, 2)),
+            timestamps=np.zeros((3, 2)),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         ),
         'ex2': types.SoundEmbedding(
             embedding=self.ref_emb2,
-            timestamps=np.zeros((3, 2)),
+            timestamps=np.zeros((3, 2)),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         ),
     }
     self.predictions = {
         'ex1': types.SoundEmbedding(
             embedding=self.pred_emb1,
-            timestamps=np.zeros((3, 2)),
+            timestamps=np.zeros((3, 2)),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         ),
         'ex2': types.SoundEmbedding(
             embedding=self.pred_emb2,
-            timestamps=np.zeros((3, 2)),
+            timestamps=np.zeros((3, 2)),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         ),
     }
@@ -115,7 +115,7 @@ class ReconstructionEvaluatorTest(absltest.TestCase):
     bad_predictions = {
         'ex1': types.SoundEmbedding(
             embedding=pred_emb1_bad_shape,
-            timestamps=np.zeros((6, 2)),
+            timestamps=np.zeros((6, 2)),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         ),
         'ex2': self.predictions['ex2'],
