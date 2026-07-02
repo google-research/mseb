@@ -46,12 +46,12 @@ class MapperReducerTest(absltest.TestCase):
     context = types.SoundContextParams(id="test", sample_rate=16000, length=10)
     embedding1 = types.SoundEmbedding(
         embedding=np.array([[1.0]]),
-        timestamps=np.array([[0.0, 1.0]]),
+        timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
         context=context,
     )
     embedding2 = types.SoundEmbedding(
         embedding=np.array([[2.0]]),
-        timestamps=np.array([[1.0, 2.0]]),
+        timestamps=np.array([[1.0, 2.0]]),  # pyrefly: ignore[bad-argument-type]
         context=context,
     )
 
@@ -94,7 +94,7 @@ class MapperReducerTest(absltest.TestCase):
       # Just sum them up for testing
       total_emb = sum(e.embedding for e in embeddings)
       return types.SoundEmbedding(
-          embedding=total_emb,
+          embedding=total_emb,  # pyrefly: ignore[bad-argument-type]
           timestamps=embeddings[0].timestamps,
           context=context,
       )
@@ -104,12 +104,12 @@ class MapperReducerTest(absltest.TestCase):
     context = types.SoundContextParams(id="test", sample_rate=16000, length=10)
     embedding1 = types.SoundEmbedding(
         embedding=np.array([[1.0]]),
-        timestamps=np.array([[0.0, 1.0]]),
+        timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
         context=context,
     )
     embedding2 = types.SoundEmbedding(
         embedding=np.array([[2.0]]),
-        timestamps=np.array([[0.0, 1.0]]),
+        timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
         context=context,
     )
 
@@ -129,7 +129,7 @@ class MapperReducerTest(absltest.TestCase):
 
   def test_reducer_invalid_input(self):
     reducer = mapper_reducer.SoundEmbeddingCollectionReducer(
-        combine_fn=lambda x, y: None
+        combine_fn=lambda x, y: None  # pyrefly: ignore[bad-argument-type]
     )
 
     invalid_input = [

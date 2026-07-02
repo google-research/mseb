@@ -63,7 +63,7 @@ class TermExtractorEncoder(segmentation_encoder.TextSegmenterEncoder):
           types.SoundEmbedding(
               embedding=np.array([tv], dtype=object),
               scores=sound_embedding.scores,
-              timestamps=np.array([[
+              timestamps=np.array([[  # pyrefly: ignore[bad-argument-type]
                   sound_embedding.timestamps[0, 0],
                   sound_embedding.timestamps[-1, 1],
               ]]),
@@ -199,12 +199,12 @@ def combine_tf_idf_embeddings(
 ) -> types.SoundEmbedding:
   """Combines TF-IDF embeddings into a single embedding."""
   tvs = [dict(emb.embedding[0]) for emb in embeddings]
-  weights = [np.exp(emb.scores[0]) for emb in embeddings]
-  tv = term_vector_weighted_average(tvs, weights)
+  weights = [np.exp(emb.scores[0]) for emb in embeddings]  # pyrefly: ignore[unsupported-operation]
+  tv = term_vector_weighted_average(tvs, weights)  # pyrefly: ignore[bad-argument-type]
   return types.SoundEmbedding(
       embedding=np.array([tv], dtype=object),
       scores=None,
-      timestamps=np.array([[
+      timestamps=np.array([[  # pyrefly: ignore[bad-argument-type]
           params.waveform_start_second,
           params.waveform_end_second,
       ]]),

@@ -36,7 +36,7 @@ class MockRetrievalTask(retrieval_task.RetrievalTask):
 
   @property
   def index_dir(self) -> str:
-    return os.path.join(
+    return os.path.join(  # pyrefly: ignore[no-matching-overload]
         task_lib.TASK_CACHE_BASEPATH.value,
         'retrievals',
         'svq_passage_retrieval_in_lang',
@@ -110,12 +110,12 @@ class RetrievalEncoderTest(absltest.TestCase):
     embeddings = encoder.encode([
         types.TextEmbedding(
             embedding=np.array([[1.0, 2.0, 3.0]]),
-            spans=np.array([[0, 10]]),
+            spans=np.array([[0, 10]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id='1', text='blu text'),
         ),
         types.TextEmbedding(
             embedding=np.array([[1.0, 2.0, 3.0]]),
-            spans=np.array([[0, 10]]),
+            spans=np.array([[0, 10]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id='2', text='blo text'),
         ),
     ])
@@ -186,12 +186,12 @@ class RetrievalEncoderTest(absltest.TestCase):
     embeddings = encoder.encode([
         types.TextEmbedding(
             embedding=np.array([[1.0, 2.0, 3.0]]),
-            spans=np.array([[0, 10]]),
+            spans=np.array([[0, 10]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id='1', text='blu text'),
         ),
         types.TextEmbedding(
             embedding=np.array([[1.0, 2.0, 3.0]]),
-            spans=np.array([[0, 10]]),
+            spans=np.array([[0, 10]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id='2', text='blo text'),
         ),
     ])

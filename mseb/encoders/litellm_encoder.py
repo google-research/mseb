@@ -112,7 +112,7 @@ class LiteLLMTextEncoder(prompt_encoder.TextEncoderWithPrompt):
     if request_prompt[1] is not None:
       messages[0]['content'].append({  # pytype: disable=attribute-error
           'type': 'input_audio',
-          'input_audio': {
+          'input_audio': {  # pyrefly: ignore[bad-assignment]
               'data': base64.b64encode(request_prompt[1]).decode('utf-8'),
               'format': 'wav',
           },

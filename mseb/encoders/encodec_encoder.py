@@ -135,7 +135,7 @@ class EncodecJointEncoder(encoder.MultiModalEncoder):
     ]
 
     inputs = self.processor(
-        raw_audio=resampled_waveforms,
+        raw_audio=resampled_waveforms,  # pyrefly: ignore[bad-argument-type]
         sampling_rate=target_sr,
         return_tensors="pt",
     ).to(self.device)
@@ -147,7 +147,7 @@ class EncodecJointEncoder(encoder.MultiModalEncoder):
 
       # 2. Capture Discrete Codes safely via the standard API
       model_outputs = self.model.encode(**inputs)
-      codes = model_outputs.audio_codes
+      codes = model_outputs.audio_codes  # pyrefly: ignore[missing-attribute]
 
     # Move projected to CPU
     projected_np = projected_latents.cpu().numpy()
@@ -214,14 +214,14 @@ class EncodecJointEncoder(encoder.MultiModalEncoder):
           types.SoundEmbeddingCollection(
               embeddings={
                   "projected_latents": types.SoundEmbedding(
-                      p_emb, timestamps, original_context),
+                      p_emb, timestamps, original_context),  # pyrefly: ignore[bad-argument-type]
                   "quantized_latents": types.SoundEmbedding(
-                      q_emb, timestamps, original_context),
+                      q_emb, timestamps, original_context),  # pyrefly: ignore[bad-argument-type]
                   "quantized_codes": types.SoundEmbedding(
                       np.array(["_".join(map(str, row))
                                 for row in d_codes_raw],
                                dtype=object),
-                      timestamps, original_context
+                      timestamps, original_context  # pyrefly: ignore[bad-argument-type]
                   ),
               },
               context=original_context,

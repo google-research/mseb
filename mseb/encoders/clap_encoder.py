@@ -61,7 +61,7 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
       )
 
     sound_batch = cast(Sequence[types.Sound], batch)
-    target_sr = self.processor.feature_extractor.sampling_rate
+    target_sr = self.processor.feature_extractor.sampling_rate  # pyrefly: ignore[missing-attribute]
     resampled_sound_batch = [
         encoder.resample_sound(sound_item, target_sr=target_sr)
         for sound_item in sound_batch
@@ -88,7 +88,7 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
       output_embeddings.append(
           types.SoundEmbedding(
               embedding=embedding,
-              timestamps=timestamps,
+              timestamps=timestamps,  # pyrefly: ignore[bad-argument-type]
               context=sound_item.context
           )
       )
@@ -150,7 +150,7 @@ class _CLAPTextEncoder(encoder.MultiModalEncoder):
       output_embeddings.append(
           types.TextEmbedding(
               embedding=embedding,
-              spans=spans,
+              spans=spans,  # pyrefly: ignore[bad-argument-type]
               context=text_item.context
           )
       )

@@ -78,7 +78,7 @@ class TextEncoderWithPromptTest(absltest.TestCase):
             text="This is a text.", context=types.TextContextParams(id="text")
         ),
         types.Sound(
-            waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+            waveform=np.array([1.0, 2.0, 3.0, 4.0]),  # pyrefly: ignore[bad-argument-type]
             context=types.SoundContextParams(
                 sample_rate=2, length=4, id="sound"
             ),
@@ -174,7 +174,7 @@ class TextEncoderWithPromptTest(absltest.TestCase):
   def test_encode_with_task_prompts(self):
     mock_encoder = MockTextEncoderWithPrompt(
         prompt_template="default: {text}",
-        prompt_encode_fn=lambda prompts: [
+        prompt_encode_fn=lambda prompts: [  # pyrefly: ignore[bad-argument-type]
             prompt[0].split(":")[0].upper() for prompt in prompts
         ],
     )

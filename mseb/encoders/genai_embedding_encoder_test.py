@@ -96,7 +96,7 @@ class GenaiEmbeddingEncoderTest(absltest.TestCase):
     outputs = genai_encoder.encode(
         [
             types.Sound(
-                waveform=np.random.rand(
+                waveform=np.random.rand(  # pyrefly: ignore[bad-argument-type]
                     16000,
                 ),
                 context=types.SoundContextParams(

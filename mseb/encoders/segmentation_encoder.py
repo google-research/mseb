@@ -178,8 +178,8 @@ class TokenIDFSegmenter(IDFTableSegmenterBase):
       self, words: Sequence[str]
   ) -> Iterator[tuple[str, float, int, int]]:
     for word, front, back in self.retokenizer.retokenize(words):
-      if word in self.idf_table:
-        yield word, self.idf_table[word], front, back
+      if word in self.idf_table:  # pyrefly: ignore[not-iterable]
+        yield word, self.idf_table[word], front, back  # pyrefly: ignore[unsupported-operation]
 
 
 class LongestPrefixIDFSegmenter(IDFTableSegmenterBase):
@@ -243,13 +243,13 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
     for sound_embedding in batch:
       assert isinstance(sound_embedding, types.SoundEmbedding)
       words = sound_embedding.embedding
-      segments = list[str](self.segmenter.segment([str(w) for w in words]))
+      segments = list[str](self.segmenter.segment([str(w) for w in words]))  # pyrefly: ignore[bad-argument-type]
       if not segments:
         outputs.append(
             types.SoundEmbedding(
                 embedding=np.array(list[str](), dtype=object),
-                scores=np.array([], dtype=float),
-                timestamps=np.array([[]], dtype=float),
+                scores=np.array([], dtype=float),  # pyrefly: ignore[bad-argument-type]
+                timestamps=np.array([[]], dtype=float),  # pyrefly: ignore[bad-argument-type]
                 context=sound_embedding.context,
             )
         )
@@ -270,8 +270,8 @@ class TextSegmenterEncoder(encoder.MultiModalEncoder):
       outputs.append(
           types.SoundEmbedding(
               embedding=terms,
-              scores=saliency_scores,
-              timestamps=np.array(
+              scores=saliency_scores,  # pyrefly: ignore[bad-argument-type]
+              timestamps=np.array(  # pyrefly: ignore[bad-argument-type]
                   [
                       [
                           sound_embedding.timestamps[front][0],

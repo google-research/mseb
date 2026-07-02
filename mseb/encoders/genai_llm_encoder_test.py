@@ -104,7 +104,7 @@ class GenaiLLMTextEncoderTest(absltest.TestCase):
       genai_llm_encoder = genai_llm_encoder_lib.GenaiLLMTranscriptTruthEncoder(
           model_path='mock_model_path', api_key='mock_api_key'
       )
-      genai_llm_encoder._encoders[-2].prompt_encode_fn = (
+      genai_llm_encoder._encoders[-2].prompt_encode_fn = (  # pyrefly: ignore[missing-attribute]
           lambda prompts: np.array([return_value] * len(prompts))
       )
       genai_llm_encoder._encoders[-2]._is_setup = True
@@ -112,7 +112,7 @@ class GenaiLLMTextEncoderTest(absltest.TestCase):
       outputs = genai_llm_encoder.encode(
           [
               types.SoundWithTitleAndContext(
-                  waveform=np.array([1.0, 2.0, 3.0]),
+                  waveform=np.array([1.0, 2.0, 3.0]),  # pyrefly: ignore[bad-argument-type]
                   context=types.SoundContextParams(
                       id='1',
                       sample_rate=48000,

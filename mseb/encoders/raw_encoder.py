@@ -142,7 +142,7 @@ def linear_to_mel_weight_matrix(
   linear_frequencies = np.linspace(
       0.0, nyquist_hertz, num_spectrogram_bins, dtype=internal_dtype
   )[bands_to_zero:]
-  spectrogram_bins_mel = _hertz_to_mel(linear_frequencies)[:, np.newaxis]
+  spectrogram_bins_mel = _hertz_to_mel(linear_frequencies)[:, np.newaxis]  # pyrefly: ignore[bad-argument-type]
 
   # Compute num_mel_bins triples of (lower_edge, center, upper_edge). The
   # center of each band is the lower and upper edge of the adjacent bands.
@@ -304,31 +304,31 @@ class RawEncoder(encoder.MultiModalEncoder):
           f"params.length {params.length}."
       )
       num_frames = (
-          (len(waveform) - self.frame_length + self.frame_step)
+          (len(waveform) - self.frame_length + self.frame_step)  # pyrefly: ignore[unsupported-operation]
           // self.frame_step
       )
       if num_frames <= 0:
         outputs.append(
             types.SoundEmbedding(
                 embedding=np.array([]),
-                timestamps=np.array([]),
+                timestamps=np.array([]),  # pyrefly: ignore[bad-argument-type]
                 context=params,
             )
         )
         continue
 
-      frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)
+      frames = np.zeros([num_frames, self.frame_length], dtype=np.float32)  # pyrefly: ignore[no-matching-overload]
       timestamps_list = []
       for i in range(num_frames):
-        start = i * self.frame_step
-        end = start + self.frame_length
+        start = i * self.frame_step  # pyrefly: ignore[unsupported-operation]
+        end = start + self.frame_length  # pyrefly: ignore[unsupported-operation]
         frames[i] = waveform[start:end]
         timestamps_list.append(
             [start / params.sample_rate, end / params.sample_rate]
         )
 
-      embeddings = self.transform_fn(frames, **self.transform_fn_kwargs)
-      waveform_embeddings = self.pool_fn(embeddings)
+      embeddings = self.transform_fn(frames, **self.transform_fn_kwargs)  # pyrefly: ignore[not-callable]
+      waveform_embeddings = self.pool_fn(embeddings)  # pyrefly: ignore[not-callable]
 
       # Adjust timestamps if pooling was applied
       if self.pooling is not None:
@@ -340,7 +340,7 @@ class RawEncoder(encoder.MultiModalEncoder):
       outputs.append(
           types.SoundEmbedding(
               embedding=waveform_embeddings,
-              timestamps=embedding_timestamps,
+              timestamps=embedding_timestamps,  # pyrefly: ignore[bad-argument-type]
               context=sound.context,
           )
       )

@@ -80,7 +80,7 @@ class GenaiEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
       logging.info('Initializing client: %s', self._model_path)
       self._client = genai.Client(api_key=self._api_key)
       self._embedding_dim = len(
-          self._client.models.embed_content(
+          self._client.models.embed_content(  # pyrefly: ignore[bad-argument-type, unsupported-operation]
               model=self._model_path,
               contents='test',
           )
@@ -120,7 +120,7 @@ class GenaiEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
       prompt_content = [request_prompt[0]]
       if request_prompt[1] is not None:
         prompt_content.append(
-            genai.types.Part.from_bytes(
+            genai.types.Part.from_bytes(  # pyrefly: ignore[bad-argument-type]
                 data=request_prompt[1], mime_type='audio/wav'
             )
         )
@@ -136,7 +136,7 @@ class GenaiEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
         continue
 
       return np.array(
-          [embedding.values for embedding in response.embeddings],
+          [embedding.values for embedding in response.embeddings],  # pyrefly: ignore[not-iterable]
           dtype=np.float32,
       )
 

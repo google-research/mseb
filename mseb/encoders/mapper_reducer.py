@@ -46,7 +46,7 @@ class SoundEmbeddingCollectionMapper(encoder_lib.MultiModalEncoder):
       assert isinstance(collection, types.SoundEmbeddingCollection)
       outputs.append(
           types.SoundEmbeddingCollection(
-              embeddings={
+              embeddings={  # pyrefly: ignore[bad-argument-type]
                   k: self._encoder.encode([v])[0]
                   for k, v in collection.embeddings.items()
               },
@@ -87,6 +87,6 @@ class SoundEmbeddingCollectionReducer(encoder_lib.MultiModalEncoder):
     outputs = []
     for collection in batch:
       assert isinstance(collection, types.SoundEmbeddingCollection)
-      outputs.append(self._combine_fn(list(collection.embeddings.values()),
+      outputs.append(self._combine_fn(list(collection.embeddings.values()),  # pyrefly: ignore[bad-argument-type]
                                       collection.context))
     return outputs

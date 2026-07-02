@@ -247,7 +247,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
         outputs.append(
             types.TextEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
-                spans=np.array([[0, len(example.text)]]),
+                spans=np.array([[0, len(example.text)]]),  # pyrefly: ignore[bad-argument-type]
                 context=dataclasses.replace(
                     example.context, text=example.text, debug_text=debug_text
                 ),
@@ -257,7 +257,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
         outputs.append(
             types.SoundEmbedding(
                 embedding=np.expand_dims(embeddings, axis=0),
-                timestamps=np.array(
+                timestamps=np.array(  # pyrefly: ignore[bad-argument-type]
                     [[0, len(example.waveform) / example.context.sample_rate]]
                 ),
                 context=dataclasses.replace(

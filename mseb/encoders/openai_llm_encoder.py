@@ -113,7 +113,7 @@ class OpenAILLMEncoder(prompt_encoder.TextEncoderWithPrompt):
     if request_prompt[1] is not None:
       messages[0]['content'].append({  # pytype: disable=attribute-error
           'type': 'input_audio',
-          'input_audio': {
+          'input_audio': {  # pyrefly: ignore[bad-assignment]
               'data': base64.b64encode(request_prompt[1]).decode('utf-8'),
               'format': 'wav',
           },
@@ -123,9 +123,9 @@ class OpenAILLMEncoder(prompt_encoder.TextEncoderWithPrompt):
       try:
         client_response = client.chat.completions.create(
             model=model_name,
-            messages=messages,
+            messages=messages,  # pyrefly: ignore[bad-argument-type]
         )
-        response = client_response.choices[0].message.content.strip()
+        response = client_response.choices[0].message.content.strip()  # pyrefly: ignore[missing-attribute]
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.warning('Failed to get prediction, retrying %d: %s', n_try, e)
         time.sleep(int(wait_time * 1.5 ** (n_try + 1)))

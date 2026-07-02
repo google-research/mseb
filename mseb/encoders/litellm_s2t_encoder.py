@@ -196,5 +196,5 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
       embeddings = np.array([transcription['text']], dtype=object)
 
     return types.SoundEmbedding(
-        embedding=embeddings, timestamps=timestamps, context=sound.context
+        embedding=embeddings, timestamps=timestamps, context=sound.context  # pyrefly: ignore[bad-argument-type]
     )

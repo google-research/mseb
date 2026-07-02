@@ -38,7 +38,7 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
       wav_bytes = f.read()
       samples, sample_rate = utils.wav_bytes_to_waveform(wav_bytes)
     self.test_sound = types.Sound(
-        waveform=samples,
+        waveform=samples,  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id='test',
             sample_rate=sample_rate,

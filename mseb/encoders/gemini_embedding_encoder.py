@@ -46,7 +46,7 @@ def encoder_genai(  # pylint: disable=invalid-name
       contents=[input[0] for input in inputs],
       config=genai.types.EmbedContentConfig(task_type=task_type),
   )
-  embeddings = [x.values for x in response.embeddings]
+  embeddings = [x.values for x in response.embeddings]  # pyrefly: ignore[not-iterable]
   return np.array(embeddings)
 
 
@@ -149,7 +149,7 @@ def GeminiEmbeddingTranscriptTruthOrGeminiEmbeddingEncoder(
   sound_encoder = GeminiEmbeddingTranscriptTruthEncoder(
       model_path=model_path,
       normalizer=query_normalizer,
-      prompt_template=query_prompt_template,
+      prompt_template=query_prompt_template,  # pyrefly: ignore[bad-argument-type]
       task_type=query_task_type,
   )
   text_encoder = GeminiEmbeddingTextEncoder(
@@ -297,7 +297,7 @@ def GeminiEmbeddingWhisperOrGeminiEmbeddingEncoder(
       whisper_model_path=whisper_model_path,
       gemini_embedding_model_path=gemini_embedding_model_path,
       normalizer=query_normalizer,
-      prompt_template=query_prompt_template,
+      prompt_template=query_prompt_template,  # pyrefly: ignore[bad-argument-type]
       gemini_embedding_task_type=query_task_type,
   )
   text_encoder = GeminiEmbeddingTextEncoder(

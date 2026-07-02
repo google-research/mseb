@@ -82,7 +82,7 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
     self.prompt_encode_fn = lambda prompts: np.array([
         HFLLMEncoder.get_response(
             prompt,
-            processor=self._processor,
+            processor=self._processor,  # pyrefly: ignore[bad-argument-type]
             model=self._model,
             max_new_tokens=self._max_new_tokens,
         )
@@ -124,7 +124,7 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
           {'type': 'audio', 'path': tmp_wavefile.name}
       )
 
-    input_ids = processor.apply_chat_template(  # pylint: disable=attribute-error
+    input_ids = processor.apply_chat_template(  # pylint: disable=attribute-error  # pyrefly: ignore[missing-attribute]
         messages,
         add_generation_prompt=True,
         tokenize=True,
@@ -141,7 +141,7 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
     outputs = model.generate(**input_ids, max_new_tokens=max_new_tokens)
 
     # decode and print the output as text
-    text = processor.batch_decode(  # pylint: disable=attribute-error
+    text = processor.batch_decode(  # pylint: disable=attribute-error  # pyrefly: ignore[missing-attribute]
         outputs[:, input_len:],
         skip_special_tokens=True,
         clean_up_tokenization_spaces=True,

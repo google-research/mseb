@@ -109,7 +109,7 @@ def GeckoTranscriptTruthOrGeckoEncoder(
   sound_encoder = GeckoTranscriptTruthEncoder(
       model_path=gecko_model_path,
       normalizer=query_normalizer,
-      prompt_template=query_prompt_template,
+      prompt_template=query_prompt_template,  # pyrefly: ignore[bad-argument-type]
   )
   text_encoder = GeckoTextEncoder(
       model_path=gecko_model_path,
@@ -203,7 +203,7 @@ def GeckoWhisperOrGeckoEncoder(
       whisper_model_path=whisper_model_path,
       gecko_model_path=gecko_model_path,
       normalizer=query_normalizer,
-      prompt_template=query_prompt_template,
+      prompt_template=query_prompt_template,  # pyrefly: ignore[bad-argument-type]
   )
   text_encoder = GeckoTextEncoder(
       model_path=gecko_model_path,

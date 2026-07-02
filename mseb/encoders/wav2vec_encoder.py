@@ -212,7 +212,7 @@ class Wav2VecEncoder(encoder.MultiModalEncoder):
       timestamps = np.array([[0, params.length / params.sample_rate]])
       outputs.append(
           types.SoundEmbedding(
-              embedding=embedding, timestamps=timestamps, context=params
+              embedding=embedding, timestamps=timestamps, context=params  # pyrefly: ignore[bad-argument-type]
           )
       )
     return outputs

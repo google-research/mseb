@@ -125,7 +125,7 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
                 prompt,
                 model_name=self._model_name,
                 api_key=self._api_key,
-                embedding_dim=self.embedding_dim,
+                embedding_dim=self.embedding_dim,  # pyrefly: ignore[bad-argument-type]
                 max_try=self._max_try,
                 wait_time=self._wait_time,
                 min_audio_length_sec=self._min_audio_length_sec,

@@ -52,7 +52,7 @@ class SoundToSoundEmbeddingConverter(Converter):
       if isinstance(sound, types.SoundWithTitleAndContext):
         sound_embedding = types.SoundEmbeddingWithTitleAndContext(
             embedding=np.array([sound.context.text], dtype=object),
-            timestamps=np.array([[
+            timestamps=np.array([[  # pyrefly: ignore[bad-argument-type]
                 sound.context.waveform_start_second,
                 sound.context.waveform_end_second,
             ]]),
@@ -63,7 +63,7 @@ class SoundToSoundEmbeddingConverter(Converter):
       elif isinstance(sound, types.Sound):
         sound_embedding = types.SoundEmbedding(
             embedding=np.array([sound.context.text], dtype=object),
-            timestamps=np.array([[
+            timestamps=np.array([[  # pyrefly: ignore[bad-argument-type]
                 sound.context.waveform_start_second,
                 sound.context.waveform_end_second,
             ]]),
@@ -100,7 +100,7 @@ class SoundEmbeddingToTextConverter(Converter):
     outputs = []
     for sound_embedding in batch:
       assert isinstance(sound_embedding, types.SoundEmbedding)
-      embedding: jaxtyping.Shaped[np.ndarray, '1'] = sound_embedding.embedding
+      embedding: jaxtyping.Shaped[np.ndarray, '1'] = sound_embedding.embedding  # pyrefly: ignore[bad-assignment]
       if self.output_json_alignment:
         alignment = list()
         for word, timestamps in zip(embedding, sound_embedding.timestamps):
@@ -157,7 +157,7 @@ class TextEmbeddingToTextPredictionConverter(Converter):
       assert isinstance(
           text_embedding, (types.TextEmbedding, types.SoundEmbedding)
       )
-      embedding: jaxtyping.Shaped[np.ndarray, '1'] = text_embedding.embedding
+      embedding: jaxtyping.Shaped[np.ndarray, '1'] = text_embedding.embedding  # pyrefly: ignore[bad-assignment]
       outputs.append(
           types.TextPrediction(
               prediction=str(embedding[0]),
@@ -219,7 +219,7 @@ class SoundToTextWithTitleAndContextConverter(Converter):
     for sound in batch:
       if isinstance(sound, types.SoundWithTitleAndContext):
         text = types.TextWithTitleAndContext(
-            text=sound.context.text,
+            text=sound.context.text,  # pyrefly: ignore[bad-argument-type]
             title_text=sound.title_text,
             context_text=sound.context_text,
             context=types.TextContextParams(
@@ -230,7 +230,7 @@ class SoundToTextWithTitleAndContextConverter(Converter):
         )
       elif isinstance(sound, types.Sound):
         text = types.TextWithTitleAndContext(
-            text=sound.context.text,
+            text=sound.context.text,  # pyrefly: ignore[bad-argument-type]
             title_text=None,
             context_text=None,
             context=types.TextContextParams(

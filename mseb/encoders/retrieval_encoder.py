@@ -53,14 +53,14 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
 
   def _setup(self):
     self._text_by_id = {}
-    for document in self._documents():
+    for document in self._documents():  # pyrefly: ignore[not-callable]
       self._text_by_id[document.context.id] = document.text
     logging.info(
         'Created text_by_id mapping for %d documents.', len(self._text_by_id)
     )
     if retrieval_task._NUM_PARTITIONS.value == 1:  # pylint: disable=protected-access
       searcher, id_by_index_id = retrieval_evaluator.load_index(
-          self._index_dir, self._id_by_index_id_filepath
+          self._index_dir, self._id_by_index_id_filepath  # pyrefly: ignore[bad-argument-type]
       )
       self._evaluator = retrieval_evaluator.RetrievalEvaluator(
           searcher=searcher,
@@ -69,7 +69,7 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
       )
     else:
       self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
-          index_dir=self._index_dir, top_k=self._top_k
+          index_dir=self._index_dir, top_k=self._top_k  # pyrefly: ignore[bad-argument-type]
       )
 
   def _check_input_types(
@@ -86,7 +86,7 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     embeddings_by_id = {}
     for x in batch:
       assert isinstance(x, types.TextEmbedding)
-      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = x.embedding
+      embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = x.embedding  # pyrefly: ignore[bad-assignment]
       embeddings_by_id[x.context.id] = types.TextEmbedding(
           embedding=embedding, spans=x.spans, context=x.context
       )
@@ -106,7 +106,7 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
       prediction.normalize(k=self._top_k)
       assert isinstance(x, types.TextEmbedding)
       output = types.TextWithTitleAndContext(
-          text=x.context.text,
+          text=x.context.text,  # pyrefly: ignore[bad-argument-type]
           title_text=None,
           context=x.context,
           context_text=prediction.to_json(),

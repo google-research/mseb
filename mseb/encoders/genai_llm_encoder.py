@@ -107,7 +107,7 @@ class GenaiLLMTextEncoder(prompt_encoder.TextEncoderWithPrompt):
     prompt_content = [request_prompt[0]]
     if request_prompt[1] is not None:
       prompt_content.append(
-          genai.types.Part.from_bytes(
+          genai.types.Part.from_bytes(  # pyrefly: ignore[bad-argument-type]
               data=request_prompt[1], mime_type='audio/wav'
           )
       )
@@ -127,7 +127,7 @@ class GenaiLLMTextEncoder(prompt_encoder.TextEncoderWithPrompt):
         response = re.sub(r'```json\s*|\s*```', '', response)
         response = re.sub(r'JSON\s*', '', response)
 
-      return response
+      return response  # pyrefly: ignore[bad-return]
 
     return GenaiLLMTextEncoder.NO_RESPONSE_STR
 

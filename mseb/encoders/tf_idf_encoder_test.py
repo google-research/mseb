@@ -41,7 +41,7 @@ class TfIdfEncoderTest(absltest.TestCase):
             ['How many members does the National Labour Relations Board have?'],
             dtype=object,
         ),
-        timestamps=np.array([[0.0, 10.0]]),
+        timestamps=np.array([[0.0, 10.0]]),  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id='test_utt',
             sample_rate=16000,
@@ -75,7 +75,7 @@ class TfIdfEncoderTest(absltest.TestCase):
             list[str](),
             dtype=object,
         ),
-        timestamps=np.array([[0.0, 10.0]]),
+        timestamps=np.array([[0.0, 10.0]]),  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id='test_utt',
             sample_rate=16000,
@@ -104,8 +104,8 @@ class TfIdfEncoderTest(absltest.TestCase):
             embedding=np.array([
                 {'anatolian': 8, 'shepherds': 4}
             ], dtype=object),
-            scores=np.array([np.log(0.25)]),
-            timestamps=np.array([[0.0, 1.0]]),
+            scores=np.array([np.log(0.25)]),  # pyrefly: ignore[bad-argument-type]
+            timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
             context=types.SoundContextParams(
                 id='test_utt',
                 sample_rate=16000,
@@ -116,8 +116,8 @@ class TfIdfEncoderTest(absltest.TestCase):
             embedding=np.array([
                 {'anatolian': 4, 'rare': 4}
             ], dtype=object),
-            scores=np.array([np.log(0.75)]),
-            timestamps=np.array([[0.0, 1.0]]),
+            scores=np.array([np.log(0.75)]),  # pyrefly: ignore[bad-argument-type]
+            timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
             context=types.SoundContextParams(
                 id='test_utt',
                 sample_rate=16000,

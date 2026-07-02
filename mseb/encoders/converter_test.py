@@ -29,7 +29,7 @@ class SoundToSoundEmbeddingConverterTest(absltest.TestCase):
         sample_rate=2, length=4, id="test", text="transcript truth"
     )
     embedding = converter.encode(
-        [types.Sound(waveform=np.array([1.0, 2.0, 3.0, 4.0]), context=context)]
+        [types.Sound(waveform=np.array([1.0, 2.0, 3.0, 4.0]), context=context)]  # pyrefly: ignore[bad-argument-type]
     )[0]
     self.assertIsInstance(embedding, types.SoundEmbedding)
     self.assertEqual(embedding.context, context)
@@ -45,7 +45,7 @@ class SoundToSoundEmbeddingConverterTest(absltest.TestCase):
     )
     embedding = converter.encode([
         types.SoundWithTitleAndContext(
-            waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+            waveform=np.array([1.0, 2.0, 3.0, 4.0]),  # pyrefly: ignore[bad-argument-type]
             context=context,
             title_text="title",
             context_text="context",
@@ -69,7 +69,7 @@ class SoundEmbeddingToTextConverterTest(absltest.TestCase):
     text = converter.encode([
         types.SoundEmbedding(
             embedding=np.array(["transcript truth"]),
-            timestamps=np.array([[0.0, 2.0]]),
+            timestamps=np.array([[0.0, 2.0]]),  # pyrefly: ignore[bad-argument-type]
             context=context,
         )
     ])[0]
@@ -84,7 +84,7 @@ class SoundEmbeddingToTextConverterTest(absltest.TestCase):
     text = converter.encode([
         types.SoundEmbeddingWithTitleAndContext(
             embedding=np.array(["transcript truth"]),
-            timestamps=np.array([[0.0, 2.0]]),
+            timestamps=np.array([[0.0, 2.0]]),  # pyrefly: ignore[bad-argument-type]
             context=context,
             title_text="title",
             context_text="context",
@@ -105,7 +105,7 @@ class SoundEmbeddingToTextConverterTest(absltest.TestCase):
     text = converter.encode([
         types.SoundEmbedding(
             embedding=np.array(["transcript truth"]),
-            timestamps=np.array([[0.0, 2.0]]),
+            timestamps=np.array([[0.0, 2.0]]),  # pyrefly: ignore[bad-argument-type]
             context=context,
         )
     ])[0]
@@ -123,7 +123,7 @@ class TextEmbeddingToTextPredictionConverterTest(absltest.TestCase):
     prediction = converter.encode([
         types.TextEmbedding(
             embedding=np.array(["transcript truth"]),
-            spans=np.array([[0, 16]]),
+            spans=np.array([[0, 16]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id="test"),
         )
     ])[0]
@@ -137,7 +137,7 @@ class TextEmbeddingToTextPredictionConverterTest(absltest.TestCase):
     prediction = converter.encode([
         types.SoundEmbedding(
             embedding=np.array(["transcript truth"]),
-            timestamps=np.array([[0.0, 2.0]]),
+            timestamps=np.array([[0.0, 2.0]]),  # pyrefly: ignore[bad-argument-type]
             context=types.SoundContextParams(
                 id="test", sample_rate=2, length=4
             ),
@@ -150,7 +150,7 @@ class TextEmbeddingToTextPredictionConverterTest(absltest.TestCase):
   def test_eval_text(self):
     sound_embedding = types.SoundEmbedding(
         embedding=np.array(["transcript truth"]),
-        timestamps=np.array([[0.0, 2.0]]),
+        timestamps=np.array([[0.0, 2.0]]),  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id="test", sample_rate=2, length=4, debug_text="debug text"
         ),

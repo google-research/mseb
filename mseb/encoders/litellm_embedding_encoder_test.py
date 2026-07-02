@@ -39,7 +39,7 @@ class LiteLLMEmbeddingEncoderTest(absltest.TestCase):
       wav_bytes = f.read()
       samples, sample_rate = utils.wav_bytes_to_waveform(wav_bytes)
     self.test_sound = types.Sound(
-        waveform=samples,
+        waveform=samples,  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id='test',
             sample_rate=sample_rate,
@@ -93,10 +93,10 @@ class LiteLLMEmbeddingEncoderTest(absltest.TestCase):
     )
     self.assertEqual(output0.timestamps.shape, (1, 2))
     self.assertEqual(output0.timestamps[0, 0], 0.0)
-    self.assertAlmostEqual(output0.timestamps[0, 1], 3.0763125, places=6)
+    self.assertAlmostEqual(output0.timestamps[0, 1], 3.0763125, places=6)  # pyrefly: ignore[no-matching-overload]
     self.assertEqual(output1.timestamps.shape, (1, 2))
     self.assertEqual(output1.timestamps[0, 0], 0.0)
-    self.assertAlmostEqual(output1.timestamps[0, 1], 3.0763125, places=6)
+    self.assertAlmostEqual(output1.timestamps[0, 1], 3.0763125, places=6)  # pyrefly: ignore[no-matching-overload]
 
 
 if __name__ == '__main__':

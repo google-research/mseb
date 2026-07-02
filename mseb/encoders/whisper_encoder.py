@@ -106,7 +106,7 @@ class Whisper(encoder.MultiModalEncoder):
     outputs = []
     for sound in sound_batch:
       sound = encoder.resample_sound(sound, whisper.audio.SAMPLE_RATE)
-      outputs.append(self._encode_sound(sound.waveform, sound.context))
+      outputs.append(self._encode_sound(sound.waveform, sound.context))  # pyrefly: ignore[bad-argument-type]
     return outputs
 
 
@@ -191,7 +191,7 @@ class SpeechToTextEncoder(Whisper):
       timestamps = np.array([[timestamp_start, timestamp_end]], dtype=float)
       embeddings = np.array([''.join(texts)], dtype=object)
     return types.SoundEmbedding(
-        embedding=embeddings, timestamps=timestamps, context=params
+        embedding=embeddings, timestamps=timestamps, context=params  # pyrefly: ignore[bad-argument-type]
     )
 
 
@@ -218,8 +218,8 @@ class ForcedAlignmentEncoder(Whisper):
     """Loads the Whisper model and the tokenizer."""
     super()._setup()
     self.tokenizer = whisper.tokenizer.get_tokenizer(
-        self.model.is_multilingual,
-        num_languages=self.model.num_languages,
+        self.model.is_multilingual,  # pyrefly: ignore[missing-attribute]
+        num_languages=self.model.num_languages,  # pyrefly: ignore[missing-attribute]
         language=self.language,
         task='transcript',
     )
@@ -260,7 +260,7 @@ class ForcedAlignmentEncoder(Whisper):
       logging.warning('Context text is empty. No alignment will be performed.')
       return types.SoundEmbedding(
           embedding=np.empty((0), dtype=object),
-          timestamps=np.empty((0, 2), dtype=float),
+          timestamps=np.empty((0, 2), dtype=float),  # pyrefly: ignore[bad-argument-type]
           context=params,
       )
     tokens = self.tokenizer.encode(params.text)
@@ -270,7 +270,7 @@ class ForcedAlignmentEncoder(Whisper):
       )
       return types.SoundEmbedding(
           embedding=np.empty((0), dtype=object),
-          timestamps=np.empty((0, 2), dtype=float),
+          timestamps=np.empty((0, 2), dtype=float),  # pyrefly: ignore[bad-argument-type]
           context=params,
       )
     alignment = whisper.timing.find_alignment(
@@ -284,7 +284,7 @@ class ForcedAlignmentEncoder(Whisper):
       words[i] = word_timing.word
 
     return types.SoundEmbedding(
-        embedding=words, timestamps=timestamps, context=params
+        embedding=words, timestamps=timestamps, context=params  # pyrefly: ignore[bad-argument-type]
     )
 
 
@@ -359,7 +359,7 @@ class PooledAudioEncoder(Whisper):
     timestamp = np.array([[0, audio_duration_seconds]])
     return types.SoundEmbedding(
         embedding=self.pool_fn(embeddings[:num_embeddings, :]),
-        timestamps=timestamp,
+        timestamps=timestamp,  # pyrefly: ignore[bad-argument-type]
         context=params,
     )
 
@@ -378,8 +378,8 @@ class PooledAudioEncoder(Whisper):
       return self._flops_cache
     assert isinstance(data, types.Sound)
     sound = encoder.resample_sound(data, whisper.audio.SAMPLE_RATE)
-    mel, _ = self.get_mel_inputs(sound.waveform)
-    flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel)
+    mel, _ = self.get_mel_inputs(sound.waveform)  # pyrefly: ignore[bad-argument-type]
+    flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel)  # pyrefly: ignore[missing-attribute]
     self._flops_cache = flop_analyzer.total()
     return self._flops_cache
 
@@ -446,8 +446,8 @@ class WhisperJointEncoder(encoder.MultiModalEncoder):
     """Encodes a batch of sounds."""
     outputs = []
     for example in batch:
-      sound = encoder.resample_sound(example, whisper.audio.SAMPLE_RATE)
-      outputs.append(self._encode_single_sound(sound.waveform, sound.context))
+      sound = encoder.resample_sound(example, whisper.audio.SAMPLE_RATE)  # pyrefly: ignore[bad-argument-type]
+      outputs.append(self._encode_single_sound(sound.waveform, sound.context))  # pyrefly: ignore[bad-argument-type]
     return outputs
 
   def _encode_single_sound(
@@ -483,7 +483,7 @@ class WhisperJointEncoder(encoder.MultiModalEncoder):
     # 3. Packaging
     acoustic_emb = types.SoundEmbedding(
         embedding=hiddens_np[:num_steps, :],
-        timestamps=acoustic_timestamps,
+        timestamps=acoustic_timestamps,  # pyrefly: ignore[bad-argument-type]
         context=params
     )
 
@@ -496,7 +496,7 @@ class WhisperJointEncoder(encoder.MultiModalEncoder):
 
     semantic_emb = types.SoundEmbedding(
         embedding=np.array(words, dtype=object),
-        timestamps=np.array(word_ts, dtype=float),
+        timestamps=np.array(word_ts, dtype=float),  # pyrefly: ignore[bad-argument-type]
         context=params
     )
 
