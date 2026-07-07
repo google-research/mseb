@@ -14,6 +14,8 @@
 
 """SVQ salient term segmentation tasks."""
 
+from collections.abc import Sequence
+
 from typing import Iterable
 
 from mseb import types
@@ -54,8 +56,12 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
       raise ValueError("`locale` must be set by a concrete task subclass.")
 
     svq_dataset = self._get_dataset()
-    for utt_id, record in svq_dataset.utt_id_to_record.items():
+    for record in svq_dataset.get_task_data(
+        "salient_term",
+        dtype={"locale": str, "utt_id": str},
+    ).to_dict("records"):
       if record["locale"] == self.locale:
+        utt_id = record["utt_id"]
         yield svq_dataset.get_sound({"utt_id": utt_id})
 
   def examples(
@@ -66,8 +72,17 @@ class SVQSalientTermSegmentation(segmentation.SegmentationTask):
 
     filter_fn = _filter_fn_by_sub_task[sub_task]
     svq_dataset = self._get_dataset()
-    for utt_id, record in svq_dataset.utt_id_to_record.items():
+    for record in svq_dataset.get_task_data(
+        _base_sub_task(sub_task),
+        dtype={
+            "locale": str,
+            "utt_id": str,
+            "topk_salient_terms": Sequence[str],
+            "topk_salient_terms_timestamps": Sequence[tuple[float, float]],
+        },
+    ).to_dict("records"):
       if record["locale"] == self.locale and filter_fn(record):
+        utt_id = record["utt_id"]
         terms = record.get("topk_salient_terms")
         timestamps = record.get("topk_salient_terms_timestamps")
 

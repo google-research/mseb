@@ -26,7 +26,6 @@ from mseb import types
 from mseb.tasks.segmentations.salient_term import svq
 import numpy as np
 
-
 FLAGS = flags.FLAGS
 
 
@@ -67,13 +66,11 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
         },
     ]
 
-    fake_jsonl_path = os.path.join(
-        self.testdata_dir.full_path,
-        "utt_index.jsonl"
-    )
-    with open(fake_jsonl_path, "w") as f:
-      for record in self.mock_records:
-        f.write(json.dumps(record) + "\n")
+    for filename in ("utt_index.jsonl", "salient_term.jsonl"):
+      fake_jsonl_path = os.path.join(self.testdata_dir.full_path, filename)
+      with open(fake_jsonl_path, "w") as f:
+        for record in self.mock_records:
+          f.write(json.dumps(record) + "\n")
 
     self.enter_context(
         flagsaver.flagsaver(
@@ -90,9 +87,7 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
     self.mock_get_sound.return_value = types.Sound(
         waveform=np.zeros(16000),
         context=types.SoundContextParams(
-            id="mock_id",
-            sample_rate=16000,
-            length=16000
+            id="mock_id", sample_rate=16000, length=16000
         ),
     )
 
@@ -134,9 +129,10 @@ class SVQSalientTermSegmentationTest(parameterized.TestCase):
 
   def test_all_svq_task_configurations(self):
     task_classes = [
-        obj for _, obj in inspect.getmembers(svq, inspect.isclass)
-        if issubclass(obj, svq.SVQSalientTermSegmentation) and
-        obj is not svq.SVQSalientTermSegmentation
+        obj
+        for _, obj in inspect.getmembers(svq, inspect.isclass)
+        if issubclass(obj, svq.SVQSalientTermSegmentation)
+        and obj is not svq.SVQSalientTermSegmentation
     ]
     self.assertNotEmpty(task_classes)
 
