@@ -18,11 +18,11 @@ from typing import Callable
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import types
 from mseb.encoders import prompt as prompt_lib
 import numpy as np
 import pytest
-
 
 text_encoder_with_prompt = pytest.importorskip(
     "mseb.encoders.text_encoder_with_prompt"
@@ -206,10 +206,10 @@ class TextEncoderWithPromptTest(absltest.TestCase):
         types.TextContextParams(
             id="id1",
             text="hello",
-            debug_text=json.dumps(
-                {"prompt_text": "task1 prompt: hello",
-                 "model_response": "TASK1 PROMPT"}
-            ),
+            debug_text=json.dumps({
+                "prompt_text": "task1 prompt: hello",
+                "model_response": "TASK1 PROMPT",
+            }),
         ),
     )
 
@@ -232,11 +232,59 @@ class TextEncoderWithPromptTest(absltest.TestCase):
             id="id1",
             text="hello",
             debug_text=json.dumps(
-                {"prompt_text": "default: hello",
-                 "model_response": "DEFAULT"}
+                {"prompt_text": "default: hello", "model_response": "DEFAULT"}
             ),
         ),
     )
+
+  def test_prompt_override_with_context_language(self):
+    def get_last_word(sentence):
+      return sentence.split()[-1]
+
+    mock_encoder = MockTextEncoderWithPrompt()
+    mock_encoder.prompt_encode_fn = mock.MagicMock(
+        side_effect=lambda prompts: [get_last_word(p[0]) for p in prompts]
+    )
+
+    with flagsaver.flagsaver(
+        prompt_override=(
+            "Transcribe the following speech segment in"
+            " {context_params.language_name}"
+        )
+    ):
+      # Test with English Text object.
+      text_example_en = types.Text(
+          text="Hello",
+          context=types.TextContextParams(id="id1", language_name="en_us"),
+      )
+      outputs = mock_encoder.encode([text_example_en])
+      self.assertEqual(
+          outputs[0].context.debug_text,
+          json.dumps({
+              "prompt_text": (
+                  "Transcribe the following speech segment in en_us"
+              ),
+              "model_response": "en_us",
+          }),
+      )
+
+      # Test with French Sound object.
+      sound_example_fr = types.Sound(
+          waveform=np.zeros(16000),
+          context=types.SoundContextParams(
+              id="id2", language_name="French", sample_rate=16000, length=16000
+          ),
+      )
+      outputs = mock_encoder.encode([sound_example_fr])
+      self.assertEqual(
+          outputs[0].context.debug_text,
+          json.dumps({
+              "prompt_text": (
+                  "Transcribe the following speech segment in French"
+              ),
+              "model_response": "French",
+          }),
+      )
 
 
 if __name__ == "__main__":

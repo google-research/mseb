@@ -19,6 +19,7 @@ import json
 import logging
 from typing import Callable, Mapping, Optional, Sequence, Tuple, final
 
+from absl import flags
 import jaxtyping
 from mseb import encoder
 from mseb import tasks
@@ -26,6 +27,10 @@ from mseb import types
 from mseb import utils
 from mseb.encoders import prompt as prompt_lib
 import numpy as np
+
+_PROMPT_OVERRIDE = flags.DEFINE_string(
+    'prompt_override', None, 'Override the prompt template.'
+)
 
 
 class TextEncoderWithPrompt(encoder.MultiModalEncoder):
@@ -107,6 +112,9 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       title: str | None = None,
       context: str | None = None,
       task_name: str | None = None,
+      context_params: (
+          types.TextContextParams | types.SoundContextParams | None
+      ) = None,
   ) -> str:
     """Returns the prompt to be used for encoding."""
     prompt = self.prompt
@@ -133,7 +141,7 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
       prompt = prompt.load()
 
     self._last_used_prompt = prompt
-    prompt_template = prompt.GetPromptTemplate()
+    prompt_template = _PROMPT_OVERRIDE.value or prompt.GetPromptTemplate()
     if self.normalizer is not None:
       text = self.normalizer(text)
 
@@ -149,7 +157,11 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
     else:
       context = 'None'
     text_prompt = prompt_template.format(
-        text=text, title=title, context=context
+        text=text,
+        title=title,
+        context=context,
+        task_name=task_name,
+        context_params=context_params,
     )
     return text_prompt
 
@@ -174,11 +186,14 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
             title=example.title_text,
             context=example.context_text,
             task_name=ctx_task_name,
+            context_params=example.context,
         )
         prompt_audio = None
       elif isinstance(example, types.Text):
         prompt_text = self._get_normalized_text_prompt(
-            example.text, task_name=ctx_task_name
+            example.text,
+            task_name=ctx_task_name,
+            context_params=example.context,
         )
         prompt_audio = None
       elif isinstance(example, types.SoundWithTitleAndContext):
@@ -187,11 +202,14 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
             title=example.title_text,
             context=example.context_text,
             task_name=ctx_task_name,
+            context_params=example.context,
         )
         prompt_audio = utils.sound_to_wav_bytes(example)
       elif isinstance(example, types.Sound):
         prompt_text = self._get_normalized_text_prompt(
-            self.TEXT_FOR_AUDIO, task_name=ctx_task_name
+            self.TEXT_FOR_AUDIO,
+            task_name=ctx_task_name,
+            context_params=example.context,
         )
         prompt_audio = utils.sound_to_wav_bytes(example)
       else:

@@ -64,6 +64,8 @@ class TextContextParams:
   debug_text: Optional[str] = None  # Text for debugging purposes.
   task_name: Optional[str] = None
   prompt: Optional[Any] = None
+  # Natural language name, e.g. English.
+  language_name: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -87,7 +89,10 @@ class SoundContextParams:
   sample_rate: int
   length: int
 
-  language: Optional[str] = None
+  # BCP-47 like language tag, with underscores instead of hypens, e.g. en_us.
+  language: Optional[str] = None  # BCP-47 like language tag, with underscores.
+  # Natural language name, e.g. English.
+  language_name: Optional[str] = None
   speaker_id: Optional[str] = None
   speaker_age: Optional[int] = None
   speaker_gender: Optional[int] = None
