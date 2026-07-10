@@ -14,9 +14,8 @@
 
 """SVQ clustering tasks."""
 
-from typing import Iterable, Type
+from typing import Iterable
 
-from mseb import runner as runner_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import clustering_evaluator
@@ -26,16 +25,13 @@ from mseb.tasks import clustering
 class SVQClustering(clustering.ClusteringTask):
   """SVQ clustering."""
 
-  _svq_dataset: svq.SimpleVoiceQuestionsDataset
   locale: str | None = None
 
-  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
-    return svq.SimpleVoiceQuestionsDataset()
-
-  def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
-    self._svq_dataset = self._get_dataset()
+  @property
+  def _svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    if not hasattr(self, '_svq_dataset_cache'):
+      self._svq_dataset_cache = svq.SimpleVoiceQuestionsDataset()
+    return self._svq_dataset_cache  # pytype: disable=attribute-error
 
   def _task_data(self):
     df = self._svq_dataset.get_task_data('utt_index')

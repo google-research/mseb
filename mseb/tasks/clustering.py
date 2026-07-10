@@ -33,7 +33,7 @@ class ClusteringTask(task.MSEBTask):
   ) -> dict[str, list[types.Score]]:
     sound_embeddings = {}
     for k, v in embeddings.items():
-      assert isinstance(v, types.SoundEmbedding)
+      assert isinstance(v, (types.SoundEmbedding, types.TextEmbedding))
       sound_embeddings[k] = v
     scores = {}
     for sub_task in self.sub_tasks:

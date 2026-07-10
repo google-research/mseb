@@ -220,6 +220,103 @@ class RerankingTest(absltest.TestCase):
     self.assertLen(task._evaluator.candidate_embeddings_by_sound_id, 2)
     self.assertEqual(task._evaluator.mrr_at_k, 10)
 
+  def test_multimodal_objects_for_setup_yields_candidates(self):
+    class MockRerankingTask(reranking.RerankingTask):
+
+      def candidate_lists(self):
+        return [
+            [
+                types.Text(
+                    text='ref_1A',
+                    context=types.TextContextParams(id='ref_1A'),
+                ),
+                types.Text(
+                    text='ref_1B',
+                    context=types.TextContextParams(id='ref_1B'),
+                ),
+            ],
+            [
+                types.Text(
+                    text='ref_2A',
+                    context=types.TextContextParams(id='ref_2A'),
+                ),
+            ],
+        ]
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def examples(self, sub_task):
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self):
+        return ['test']
+
+    task = MockRerankingTask()
+    objects = list(task.multimodal_objects_for_setup())
+    self.assertLen(objects, 3)
+    self.assertEqual(objects[0].text, 'ref_1A')
+    self.assertEqual(objects[2].text, 'ref_2A')
+    self.assertIsInstance(objects[0], types.Text)
+
+  def test_setup_with_embeddings_cache(self):
+    class MockRerankingTask(reranking.RerankingTask):
+
+      def candidate_lists(self):
+        return [
+            [
+                types.Text(
+                    text='ref_1A',
+                    context=types.TextContextParams(id='ref_1A'),
+                ),
+                types.Text(
+                    text='ref_1B',
+                    context=types.TextContextParams(id='ref_1B'),
+                ),
+            ],
+        ]
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def examples(self, sub_task):
+        return [
+            reranking_evaluator.RerankingCandidates(
+                sound_id='utt_1',
+                texts=['ref_1A', 'ref_1B'],
+                language='en',
+            ),
+        ]
+
+      @property
+      def sub_tasks(self):
+        return ['test']
+
+    self.enter_context(
+        flagsaver.flagsaver((
+            reranking.task.TASK_CACHE_BASEPATH,
+            self.create_tempdir().full_path,
+        ))
+    )
+    embeddings_cache = {
+        'ref_1A': types.TextEmbedding(
+            embedding=np.zeros((1, 3)),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id='ref_1A'),
+        ),
+        'ref_1B': types.TextEmbedding(
+            embedding=np.ones((1, 3)),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id='ref_1B'),
+        ),
+    }
+    task = MockRerankingTask()
+    task.setup(embeddings_cache=embeddings_cache)
+    self.assertIsNotNone(task._evaluator)
+    self.assertIsNotNone(task._evaluator.candidate_embeddings_by_sound_id)
+    self.assertLen(task._evaluator.candidate_embeddings_by_sound_id, 1)
+
 
 if __name__ == '__main__':
   absltest.main()

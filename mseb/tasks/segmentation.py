@@ -63,7 +63,7 @@ class SegmentationTask(task.MSEBTask):
     """Iterate all sounds in the corpus for this task."""
     ...
 
-  def setup(self, runner=None):
+  def setup(self, runner=None, embeddings_cache=None):
     """Initializes the SegmentationEvaluator."""
     self._evaluator = segmentation_evaluator.SegmentationEvaluator(tau=self.tau)
 

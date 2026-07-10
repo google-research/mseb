@@ -15,10 +15,9 @@
 from absl.testing import absltest
 from mseb import encoder
 from mseb import evaluator
-from mseb import task
+from mseb import task as task_lib
 from mseb import types
 import numpy as np
-
 
 MOCK_TASK_METADATA = types.TaskMetadata(
     name="mock_task",
@@ -28,10 +27,7 @@ MOCK_TASK_METADATA = types.TaskMetadata(
     category="speech",
     main_score="mock_metric",
     revision="1.0.0",
-    dataset=types.Dataset(
-        path="/path/to/mock_dataset",
-        revision="1.0.0"
-    ),
+    dataset=types.Dataset(path="/path/to/mock_dataset", revision="1.0.0"),
     scores=[
         types.Score(
             metric="mock_metric",
@@ -65,11 +61,7 @@ class MockSoundEmbeddingEvaluator(evaluator.SoundEmbeddingEvaluator):
   """A minimal, concrete evaluator for instantiating tasks in tests."""
 
   def evaluate(
-      self,
-      waveform_embeddings,
-      embedding_timestamps,
-      params,
-      **kwargs
+      self, waveform_embeddings, embedding_timestamps, params, **kwargs
   ) -> list[types.Score]:
     return [
         types.Score(
@@ -89,7 +81,7 @@ class MockSoundEmbeddingEvaluator(evaluator.SoundEmbeddingEvaluator):
     ]
 
 
-class MockTask(task.MSEBTask):
+class MockTask(task_lib.MSEBTask):
   """A concrete task for testing the base class orchestration logic."""
 
   metadata = MOCK_TASK_METADATA
@@ -111,7 +103,7 @@ class MockTask(task.MSEBTask):
           ),
       )
 
-  def multimodal_inputs(self) -> task.Iterable[types.Sound]:
+  def multimodal_inputs(self) -> task_lib.Iterable[types.Sound]:
     return self.load_data()
 
   def compute_scores(self, cache: types.MultiModalEmbeddingCache):
@@ -125,27 +117,33 @@ class MSEBTaskTest(absltest.TestCase):
     self.mock_encoder = MockSoundEncoder()
 
   def test_list_tasks(self):
-    tasks = task.get_name_to_task()
+    tasks = task_lib.get_name_to_task()
     self.assertIn("mock_task", tasks)
 
   def test_get_task_by_name(self):
-    task_cls = task.get_task_by_name("mock_task")
+    task_cls = task_lib.get_task_by_name("mock_task")
     self.assertEqual(task_cls, MockTask)
 
   def test_get_task_by_name_not_found(self):
     with self.assertRaises(ValueError):
-      task.get_task_by_name("not_found")
+      task_lib.get_task_by_name("not_found")
 
   def test_sounds_deprecation_warning(self):
     with self.assertLogs(level="WARNING") as cm:
       sounds = list(MockTask().sounds())
       self.assertLen(sounds[0].waveform, 16000)
-    self.assertTrue(
-        any("sounds() is deprecated" in msg for msg in cm.output)
-    )
+    self.assertTrue(any("sounds() is deprecated" in msg for msg in cm.output))
 
   def test_multimodal_inputs(self):
     self.assertLen(list(MockTask().multimodal_inputs()), 5)
+
+  def test_multimodal_objects_for_setup_default_empty(self):
+    self.assertEmpty(list(MockTask().multimodal_objects_for_setup()))
+
+  def test_setup_accepts_embeddings_cache(self):
+    # setup() with embeddings_cache=None should not raise.
+    task = MockTask()
+    task.setup(embeddings_cache=None)
 
 
 if __name__ == "__main__":

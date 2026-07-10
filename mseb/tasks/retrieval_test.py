@@ -175,6 +175,92 @@ class RetrievalTest(absltest.TestCase):
     self.assertIsNotNone(task._evaluator.searcher)
     self.assertLen(task._evaluator.id_by_index_id, 16)
 
+  def test_multimodal_objects_for_setup_returns_documents(self):
+    class MockTask(retrieval.RetrievalTask):
+
+      def get_documents_source(self):
+        return None
+
+      @staticmethod
+      def documents_generator(not_used):
+        del not_used
+        return [
+            types.Text(
+                text=f'doc_{i}',
+                context=types.TextContextParams(id=str(i)),
+            )
+            for i in range(3)
+        ]
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def examples(self, sub_task):
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self):
+        return ['test']
+
+    self.enter_context(
+        flagsaver.flagsaver((
+            retrieval.task.TASK_CACHE_BASEPATH,
+            self.create_tempdir().full_path,
+        ))
+    )
+    task = MockTask()
+    objects = list(task.multimodal_objects_for_setup())
+    self.assertLen(objects, 3)
+    self.assertIsInstance(objects[0], types.Text)
+    self.assertEqual(objects[0].text, 'doc_0')
+
+  def test_setup_with_embeddings_cache(self):
+    class MockTask(retrieval.RetrievalTask):
+
+      def get_documents_source(self):
+        return None
+
+      @staticmethod
+      def documents_generator(not_used):
+        del not_used
+        return [
+            types.Text(
+                text=f'doc {i}',
+                context=types.TextContextParams(id=str(i)),
+            )
+            for i in range(16)
+        ]
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def examples(self, sub_task):
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self):
+        return ['test']
+
+    self.enter_context(
+        flagsaver.flagsaver((
+            retrieval.task.TASK_CACHE_BASEPATH,
+            self.create_tempdir().full_path,
+        ))
+    )
+    embeddings_cache = {
+        str(i): types.TextEmbedding(
+            embedding=np.random.rand(1, 3).astype(np.float32),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id=str(i)),
+        )
+        for i in range(16)
+    }
+    task = MockTask()
+    task.setup(embeddings_cache=embeddings_cache)
+    self.assertIsNotNone(task._evaluator)
+    self.assertIsNotNone(task._evaluator.searcher)
+    self.assertLen(task._evaluator.id_by_index_id, 16)
+
 
 if __name__ == '__main__':
   absltest.main()

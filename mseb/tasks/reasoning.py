@@ -54,10 +54,16 @@ class ReasoningTask(task.MSEBTask):
     """The directory where the span embeddings cache is stored."""
     return os.path.join(task.TASK_CACHE_BASEPATH.value, 'reasonings')  # pyrefly: ignore[no-matching-overload]
 
-  def setup(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup(
+      self,
+      runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
+  ):
     """Create the span embeddings cache."""
     embeddings_by_text = {}
-    if runner is not None:
+    if embeddings_cache is not None:
+      embeddings_by_text = embeddings_cache
+    elif runner is not None:
       if runner.encoder_output_type() is not types.TextPrediction:
         unique_spans = {}
         for span_list in self.span_lists():
@@ -122,3 +128,9 @@ class ReasoningTask(task.MSEBTask):
   @abc.abstractmethod
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
     """Get the list of spans for the reasoning task."""
+
+  def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
+    """Get the spans needed for setting up the reasoning task."""
+    for span_list in self.span_lists():
+      for span in span_list:
+        yield span

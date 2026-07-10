@@ -40,25 +40,39 @@ class RerankingTask(task.MSEBTask):
     """The directory where the candidate embeddings cache is stored."""
     return os.path.join(task.TASK_CACHE_BASEPATH.value, 'rerankings')  # pyrefly: ignore[no-matching-overload]
 
-  def setup(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup(
+      self,
+      runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
+  ):
     """Create the candidate embeddings cache."""
-    if runner is not None:
-      unique_candidates = {}
-      for candidate_list in self.candidate_lists():
-        for candidate in candidate_list:
-          unique_candidates[candidate.text] = candidate
-      embeddings_by_text = runner.run(
-          unique_candidates.values(), output_path=self.embeddings_dir
+    try:
+      logger.info(
+          'Loading candidate embeddings cache from %s', self.embeddings_dir
       )
-    else:
-      try:
-        logger.info(
-            'Loading candidate embeddings cache from %s', self.embeddings_dir
+      embeddings_by_text = runner_lib.load_embeddings(
+          os.path.join(self.embeddings_dir, 'embeddings')
+      )
+    except FileNotFoundError:
+      if embeddings_cache is not None:
+        embeddings_by_text = {}
+        for candidate_list in self.candidate_lists():
+          for candidate in candidate_list:
+            embeddings_by_text[candidate.context.id] = embeddings_cache[
+                candidate.context.id
+            ]
+        runner_lib.save_embeddings(
+            os.path.join(self.embeddings_dir, 'embeddings'), embeddings_by_text
         )
-        embeddings_by_text = runner_lib.load_embeddings(
-            os.path.join(self.embeddings_dir, 'embeddings')
+      elif runner is not None:
+        unique_candidates = {}
+        for candidate_list in self.candidate_lists():
+          for candidate in candidate_list:
+            unique_candidates[candidate.text] = candidate
+        embeddings_by_text = runner.run(
+            unique_candidates.values(), output_path=self.embeddings_dir
         )
-      except FileNotFoundError:
+      else:
         logger.warning(
             'Candidate embeddings cache not found in cache directory. Did you'
             ' create the cache by running run_task_setup?'
@@ -114,3 +128,9 @@ class RerankingTask(task.MSEBTask):
   @abc.abstractmethod
   def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
     """Get the list of candidates for the reranking task."""
+
+  def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
+    """Get the candidates needed for setting up the reranking task."""
+    for candidate_list in self.candidate_lists():
+      for candidate in candidate_list:
+        yield candidate

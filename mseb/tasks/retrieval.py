@@ -81,22 +81,37 @@ class RetrievalTask(task.MSEBTask):
     """The directory where the index is stored."""
     return os.path.join(task.TASK_CACHE_BASEPATH.value, 'retrievals')  # pyrefly: ignore[no-matching-overload]
 
-  def setup(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup(
+      self,
+      runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
+  ):
     """Create the index."""
     if _NUM_PARTITIONS.value > 1:
-      self.setup_partitioned(_NUM_PARTITIONS.value, runner)
+      self.setup_partitioned(_NUM_PARTITIONS.value, runner, embeddings_cache)
     else:
-      self.setup_unpartitioned(runner)
+      self.setup_unpartitioned(runner, embeddings_cache)
 
-  def setup_unpartitioned(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup_unpartitioned(
+      self,
+      runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
+  ):
     index_dir = INDEX_DIR.value or self.index_dir
     try:
       searcher, id_by_index_id = retrieval_evaluator.load_index(
           index_dir, self.id_by_index_id_filepath
       )
     except FileNotFoundError:
-      if runner is not None:
-        embeddings = runner.run(self.documents(), output_path=index_dir)
+      if runner is not None or embeddings_cache is not None:
+        if embeddings_cache is None:
+          assert runner is not None
+          embeddings = runner.run(self.documents(), output_path=index_dir)
+        else:
+          embeddings = {
+              doc.context.id: embeddings_cache[doc.context.id]
+              for doc in self.documents()
+          }
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
         retrieval_evaluator.save_index(
             searcher, id_by_index_id, index_dir, self.id_by_index_id_filepath
@@ -113,7 +128,8 @@ class RetrievalTask(task.MSEBTask):
     )
 
   def setup_partitioned(
-      self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None
+      self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
   ):
     index_dir = INDEX_DIR.value or self.index_dir
     for partition_id in range(num_partitions):
@@ -126,13 +142,20 @@ class RetrievalTask(task.MSEBTask):
             os.path.join(index_dir, str(partition_id)),
         )
         continue
-      elif runner is not None:
-        embeddings = runner.run(
-            itertools.islice(
-                self.documents(), partition_id, None, num_partitions
-            ),
-            output_path=os.path.join(index_dir, str(partition_id)),
-        )
+      elif runner is not None or embeddings_cache is not None:
+        if embeddings_cache is None:
+          assert runner is not None
+          embeddings = runner.run(
+              itertools.islice(
+                  self.documents(), partition_id, None, num_partitions
+              ),
+              output_path=os.path.join(index_dir, str(partition_id)),
+          )
+        else:
+          embeddings = {
+              doc.context.id: embeddings_cache[doc.context.id]
+              for doc in self.documents()
+          }
         searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
         retrieval_evaluator.save_index(
             searcher,
@@ -209,3 +232,7 @@ class RetrievalTask(task.MSEBTask):
   def documents_generator(documents_source: Any) -> Iterable[types.Text]:
     """Get the list of documents for the retrieval task."""
     raise NotImplementedError
+
+  def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
+    """Get the documents needed for setting up the retrieval task."""
+    return self.documents()

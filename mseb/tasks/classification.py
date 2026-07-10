@@ -94,12 +94,24 @@ class ClassificationTask(task.MSEBTask):
     """Get the list of class labels for the classification task."""
     ...
 
+  def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
+    """Get the class labels needed for setting up the classification task."""
+    for class_label in self.class_labels():
+      yield types.Text(
+          text=class_label,
+          context=types.TextContextParams(id=class_label),
+      )
+
   @property
   def weights_dir(self) -> str:
     """The directory where the weights of the linear classifier are stored."""
     return os.path.join(task.TASK_CACHE_BASEPATH.value, "classifications")  # pyrefly: ignore[no-matching-overload]
 
-  def setup(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup(
+      self,
+      runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
+  ):
     """Creates/loads weights and instantiates the correct evaluator."""
     try:
       class_labels, weights = classification_evaluator.load_linear_classifier(
@@ -108,7 +120,9 @@ class ClassificationTask(task.MSEBTask):
     except FileNotFoundError:
       if runner is not None:
         if runner.encoder_output_type() is not types.TextPrediction:
-          class_labels, weights = self._create_weights_from_runner(runner)
+          class_labels, weights = self._create_weights_from_runner(
+              runner, class_label_embeddings=embeddings_cache
+          )
         else:
           class_labels = list(self.class_labels())
           weights = None
@@ -188,16 +202,29 @@ class ClassificationTask(task.MSEBTask):
     return results
 
   def _create_weights_from_runner(
-      self, runner: runner_lib.EncoderRunner
+      self,
+      runner: runner_lib.EncoderRunner,
+      class_label_embeddings: types.MultiModalEmbeddingCache | None = None,
   ) -> tuple[Sequence[str], np.ndarray]:
     """Generate classifier weights by running a text encoder over class labels."""
     class_labels = tuple(self.class_labels())
-    class_label_embeddings = runner.run([
-        types.Text(
-            text=class_label, context=types.TextContextParams(id=class_label)
-        )
-        for class_label in class_labels
-    ], output_name="label_embeddings", output_path=self.weights_dir)
+    if class_label_embeddings is None:
+      class_label_embeddings = runner.run(
+          [
+              types.Text(
+                  text=class_label,
+                  context=types.TextContextParams(id=class_label),
+              )
+              for class_label in class_labels
+          ],
+          output_name="label_embeddings",
+          output_path=self.weights_dir,
+      )
+    else:
+      class_label_embeddings = {
+          class_label: class_label_embeddings[class_label]
+          for class_label in class_labels
+      }
     weights = []
     for class_label in class_labels:
       embedding = class_label_embeddings[class_label]

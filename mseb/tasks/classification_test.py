@@ -42,6 +42,7 @@ class ClassificationTest(absltest.TestCase):
   def test_classification_task_setup_with_runner(self):
 
     class MockTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_class"
@@ -84,6 +85,7 @@ class ClassificationTest(absltest.TestCase):
   def test_classification_task_compute_scores_multi_class(self):
 
     class MockMultiClassTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_class"
@@ -119,18 +121,14 @@ class ClassificationTest(absltest.TestCase):
     embeddings = {
         "utt_1": types.SoundEmbedding(
             context=types.SoundContextParams(
-                id="utt_1",
-                sample_rate=16000,
-                length=1
+                id="utt_1", sample_rate=16000, length=1
             ),
             embedding=np.array([[1.0, 0.0]]),
             timestamps=np.zeros((1, 2)),
         ),
         "utt_2": types.SoundEmbedding(
             context=types.SoundContextParams(
-                id="utt_2",
-                sample_rate=16000,
-                length=1
+                id="utt_2", sample_rate=16000, length=1
             ),
             embedding=np.array([[0.0, 1.0]]),
             timestamps=np.zeros((1, 2)),
@@ -149,6 +147,7 @@ class ClassificationTest(absltest.TestCase):
   def test_classification_task_compute_scores_multi_label(self):
 
     class MockMultiLabelTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_label"
@@ -171,9 +170,7 @@ class ClassificationTest(absltest.TestCase):
         return ["test"]
 
     weights = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-    task = MockMultiLabelTask(
-        multi_label_threshold=0.4
-    )
+    task = MockMultiLabelTask(multi_label_threshold=0.4)
     classification_evaluator.save_linear_classifier(
         task.class_labels(), weights, task.weights_dir
     )
@@ -182,9 +179,7 @@ class ClassificationTest(absltest.TestCase):
     embeddings = {
         "utt_1": types.SoundEmbedding(
             context=types.SoundContextParams(
-                id="utt_1",
-                sample_rate=16000,
-                length=1
+                id="utt_1", sample_rate=16000, length=1
             ),
             embedding=np.array([[0.5, 0.5]]),
             timestamps=np.zeros((1, 2)),
@@ -199,6 +194,7 @@ class ClassificationTest(absltest.TestCase):
 
   def test_create_weights_from_runner(self):
     class MockTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_class"
@@ -247,8 +243,7 @@ class ClassificationTest(absltest.TestCase):
     self.assertEqual(weights.shape, (2, 3))
 
     np.testing.assert_allclose(
-        weights,
-        np.array([[0.1, 0.2, 0.0], [0.3, 0.4, 0.0]])
+        weights, np.array([[0.1, 0.2, 0.0], [0.3, 0.4, 0.0]])
     )
 
     # Verify that the weights were saved to the cache.
@@ -261,6 +256,7 @@ class ClassificationTest(absltest.TestCase):
   def test_compute_scores(self):
 
     class MockMultiClassTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_class"
@@ -316,14 +312,13 @@ class ClassificationTest(absltest.TestCase):
 
     metrics = task.compute_scores(embeddings)
     self.assertIn("test", metrics)
-    accuracy_score = next(
-        s for s in metrics["test"] if s.metric == "Accuracy"
-    )
+    accuracy_score = next(s for s in metrics["test"] if s.metric == "Accuracy")
     self.assertAlmostEqual(accuracy_score.value, 1.0)
 
   def test_compute_scores_with_prediction_output(self):
 
     class MockMultiClassTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_class"
@@ -383,9 +378,7 @@ class ClassificationTest(absltest.TestCase):
 
     metrics = task.compute_scores(embeddings)
     self.assertIn("test", metrics)
-    accuracy_score = next(
-        s for s in metrics["test"] if s.metric == "Accuracy"
-    )
+    accuracy_score = next(s for s in metrics["test"] if s.metric == "Accuracy")
     self.assertAlmostEqual(accuracy_score.value, 0.5)
     invalid_rate_score = next(
         s for s in metrics["test"] if s.metric == "InvalidResultRate"
@@ -399,6 +392,7 @@ class ClassificationTest(absltest.TestCase):
   def test_compute_scores_from_text_prediction_multi_label(self):
 
     class MockMultiLabelTask(classification.ClassificationTask):
+
       @property
       def task_type(self) -> str:
         return "multi_label"
@@ -420,9 +414,7 @@ class ClassificationTest(absltest.TestCase):
       def sub_tasks(self) -> list[str]:
         return ["test"]
 
-    task = MockMultiLabelTask(
-        multi_label_threshold=0.4
-    )
+    task = MockMultiLabelTask(multi_label_threshold=0.4)
     task.setup()
 
     embeddings = {
@@ -437,6 +429,81 @@ class ClassificationTest(absltest.TestCase):
     map_score = next(s for s in scores["test"] if s.metric == "mAP")
     # Since scores will be high for both correct labels, mAP should be 1.0
     self.assertAlmostEqual(map_score.value, 1.0)
+
+  def test_multimodal_objects_for_setup_yields_class_labels(self):
+
+    class MockTask(classification.ClassificationTask):
+
+      @property
+      def task_type(self) -> str:
+        return "multi_class"
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def class_labels(self):
+        return ["cat", "dog"]
+
+      def examples(self, sub_task):
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self):
+        return ["test"]
+
+    task = MockTask()
+    objects = list(task.multimodal_objects_for_setup())
+    self.assertLen(objects, 2)
+    self.assertEqual(objects[0].text, "cat")
+    self.assertEqual(objects[1].text, "dog")
+    self.assertIsInstance(objects[0], types.Text)
+
+  def test_create_weights_from_embeddings_cache(self):
+
+    class MockTask(classification.ClassificationTask):
+
+      @property
+      def task_type(self) -> str:
+        return "multi_class"
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def class_labels(self):
+        return ["cat", "dog"]
+
+      def examples(self, sub_task):
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self):
+        return ["test"]
+
+    embeddings_cache = {
+        "cat": types.TextEmbedding(
+            embedding=np.array([[0.1, 0.2]]),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id="cat"),
+        ),
+        "dog": types.TextEmbedding(
+            embedding=np.array([[0.3, 0.4]]),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id="dog"),
+        ),
+    }
+    task = MockTask()
+    # Use a mock runner - it should NOT be called when cache is provided.
+    mock_runner = mock.Mock(spec=runner_lib.EncoderRunner)
+    class_labels, weights = task._create_weights_from_runner(
+        mock_runner, class_label_embeddings=embeddings_cache
+    )
+    mock_runner.run.assert_not_called()
+    self.assertEqual(class_labels, ("cat", "dog"))
+    self.assertEqual(weights.shape, (2, 3))
+    np.testing.assert_allclose(
+        weights, np.array([[0.1, 0.2, 0.0], [0.3, 0.4, 0.0]])
+    )
+
 
 if __name__ == "__main__":
   absltest.main()

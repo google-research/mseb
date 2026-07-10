@@ -255,6 +255,98 @@ class ReasoningTest(absltest.TestCase):
     self.assertIn('test', scores)
     self.assertEqual(scores['test'][0].metric, 'GmeanF1')
 
+  def test_multimodal_objects_for_setup_yields_spans(self):
+
+    class MockReasoningTask(reasoning.ReasoningTask):
+
+      def span_lists(self):
+        return [
+            [
+                types.Text(
+                    text='span_1A',
+                    context=types.TextContextParams(id='span_1A'),
+                ),
+                types.Text(
+                    text='span_1B',
+                    context=types.TextContextParams(id='span_1B'),
+                ),
+            ],
+            [
+                types.Text(
+                    text='span_2A',
+                    context=types.TextContextParams(id='span_2A'),
+                ),
+            ],
+        ]
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def examples(self, sub_task):
+        raise NotImplementedError()
+
+      @property
+      def sub_tasks(self):
+        return ['test']
+
+    task = MockReasoningTask()
+    objects = list(task.multimodal_objects_for_setup())
+    self.assertLen(objects, 3)
+    self.assertEqual(objects[0].text, 'span_1A')
+    self.assertEqual(objects[2].text, 'span_2A')
+
+  def test_setup_with_embeddings_cache(self):
+
+    class MockReasoningTask(reasoning.ReasoningTask):
+
+      def span_lists(self):
+        return [
+            [
+                types.Text(
+                    text='span_A',
+                    context=types.TextContextParams(id='span_A'),
+                ),
+                types.Text(
+                    text='span_B',
+                    context=types.TextContextParams(id='span_B'),
+                ),
+            ],
+        ]
+
+      def multimodal_inputs(self):
+        raise NotImplementedError()
+
+      def examples(self, sub_task):
+        return [
+            reasoning_evaluator.ReasoningSpans(
+                sound_id='sound_1',
+                texts=['span_A', 'span_B'],
+                reference_answer='span_A',
+            ),
+        ]
+
+      @property
+      def sub_tasks(self):
+        return ['test']
+
+    embeddings_cache = {
+        'span_A': types.TextEmbedding(
+            embedding=np.zeros((1, 3)),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id='span_A'),
+        ),
+        'span_B': types.TextEmbedding(
+            embedding=np.ones((1, 3)),
+            spans=np.zeros((1, 2)),
+            context=types.TextContextParams(id='span_B'),
+        ),
+    }
+    task = MockReasoningTask()
+    task.setup(embeddings_cache=embeddings_cache)
+    self.assertIsNotNone(task._evaluator)
+    self.assertIsNotNone(task._evaluator.span_embeddings_by_sound_id)
+    self.assertLen(task._evaluator.span_embeddings_by_sound_id, 1)
+
 
 if __name__ == '__main__':
   absltest.main()

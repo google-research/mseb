@@ -46,7 +46,8 @@ class MSEBTask(abc.ABC):
   metadata: types.TaskMetadata = None  # pyrefly: ignore[bad-assignment]
 
   def setup(
-      self, runner: runner_lib.EncoderRunner | None = None
+      self, runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
   ):
     """Called once to set up the task.
 
@@ -57,6 +58,7 @@ class MSEBTask(abc.ABC):
     Args:
       runner: An optional EncoderRunner class that can be used to get embeddings
         for setting up the task.
+      embeddings_cache: An optional cache of embeddings for the task.
     """
     pass
 
@@ -90,6 +92,16 @@ class MSEBTask(abc.ABC):
   def multimodal_inputs_beam(self) -> beam.PCollection[types.MultiModalObject]:
     """Beam transform to iterate all of the multimodal inputs in the corpus for this task."""
     return beam.Create(list(self.multimodal_inputs()))
+
+  def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
+    """Get all objects needed for setting up the task."""
+    return []
+
+  def multimodal_objects_for_setup_beam(
+      self,
+  ) -> beam.PCollection[types.MultiModalObject]:
+    """Beam transform to get all reference examples for a given sub-task."""
+    return beam.Create(list(self.multimodal_objects_for_setup()))
 
 
 def get_name_to_task() -> dict[str, Type[MSEBTask]]:

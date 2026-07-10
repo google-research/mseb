@@ -39,7 +39,11 @@ class TranscriptionTask(task.MSEBTask):
     super().__init__()
     self._evaluator = None
 
-  def setup(self, runner: runner_lib.EncoderRunner | None = None):
+  def setup(
+      self,
+      runner: runner_lib.EncoderRunner | None = None,
+      embeddings_cache: types.MultiModalEmbeddingCache | None = None,
+  ):
     """Create the evaluator."""
     self._evaluator = transcription_evaluator.TranscriptionEvaluator()
 
