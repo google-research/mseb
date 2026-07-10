@@ -14,9 +14,8 @@
 
 """FSD50K sound event clustering tasks."""
 
-from typing import Iterable, Type
+from typing import Iterable
 
-from mseb import runner as runner_lib
 from mseb import types
 from mseb.datasets import fsd50k
 from mseb.evaluators import clustering_evaluator
@@ -27,17 +26,14 @@ class FSD50KClustering(clustering.ClusteringTask):
   """Base class for sound event clustering on the FSD50K dataset."""
 
   split: str | None = None
-  _fsd_dataset: fsd50k.FSD50KDataset
 
-  def _get_dataset(self) -> fsd50k.FSD50KDataset:
-    if self.split is None:
-      raise ValueError("`split` must be set by a concrete task subclass.")
-    return fsd50k.FSD50KDataset(split=self.split)
-
-  def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
-    self._fsd_dataset = self._get_dataset()
+  @property
+  def _fsd_dataset(self) -> fsd50k.FSD50KDataset:
+    if not hasattr(self, "_fsd_dataset_cache"):
+      if self.split is None:
+        raise ValueError("`split` must be set by a concrete task subclass.")
+      self._fsd_dataset_cache = fsd50k.FSD50KDataset(split=self.split)
+    return self._fsd_dataset_cache  # pytype: disable=attribute-error
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -55,8 +51,6 @@ class FSD50KClustering(clustering.ClusteringTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
-    if self.split is None:
-      raise ValueError("`split` must be set by a concrete task subclass.")
     for record in self._fsd_dataset.get_task_data().to_dict("records"):
       example_id = str(record["fname"])
       label = self._get_label(record)

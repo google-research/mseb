@@ -14,9 +14,8 @@
 
 """Birdset clustering tasks."""
 
-from typing import Any, Iterable, Type
+from typing import Any, Iterable
 
-from mseb import runner as runner_lib
 from mseb import types
 from mseb.datasets import birdset
 from mseb.evaluators import clustering_evaluator
@@ -51,21 +50,15 @@ def _get_birdset_clustering_metadata(configuration: str) -> types.TaskMetadata:
 class BirdsetClustering(clustering.ClusteringTask):
   """Birdset clustering."""
 
-  _birdset_dataset: birdset.BirdsetDataset
   configuration: str = "HSN"
 
-  def _get_dataset(self) -> birdset.BirdsetDataset:
-    return birdset.BirdsetDataset(
-        split="test_5s", configuration=self.configuration
-    )
-
-  def setup(
-      self, runner_cls: Type[runner_lib.EncoderRunner] | None = None, **kwargs
-  ):
-    self._birdset_dataset = self._get_dataset()
-
-  def _task_data(self):
-    return self._birdset_dataset.get_task_data()
+  @property
+  def _birdset_dataset(self) -> birdset.BirdsetDataset:
+    if not hasattr(self, "_birdset_dataset_cache"):
+      self._birdset_dataset_cache = birdset.BirdsetDataset(
+          split="test_5s", configuration=self.configuration
+      )
+    return self._birdset_dataset_cache  # pytype: disable=attribute-error
 
   def _get_label(self, example: dict[str, Any]) -> str:
     """Get label from example."""
@@ -79,14 +72,14 @@ class BirdsetClustering(clustering.ClusteringTask):
     return ["clustering"]
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    for example in self._task_data().to_dict("records"):
+    for example in self._birdset_dataset.get_task_data().to_dict("records"):
       yield self._birdset_dataset.get_sound(example)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     """Get (utt_id, label) examples from Birdset dataset."""
-    for example in self._task_data().to_dict("records"):
+    for example in self._birdset_dataset.get_task_data().to_dict("records"):
       yield clustering_evaluator.ClusteringExample(
           str(example["filepath"]), self._get_label(example)
       )
