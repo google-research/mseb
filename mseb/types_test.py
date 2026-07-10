@@ -548,5 +548,22 @@ class StreamingSpeechToTextEventTest(absltest.TestCase):
       types.StreamingSpeechToTextEvent.validate(events)
 
 
+class StreamingStatsTest(absltest.TestCase):
+
+  def test_instantiation(self):
+    stats = types.StreamingStats(
+        events=[
+            types.StreamingSpeechToTextEvent(
+                content_time=1.0, wall_time=2.0, finalized="a", partial="b"
+            )
+        ],
+        chunk_duration=0.5,
+        wait_duration=0.1,
+    )
+    self.assertEqual(stats.chunk_duration, 0.5)
+    self.assertEqual(stats.wait_duration, 0.1)
+    self.assertLen(stats.events, 1)
+
+
 if __name__ == "__main__":
   absltest.main()
