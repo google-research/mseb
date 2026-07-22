@@ -1,17 +1,3 @@
-# Copyright 2026 The MSEB Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Whisper Encoders."""
 
 import abc
@@ -289,7 +275,12 @@ class ForcedAlignmentEncoder(Whisper):
 
 
 class PooledAudioEncoder(Whisper):
-  """Embeds by pooling Whisper audio encoder activations."""
+  """Embeds by pooling Whisper audio encoder activations.
+
+  Returns per-frame timestamps when no pooling is applied, making the output
+  compatible with PrecomputedEmbeddingsEncoder when saved as a joblib dict
+  of story_name -> (T, D) arrays.
+  """
 
   def __init__(
       self,
@@ -301,12 +292,14 @@ class PooledAudioEncoder(Whisper):
 
     Args:
       model_path: The path to the Whisper model.
-      device: The device to use for the Whisper model;
+      device: The device to use for the Whisper model.
       pooling: The type of pooling to apply to the encoder activations.
-        Supported options: 'last', 'mean', 'max'. Defaults to None.
+        Supported options: 'last', 'mean', 'max'. Defaults to None
+        (frame-level output).
     """
     super().__init__(model_path, device=device)
     self._flops_cache = None
+    self._pooling = pooling
     self.pool_fn: Callable[[np.ndarray], np.ndarray]
     if pooling is None:
       self.pool_fn = lambda x: x
@@ -323,43 +316,51 @@ class PooledAudioEncoder(Whisper):
       )
     # In whisper.audio: N_SAMPLES_PER_TOKEN = 2 * HOP_LENGTH
     self.encoder_stride = 2
+    # 10ms hop length at 16kHz.
+    self._frame_shift_seconds = 0.01
 
   def _encode_sound(
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
   ) -> types.SoundEmbedding:
-    """Encodes speech into a pooled embedding of Whisper encoder activations.
+    """Encodes speech into Whisper encoder activations.
 
     Args:
       waveform: A one-dimensional NumPy array of floating-point numbers,
         representing the audio waveform. This array must be sampled at
         whisper.audio.SAMPLE_RATE.
-      params: Encoder input context parameters. This parameter is part of the
-        abstract _encode interface defined in the parent class Whisper, but it
-        is not directly utilized by this encoder.
+      params: Encoder input context parameters.
 
     Returns:
-      A tuple (embedding, timestamp).
-      embedding: A NumPy array of shape (1, D) if pooling is not None and (n, D)
-                 if pooling is None. Here D is the dimension of the Whisper
-                 model's audio encoder output.
-      timestamp: A NumPy array with a single row [start, end], representing
-                 the start and end times of the input audio. start is always 0,
-                 and end is the total duration of the waveform in seconds.
-                 Shape will be (1, 2).
+      SoundEmbedding with:
+        - embedding: shape (1, D) if pooling is not None, (n, D) if None.
+        - timestamps: shape (1, 2) if pooling is not None (whole-audio span),
+          (n, 2) if None (per-frame 20ms intervals).
     """
     assert self.model is not None
     mel, num_frames = self.get_mel_inputs(waveform)
+    num_embeddings = num_frames // self.encoder_stride
+
     with torch.no_grad():
       embeddings = self.model.embed_audio(mel)
     embeddings = embeddings.to('cpu').detach().numpy().squeeze(0)
-    num_embeddings = num_frames // self.encoder_stride
-    audio_duration_seconds = len(waveform) / whisper.audio.SAMPLE_RATE
-    timestamp = np.array([[0, audio_duration_seconds]])
+    embeddings = self.pool_fn(
+        embeddings[:num_embeddings, :]
+    ).astype(np.float32)
+
+    if self._pooling is None:
+      # Per-frame timestamps: each frame covers encoder_stride * 10ms = 20ms.
+      step_dur = self._frame_shift_seconds * self.encoder_stride
+      starts = np.arange(embeddings.shape[0], dtype=np.float32) * step_dur
+      timestamps = np.stack([starts, starts + step_dur], axis=1)
+    else:
+      audio_duration_seconds = len(waveform) / whisper.audio.SAMPLE_RATE
+      timestamps = np.array([[0, audio_duration_seconds]])
+
     return types.SoundEmbedding(
-        embedding=self.pool_fn(embeddings[:num_embeddings, :]),
-        timestamps=timestamp,  # pyrefly: ignore[bad-argument-type]
+        embedding=embeddings,
+        timestamps=timestamps,  # pyrefly: ignore[bad-argument-type]
         context=params,
     )
 
