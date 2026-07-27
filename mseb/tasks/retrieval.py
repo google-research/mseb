@@ -28,7 +28,6 @@ from mseb import task
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
 
-
 _NUM_PARTITIONS = flags.DEFINE_integer(
     'num_partitions',
     1,
@@ -46,6 +45,12 @@ INDEX_DIR = flags.DEFINE_string(
     None,
     'If set, directory to use for the index. Overwrites the task-specific'
     ' default index dir.',
+)
+
+_ALLOW_SCANN = flags.DEFINE_bool(
+    'allow_scann',
+    False,
+    'If set, use ScaNN for the index.',
 )
 
 NO_RESPONSE_STR = encoder_lib.NO_RESPONSE_STR
@@ -112,7 +117,9 @@ class RetrievalTask(task.MSEBTask):
               doc.context.id: embeddings_cache[doc.context.id]
               for doc in self.documents()
           }
-        searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
+        searcher, id_by_index_id = retrieval_evaluator.build_index(
+            embeddings, allow_scann=_ALLOW_SCANN.value
+        )
         retrieval_evaluator.save_index(
             searcher, id_by_index_id, index_dir, self.id_by_index_id_filepath
         )
@@ -128,7 +135,9 @@ class RetrievalTask(task.MSEBTask):
     )
 
   def setup_partitioned(
-      self, num_partitions: int, runner: runner_lib.EncoderRunner | None = None,
+      self,
+      num_partitions: int,
+      runner: runner_lib.EncoderRunner | None = None,
       embeddings_cache: types.MultiModalEmbeddingCache | None = None,
   ):
     index_dir = INDEX_DIR.value or self.index_dir
@@ -156,7 +165,9 @@ class RetrievalTask(task.MSEBTask):
               doc.context.id: embeddings_cache[doc.context.id]
               for doc in self.documents()
           }
-        searcher, id_by_index_id = retrieval_evaluator.build_index(embeddings)
+        searcher, id_by_index_id = retrieval_evaluator.build_index(
+            embeddings, allow_scann=_ALLOW_SCANN.value
+        )
         retrieval_evaluator.save_index(
             searcher,
             id_by_index_id,
@@ -186,9 +197,7 @@ class RetrievalTask(task.MSEBTask):
       predictions = {}
       for sound_id, example in embeddings.items():
         assert isinstance(example, types.TextPrediction)
-        prediction = types.ListPrediction.from_json(
-            example.prediction
-        )
+        prediction = types.ListPrediction.from_json(example.prediction)
         # If score is not present, assign pseudo-scores to preserve the
         # predicted ranking.
         if isinstance(prediction, types.ValidListPrediction) and any(
