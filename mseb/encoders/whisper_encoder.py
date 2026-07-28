@@ -253,7 +253,7 @@ class ForcedAlignmentEncoder(Whisper):
     assert self.model is not None
     mel = whisper.audio.log_mel_spectrogram(
         waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
-    )
+    ).to(self.model.device)
     num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
     mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
     if not params.text:
