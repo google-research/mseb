@@ -110,3 +110,6 @@ markers = [
     "whisper: marks tests for the whisper optional dependency",
     "scann: marks tests for the scann optional dependency"
 ]
+
+[project.scripts]
+run_task = "mseb.scripts.run_task:main"
