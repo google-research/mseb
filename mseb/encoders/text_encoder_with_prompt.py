@@ -173,12 +173,6 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
     prompt_batch = []
     for example in batch:
       ctx_task_name = getattr(example.context, 'task_name', None)
-      if (
-          ctx_task_name is None
-          and hasattr(example.context, 'id')
-          and ':' in example.context.id
-      ):
-        ctx_task_name = example.context.id.split(':')[0]
 
       if isinstance(example, types.TextWithTitleAndContext):
         prompt_text = self._get_normalized_text_prompt(
@@ -222,12 +216,6 @@ class TextEncoderWithPrompt(encoder.MultiModalEncoder):
     embeddings_batch = []
     for response, example in zip(response_batch, batch):
       ctx_task_name = getattr(example.context, 'task_name', None)
-      if (
-          ctx_task_name is None
-          and hasattr(example.context, 'id')
-          and ':' in example.context.id
-      ):
-        ctx_task_name = example.context.id.split(':')[0]
 
       prompt = self.prompt
       metadata = None
