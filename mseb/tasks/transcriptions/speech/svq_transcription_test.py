@@ -74,6 +74,11 @@ class SVQEnUsSpeechTranscriptionTest(absltest.TestCase):
     self.assertEqual(example.text, "At what temperature does steel melt?")
     self.assertEqual(example.language, "en_us")
 
+  def test_svq_en_us_speech_transcription_multimodal_inputs_beam(self):
+    task = svq.SVQEnUsSpeechTranscription()
+    transform = task.multimodal_inputs_beam()
+    self.assertIsNotNone(transform)
+
 
 if __name__ == "__main__":
   absltest.main()
