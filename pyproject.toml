@@ -78,9 +78,6 @@ scann = [
 spacy = [
     "spacy",
 ]
-tf_hub = [
-    "tensorflow-hub",
-]
 
 [tool.pyink]
 # Formatting configuration to follow Google style-guide
