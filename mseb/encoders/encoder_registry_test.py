@@ -14,12 +14,12 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from mseb.encoders import encoder_registry
+
+# This needs to be called to do the automatic import and registration of all
+# encoder modules found in mseb/encoders/registration.
+from mseb.encoders import registration  # pylint: disable=unused-import
 import pytest
-
-encoder_registry = pytest.importorskip("mseb.encoders.encoder_registry")
-
-_ = pytest.importorskip("mseb.encoders.registration.clap")
-_ = pytest.importorskip("mseb.encoders.registration.raw")
 
 
 @pytest.mark.whisper
@@ -27,8 +27,18 @@ _ = pytest.importorskip("mseb.encoders.registration.raw")
 class EncoderRegistryTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      "raw_spectrogram_25ms_10ms_mean",
+      "whisper_base_speech_to_text",
+      "whisper_base_pooled_last",
+      "whisper_base_pooled_mean",
+      "whisper_base_pooled_max",
+      "whisper_forced_alignment",
       "laion_clap_encoder",
+      "genai_llm",
+      "openai_llm_with_title_and_context",
+      "openai_speech_to_text",
+      "litellm_speech_to_text",
+      "litellm_embedding",
+      "raw_spectrogram_25ms_10ms_mean",
   )
   def test_load_encoder(self, name):
     meta = encoder_registry.get_encoder_metadata(name)

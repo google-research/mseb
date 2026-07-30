@@ -89,12 +89,14 @@ class HFLLMEncoder(prompt_encoder.TextEncoderWithPrompt):
         for prompt in prompts
     ])
 
+  # We "forward declare" these transformers annotations because otherwise they
+  # cause heavy cuda initialization that can break on CPU-only hosts.
   @staticmethod
   def get_response(
       request_prompt: Tuple[str, Optional[bytes]],
       *,
-      processor: transformers.AutoProcessor,
-      model: transformers.AutoModelForImageTextToText,
+      processor: 'transformers.AutoProcessor',
+      model: 'transformers.AutoModelForImageTextToText',
       max_new_tokens: int,
   ) -> str:
     """Returns the prediction for the given question, title and context."""
