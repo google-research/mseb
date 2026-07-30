@@ -20,7 +20,11 @@ from mseb import encoder
 from mseb import types
 from mseb.encoders import clap_encoder
 import numpy as np
+import pytest
 import torch
+
+
+pytestmark = pytest.mark.optional
 
 
 class ClapEncoderTest(absltest.TestCase):

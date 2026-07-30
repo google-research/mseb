@@ -25,6 +25,8 @@ import numpy.testing as npt
 import pyarrow.parquet as pq
 import pytest
 
+pytestmark = pytest.mark.optional
+
 
 def encodec_cache_context(name: str):
   """Creates a unique cache directory for EnCodec tests."""
