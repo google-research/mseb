@@ -68,9 +68,8 @@ dev = [
     "pyink",
 ]
 scann = [
-    "scann==1.3.5",
-    # https://github.com/tensorflow/metadata/issues/68
-    "tensorflow-metadata<1.21",
+    "scann[tf]>=1.4.0",
+    "tensorflow-metadata",
 ]
 spacy = [
     "spacy",
