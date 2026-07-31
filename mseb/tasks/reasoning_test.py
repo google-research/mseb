@@ -29,7 +29,7 @@ text_encoder_with_prompt = pytest.importorskip(
 )
 
 
-@pytest.mark.gecko
+@pytest.mark.embedding
 @pytest.mark.optional
 class ReasoningTest(absltest.TestCase):
 

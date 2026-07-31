@@ -31,7 +31,7 @@ retrieval = pytest.importorskip('mseb.tasks.retrieval')
 retrieval_evaluator = pytest.importorskip('mseb.evaluators.retrieval_evaluator')
 
 
-@pytest.mark.gecko
+@pytest.mark.embedding
 @pytest.mark.optional
 class RetrievalTest(absltest.TestCase):
 

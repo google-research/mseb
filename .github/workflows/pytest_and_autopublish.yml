@@ -31,12 +31,12 @@ jobs:
             marker: "scann"
 
           - name: "Segmentation"
-            extras: "dev,spacy,whisper"
+            extras: "dev,spacy"
             marker: "segmentation"
 
-          - name: "Gecko"
-            extras: "dev,tf_hub,scann,whisper"
-            marker: "gecko"
+          - name: "Embedding"
+            extras: "dev,scann"
+            marker: "embedding"
 
     name: Pytest (${{ matrix.name }})
 
