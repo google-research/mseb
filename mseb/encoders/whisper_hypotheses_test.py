@@ -19,14 +19,11 @@ from unittest import mock
 from absl.testing import absltest
 import librosa
 from mseb import types
+from mseb.encoders import whisper_hypotheses
 import numpy as np
 import pyarrow.parquet as pq
 import pytest
-
-# Skip tests in this module if whisper_hypotheses or its dependencies are
-# unavailable.
-whisper = pytest.importorskip('whisper')
-whisper_hypotheses = pytest.importorskip('mseb.encoders.whisper_hypotheses')
+import whisper
 
 
 def whisper_cache_context(name: str):

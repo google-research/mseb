@@ -18,12 +18,11 @@ from unittest import mock
 
 from absl.testing import absltest
 from mseb import types
+from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
 import pytest
-
-whisper_encoder = pytest.importorskip('mseb.encoders.whisper_encoder')
 
 
 def whisper_cache_context(name: str):
