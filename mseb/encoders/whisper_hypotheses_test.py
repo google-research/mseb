@@ -49,7 +49,7 @@ class WhisperHypothesesTest(absltest.TestCase):
     )
 
   def test_get_hypotheses(self):
-    model = whisper.load_model('base')
+    model = whisper.load_model('base', device='cpu')
     num_hypotheses = 5
     task = whisper_hypotheses.HypothesesDecodingTask(
         model,
