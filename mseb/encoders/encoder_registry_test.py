@@ -19,11 +19,8 @@ from mseb.encoders import encoder_registry
 # This needs to be called to do the automatic import and registration of all
 # encoder modules found in mseb/encoders/registration.
 from mseb.encoders import registration  # pylint: disable=unused-import
-import pytest
 
 
-@pytest.mark.whisper
-@pytest.mark.optional
 class EncoderRegistryTest(parameterized.TestCase):
 
   @parameterized.parameters(

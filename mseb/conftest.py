@@ -18,6 +18,12 @@
 import sys
 import absl.flags
 
+# Force order of ML library loading for deterministic .so loading.
+import torch
+import triton
+import jax
+import tensorflow
+
 
 def pytest_configure(config):
   # We must import absltest here to ensure its flags (like test_tmpdir)

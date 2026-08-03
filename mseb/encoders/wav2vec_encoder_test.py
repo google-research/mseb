@@ -22,10 +22,7 @@ from mseb.encoders import wav2vec_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
-import pytest
 import transformers
-
-pytestmark = pytest.mark.optional
 
 
 class MockWav2VecEncoder(wav2vec_encoder.Wav2VecEncoder):
