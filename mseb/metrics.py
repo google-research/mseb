@@ -132,19 +132,6 @@ def compute_ndcg_at_k(
   return 0.0
 
 
-def _compute_levenshtein_stats(
-    truth: str, hypothesis: str
-) -> Mapping[str, int]:
-  """Wrapper around jiwer library to compute Levenshtein statistics."""
-  stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
-  return {
-      'substitutions': stats.substitutions,
-      'deletions': stats.deletions,
-      'insertions': stats.insertions,
-      'hits': stats.hits,
-  }
-
-
 def compute_word_errors(
     truth: str,
     hypothesis: str,
@@ -168,18 +155,10 @@ def compute_word_errors(
     truth = text_transform(truth)
     hypothesis = text_transform(hypothesis)
 
-  # Guard for empty reference to prevent jiwer ValueError
-  if not truth.strip():
-    hyp_words = hypothesis.split()
-    return (
-        len(hyp_words),  # All insertions
-        0,  # Reference length is 0
-    )
-
-  stats = _compute_levenshtein_stats(truth=truth, hypothesis=hypothesis)
+  stats = jiwer.process_words(reference=truth, hypothesis=hypothesis)
   return (
-      stats['substitutions'] + stats['deletions'] + stats['insertions'],
-      stats['hits'] + stats['substitutions'] + stats['deletions'],
+      stats.substitutions + stats.deletions + stats.insertions,
+      stats.hits + stats.substitutions + stats.deletions
   )
 
 
@@ -230,18 +209,18 @@ def compute_unit_edit_distance(
   truth = ' '.join(map(str, truth_tokens))
   hyp = ' '.join(map(str, hypothesis_tokens))
 
-  stats = _compute_levenshtein_stats(truth=truth, hypothesis=hyp)
-  raw_edits = stats['substitutions'] + stats['deletions'] + stats['insertions']
+  stats = jiwer.process_words(reference=truth, hypothesis=hyp)
+  raw_edits = stats.substitutions + stats.deletions + stats.insertions
 
-  ref_len = float(stats['hits'] + stats['substitutions'] + stats['deletions'])
+  ref_len = float(stats.hits + stats.substitutions + stats.deletions)
   norm_factor = max(ref_len, 1)
 
   return {
       'normalized_distance': raw_edits / norm_factor,
       'raw_distance': float(raw_edits),
-      'substitutions': float(stats['substitutions']),
-      'deletions': float(stats['deletions']),
-      'insertions': float(stats['insertions']),
+      'substitutions': float(stats.substitutions),
+      'deletions': float(stats.deletions),
+      'insertions': float(stats.insertions),
       'reference_length': float(ref_len),
   }
 
@@ -387,8 +366,8 @@ def compute_character_errors(
   Args:
     truth: The ground-truth text.
     hypothesis: The hypothesis text.
-    reference_transform: A function to transform the truth and text
-      before computing the character errors.
+    reference_transform: A function to transform the truth and text before
+      computing the character errors.
     hypothesis_transform: A function to transform the hypothesis text before
       computing the character errors.
 
@@ -396,12 +375,6 @@ def compute_character_errors(
     A tuple containing the total number of character errors and the total number
     of characters in the truth.
   """
-  # Guard for empty reference to prevent jiwer ValueError.
-  if not truth.strip():
-    return (
-        len(hypothesis),  # All insertions.
-        0,  # Reference length is 0.
-    )
   if reference_transform:
     truth = reference_transform(truth)
   if hypothesis_transform:

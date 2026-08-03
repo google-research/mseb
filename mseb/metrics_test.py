@@ -213,7 +213,7 @@ class MetricsTest(parameterized.TestCase):
         truth='',
         hypothesis='This is a test.',
     )
-    self.assertEqual(char_errors, 15.0)
+    self.assertEqual(char_errors, 14.0)
     self.assertEqual(char_errors_weight, 0.0)
 
   def test_compute_unit_edit_distance_empty_reference(self):

@@ -28,7 +28,7 @@ dependencies = [
     "huggingface_hub",
     "jax",
     "jaxtyping",
-    "jiwer>=3.0",
+    "jiwer>=4.0",
     "librosa",
     "litellm",
     "numba",
