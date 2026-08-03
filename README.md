@@ -11,4 +11,3 @@ improved sound representations.
 
 The published leaderboard can be found at: https://google-research.github.io/mseb/leaderboard.html
 
-This is a test.
