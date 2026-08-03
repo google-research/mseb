@@ -49,7 +49,7 @@ dependencies = [
     "torch",
 ]
 
-# `version` is automatically set by flit to use `mseb.__version__`
+# `version` read from `mseb.__version__`
 dynamic = ["version"]
 
 [project.urls]
@@ -83,19 +83,17 @@ pyink-indentation = 2
 pyink-use-majority-quotes = true
 
 [build-system]
-# Build system specify which backend is used to build/install the project (flit,
-# poetry, setuptools,...). All backends are supported by `pip install`
-requires = ["flit_core >=3.8,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.flit.sdist]
-# Flit specific options (files to exclude from the PyPI package).
-# If using another build backend (setuptools, poetry), you can remove this
-# section.
-exclude = [
-  # Do not release tests files on PyPI
-  "**/*_test.py",
-]
+[tool.hatch.version]
+path = "mseb/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [ "**/*_test.py"]
+
+[tool.hatch.build.targets.wheel]
+exclude = [ "**/*_test.py"]
 
 [tool.pytest.ini_options]
 markers = [
