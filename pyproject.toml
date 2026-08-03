@@ -20,7 +20,7 @@ dependencies = [
     "array-record",
     "absl-py",
     "apache-beam",
-    "datasets==4.0.0",
+    "datasets>=4.0.0",
     "editdistance",
     "etils",
     "fvcore",
@@ -45,7 +45,7 @@ dependencies = [
     "tqdm",
     "transformers",
     "tensorflow",
-    "tensorflow-datasets==4.9.9",
+    "tensorflow-datasets>=4.9.9",
     "torch",
 ]
 
