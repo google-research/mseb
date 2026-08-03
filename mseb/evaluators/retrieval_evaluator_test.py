@@ -101,14 +101,18 @@ class RetrievalEvaluatorTest(absltest.TestCase):
     predictions = evaluator.compute_predictions(
         embeddings_by_sound_id={
             '1': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
+                timestamps=np.array(
+                    [[0.0, 1.0]]
+                ),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='1', sample_rate=16000, length=16000 * 5
                 ),
             ),
             '2': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
+                timestamps=np.array(
+                    [[0.0, 1.0]]
+                ),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='2', sample_rate=16000, length=16000 * 5
@@ -158,7 +162,7 @@ class RetrievalEvaluatorTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 7)
+    self.assertLen(scores, 8)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -166,6 +170,9 @@ class RetrievalEvaluatorTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'MAP':
+        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 4)
       elif score.metric == 'RecallAt10':
         npt.assert_equal(score.value, (1.0 + 1.0) / 2)
         npt.assert_equal(score.std, 0.0)
@@ -246,7 +253,7 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 7)
+    self.assertLen(scores, 8)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -254,6 +261,9 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'MAP':
+        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 4)
       elif score.metric == 'RecallAt10':
         npt.assert_equal(score.value, (1.0 + 1.0) / 2)
         npt.assert_equal(score.std, 0.0)
@@ -279,14 +289,18 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
     predictions = evaluator.compute_predictions(
         embeddings_by_sound_id={
             '1': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
+                timestamps=np.array(
+                    [[0.0, 1.0]]
+                ),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='1', sample_rate=16000, length=16000 * 5
                 ),
             ),
             '2': types.SoundEmbedding(
-                timestamps=np.array([[0.0, 1.0]]),  # pyrefly: ignore[bad-argument-type]
+                timestamps=np.array(
+                    [[0.0, 1.0]]
+                ),  # pyrefly: ignore[bad-argument-type]
                 embedding=np.array([[1.0, 2.0, 3.0]]),
                 context=types.SoundContextParams(
                     id='2', sample_rate=16000, length=16000 * 5
@@ -365,7 +379,7 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
             ),
         ],
     )
-    self.assertLen(scores, 7)
+    self.assertLen(scores, 8)
     for score in scores:
       if score.metric == 'MRR':
         npt.assert_equal(score.value, (0.5 + 1.0) / 2)
@@ -373,6 +387,9 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
       elif score.metric == 'EM':
         npt.assert_equal(score.value, (0.0 + 1.0) / 2)
         npt.assert_equal(score.std, 1 / 2)
+      elif score.metric == 'MAP':
+        npt.assert_equal(score.value, (0.5 + 1.0) / 2)
+        npt.assert_equal(score.std, 1 / 4)
       elif score.metric == 'RecallAt10':
         npt.assert_equal(score.value, (1.0 + 1.0) / 2)
         npt.assert_equal(score.std, 0.0)
@@ -461,14 +478,17 @@ class BruteForceSearcherTest(absltest.TestCase):
 
   def _make_candidates(self):
     """Returns a 6x3 candidate matrix with known dot-product ordering."""
-    return np.array([
-        [1.0, 0.0, 0.0],  # idx 0
-        [0.0, 1.0, 0.0],  # idx 1
-        [0.0, 0.0, 1.0],  # idx 2
-        [1.0, 1.0, 0.0],  # idx 3  (dot with [1,1,1] = 2)
-        [1.0, 1.0, 1.0],  # idx 4  (dot with [1,1,1] = 3)
-        [2.0, 0.0, 0.0],  # idx 5  (dot with [1,1,1] = 2)
-    ], dtype=np.float32)
+    return np.array(
+        [
+            [1.0, 0.0, 0.0],  # idx 0
+            [0.0, 1.0, 0.0],  # idx 1
+            [0.0, 0.0, 1.0],  # idx 2
+            [1.0, 1.0, 0.0],  # idx 3  (dot with [1,1,1] = 2)
+            [1.0, 1.0, 1.0],  # idx 4  (dot with [1,1,1] = 3)
+            [2.0, 0.0, 0.0],  # idx 5  (dot with [1,1,1] = 2)
+        ],
+        dtype=np.float32,
+    )
 
   def test_search_batched_top_k_ranking(self):
     """Top-k results are sorted descending by dot product."""
@@ -510,10 +530,13 @@ class BruteForceSearcherTest(absltest.TestCase):
     """Each query in a batch gets independently correct results."""
     candidates = self._make_candidates()
     searcher = BruteForceSearcher(candidates, num_neighbors=1)
-    queries = np.array([
-        [1.0, 0.0, 0.0],  # best match: idx 5 (dot=2)
-        [0.0, 0.0, 1.0],  # best match: idx 2 (dot=1) or idx 4 (dot=1)
-    ], dtype=np.float32)
+    queries = np.array(
+        [
+            [1.0, 0.0, 0.0],  # best match: idx 5 (dot=2)
+            [0.0, 0.0, 1.0],  # best match: idx 2 (dot=1) or idx 4 (dot=1)
+        ],
+        dtype=np.float32,
+    )
     ids, scores = searcher.search_batched(queries)
     self.assertEqual(ids.shape, (2, 1))
     npt.assert_array_equal(ids[0], [5])
@@ -532,11 +555,14 @@ class BruteForceSearcherTest(absltest.TestCase):
 
   def test_scores_match_manual_dot_product(self):
     """Returned scores exactly equal the dot products."""
-    candidates = np.array([
-        [1.0, 2.0],
-        [3.0, 4.0],
-        [5.0, 6.0],
-    ], dtype=np.float32)
+    candidates = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+        ],
+        dtype=np.float32,
+    )
     searcher = BruteForceSearcher(candidates, num_neighbors=3)
     query = np.array([[1.0, 1.0]], dtype=np.float32)
     ids, scores = searcher.search_batched(query)

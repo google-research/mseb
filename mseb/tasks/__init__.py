@@ -133,3 +133,8 @@ try:
   from .retrievals.image_to_speech.spoken_coco import *
 except ImportError:
   pass
+
+try:
+  from .retrievals.audio_to_audio.doppelganger import *
+except ImportError:
+  pass

@@ -130,6 +130,46 @@ class MetricsTest(parameterized.TestCase):
     )
     self.assertEqual(exact_match, expected_exact_match)
 
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='single_reference',
+          reference='b',
+          predicted_neighbors=['a', 'b', 'c'],
+          expected_average_precision=0.5,
+      ),
+      dict(
+          testcase_name='multiple_references',
+          reference=['b', 'd'],
+          predicted_neighbors=['a', 'b', 'c', 'd'],
+          expected_average_precision=(1 / 2 + 2 / 4) / 2,
+      ),
+      dict(
+          testcase_name='missing_relevant_document',
+          reference=['b', 'd'],
+          predicted_neighbors=['b', 'a', 'c'],
+          expected_average_precision=0.5,
+      ),
+      dict(
+          testcase_name='empty_reference',
+          reference=[],
+          predicted_neighbors=['a'],
+          expected_average_precision=0.0,
+      ),
+      dict(
+          testcase_name='duplicate_prediction',
+          reference=['a', 'b'],
+          predicted_neighbors=['a', 'a', 'b'],
+          expected_average_precision=(1 + 2 / 3) / 2,
+      ),
+  )
+  def test_compute_average_precision(
+      self, reference, predicted_neighbors, expected_average_precision
+  ):
+    average_precision = metrics.compute_average_precision(
+        reference=reference, predicted_neighbors=predicted_neighbors
+    )
+    self.assertEqual(average_precision, expected_average_precision)
+
   def test_compute_word_errors_correct(self):
     word_errors, word_errors_weight = metrics.compute_word_errors(
         truth='This is a test.',
@@ -291,9 +331,7 @@ class MetricsTest(parameterized.TestCase):
     z2 = np.array([[-50.0, 0.0]])
     # Scaled to [1,0] and [-1,0] -> Euclidean dist is 2.0
     res = metrics.compute_continuous_edit_distance(
-        z1,
-        z2,
-        unit_sphere_scaling=True
+        z1, z2, unit_sphere_scaling=True
     )
     self.assertAlmostEqual(res['raw_distance'], 2.0)
     self.assertEqual(res['reference_length'], 1.0)
@@ -364,6 +402,21 @@ class MetricsTest(parameterized.TestCase):
           predicted_neighbors=['a', 'b', 'c'],
           k=2,
           expected_ndcg=1.0 / np.log2(3),  # rank 2, within k=2
+      ),
+      dict(
+          testcase_name='multiple_references',
+          reference=['b', 'd'],
+          predicted_neighbors=['a', 'b', 'c', 'd'],
+          k=4,
+          expected_ndcg=(1 / np.log2(3) + 1 / np.log2(5))
+          / (1 + 1 / np.log2(3)),
+      ),
+      dict(
+          testcase_name='duplicate_prediction',
+          reference=['a', 'b'],
+          predicted_neighbors=['a', 'a', 'b'],
+          k=3,
+          expected_ndcg=(1 + 1 / np.log2(4)) / (1 + 1 / np.log2(3)),
       ),
   )
   def test_compute_ndcg_at_k(

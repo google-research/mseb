@@ -108,35 +108,78 @@ def compute_exact_match(
   return 0.0
 
 
-def compute_ndcg_at_k(
-    reference: str, predicted_neighbors: Sequence[str], k: int = 10
+def compute_average_precision(
+    reference: str | Sequence[str], predicted_neighbors: Sequence[str]
 ) -> float:
-  """Computes NDCG@k with binary relevance (single relevant document).
+  """Computes average precision for binary relevance.
 
-  This matches the pytrec_eval ndcg_cut metric for single-relevant-doc queries:
-  DCG@k  = 1/log2(rank+1)  if the relevant doc appears at position `rank` <= k.
-  IDCG@k = 1/log2(2)  = 1  (ideal: relevant doc at rank 1).
-  NDCG@k = DCG@k / IDCG@k  = 1/log2(rank+1).
+  The denominator is the total number of relevant documents, so callers must
+  provide a ranking deep enough to retrieve every relevant document when they
+  want full-ranking average precision.
 
   Args:
-    reference: The ground-truth document ID.
+    reference: One or more ground-truth document IDs.
+    predicted_neighbors: Ranked list of predicted document IDs.
+
+  Returns:
+    Average precision in [0, 1].
+  """
+  if isinstance(reference, str):
+    reference = [reference]
+  relevant = set(reference)
+  if not relevant:
+    return 0.0
+
+  num_retrieved_relevant = 0
+  precision_sum = 0.0
+  seen_relevant = set()
+  for rank, neighbor in enumerate(predicted_neighbors, start=1):
+    if neighbor in relevant and neighbor not in seen_relevant:
+      seen_relevant.add(neighbor)
+      num_retrieved_relevant += 1
+      precision_sum += num_retrieved_relevant / rank
+  return precision_sum / len(relevant)
+
+
+def compute_ndcg_at_k(
+    reference: str | Sequence[str],
+    predicted_neighbors: Sequence[str],
+    k: int = 10,
+) -> float:
+  """Computes NDCG@k with binary relevance.
+
+  Args:
+    reference: One or more ground-truth document IDs.
     predicted_neighbors: Ranked list of predicted document IDs.
     k: Cutoff for the ranked list.
 
   Returns:
     NDCG@k score in [0, 1].
   """
+  if isinstance(reference, str):
+    reference = [reference]
+  relevant = set(reference)
+  if not relevant or k <= 0:
+    return 0.0
+
+  dcg = 0.0
+  seen_relevant = set()
   for rank, neighbor in enumerate(predicted_neighbors[:k], start=1):
-    if reference == neighbor:
-      return 1.0 / np.log2(rank + 1)
-  return 0.0
+    if neighbor in relevant and neighbor not in seen_relevant:
+      seen_relevant.add(neighbor)
+      dcg += 1.0 / np.log2(rank + 1)
+  ideal_length = min(len(relevant), k)
+  idcg = sum(1.0 / np.log2(rank + 1) for rank in range(1, ideal_length + 1))
+  return dcg / idcg
 
 
 def _compute_levenshtein_stats(
     truth: str, hypothesis: str
 ) -> Mapping[str, int]:
   """Wrapper around jiwer library to compute Levenshtein statistics."""
-  stats = jiwer.process_words(reference=[truth], hypothesis=[hypothesis])  # pytype: disable=module-attr
+  stats = jiwer.process_words(
+      reference=[truth], hypothesis=[hypothesis]
+  )  # pytype: disable=module-attr
   return {
       'substitutions': stats.substitutions,
       'deletions': stats.deletions,
