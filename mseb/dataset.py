@@ -21,6 +21,7 @@ from absl import flags
 from mseb import types
 import numpy as np
 import pandas as pd
+from numpy import ndarray  # Lint should catch this!
 
 
 _DATASET_BASEPATH = flags.DEFINE_string(
