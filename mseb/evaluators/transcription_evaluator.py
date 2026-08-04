@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 from typing import Callable, Mapping, Sequence
 
 import jaxtyping
@@ -55,8 +56,14 @@ class TranscriptTruth:
   sound_id: str
   text: str
   language: str  # For text normalization.
+  text_transform: Callable[[str], str] | None = None
+
+  def __post_init__(self):
+    if self.text_transform is None:
+      self.text_transform = text_transform(self.language)
 
 
+@functools.cache
 def text_transform(language: str) -> Callable[[str], str]:
   if language.split('_')[0].lower() == 'en':
     return english.EnglishTextNormalizer()
@@ -85,6 +92,7 @@ class TranscriptionEvaluator:
       transcripts_by_sound_id[sound_id] = types.TextPrediction(
           prediction=str(embedding[0]),
           context=types.PredictionContextParams(id=sound_id),
+          streaming_stats=getattr(embeddings, 'streaming_stats', None),
       )
     return transcripts_by_sound_id
 
@@ -107,7 +115,7 @@ class TranscriptionEvaluator:
         word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=transcript_truth.text,
             hypothesis=transcript.prediction,
-            text_transform=text_transform(transcript_truth.language),
+            text_transform=transcript_truth.text_transform,
         )
         values_by_metric['wer'].append(
             types.WeightedValue(value=word_error_count, weight=ref_word_count)
@@ -122,7 +130,7 @@ class TranscriptionEvaluator:
         word_error_count, ref_word_count = metrics.compute_word_errors(
             truth=transcript_truth.text,
             hypothesis='',
-            text_transform=text_transform(transcript_truth.language),
+            text_transform=transcript_truth.text_transform,
         )
         values_by_metric['wer'].append(
             types.WeightedValue(value=word_error_count, weight=ref_word_count)

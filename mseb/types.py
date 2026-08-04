@@ -284,6 +284,7 @@ class TextPrediction:
   prediction: str
   context: PredictionContextParams
   encoding_stats: Optional[EncodingStats] = None
+  streaming_stats: Optional["StreamingStats"] = None
 
   @property
   def size_bytes(self) -> int:

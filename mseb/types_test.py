@@ -565,5 +565,26 @@ class StreamingStatsTest(absltest.TestCase):
     self.assertLen(stats.events, 1)
 
 
+class TextPredictionTest(absltest.TestCase):
+
+  def test_instantiation_with_streaming_stats(self):
+    stats = types.StreamingStats(
+        events=[
+            types.StreamingSpeechToTextEvent(
+                content_time=1.0, wall_time=2.0, finalized="a", partial="b"
+            )
+        ],
+        chunk_duration=0.5,
+        wait_duration=0.1,
+    )
+    pred = types.TextPrediction(
+        prediction="test",
+        context=types.PredictionContextParams(id="id1"),
+        streaming_stats=stats,
+    )
+    self.assertEqual(pred.prediction, "test")
+    self.assertEqual(pred.streaming_stats, stats)
+
+
 if __name__ == "__main__":
   absltest.main()
