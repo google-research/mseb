@@ -56,7 +56,7 @@ class TextSegmenterEncoderTest(absltest.TestCase):
     self.enter_context(whisper_cache_context(self.__class__.__name__))
     self.mock_input_embedding = types.SoundEmbedding(
         embedding=np.array(['national', ' labor', ' relations', ' board']),
-        timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),
+        timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id='test_utt',
             sample_rate=16000,
@@ -91,7 +91,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     super().setUp()
     self.mock_input_embedding = types.SoundEmbedding(
         embedding=np.array(['national', ' labor', ' relations', ' board']),
-        timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),
+        timestamps=np.array([[0.1, 0.5], [0.6, 1.0], [1.1, 1.5], [1.6, 2.0]]),  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id='test_utt',
             sample_rate=16000,
@@ -152,7 +152,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
         embedding=self.mock_input_embedding.embedding,
         timestamps=self.mock_input_embedding.timestamps,
         context=self.mock_input_embedding.context,
-        scores=np.array([0.693147, 0.0])  # sum = 0.693147, exp(sum) approx 2.0
+        scores=np.array([0.693147, 0.0])  # sum = 0.693147, exp(sum) approx 2.0  # pyrefly: ignore[bad-argument-type]
     )
 
     output_embeddings = encoder.encode([mock_input_with_scores])
@@ -182,7 +182,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     # Create input with no words in the IDF table
     mock_input_empty = types.SoundEmbedding(
         embedding=np.array(['unknown', 'word']),
-        timestamps=np.array([[0.1, 0.5], [0.6, 1.0]]),
+        timestamps=np.array([[0.1, 0.5], [0.6, 1.0]]),  # pyrefly: ignore[bad-argument-type]
         context=self.mock_input_embedding.context
     )
 

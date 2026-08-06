@@ -322,7 +322,7 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
       embeddings = np.array(embeddings_list, dtype=np.float32)
       outputs.append(
           types.SoundEmbedding(
-              embedding=embeddings, timestamps=timestamps, context=sound.context
+              embedding=embeddings, timestamps=timestamps, context=sound.context  # pyrefly: ignore[bad-argument-type]
           )
       )
     return outputs

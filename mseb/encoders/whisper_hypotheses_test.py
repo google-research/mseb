@@ -105,11 +105,11 @@ class WhisperHypothesesTest(absltest.TestCase):
     sound = types.Sound(waveform=waveform, context=params)
     results = encoder.encode([sound])
     print(results[0])
-    self.assertLessEqual(len(results[0].embeddings), num_hypotheses)
-    self.assertNotEmpty(results[0].embeddings)
-    print(results[0].embeddings['hypothesis_0'].embedding)
+    self.assertLessEqual(len(results[0].embeddings), num_hypotheses)  # pyrefly: ignore[missing-attribute]
+    self.assertNotEmpty(results[0].embeddings)  # pyrefly: ignore[missing-attribute]
+    print(results[0].embeddings['hypothesis_0'].embedding)  # pyrefly: ignore[missing-attribute]
     self.assertEqual(
-        results[0].embeddings['hypothesis_0'].embedding,
+        results[0].embeddings['hypothesis_0'].embedding,  # pyrefly: ignore[missing-attribute]
         ['How many members does the National Labor Relations Board have?'],
     )
 
@@ -137,11 +137,11 @@ class WhisperHypothesesTest(absltest.TestCase):
     sound = types.Sound(waveform=waveform, context=params)
     results = encoder.encode([sound])
     print(results[0])
-    self.assertLessEqual(len(results[0].embeddings), num_hypotheses)
-    self.assertNotEmpty(results[0].embeddings)
-    print(results[0].embeddings['hypothesis_0'].embedding)
+    self.assertLessEqual(len(results[0].embeddings), num_hypotheses)  # pyrefly: ignore[missing-attribute]
+    self.assertNotEmpty(results[0].embeddings)  # pyrefly: ignore[missing-attribute]
+    print(results[0].embeddings['hypothesis_0'].embedding)  # pyrefly: ignore[missing-attribute]
     self.assertSameElements(
-        results[0].embeddings['hypothesis_0'].embedding,
+        results[0].embeddings['hypothesis_0'].embedding,  # pyrefly: ignore[missing-attribute]
         [
             'How',
             ' many',

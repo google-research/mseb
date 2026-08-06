@@ -20,7 +20,7 @@ import absl.flags
 
 # Force order of ML library loading for deterministic .so loading.
 import torch
-import triton
+# import triton
 import jax
 import tensorflow
 
@@ -36,4 +36,4 @@ def pytest_configure(config):
   # This line tells absl.flags to parse the command line.
   # known_only=True ensures that it doesn't crash on
   # pytest-specific arguments (like -vv, -m, -n, etc.).
-  absl.flags.FLAGS(sys.argv, known_only=True)
+  absl.flags.FLAGS(sys.argv, known_only=True)  # pyrefly: ignore[unbound-name]

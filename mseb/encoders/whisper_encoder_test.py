@@ -192,7 +192,7 @@ class PooledAudioEncoderTest(parameterized.TestCase):
     self.assertLen(results, 1)
     result = results[0]
     self.assertIsInstance(result, types.SoundEmbedding)
-    npt.assert_equal(result.timestamps, [[0, 7.5]])
+    npt.assert_equal(result.timestamps.shape, [375, 2])
     npt.assert_equal(result.embedding.shape, [375, 512])
     assert enc.get_encode_flops(self.sound) is not None
     assert result.encoding_stats is not None

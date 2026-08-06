@@ -61,8 +61,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     predictions = {
         "ex1": types.SoundEmbedding(
             embedding=np.array(["dog", "cat"]),
-            timestamps=np.array([[0.5, 1.0], [2.0, 2.5]]),
-            scores=np.array([0.9, 0.8]),
+            timestamps=np.array([[0.5, 1.0], [2.0, 2.5]]),  # pyrefly: ignore[bad-argument-type]
+            scores=np.array([0.9, 0.8]),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         )
     }
@@ -183,8 +183,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     predictions = {
         "ex1": types.SoundEmbedding(
             embedding=np.array(["cat", "bird", "dog"]),
-            timestamps=np.array([[2.05, 2.55], [3.0, 3.5], [5.0, 5.5]]),
-            scores=np.array([0.9, 0.8, 0.7]),
+            timestamps=np.array([[2.05, 2.55], [3.0, 3.5], [5.0, 5.5]]),  # pyrefly: ignore[bad-argument-type]
+            scores=np.array([0.9, 0.8, 0.7]),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         )
     }
@@ -208,7 +208,7 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     predictions = {
         "ex1": types.TextEmbedding(
             embedding=np.array(["a"]),
-            spans=np.array([[0, 1]]),
+            spans=np.array([[0, 1]]),  # pyrefly: ignore[bad-argument-type]
             context=types.TextContextParams(id="ex1")
         )
     }
@@ -224,7 +224,7 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     predictions = {
         "ex1": types.SoundEmbedding(
             embedding=np.array(["a"]),
-            timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),
+            timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         )
     }
@@ -315,8 +315,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     predictions = {
         "ex1": types.SoundEmbedding(
             embedding=np.array(["false", "positive"]),
-            timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),
-            scores=np.array([0.9, 0.8]),
+            timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),  # pyrefly: ignore[bad-argument-type]
+            scores=np.array([0.9, 0.8]),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         )
     }
@@ -341,8 +341,8 @@ class SegmentationEvaluatorTest(absltest.TestCase):
     predictions = {
         "ex1": types.SoundEmbedding(
             embedding=np.array(["prediction"]),
-            timestamps=np.array([[3.0, 4.0]]),
-            scores=np.array([0.9]),
+            timestamps=np.array([[3.0, 4.0]]),  # pyrefly: ignore[bad-argument-type]
+            scores=np.array([0.9]),  # pyrefly: ignore[bad-argument-type]
             context=self.context,
         )
     }

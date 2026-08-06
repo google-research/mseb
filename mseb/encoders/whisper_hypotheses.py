@@ -203,11 +203,11 @@ class WhisperHypothesesEncoder(whisper_encoder.Whisper):
       for hyp, score in hyp_to_score.items():
         embeddings[f"hypothesis_{len(embeddings)}"] = types.SoundEmbedding(
             embedding=np.array([hyp], dtype=object),
-            timestamps=np.array(
+            timestamps=np.array(  # pyrefly: ignore[bad-argument-type]
                 [[params.waveform_start_second, params.waveform_end_second]],
                 dtype=float,
             ),
-            scores=np.array([score], dtype=float),
+            scores=np.array([score], dtype=float),  # pyrefly: ignore[bad-argument-type]
             context=params,
         )
     else:
@@ -231,8 +231,8 @@ class WhisperHypothesesEncoder(whisper_encoder.Whisper):
           words[j] = word_timing.word
         embeddings[f"hypothesis_{len(embeddings)}"] = types.SoundEmbedding(
             embedding=words,
-            timestamps=timestamps,
-            scores=np.array([score], dtype=float),
+            timestamps=timestamps,  # pyrefly: ignore[bad-argument-type]
+            scores=np.array([score], dtype=float),  # pyrefly: ignore[bad-argument-type]
             context=params,
         )
 

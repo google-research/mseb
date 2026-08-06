@@ -39,7 +39,7 @@ class ClapEncoderTest(absltest.TestCase):
     )
     self.dummy_sound_batch = [
         types.Sound(
-            waveform=np.random.randn(48000).astype(np.float32),
+            waveform=np.random.randn(48000).astype(np.float32),  # pyrefly: ignore[bad-argument-type]
             context=self.sound_context,
         )
     ]
@@ -145,7 +145,7 @@ class ClapEncoderTest(absltest.TestCase):
     mock_model_load.return_value = mock_model
     # The resample function should return a sound object
     mock_resample_sound.return_value = types.Sound(
-        waveform=np.random.randn(48000),
+        waveform=np.random.randn(48000),  # pyrefly: ignore[bad-argument-type]
         context=types.SoundContextParams(
             id="resampled",
             sample_rate=48000,
@@ -158,7 +158,7 @@ class ClapEncoderTest(absltest.TestCase):
         length=44100
     )
     bad_sr_batch = [types.Sound(
-        waveform=np.random.randn(44100),
+        waveform=np.random.randn(44100),  # pyrefly: ignore[bad-argument-type]
         context=bad_sr_context
     )]
     audio_encoder = clap_encoder._CLAPAudioEncoder(
