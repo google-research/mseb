@@ -14,6 +14,7 @@
 
 """SVQ passage in-lang retrieval tasks."""
 
+import functools
 import os
 from typing import Any, Iterable
 
@@ -23,7 +24,6 @@ from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 from mseb.tasks.retrievals import utils
-
 
 _filter_fn_by_sub_task = {
     'passage_retrieval_in_lang': lambda x: True,
@@ -49,7 +49,8 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
 
   locale: str | None = None
 
-  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
 
   @property
@@ -60,15 +61,23 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
+  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
+    df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
+    if self.locale:
+      df = df[df.locale == self.locale]
+    return df
+
   def get_documents_source(self) -> svq.SimpleVoiceQuestionsDataset:
-    return self._get_dataset()
+    return self.svq_dataset
 
   @staticmethod
   def documents_generator(svq_dataset: Any) -> Iterable[types.Text]:
-    for example in svq_dataset.get_task_data(
+    """Yields Text documents from the given SVQ dataset index."""
+    df = svq_dataset.get_task_data(
         'passage_retrieval_in_lang_index',
         dtype={'id': str, 'title': str, 'context': str},
-    ).to_dict('records'):
+    )
+    for example in df.to_dict('records'):
       yield types.Text(
           text=example['context'],
           context=types.TextContextParams(
@@ -80,481 +89,125 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     truncation = None
     backfill = None
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
+    df = self._task_data(
         'passage_retrieval_in_lang',
         dtype={
             'locale': str,
             'utt_id': str,
             task_lib.TRANSCRIPT_KEY.value: str,
         },
-    ).to_dict('records'):
-      if example['locale'] == self.locale:
-        sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
-        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
-        if retrieval.RETRIEVED_ITEMS_KEY.value:
-          if backfill is None:
-            backfill = utils.BackFillRetrievedItemTexts(
-                self.documents(),
-                utils.BackFillRetrievedItemTexts.get_empty_text_by_id([
-                    x.get(retrieval.RETRIEVED_ITEMS_KEY.value)
-                    for x in svq_dataset.get_task_data(
-                        'passage_retrieval_in_lang', dtype={'utt_id': str}
-                    ).to_dict('records')
-                ]),
+    )
+    for example in df.to_dict('records'):
+      sound = self.svq_dataset.get_sound({'utt_id': example['utt_id']})
+      sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+      if retrieval.RETRIEVED_ITEMS_KEY.value:
+        if backfill is None:
+          backfill_df = self._task_data(
+              'passage_retrieval_in_lang', dtype={'utt_id': str}
+          )
+          backfill = utils.BackFillRetrievedItemTexts(
+              self.documents(),
+              utils.BackFillRetrievedItemTexts.get_empty_text_by_id([
+                  x.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+                  for x in backfill_df.to_dict('records')
+              ]),
+          )
+        context_text = backfill.backfill(
+            example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+        )
+        if utils.MAX_CONTEXT_TOKENS.value and utils.TOKENIZER_NAME.value:
+          if truncation is None:
+            truncation = utils.ListPredictionTruncation(
+                max_tokens=utils.MAX_CONTEXT_TOKENS.value,
+                tokenizer_name=utils.TOKENIZER_NAME.value,
             )
-          context_text = backfill.backfill(
-              example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
-          )
-          if utils.MAX_CONTEXT_TOKENS.value and utils.TOKENIZER_NAME.value:
-            if truncation is None:
-              truncation = utils.ListPredictionTruncation(
-                  max_tokens=utils.MAX_CONTEXT_TOKENS.value,
-                  tokenizer_name=utils.TOKENIZER_NAME.value,
-              )
-            context_text = truncation.maybe_truncate(context_text)
-          sound = types.SoundWithTitleAndContext(
-              waveform=sound.waveform,
-              context=sound.context,
-              context_text=context_text,
-          )
-        yield sound
+          context_text = truncation.maybe_truncate(context_text)
+        sound = types.SoundWithTitleAndContext(
+            waveform=sound.waveform,
+            context=sound.context,
+            context_text=context_text,
+        )
+      yield sound
 
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
     filter_fn = _filter_fn_by_sub_task[sub_task]
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
+    df = self._task_data(
         _base_sub_task(sub_task),
         dtype={'locale': str, 'utt_id': str, 'passage_id': str},
-    ).to_dict('records'):
-      if example['locale'] == self.locale and filter_fn(example):
+    )
+    for example in df.to_dict('records'):
+      if filter_fn(example):
         yield retrieval_evaluator.RetrievalReferenceId(
             sound_id=example['utt_id'], reference_id=example['passage_id']
         )
 
 
-class SVQArEgPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'ar_eg'
-  metadata = types.TaskMetadata(
-      name='SVQArEgPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-EG'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
+# Locale -> (ClassName suffix, eval_lang)
+_SVQ_LOCALES = {
+    'ar_eg': ('ArEg', 'ar-EG'),
+    'ar_x_gulf': ('ArXGulf', 'ar-x-gulf'),
+    'ar_x_levant': ('ArXLevant', 'ar-x-levant'),
+    'ar_x_maghrebi': ('ArXMaghrebi', 'ar-x-maghrebi'),
+    'bn_bd': ('BnBd', 'bn-BD'),
+    'bn_in': ('BnIn', 'bn-IN'),
+    'en_au': ('EnAu', 'en-AU'),
+    'en_gb': ('EnGb', 'en-GB'),
+    'en_in': ('EnIn', 'en-IN'),
+    'en_ph': ('EnPh', 'en-PH'),
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+    'id_id': ('IdId', 'id-ID'),
+    'ko_kr': ('KoKr', 'ko-KR'),
+    'ru_ru': ('RuRu', 'ru-RU'),
+    'sw': ('Sw', 'sw'),
+    'te_in': ('TeIn', 'te-IN'),
+}
+
+
+def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+  """Dynamically create a locale-specific task class."""
+  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          'locale': locale,
+          'metadata': types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference='https://huggingface.co/datasets/google/svq',
+              documentation_file='svq_retrieval.md',
+              dataset_documentation_file='dataset_svq.md',
+              type='PassageInLangRetrieval',
+              category='speech',
+              main_score='MRR',
+              revision='1.0.0',
+              dataset=types.Dataset(
+                  name='SVQ',
+                  path='https://huggingface.co/datasets/google/svq',
+                  revision='1.0.0',
+              ),
+              scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+              eval_splits=['test'],
+              eval_langs=[eval_lang],
+              domains=['speech'],
+              task_subtypes=['retrieval'],
+          ),
+      },
   )
+  return cls
 
 
-class SVQArXGulfPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'ar_x_gulf'
-  metadata = types.TaskMetadata(
-      name='SVQArXGulfPassageInLangRetrieval',
+# Generate all locale-specific classes and register them in the module.
+# Default size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQPassageInLangRetrieval,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
       description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-gulf'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
   )
-
-
-class SVQArXLevantPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'ar_x_levant'
-  metadata = types.TaskMetadata(
-      name='SVQArXLevantPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-levant'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQArXMaghrebiPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'ar_x_maghrebi'
-  metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-maghrebi'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQBnBdPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'bn_bd'
-  metadata = types.TaskMetadata(
-      name='SVQBnBdPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['bn-BD'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQBnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'bn_in'
-  metadata = types.TaskMetadata(
-      name='SVQBnInPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['bn-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnAuPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQEnAuPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnGbPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQEnGbPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnInPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQEnInPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnPhPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQEnPhPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQEnUsPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQEnUsPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQFiFiPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'fi_fi'
-  metadata = types.TaskMetadata(
-      name='SVQFiFiPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['fi-FI'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQIdIdPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'id_id'
-  metadata = types.TaskMetadata(
-      name='SVQIdIdPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['id-ID'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQKoKrPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'ko_kr'
-  metadata = types.TaskMetadata(
-      name='SVQKoKrPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ko-KR'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQRuRuPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'ru_ru'
-  metadata = types.TaskMetadata(
-      name='SVQRuRuPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['ru-RU'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQSwPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'sw'
-  metadata = types.TaskMetadata(
-      name='SVQSwPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['sw'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
-
-
-class SVQTeInPassageInLangRetrieval(SVQPassageInLangRetrieval):
-  locale = 'te_in'
-  metadata = types.TaskMetadata(
-      name='SVQTeInPassageInLangRetrieval',
-      description='Passage in-lang retrieval task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_retrieval.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='PassageInLangRetrieval',
-      category='speech',
-      main_score='MRR',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
-      eval_splits=['test'],
-      eval_langs=['te-IN'],
-      domains=['speech'],
-      task_subtypes=['retrieval'],
-  )
+  globals()[_cls.__name__] = _cls
