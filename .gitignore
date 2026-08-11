@@ -27,3 +27,4 @@ poetry.lock
 # Ignore generated docs
 docs/_build
 docs/api
+.history/
