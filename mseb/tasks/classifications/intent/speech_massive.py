@@ -14,8 +14,10 @@
 
 """Speech Massive intent classification tasks."""
 
+import functools
 import os
-from typing import Iterable
+import re
+from typing import Any, Iterable
 
 from mseb import types
 from mseb.datasets import speech_massive
@@ -35,31 +37,39 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
 
   @property
   def weights_dir(self) -> str:
-    assert self.locale is not None
-    return os.path.join(
-        super().weights_dir,
-        f"speech_massive_{self.locale}_intent_classification",
-    )
+    def _camel_to_snake(name: str) -> str:
+      pattern = re.compile(r"(?<!^)(?=[A-Z])")
+      return pattern.sub("_", name).lower()
+
+    name = self.__class__.__name__
+    return os.path.join(super().weights_dir, _camel_to_snake(name))
 
   @property
   def sub_tasks(self) -> list[str]:
     return ["intent_classification"]
 
-  def _get_dataset(self) -> speech_massive.SpeechMassiveDataset:
+  @functools.cached_property
+  def speech_massive_dataset(self) -> speech_massive.SpeechMassiveDataset:
     return speech_massive.SpeechMassiveDataset(filename=self.filename)  # pyrefly: ignore[bad-argument-type]
 
+  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
+    df = self.speech_massive_dataset.get_task_data(task_data_key, dtype=dtype)
+    if self.locale:
+      df = df[df.locale == speech_massive.bcp47_by_locale[self.locale]]
+    return df
+
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    dataset = self._get_dataset()
+    dataset = self.speech_massive_dataset
     for example in dataset.get_task_data(with_audio=True).to_dict("records"):
       yield dataset.get_sound(example)
 
   def multimodal_inputs_beam(self):
-    return self._get_dataset().get_task_sounds_beam()
+    return self.speech_massive_dataset.get_task_sounds_beam()
 
   def examples(
       self, sub_task: str
   ) -> Iterable[classification_evaluator.ClassificationReference]:
-    dataset = self._get_dataset()
+    dataset = self.speech_massive_dataset
     for example in dataset.get_task_data().to_dict("records"):
       yield classification_evaluator.ClassificationReference(
           example_id=example["path"],
@@ -131,397 +141,77 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
     )
 
 
-class SpeechMassiveArSaIntentClassification(SpeechMassiveIntentClassification):
-  locale = "ar_sa"
-  filename = "ar-SA/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveArSaIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["ar-SA"],
-      domains=["speech"],
-      task_subtypes=["classification"],
+# Locale -> (ClassName suffix, eval_lang)
+_SPEECH_MASSIVE_LOCALES = {
+    "ar_sa": ("ArSa", "ar-SA"),
+    "de_de": ("DeDe", "de-DE"),
+    "es_es": ("EsEs", "es-ES"),
+    "fr_fr": ("FrFr", "fr-FR"),
+    "hu_hu": ("HuHu", "hu-HU"),
+    "ko_kr": ("KoKr", "ko-KR"),
+    "nl_nl": ("NlNl", "nl-NL"),
+    "pl_pl": ("PlPl", "pl-PL"),
+    "pt_pt": ("PtPt", "pt-PT"),
+    "ru_ru": ("RuRu", "ru-RU"),
+    "tr_tr": ("TrTr", "tr-TR"),
+    "vi_vn": ("ViVn", "vi-VN"),
+}
+
+
+def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+  """Dynamically create a locale-specific task class."""
+  class_name = (
+      f'SpeechMassive{suffix}{base_cls.__name__[len("SpeechMassive"):]}'
   )
-
-
-class SpeechMassiveDeDeIntentClassification(SpeechMassiveIntentClassification):
-  locale = "de_de"
-  filename = "de-DE/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveDeDeIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["de-DE"],
-      domains=["speech"],
-      task_subtypes=["classification"],
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          "locale": locale,
+          "filename": f"{eval_lang}/test-?????-of-?????.parquet",
+          "metadata": types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference=(
+                  "https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test"
+              ),
+              documentation_file="speech_massive_classification.md",
+              dataset_documentation_file="dataset_speech_massive.md",
+              type="IntentClassification",
+              category="speech",
+              main_score="Accuracy",
+              revision="1.0.0",
+              dataset=types.Dataset(
+                  name="SpeechMassive",
+                  path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
+                  revision="2024.08.08",
+              ),
+              scores=[
+                  classification_evaluator.accuracy(),
+                  classification_evaluator.top_k_accuracy(k=5),
+                  classification_evaluator.balanced_accuracy(),
+                  classification_evaluator.weighted_f1(),
+                  classification_evaluator.weighted_precision(),
+                  classification_evaluator.weighted_recall(),
+              ],
+              eval_splits=["test"],
+              eval_langs=[eval_lang],
+              domains=["speech"],
+              task_subtypes=["classification"],
+          ),
+      },
   )
+  return cls
 
 
-class SpeechMassiveEsEsIntentClassification(SpeechMassiveIntentClassification):
-  locale = "es_es"
-  filename = "es-ES/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveEsEsIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["es-ES"],
-      domains=["speech"],
-      task_subtypes=["classification"],
+# Generate all locale-specific classes and register them in the module.
+# Default size.
+for _locale, (_suffix, _eval_lang) in _SPEECH_MASSIVE_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SpeechMassiveIntentClassification,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description="Speech Massive intent classification task.",
   )
-
-
-class SpeechMassiveFrFrIntentClassification(SpeechMassiveIntentClassification):
-  locale = "fr_fr"
-  filename = "fr-FR/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveFrFrIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["fr-FR"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassiveHuHuIntentClassification(SpeechMassiveIntentClassification):
-  locale = "hu_hu"
-  filename = "hu-HU/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveHuHuIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["hu-HU"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassiveKoKrIntentClassification(SpeechMassiveIntentClassification):
-  locale = "ko_kr"
-  filename = "ko-KR/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveKoKrIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["ko-KR"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassiveNlNlIntentClassification(SpeechMassiveIntentClassification):
-  locale = "nl_nl"
-  filename = "nl-NL/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveNlNlIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["nl-NL"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassivePlPlIntentClassification(SpeechMassiveIntentClassification):
-  locale = "pl_pl"
-  filename = "pl-PL/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassivePlPlIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["pl-PL"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassivePtPtIntentClassification(SpeechMassiveIntentClassification):
-  locale = "pt_pt"
-  filename = "pt-PT/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassivePtPtIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["pt-PT"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassiveRuRuIntentClassification(SpeechMassiveIntentClassification):
-  locale = "ru_ru"
-  filename = "ru-RU/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveRuRuIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["ru-RU"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassiveTrTrIntentClassification(SpeechMassiveIntentClassification):
-  locale = "tr_tr"
-  filename = "tr-TR/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveTrTrIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["tr-TR"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
-
-
-class SpeechMassiveViVnIntentClassification(SpeechMassiveIntentClassification):
-  locale = "vi_vn"
-  filename = "vi-VN/test-?????-of-?????.parquet"
-  metadata = types.TaskMetadata(
-      name="SpeechMassiveViVnIntentClassification",
-      description="Intent classification task.",
-      reference="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-      documentation_file="speech_massive_classification.md",
-      dataset_documentation_file="dataset_speech_massive.md",
-      type="IntentClassification",
-      category="speech",
-      main_score="Accuracy",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="SpeechMassive",
-          path="https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test",
-          revision="2024.08.08",
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.top_k_accuracy(k=5),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["vi-VN"],
-      domains=["speech"],
-      task_subtypes=["classification"],
-  )
+  globals()[_cls.__name__] = _cls

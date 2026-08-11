@@ -30,7 +30,7 @@ reranking = pytest.importorskip('mseb.tasks.reranking')
 reranking_evaluator = pytest.importorskip('mseb.evaluators.reranking_evaluator')
 
 
-@pytest.mark.gecko
+@pytest.mark.embedding
 @pytest.mark.optional
 class RerankingTest(absltest.TestCase):
 

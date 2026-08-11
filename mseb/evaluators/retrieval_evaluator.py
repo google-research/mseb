@@ -19,8 +19,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 import dataclasses
 import logging
+import math
 import os
-from typing import Mapping
+from typing import Mapping, Protocol, runtime_checkable
 
 from etils import epath
 import jaxtyping
@@ -29,10 +30,88 @@ from mseb import metrics as metrics_lib
 from mseb import types
 import numpy as np
 
-from scann.scann_ops.py import scann_ops_pybind
-ScannSearcher = scann_ops_pybind.ScannSearcher
-
 logger = logging.getLogger(__name__)
+
+try:
+  from scann.scann_ops.py import scann_ops_pybind
+except ImportError:
+  scann_ops_pybind = None
+
+
+class BruteForceSearcher:
+  """Dot-product brute force nearest-neighbor searcher."""
+
+  def __init__(self, candidates: np.ndarray, num_neighbors: int):
+    self.candidates = candidates
+    self.num_neighbors = num_neighbors
+
+  def search_batched(
+      self, embeddings: np.ndarray
+  ) -> tuple[np.ndarray, np.ndarray]:
+    """Returns (ranked_index_ids, ranked_doc_scores) for a batch."""
+    dot_products = np.matmul(embeddings, self.candidates.T)
+    # Use argpartition to get the top K indices (unsorted)
+    top_k_indices = np.argpartition(dot_products, -self.num_neighbors, axis=1)[
+        :, -self.num_neighbors :
+    ]
+    # Sort only the top K elements
+    top_k_dots = np.take_along_axis(dot_products, top_k_indices, axis=1)
+    sorted_top_k_idx = np.argsort(top_k_dots, axis=1)[:, ::-1]
+
+    ranked_index_ids = np.take_along_axis(
+        top_k_indices, sorted_top_k_idx, axis=1
+    )
+    ranked_doc_scores = np.take_along_axis(top_k_dots, sorted_top_k_idx, axis=1)
+    return ranked_index_ids, ranked_doc_scores
+
+  def search(self, embedding: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    ranked_index_ids, ranked_doc_scores = self.search_batched(
+        embedding[np.newaxis, :]
+    )
+    return ranked_index_ids[0], ranked_doc_scores[0]
+
+  def serialize(self, path: str, relative_path: bool = False) -> None:
+    """Saves the index to disk."""
+    assert not relative_path
+    p = epath.Path(path)
+    p.mkdir(parents=True, exist_ok=True)
+    with (p / 'candidates.npy').open('wb') as f:
+      np.save(f, self.candidates)
+    (p / 'num_neighbors.txt').write_text(str(self.num_neighbors))
+
+  @classmethod
+  def load_searcher(cls, path: str) -> BruteForceSearcher:
+    """Loads a BruteForceSearcher from disk.
+
+    Raises:
+      FileNotFoundError: If the candidates file does not exist.
+    """
+    p = epath.Path(path)
+    try:
+      with (p / 'candidates.npy').open('rb') as f:
+        candidates = np.load(f)
+    except OSError as e:
+      raise FileNotFoundError(
+          f'Failed to load candidates from {p / "candidates.npy"}'
+      ) from e
+    num_neighbors = int((p / 'num_neighbors.txt').read_text())
+    return cls(candidates, num_neighbors)
+
+
+@runtime_checkable
+class Searcher(Protocol):
+  """Protocol for nearest-neighbor searcher (BruteForceSearcher or ScaNN)."""
+
+  def search(self, embedding: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    ...
+
+  def search_batched(
+      self, embeddings: np.ndarray
+  ) -> tuple[np.ndarray, np.ndarray]:
+    ...
+
+  def serialize(self, path: str, relative_path: bool = False) -> None:
+    ...
 
 
 def mrr(value: float = 0.0, std: float | None = None):
@@ -251,10 +330,7 @@ class RetrievalEvaluator:
   """Evaluator for retrieval tasks."""
 
   def __init__(
-      self,
-      searcher: ScannSearcher,
-      id_by_index_id: Sequence[str],
-      top_k: int = 10,
+      self, searcher: Searcher, id_by_index_id: Sequence[str], top_k: int = 10
   ):
     self.searcher = searcher
     self.id_by_index_id = id_by_index_id
@@ -363,100 +439,136 @@ class RetrievalEvaluatorPartitioned:
 
 
 def build_index(
-    embeddings: types.MultiModalEmbeddingCache, k: int = 10
-) -> tuple[ScannSearcher, Sequence[str]]:
-  """Builds the ScaNN index from the embeddings.
+    embeddings: types.MultiModalEmbeddingCache,
+    *,
+    k: int = 10,
+    allow_scann: bool = False,
+) -> tuple[Searcher, Sequence[str]]:
+  """Builds the index from the embeddings.
+
+  Uses brute force for small indices (<50k documents) and ScaNN for larger ones
+  when ``allow_scann`` is True and the library is available.
 
   Args:
     embeddings: The embeddings to build the index from.
     k: The number of neighbors to return.
+    allow_scann: Whether to allow building a ScaNN index for large datasets.
 
   Returns:
-    A tuple of the searcher of type ScannSearcher and the mapping from index id
-    (int) to id (str).
-  """
-  logger.info('Building ScaNN index...')
-  id_by_index_id: Sequence[str] = sorted(embeddings.keys())
+    A tuple of (searcher, id_by_index_id).
 
-  def _get_embedding(embeddings: types.MultiModalEmbedding) -> np.ndarray:
-    assert hasattr(embeddings, 'embedding')
-    embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
+  Raises:
+    ImportError: If ScaNN is needed but not available.
+  """
+
+  def _get_embedding(emb: types.MultiModalEmbedding) -> np.ndarray:
+    assert hasattr(emb, 'embedding')
+    embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = emb.embedding  # pyrefly: ignore[bad-assignment]
     return embedding[0]  # pyrefly: ignore[bad-return]
 
+  id_by_index_id: Sequence[str] = sorted(embeddings.keys())
   candidates = np.array(
       [_get_embedding(embeddings[did]) for did in id_by_index_id], np.float32
   )
-  searcher = (
-      scann_ops_pybind.builder(
-          db=candidates, num_neighbors=k, distance_measure='dot_product'
+  n = len(id_by_index_id)
+  if not allow_scann or n < 50_000:
+    logger.info('Building brute force index with %d documents...', n)
+    searcher = BruteForceSearcher(candidates, num_neighbors=k)
+  else:
+    if scann_ops_pybind is None:
+      raise ImportError(
+          'ScaNN library is required for indices with >= 50k documents.'
+          ' Install google3.research.scam or set allow_scann=False.'
       )
-      .tree(
-          num_leaves=min(2000, len(id_by_index_id)),
-          num_leaves_to_search=min(100, len(id_by_index_id)),
-          training_sample_size=250_000,
-      )
-      .score_ah(2, anisotropic_quantization_threshold=0.2)
-      .reorder(100)
-      .build()
-  )
+    num_leaves = math.isqrt(n)
+    num_leaves_to_search = max(1, num_leaves // 10)
+    logger.info(
+        'Building ScaNN index with %d documents'
+        ' (num_leaves=%d, num_leaves_to_search=%d)...',
+        n,
+        num_leaves,
+        num_leaves_to_search,
+    )
+    builder = (
+        scann_ops_pybind.builder(
+            db=candidates, num_neighbors=k, distance_measure='dot_product'
+        )
+        .tree(
+            num_leaves=num_leaves,
+            num_leaves_to_search=num_leaves_to_search,
+        )
+        .score_ah(2, anisotropic_quantization_threshold=0.2)
+        .reorder(200 if n >= 500_000 else 100)
+    )
+    searcher = builder.build()
+  logger.info('Index built successfully.')
+  # Warm up the searcher.
   _ = searcher.search(np.zeros((candidates.shape[1],)))
   _ = searcher.search_batched(np.zeros((1, candidates.shape[1])))
-  logger.info('Built ScaNN index with %d documents.', len(id_by_index_id))
   return searcher, id_by_index_id
 
 
 def save_index(
-    searcher: ScannSearcher,
+    searcher: Searcher,
     id_by_index_id: Sequence[str],
     scann_base_dir: str,
     id_by_index_id_filepath: str = 'ids.txt',
-):
-  """Saves the ScaNN index and its metadata to a directory.
+) -> None:
+  """Saves the index and its metadata to a directory.
 
   Args:
-    searcher: The ScaNN index.
+    searcher: The searcher to save.
     id_by_index_id: The mapping from index id (int) to id (str).
-    scann_base_dir: The base directory for the ScaNN model.
-    id_by_index_id_filepath: The filepath for the id by index id mapping
-      relative to scann_base_dir.
+    scann_base_dir: The base directory to save to.
+    id_by_index_id_filepath: Filename for the id mapping within scann_base_dir.
   """
-  logger.info('Saving ScaNN index to %s', scann_base_dir)
-  epath.Path(scann_base_dir).mkdir(parents=True, exist_ok=True)
-  with epath.Path(os.path.join(scann_base_dir, id_by_index_id_filepath)).open(
-      'w'
-  ) as f:
-    f.write('\n'.join(id_by_index_id))
+  logger.info('Saving index to %s', scann_base_dir)
+  base = epath.Path(scann_base_dir)
+  base.mkdir(parents=True, exist_ok=True)
+  (base / id_by_index_id_filepath).write_text('\n'.join(id_by_index_id))
   searcher.serialize(scann_base_dir, relative_path=False)
 
 
 def load_index(
     scann_base_dir: str,
     id_by_index_id_filepath: str = 'ids.txt',
-) -> tuple[ScannSearcher, Sequence[str]]:
-  """Loads the ScaNN index and its metadata from a directory.
+) -> tuple[Searcher, Sequence[str]]:
+  """Loads a brute force or ScaNN index and its metadata from a directory.
+
+  Tries BruteForceSearcher first; falls back to ScaNN if the brute force
+  artifacts are not found.
 
   Args:
-    scann_base_dir: The base directory for the ScaNN model.
-    id_by_index_id_filepath: The filepath for the id by index id mapping
-      relative to scann_base_dir.
+    scann_base_dir: The base directory containing the index.
+    id_by_index_id_filepath: Filename for the id mapping within scann_base_dir.
 
   Returns:
-    A tuple of the searcher of type ScannSearcher and the mapping from index id
-    (int) to id (str).
+    A tuple of (searcher, id_by_index_id).
 
   Raises:
-    FileNotFoundError: If the ScaNN base directory or ID by index ID file is
-    not found.
+    FileNotFoundError: If the base directory or id mapping file is not found.
+    ImportError: If ScaNN is needed but not available.
   """
-  logger.info('Loading ScaNN index from %s', scann_base_dir)
-  ids_path = epath.Path(os.path.join(scann_base_dir, id_by_index_id_filepath))
-  if not epath.Path(scann_base_dir).exists() or not ids_path.exists():
+  base = epath.Path(scann_base_dir)
+  ids_path = base / id_by_index_id_filepath
+  if not base.exists() or not ids_path.exists():
     raise FileNotFoundError(
-        'ScaNN base directory or ID by index ID file not found:'
-        f' {scann_base_dir}.'
+        f'Index directory or ID file not found: {scann_base_dir}'
     )
-  with epath.Path(ids_path).open('r') as f:
-    id_by_index_id: Sequence[str] = f.read().splitlines()
-  searcher = scann_ops_pybind.load_searcher(scann_base_dir)
-  logger.info('Loaded ScaNN index with %d documents.', len(id_by_index_id))
+  id_by_index_id: Sequence[str] = ids_path.read_text().splitlines()
+  try:
+    logger.info('Loading brute force index from %s', scann_base_dir)
+    searcher = BruteForceSearcher.load_searcher(scann_base_dir)
+    logger.info(
+        'Loaded brute force index with %d documents.', len(id_by_index_id)
+    )
+  except FileNotFoundError:
+    if scann_ops_pybind is None:
+      raise ImportError(
+          'ScaNN library is required to load this index.'
+          ' Install google3.research.scam.'
+      ) from None
+    logger.info('Loading ScaNN index from %s', scann_base_dir)
+    searcher = scann_ops_pybind.load_searcher(scann_base_dir)
+    logger.info('Loaded ScaNN index with %d documents.', len(id_by_index_id))
   return searcher, id_by_index_id

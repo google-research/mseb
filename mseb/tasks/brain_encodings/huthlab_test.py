@@ -1,3 +1,17 @@
+# Copyright 2026 The MSEB Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for the HuthLab brain encoding task."""
 
 import os
@@ -6,6 +20,7 @@ from absl.testing import absltest
 import joblib
 from mseb import types
 from mseb.datasets import huthlab_fmri
+from mseb.evaluators import brain_encoding_evaluator
 from mseb.tasks.brain_encodings import huthlab
 import numpy as np
 
@@ -15,12 +30,19 @@ def _create_mock_data(base_path: str, subject: str = 'S03'):
 
   Sets up mock fMRI responses as a dict keyed by story name, matching the
   format expected by HuthLabDataset.load_responses().
+
+  Args:
+    base_path: Root path to create mock data.
+    subject: Subject identifier.
+
+  Returns:
+    A dictionary containing mock data parameters and generated stories.
   """
   os.makedirs(os.path.join(base_path, 'responses'), exist_ok=True)
   os.makedirs(os.path.join(base_path, 'stimuli'), exist_ok=True)
 
   n_voxels = 5
-  n_trs_per_story = 30
+  n_trs_per_story = 100
 
   train_stories = list(huthlab_fmri.TRAIN_STORIES[subject])
   test_stories = list(huthlab_fmri.TEST_STORIES[subject])
@@ -155,7 +177,6 @@ class HuthLabBrainEncodingTest(absltest.TestCase):
 
   def test_train_examples_are_brain_encoding_examples(self):
     task = self._create_task()
-    from mseb.evaluators import brain_encoding_evaluator
 
     examples = task.train_examples('S03')
     for ex in examples:
@@ -190,7 +211,7 @@ class HuthLabBrainEncodingTest(absltest.TestCase):
     task = self._create_task()
     resp = task.fmri_test('S03')
     n_test = len(self.mock_data['test_stories'])
-    expected_trs = n_test * self.mock_data['n_trs_per_story']
+    expected_trs = n_test * (self.mock_data['n_trs_per_story'] - 40)
     self.assertEqual(resp.shape, (expected_trs, self.mock_data['n_voxels']))
 
   def test_fmri_train_content(self):
@@ -204,9 +225,10 @@ class HuthLabBrainEncodingTest(absltest.TestCase):
   def test_fmri_test_content(self):
     task = self._create_task()
     resp = task.fmri_test('S03')
-    expected = np.vstack(
-        [self.mock_data['resp_dict'][s] for s in self.mock_data['test_stories']]
-    )
+    expected = np.vstack([
+        self.mock_data['resp_dict'][s][40:]
+        for s in self.mock_data['test_stories']
+    ])
     np.testing.assert_array_equal(resp, expected)
 
 

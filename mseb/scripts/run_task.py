@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run evaluation of an encoder on a task.
+r"""Run evaluation of an encoder on a task.
 
 Usage:
-run_task --task SVQClustering --encoder spectrogram_25_10_mean
+run_task \
+    --task SVQClusteringEnUs \
+    --encoder raw_spectrogram_25ms_10ms_mean \
+    --dataset_path=/path/to/datasets
 """
 
 from typing import Type
@@ -27,6 +30,7 @@ from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
 from mseb.encoders import encoder_registry
+from mseb.encoders.registration import raw  # pylint: disable=unused-import
 
 FLAGS = flags.FLAGS
 
@@ -64,7 +68,7 @@ _NUM_THREADS = flags.DEFINE_integer(
 )
 
 
-def main(argv):
+def main_cli(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   encoder_name = _ENCODER.value
@@ -96,5 +100,8 @@ def main(argv):
       print(result.to_json())
 
 
+def main():
+  app.run(main_cli)
+
 if __name__ == '__main__':
-  app.run(main)
+  main()

@@ -61,23 +61,31 @@ class ReasoningTask(task.MSEBTask):
   ):
     """Create the span embeddings cache."""
     embeddings_by_text = {}
-    if embeddings_cache is not None:
-      embeddings_by_text = embeddings_cache
-    elif runner is not None:
-      if runner.encoder_output_type() is not types.TextPrediction:
-        unique_spans = {}
+    try:
+      embeddings_by_text = runner_lib.load_embeddings(
+          os.path.join(self.embeddings_dir, 'embeddings')
+      )
+    except FileNotFoundError:
+      if embeddings_cache is not None:
+        embeddings_by_text = {}
         for span_list in self.span_lists():
           for span in span_list:
-            unique_spans[span.text] = span
-        embeddings_by_text = runner.run(
-            unique_spans.values(), output_path=self.embeddings_dir
+            embeddings_by_text[span.context.id] = embeddings_cache[
+                span.context.id
+            ]
+        runner_lib.save_embeddings(
+            os.path.join(self.embeddings_dir, 'embeddings'), embeddings_by_text
         )
-    else:
-      try:
-        embeddings_by_text = runner_lib.load_embeddings(
-            os.path.join(self.embeddings_dir, 'embeddings')
-        )
-      except FileNotFoundError:
+      elif runner is not None:
+        if runner.encoder_output_type() is not types.TextPrediction:
+          unique_spans = {}
+          for span_list in self.span_lists():
+            for span in span_list:
+              unique_spans[span.text] = span
+          embeddings_by_text = runner.run(
+              unique_spans.values(), output_path=self.embeddings_dir
+          )
+      else:
         logger.error(
             'Span embeddings cache not found in cache directory. Did you'
             ' create the cache by running run_task_setup?'

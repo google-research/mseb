@@ -66,7 +66,7 @@ class MockOpenAILLMEncoder(llm_encoder_lib.OpenAILLMEncoder):
     super()._setup()
 
 
-# @pytest.mark.gecko
+# @pytest.mark.embedding
 # @pytest.mark.optional
 class OpenAILLMEncoderTest(absltest.TestCase):
 

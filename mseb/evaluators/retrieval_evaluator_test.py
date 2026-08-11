@@ -18,14 +18,12 @@ import shutil
 
 from absl.testing import absltest
 from mseb import types
+from mseb.evaluators import retrieval_evaluator
 import numpy as np
 import numpy.testing as npt
 import pytest
 
-scann_ops_pybind = pytest.importorskip('scann.scann_ops_pybind')
-ScannSearcher = scann_ops_pybind.ScannSearcher
-
-retrieval_evaluator = pytest.importorskip('mseb.evaluators.retrieval_evaluator')
+BruteForceSearcher = retrieval_evaluator.BruteForceSearcher
 
 
 @pytest.mark.scann
@@ -86,23 +84,16 @@ class RetrievalEvaluatorTest(absltest.TestCase):
 
   def test_compute_predictions(self):
     id_by_index_id = ('bli', 'bla', 'blo', 'blu')
-    searcher = (
-        scann_ops_pybind.builder(
-            db=np.array(
-                [
-                    [1.0, 2.0, 3.0],
-                    [2.0, 3.0, 4.0],
-                    [3.0, 4.0, 5.0],
-                    [4.0, 5.0, 6.0],
-                ],
-                np.float32,
-            ),
-            num_neighbors=2,
-            distance_measure='dot_product',
-        )
-        .score_brute_force()
-        .build()
+    candidates = np.array(
+        [
+            [1.0, 2.0, 3.0],
+            [2.0, 3.0, 4.0],
+            [3.0, 4.0, 5.0],
+            [4.0, 5.0, 6.0],
+        ],
+        np.float32,
     )
+    searcher = BruteForceSearcher(candidates, num_neighbors=2)
     evaluator = retrieval_evaluator.RetrievalEvaluator(
         searcher=searcher,
         id_by_index_id=id_by_index_id,
@@ -126,18 +117,23 @@ class RetrievalEvaluatorTest(absltest.TestCase):
         },
     )
     self.assertLen(predictions, 2)
+    predictions_1 = predictions['1']
+    self.assertIsInstance(predictions_1, types.ValidListPrediction)
     self.assertSequenceEqual(
-        predictions['1'].items,
+        predictions_1.items,
         [{'id': 'blu', 'score': 32.0}, {'id': 'blo', 'score': 26.0}],
     )
+    predictions_2 = predictions['2']
+    self.assertIsInstance(predictions_2, types.ValidListPrediction)
     self.assertSequenceEqual(
-        predictions['2'].items,
+        predictions_2.items,
         [{'id': 'blu', 'score': 32.0}, {'id': 'blo', 'score': 26.0}],
     )
 
   def test_compute_metrics(self):
+    dummy = BruteForceSearcher(np.zeros((1, 1), np.float32), num_neighbors=1)
     evaluator = retrieval_evaluator.RetrievalEvaluator(
-        searcher=ScannSearcher(None),  # Not used.
+        searcher=dummy,
         id_by_index_id=(),  # Not used.
     )
     scores = evaluator.compute_metrics(
@@ -299,15 +295,19 @@ class RetrievalEvaluatorPartitionedTest(absltest.TestCase):
         },
     )
     self.assertLen(predictions, 2)
+    predictions_1 = predictions['1']
+    self.assertIsInstance(predictions_1, types.ValidListPrediction)
     self.assertSequenceEqual(
-        predictions['1'].items,
+        predictions_1.items,
         [
             {'id': 'blu', 'score': 32.0},
             {'id': 'blo', 'score': 26.0},
         ],
     )
+    predictions_2 = predictions['2']
+    self.assertIsInstance(predictions_2, types.ValidListPrediction)
     self.assertSequenceEqual(
-        predictions['2'].items,
+        predictions_2.items,
         [
             {'id': 'blu', 'score': 32.0},
             {'id': 'blo', 'score': 26.0},
@@ -454,6 +454,123 @@ class RetrievalEvaluatorUtilTest(absltest.TestCase):
     for i in range(len(results)):
       npt.assert_array_equal(results[i], results_loaded[i])
     self.assertSequenceEqual(id_by_index_id_loaded, id_by_index_id)
+
+
+class BruteForceSearcherTest(absltest.TestCase):
+  """Tests for BruteForceSearcher, focusing on the argpartition top-k."""
+
+  def _make_candidates(self):
+    """Returns a 6x3 candidate matrix with known dot-product ordering."""
+    return np.array([
+        [1.0, 0.0, 0.0],  # idx 0
+        [0.0, 1.0, 0.0],  # idx 1
+        [0.0, 0.0, 1.0],  # idx 2
+        [1.0, 1.0, 0.0],  # idx 3  (dot with [1,1,1] = 2)
+        [1.0, 1.0, 1.0],  # idx 4  (dot with [1,1,1] = 3)
+        [2.0, 0.0, 0.0],  # idx 5  (dot with [1,1,1] = 2)
+    ], dtype=np.float32)
+
+  def test_search_batched_top_k_ranking(self):
+    """Top-k results are sorted descending by dot product."""
+    candidates = self._make_candidates()
+    searcher = BruteForceSearcher(candidates, num_neighbors=3)
+    query = np.array([[1.0, 1.0, 1.0]], dtype=np.float32)
+    ids, scores = searcher.search_batched(query)
+    # idx 4 has dot=3, idx 3 and 5 have dot=2
+    npt.assert_array_equal(ids[0, 0], 4)
+    npt.assert_almost_equal(scores[0, 0], 3.0)
+    # Next two should be indices 3 and 5 (both dot=2), order may vary.
+    self.assertSetEqual(set(ids[0, 1:].tolist()), {3, 5})
+    npt.assert_almost_equal(scores[0, 1], 2.0)
+    npt.assert_almost_equal(scores[0, 2], 2.0)
+
+  def test_search_batched_k_equals_n(self):
+    """When k == number of candidates, all are returned sorted."""
+    candidates = self._make_candidates()
+    n = len(candidates)
+    searcher = BruteForceSearcher(candidates, num_neighbors=n)
+    query = np.array([[1.0, 1.0, 1.0]], dtype=np.float32)
+    ids, scores = searcher.search_batched(query)
+    self.assertEqual(ids.shape, (1, n))
+    # Scores must be monotonically non-increasing.
+    for i in range(n - 1):
+      self.assertGreaterEqual(scores[0, i], scores[0, i + 1])
+
+  def test_search_batched_k_equals_one(self):
+    """When k == 1, only the best match is returned."""
+    candidates = self._make_candidates()
+    searcher = BruteForceSearcher(candidates, num_neighbors=1)
+    query = np.array([[1.0, 1.0, 1.0]], dtype=np.float32)
+    ids, scores = searcher.search_batched(query)
+    self.assertEqual(ids.shape, (1, 1))
+    npt.assert_array_equal(ids[0], [4])
+    npt.assert_almost_equal(scores[0], [3.0])
+
+  def test_search_batched_multiple_queries(self):
+    """Each query in a batch gets independently correct results."""
+    candidates = self._make_candidates()
+    searcher = BruteForceSearcher(candidates, num_neighbors=1)
+    queries = np.array([
+        [1.0, 0.0, 0.0],  # best match: idx 5 (dot=2)
+        [0.0, 0.0, 1.0],  # best match: idx 2 (dot=1) or idx 4 (dot=1)
+    ], dtype=np.float32)
+    ids, scores = searcher.search_batched(queries)
+    self.assertEqual(ids.shape, (2, 1))
+    npt.assert_array_equal(ids[0], [5])
+    npt.assert_almost_equal(scores[0], [2.0])
+    # For second query [0,0,1]: idx 2 has dot=1, idx 4 has dot=1.
+    self.assertIn(ids[1, 0], [2, 4])
+
+  def test_search_single_query(self):
+    """search() returns the same ids as search_batched() for a single query."""
+    candidates = self._make_candidates()
+    searcher = BruteForceSearcher(candidates, num_neighbors=2)
+    query = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+    single_ids, _ = searcher.search(query)
+    batch_ids, _ = searcher.search_batched(query[np.newaxis, :])
+    npt.assert_array_equal(single_ids, batch_ids[0])
+
+  def test_scores_match_manual_dot_product(self):
+    """Returned scores exactly equal the dot products."""
+    candidates = np.array([
+        [1.0, 2.0],
+        [3.0, 4.0],
+        [5.0, 6.0],
+    ], dtype=np.float32)
+    searcher = BruteForceSearcher(candidates, num_neighbors=3)
+    query = np.array([[1.0, 1.0]], dtype=np.float32)
+    ids, scores = searcher.search_batched(query)
+    expected_dots = {0: 3.0, 1: 7.0, 2: 11.0}
+    for i in range(3):
+      npt.assert_almost_equal(scores[0, i], expected_dots[ids[0, i]])
+
+  def test_serialize_and_load_roundtrip(self):
+    """Serialize then load produces identical results."""
+    candidates = self._make_candidates()
+    searcher = BruteForceSearcher(candidates, num_neighbors=2)
+    query = np.array([[1.0, 1.0, 1.0]], dtype=np.float32)
+    ids_before, scores_before = searcher.search_batched(query)
+
+    tmpdir = self.create_tempdir().full_path
+    searcher.serialize(tmpdir)
+    loaded = BruteForceSearcher.load_searcher(tmpdir)
+
+    ids_after, scores_after = loaded.search_batched(query)
+    npt.assert_array_equal(ids_before, ids_after)
+    npt.assert_array_almost_equal(scores_before, scores_after)
+    self.assertEqual(loaded.num_neighbors, searcher.num_neighbors)
+
+  def test_load_missing_file_raises(self):
+    """load_searcher raises FileNotFoundError for missing files."""
+    tmpdir = self.create_tempdir().full_path
+    with self.assertRaises(FileNotFoundError):
+      BruteForceSearcher.load_searcher(tmpdir)
+
+  def test_conforms_to_searcher_protocol(self):
+    """BruteForceSearcher satisfies the Searcher protocol."""
+    candidates = np.zeros((2, 3), dtype=np.float32)
+    searcher = BruteForceSearcher(candidates, num_neighbors=1)
+    self.assertIsInstance(searcher, retrieval_evaluator.Searcher)
 
 
 if __name__ == '__main__':

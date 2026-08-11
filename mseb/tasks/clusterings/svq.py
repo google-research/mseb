@@ -14,6 +14,7 @@
 
 """SVQ clustering tasks."""
 
+import functools
 from typing import Iterable
 
 from mseb import types
@@ -27,14 +28,12 @@ class SVQClustering(clustering.ClusteringTask):
 
   locale: str | None = None
 
-  @property
-  def _svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
-    if not hasattr(self, '_svq_dataset_cache'):
-      self._svq_dataset_cache = svq.SimpleVoiceQuestionsDataset()
-    return self._svq_dataset_cache  # pytype: disable=attribute-error
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
 
   def _task_data(self):
-    df = self._svq_dataset.get_task_data('utt_index')
+    df = self.svq_dataset.get_task_data('utt_index')
     if self.locale:
       df = df[df.locale == self.locale]
     return df
@@ -45,10 +44,10 @@ class SVQClustering(clustering.ClusteringTask):
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     for example in self._task_data().to_dict('records'):
-      yield self._svq_dataset.get_sound(example)
+      yield self.svq_dataset.get_sound(example)
 
   def multimodal_inputs_beam(self):
-    return self._svq_dataset.get_task_sounds_beam(
+    return self.svq_dataset.get_task_sounds_beam(
         'utt_index', locale=self.locale
     )
 
@@ -66,651 +65,79 @@ class SVQClusteringAll(SVQClustering):
   locale = None
 
 
-class SVQClusteringArEg(SVQClustering):
-  locale = 'ar_eg'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringArEg',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ar-EG'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
+# Locale -> (ClassName suffix, eval_lang)
+_SVQ_LOCALES = {
+    'ar_eg': ('ArEg', 'ar-EG'),
+    'ar_x_gulf': ('ArXGulf', 'ar-x-gulf'),
+    'ar_x_levant': ('ArXLevant', 'ar-x-levant'),
+    'ar_x_maghrebi': ('ArXMaghrebi', 'ar-x-maghrebi'),
+    'bn_bd': ('BnBd', 'bn-BD'),
+    'bn_in': ('BnIn', 'bn-IN'),
+    'en_au': ('EnAu', 'en-AU'),
+    'en_gb': ('EnGb', 'en-GB'),
+    'en_in': ('EnIn', 'en-IN'),
+    'en_ph': ('EnPh', 'en-PH'),
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+    'gu_in': ('GuIn', 'gu-IN'),
+    'hi_in': ('HiIn', 'hi-IN'),
+    'id_id': ('IdId', 'id-ID'),
+    'ja_jp': ('JaJp', 'ja-JP'),
+    'kn_in': ('KnIn', 'kn-IN'),
+    'ko_kr': ('KoKr', 'ko-KR'),
+    'ml_in': ('MlIn', 'ml-IN'),
+    'mr_in': ('MrIn', 'mr-IN'),
+    'ru_ru': ('RuRu', 'ru-RU'),
+    'sw': ('Sw', 'sw'),
+    'ta_in': ('TaIn', 'ta-IN'),
+    'te_in': ('TeIn', 'te-IN'),
+    'ur_in': ('UrIn', 'ur-IN'),
+    'ur_pk': ('UrPk', 'ur-PK'),
+}
+
+
+def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+  """Dynamically create a locale-specific task class."""
+  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          'locale': locale,
+          'metadata': types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference='https://huggingface.co/datasets/google/svq',
+              documentation_file='svq_clustering.md',
+              dataset_documentation_file='dataset_svq.md',
+              type='Clustering',
+              category='speech',
+              main_score='VMeasure',
+              revision='1.0.0',
+              dataset=types.Dataset(
+                  name='SVQ',
+                  path='https://huggingface.co/datasets/google/svq',
+                  revision='1.0.0',
+              ),
+              scores=[clustering_evaluator.vmeasure_score()],
+              eval_splits=['test'],
+              eval_langs=[eval_lang],
+              domains=['speech'],
+              task_subtypes=['clustering'],
+          ),
+      },
   )
+  return cls
 
 
-class SVQClusteringArXGulf(SVQClustering):
-  locale = 'ar_x_gulf'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringArXGulf',
+# Generate all locale-specific classes and register them in the module.
+# Default size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQClustering,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
       description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-gulf'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
   )
-
-
-class SVQClusteringArXLevant(SVQClustering):
-  locale = 'ar_x_levant'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringArXLevant',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-levant'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringArXMaghrebi(SVQClustering):
-  locale = 'ar_x_maghrebi'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringArXMaghrebi',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-maghrebi'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringBnBd(SVQClustering):
-  locale = 'bn_bd'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringBnBd',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['bn-BD'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringBnIn(SVQClustering):
-  locale = 'bn_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringBnIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['bn-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringEnAu(SVQClustering):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringEnAu',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringEnGb(SVQClustering):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringEnGb',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringEnIn(SVQClustering):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringEnIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringEnPh(SVQClustering):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringEnPh',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringEnUs(SVQClustering):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringEnUs',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringFiFi(SVQClustering):
-  locale = 'fi_fi'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringFiFi',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['fi-FI'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringGuIn(SVQClustering):
-  locale = 'gu_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringGuIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['gu-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringHiIn(SVQClustering):
-  locale = 'hi_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringHiIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['hi-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringIdId(SVQClustering):
-  locale = 'id_id'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringIdId',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['id-ID'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringJaJp(SVQClustering):
-  locale = 'ja_jp'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringJaJp',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ja-JP'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringKnIn(SVQClustering):
-  locale = 'kn_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringKnIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['kn-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringKoKr(SVQClustering):
-  locale = 'ko_kr'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringKoKr',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ko-KR'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringMlIn(SVQClustering):
-  locale = 'ml_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringMlIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ml-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringMrIn(SVQClustering):
-  locale = 'mr_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringMrIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['mr-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringRuRu(SVQClustering):
-  locale = 'ru_ru'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringRuRu',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ru-RU'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringSw(SVQClustering):
-  locale = 'sw'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringSw',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['sw'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringTaIn(SVQClustering):
-  locale = 'ta_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringTaIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ta-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringTeIn(SVQClustering):
-  locale = 'te_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringTeIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['te-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringUrIn(SVQClustering):
-  locale = 'ur_in'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringUrIn',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ur-IN'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
-
-
-class SVQClusteringUrPk(SVQClustering):
-  locale = 'ur_pk'
-  metadata = types.TaskMetadata(
-      name='SVQClusteringUrPk',
-      description='Clustering task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_clustering.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='Clustering',
-      category='speech',
-      main_score='VMeasure',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=['test'],
-      eval_langs=['ur-PK'],
-      domains=['speech'],
-      task_subtypes=['clustering'],
-  )
+  globals()[_cls.__name__] = _cls

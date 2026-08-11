@@ -3,13 +3,19 @@ import pathlib
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from mseb import types
+from mseb.encoders import whisper_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
 import pytest
+import torch
 
-whisper_encoder = pytest.importorskip('mseb.encoders.whisper_encoder')
+MODEL_PATH = 'base'
+
+_devices = ['cpu', 'cuda'] if torch.cuda.is_available() else ['cpu']
+_device_dicts = [dict(device=d) for d in _devices]
 
 
 def whisper_cache_context(name: str):
@@ -22,7 +28,8 @@ def whisper_cache_context(name: str):
 
 @pytest.mark.whisper
 @pytest.mark.optional
-class SpeechToTextEncoderTest(absltest.TestCase):
+@parameterized.parameters(_device_dicts)
+class SpeechToTextEncoderTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -34,9 +41,9 @@ class SpeechToTextEncoderTest(absltest.TestCase):
         os.path.join(testdata_path, 'en_us.parquet')
     )
 
-  def test_encode_sentence_level(self):
+  def test_encode_sentence_level(self, device):
     whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
-        model_path='base', device='cpu'
+        model_path=MODEL_PATH, device=device
     )
     whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
@@ -64,9 +71,9 @@ class SpeechToTextEncoderTest(absltest.TestCase):
         [' How many members does the National Labor Relations Board have?'],
     )
 
-  def test_encode_word_level(self):
+  def test_encode_word_level(self, device):
     whisper_encoder_instance = whisper_encoder.SpeechToTextEncoder(
-        model_path='base', device='cpu', word_timestamps=True
+        model_path=MODEL_PATH, device=device, word_timestamps=True
     )
     whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
@@ -88,7 +95,8 @@ class SpeechToTextEncoderTest(absltest.TestCase):
 
 @pytest.mark.whisper
 @pytest.mark.optional
-class ForcedAlignmentEncoder2Test(absltest.TestCase):
+@parameterized.parameters(_device_dicts)
+class ForcedAlignmentEncoder2Test(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -100,9 +108,9 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
         os.path.join(testdata_path, 'en_us.parquet')
     )
 
-  def test_encode_speech_transcript_truth(self):
+  def test_encode_speech_transcript_truth(self, device):
     whisper_encoder_instance = whisper_encoder.ForcedAlignmentEncoder(
-        model_path='base', device='cpu', language='en'
+        model_path=MODEL_PATH, device=device, language='en'
     )
     whisper_encoder_instance.setup()
     svq_example = self.svq_samples.read_row_group(0)
@@ -125,7 +133,8 @@ class ForcedAlignmentEncoder2Test(absltest.TestCase):
 
 @pytest.mark.whisper
 @pytest.mark.optional
-class PooledAudioEncoderTest(absltest.TestCase):
+@parameterized.parameters(_device_dicts)
+class PooledAudioEncoderTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -143,21 +152,27 @@ class PooledAudioEncoderTest(absltest.TestCase):
         id='test',
     )
     self.sound = types.Sound(waveform=self.waveform, context=self.params)
-    self.model_path = 'base'
+    self.model_path = MODEL_PATH
 
-  def test_pool_fn(self):
+  def test_pool_fn(self, device):
     x = np.array([[1.0, 2.0], [3.0, 4.0]])
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path)
+    enc = whisper_encoder.PooledAudioEncoder(self.model_path, device=device)
     npt.assert_equal(enc.pool_fn(x), [[1.0, 2.0], [3.0, 4.0]])
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='last')
+    enc = whisper_encoder.PooledAudioEncoder(
+        self.model_path, pooling='last', device=device
+    )
     npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='mean')
+    enc = whisper_encoder.PooledAudioEncoder(
+        self.model_path, pooling='mean', device=device
+    )
     npt.assert_equal(enc.pool_fn(x), [[2.0, 3.0]])
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='max')
+    enc = whisper_encoder.PooledAudioEncoder(
+        self.model_path, pooling='max', device=device
+    )
     npt.assert_equal(enc.pool_fn(x), [[3.0, 4.0]])
 
-  def test_encode_no_pooling(self):
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path)
+  def test_encode_no_pooling(self, device):
+    enc = whisper_encoder.PooledAudioEncoder(self.model_path, device=device)
     enc.setup()
     results = enc.encode([self.sound])
     self.assertLen(results, 1)
@@ -169,8 +184,10 @@ class PooledAudioEncoderTest(absltest.TestCase):
     assert result.encoding_stats is not None
     assert result.encoding_stats.flops is not None
 
-  def test_encode_last_pooling(self):
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='last')
+  def test_encode_last_pooling(self, device):
+    enc = whisper_encoder.PooledAudioEncoder(
+        self.model_path, pooling='last', device=device
+    )
     enc.setup()
     results = enc.encode([self.sound])
     self.assertLen(results, 1)
@@ -179,8 +196,10 @@ class PooledAudioEncoderTest(absltest.TestCase):
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
-  def test_encode_mean_pooling(self):
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='mean')
+  def test_encode_mean_pooling(self, device):
+    enc = whisper_encoder.PooledAudioEncoder(
+        self.model_path, pooling='mean', device=device
+    )
     enc.setup()
     results = enc.encode([self.sound])
     self.assertLen(results, 1)
@@ -189,8 +208,10 @@ class PooledAudioEncoderTest(absltest.TestCase):
     npt.assert_equal(result.timestamps, [[0, 7.5]])
     npt.assert_equal(result.embedding.shape, [1, 512])
 
-  def test_encode_max_pooling(self):
-    enc = whisper_encoder.PooledAudioEncoder(self.model_path, pooling='max')
+  def test_encode_max_pooling(self, device):
+    enc = whisper_encoder.PooledAudioEncoder(
+        self.model_path, pooling='max', device=device
+    )
     enc.setup()
     results = enc.encode([self.sound])
     self.assertLen(results, 1)
@@ -202,7 +223,8 @@ class PooledAudioEncoderTest(absltest.TestCase):
 
 @pytest.mark.whisper
 @pytest.mark.optional
-class WhisperJointEncoderTest(absltest.TestCase):
+@parameterized.parameters(_device_dicts)
+class WhisperJointEncoderTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -214,8 +236,10 @@ class WhisperJointEncoderTest(absltest.TestCase):
         os.path.join(testdata_path, 'en_us.parquet')
     )
 
-  def test_encode_joint_representations(self):
-    enc = whisper_encoder.WhisperJointEncoder(model_path='base', device='cpu')
+  def test_encode_joint_representations(self, device):
+    enc = whisper_encoder.WhisperJointEncoder(
+        model_path=MODEL_PATH, device=device
+    )
     enc.setup()
 
     # Prepare Input (Resampling from 48kHz to Whisper's 16kHz internally)

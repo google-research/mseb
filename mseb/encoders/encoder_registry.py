@@ -16,7 +16,16 @@
 
 This module defines the EncoderMetadata dataclass, which holds the information
 needed to instantiate and load Encoder models. It also includes definitions for
-specific encoder configurations.
+specific encoder configurations. Note to actually load available encoders into
+the registry, you can either call:
+
+from mseb.encoders import registration
+
+Or directly import a specific registered encoder, e.g.
+
+from mseb.encoders.registration import whisper
+
+But without doing this, the registry will be empty.
 """
 
 import dataclasses

@@ -43,7 +43,7 @@ class Whisper(encoder.MultiModalEncoder):
       self,
       waveform: np.ndarray,
       params: types.SoundContextParams,
-  ) -> types.SoundEmbedding:
+  ) -> types.SoundEmbedding | types.SoundEmbeddingCollection:
     """Encodes speech using Whisper model.
 
     The embedding can be the transcription output or some activations extracted
@@ -64,7 +64,7 @@ class Whisper(encoder.MultiModalEncoder):
   def _encode(
       self,
       batch: Sequence[types.MultiModalObject],
-  ) -> Sequence[types.SoundEmbedding]:
+  ) -> Sequence[types.SoundEmbedding | types.SoundEmbeddingCollection]:
     """Encodes a batch of sound sources into embeddings and timestamps.
 
     Args:
@@ -181,6 +181,51 @@ class SpeechToTextEncoder(Whisper):
     )
 
 
+class TranslationEncoder(Whisper):
+  """Represents speech by its translation in English by Whisper."""
+
+  def __init__(
+      self,
+      model_path: str,
+      device: str | None = None,
+      temperature: float = 0.0,
+  ):
+    """Initializes the Whisper encoder.
+
+    Args:
+      model_path: The path to the Whisper model.
+      device: The device to use for the Whisper model.
+      temperature: Whisper temperature. 0.0 is for greedy decoding.
+    """
+    super().__init__(model_path, device=device)
+    self.temperature = temperature
+
+  def _encode_sound(
+      self,
+      waveform: np.ndarray,
+      params: types.SoundContextParams,
+  ) -> types.SoundEmbedding:
+    assert self.model is not None
+    recognition_result = self.model.transcribe(
+        waveform.astype(np.float32),
+        language=params.language.split('_')[0] if params.language else None,
+        temperature=self.temperature,
+        task='translate',
+    )
+    timestamp_start, timestamp_end = 0, 0
+    texts = []
+    for i, segment in enumerate(recognition_result['segments']):
+      if i == 0:
+        timestamp_start = segment['start']
+      timestamp_end = segment['end']
+      texts.append(segment['text'])
+    timestamps = np.array([[timestamp_start, timestamp_end]], dtype=float)
+    embeddings = np.array([''.join(texts)], dtype=object)
+    return types.SoundEmbedding(
+        embedding=embeddings, timestamps=timestamps, context=params
+    )
+
+
 class ForcedAlignmentEncoder(Whisper):
   """Embeds by forced-alignment of speech and text by Whisper model."""
 
@@ -239,7 +284,7 @@ class ForcedAlignmentEncoder(Whisper):
     assert self.model is not None
     mel = whisper.audio.log_mel_spectrogram(
         waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
-    )
+    ).to(self.model.device)
     num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
     mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
     if not params.text:
@@ -294,8 +339,8 @@ class PooledAudioEncoder(Whisper):
       model_path: The path to the Whisper model.
       device: The device to use for the Whisper model.
       pooling: The type of pooling to apply to the encoder activations.
-        Supported options: 'last', 'mean', 'max'. Defaults to None
-        (frame-level output).
+        Supported options: 'last', 'mean', 'max'. Defaults to None (frame-level
+        output).
     """
     super().__init__(model_path, device=device)
     self._flops_cache = None
@@ -345,9 +390,7 @@ class PooledAudioEncoder(Whisper):
     with torch.no_grad():
       embeddings = self.model.embed_audio(mel)
     embeddings = embeddings.to('cpu').detach().numpy().squeeze(0)
-    embeddings = self.pool_fn(
-        embeddings[:num_embeddings, :]
-    ).astype(np.float32)
+    embeddings = self.pool_fn(embeddings[:num_embeddings, :]).astype(np.float32)
 
     if self._pooling is None:
       # Per-frame timestamps: each frame covers encoder_stride * 10ms = 20ms.

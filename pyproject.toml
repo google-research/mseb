@@ -20,7 +20,7 @@ dependencies = [
     "array-record",
     "absl-py",
     "apache-beam",
-    "datasets==4.0.0",
+    "datasets>=4.0.0",
     "editdistance",
     "etils",
     "fvcore",
@@ -28,12 +28,13 @@ dependencies = [
     "huggingface_hub",
     "jax",
     "jaxtyping",
-    "jiwer>=3.0",
+    "jiwer>=4.0",
     "librosa",
     "litellm",
     "numba",
     "numpy",
     "openai",
+    "openai-whisper",
     "pandas",
     "protobuf",
     "pyarrow",
@@ -44,9 +45,8 @@ dependencies = [
     "tqdm",
     "transformers",
     "tensorflow",
-    "tensorflow-datasets==4.9.9",
+    "tensorflow-datasets>=4.9.9",
     "torch",
-    "whisper",
 ]
 
 # `version` is automatically set by flit to use `mseb.__version__`
@@ -67,19 +67,12 @@ dev = [
     "pylint>=2.6.0",
     "pyink",
 ]
-whisper = [
-    "openai-whisper",
-]
 scann = [
-    "scann==1.3.5",
-    # https://github.com/tensorflow/metadata/issues/68
-    "tensorflow-metadata<1.21",
+    "scann[tf]>=1.4.0",
+    "tensorflow-metadata",
 ]
 spacy = [
     "spacy",
-]
-tf_hub = [
-    "tensorflow-hub",
 ]
 
 [tool.pyink]
@@ -108,5 +101,9 @@ exclude = [
 markers = [
     "optional: marks tests that require optional dependencies",
     "whisper: marks tests for the whisper optional dependency",
-    "scann: marks tests for the scann optional dependency"
+    "scann: marks tests for the scann optional dependency",
+    "embedding: marks tests to filter for embedding functionality",
 ]
+
+[project.scripts]
+run_task = "mseb.scripts.run_task:main"
