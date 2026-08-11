@@ -133,3 +133,8 @@ try:
   from .retrievals.image_to_speech.spoken_coco import *
 except ImportError:
   pass
+
+try:
+  from .brain_encodings.huthlab import *
+except ImportError:
+  pass
