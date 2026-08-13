@@ -313,13 +313,13 @@ def _create_saliency_cascade_base(
     A configured CascadeEncoder ready for use.
   """
 
-  if language.startswith('ja'):
+  if language in ('ja',):
     segmenter = LongestPrefixIDFSegmenter(
         idf_table=idf_table, idf_table_path=idf_table_path
     )
   else:
     retokenizer = SpacyRetokenizer(
-        language=('xx' if language.startswith('ko') else language)
+        language={'ko': 'xx', 'sw': 'xx'}.get(language, language)
     )
     segmenter = TokenIDFSegmenter(
         retokenizer=retokenizer,

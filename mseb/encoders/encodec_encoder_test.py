@@ -56,7 +56,7 @@ class EncodecJointEncoderTest(absltest.TestCase):
     params = types.SoundContextParams(
         sample_rate=sr, length=waveform.shape[0], id='test_sync'
     )
-    sound = types.Sound(waveform=waveform, context=params)
+    sound = types.Sound(waveform=waveform, context=params)  # pyrefly: ignore[bad-argument-type]
 
     results = enc.encode([sound])
     result = cast(types.SoundEmbeddingCollection, results[0])
@@ -131,7 +131,7 @@ class EncodecJointEncoderTest(absltest.TestCase):
       params = types.SoundContextParams(
           sample_rate=sr, length=waveform.shape[0], id=f'test_var_{i}'
       )
-      sounds.append(types.Sound(waveform=waveform, context=params))
+      sounds.append(types.Sound(waveform=waveform, context=params))  # pyrefly: ignore[bad-argument-type]
 
     # Process the entire batch at once
     results = enc.encode(sounds)

@@ -353,7 +353,7 @@ class RetrievalEvaluator:
       assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, 'N D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
       ranked_index_ids, ranked_doc_scores = self.searcher.search_batched(
-          embedding.astype(np.float32)
+          embedding.astype(np.float32)  # pyrefly: ignore[bad-argument-type]
       )
       ranked_doc_scores = [  # pylint: disable=g-complex-comprehension
           [float(score) for score in scores] for scores in ranked_doc_scores

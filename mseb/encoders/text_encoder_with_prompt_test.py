@@ -270,7 +270,7 @@ class TextEncoderWithPromptTest(absltest.TestCase):
 
       # Test with French Sound object.
       sound_example_fr = types.Sound(
-          waveform=np.zeros(16000),
+          waveform=np.zeros(16000),  # pyrefly: ignore[bad-argument-type]
           context=types.SoundContextParams(
               id="id2", language_name="French", sample_rate=16000, length=16000
           ),

@@ -511,6 +511,11 @@ class BrainEncodingEvaluator:
       assert hasattr(emb, 'embedding') and hasattr(
           emb, 'timestamps'
       ), f'Expected SoundEmbedding, got {type(emb)}'
+      assert hasattr(
+          emb, 'timestamps'
+      ), f'Expected SoundEmbedding with timestamps, got {type(emb)}'
+      assert isinstance(emb.embedding, np.ndarray)
+      assert isinstance(emb.timestamps, np.ndarray)
       embedding = self._downsample_to_tr(emb.embedding, emb.timestamps)
       feature = zs(embedding[example.tr_index_start : example.tr_index_end])
       features.append(feature)

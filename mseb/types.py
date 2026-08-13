@@ -192,7 +192,10 @@ class SoundEmbedding:
   #    - Utterance-Level (m == 1): A single timestamp pair represents the start
   #      and end of the entire audio segment from which the embeddings were
   #      extracted.
-  timestamps: jaxtyping.Float[jaxtyping.Array, "M 2"]
+  timestamps: (
+      jaxtyping.Float[jaxtyping.Array, "M 2"]
+      | jaxtyping.Float[np.ndarray, "M 2"]
+  )
   context: SoundContextParams
   encoding_stats: Optional[EncodingStats] = None
   # Optional field for scores associated with each embedding vector. This can
