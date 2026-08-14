@@ -22,13 +22,16 @@ import re
 import string
 from typing import Mapping, Sequence
 
+from absl import logging
 import jaxtyping
 from mseb import encoder
 from mseb import evaluator
 from mseb import types
 import numpy as np
+from scipy import stats
+from sklearn import mixture
 
-
+GaussianMixture = mixture.GaussianMixture
 NO_ANSWER_STR = 'No Answer'
 INVALID_ANSWER_STR = encoder.INVALID_ANSWER_STR
 NO_RESPONSE_STR = encoder.NO_RESPONSE_STR
@@ -118,6 +121,75 @@ def compute_f1_score(target: str, prediction: str) -> float:
   return f1_score
 
 
+def _find_decision_boundary(gmm: GaussianMixture) -> float:
+  """Finds the decision boundary of a 1D 2-component GaussianMixture model.
+
+  The decision boundary is the point x* such that pdf_1(x*) == pdf_2(x*), where
+  pdf_i is the probability density function of the i-th component (cf. Bayes
+  decision rule).
+
+  Args:
+    gmm: A fitted 1D 2-component scikit-learn GaussianMixture model.
+
+  Returns:
+    The decision boundary as a float.
+  """
+  assert gmm.n_components == 2
+  assert gmm.weights_ is not None and gmm.weights_.shape == (2,)
+  assert gmm.means_ is not None and gmm.means_.shape == (2, 1)
+  assert gmm.covariances_ is not None and gmm.covariances_.shape == (2, 1, 1)
+
+  pi1, pi2 = gmm.weights_
+  mu1, mu2 = gmm.means_.flatten()
+  var1, var2 = gmm.covariances_.flatten()
+  sigma1, sigma2 = np.sqrt(var1), np.sqrt(var2)
+
+  # Quadratic coefficients: A*x^2 + B*x + C = 0
+  A = (1.0 / (2 * var1)) - (1.0 / (2 * var2))  # pylint: disable=invalid-name
+  B = (mu2 / var2) - (mu1 / var1)  # pylint: disable=invalid-name
+  C = (  # pylint: disable=invalid-name
+      (mu1**2 / (2 * var1))
+      - (mu2**2 / (2 * var2))
+      - np.log((pi1 * sigma2) / (pi2 * sigma1))
+  )
+
+  # Equal variance case (Linear equation)
+  if np.isclose(A, 0):
+    x_intersect = -C / B
+    return float(x_intersect)
+
+  # Unequal variance case (Quadratic equation)
+  discriminant = B**2 - 4 * A * C
+  if discriminant < 0:
+    return float((mu1 + mu2) / 2)  # Fallback to midpoint.
+
+  x1 = (-B + np.sqrt(discriminant)) / (2 * A)
+  x2 = (-B - np.sqrt(discriminant)) / (2 * A)
+
+  y1 = pi1 * stats.norm.pdf(x1, loc=mu1, scale=sigma1)
+  y2 = pi2 * stats.norm.pdf(x2, loc=mu2, scale=sigma2)
+  return float(x1) if y1 > y2 else float(x2)
+
+
+def find_no_answer_threshold_by_gmm(scores: Sequence[float]) -> float:
+  """Finds the threshold by fitting a 1D 2-component GaussianMixture model.
+
+  One component represents the scores of the no-answer predictions, while the_
+  other component represents the scores of the answer predictions.
+
+  Args:
+    scores: The scores of the predictions.
+
+  Returns:
+    The threshold for the no-answer predictions.
+  """
+  gmm = GaussianMixture(n_components=2, random_state=42)
+  gmm.fit(np.array(scores)[:, np.newaxis])
+  threshold = _find_decision_boundary(gmm)
+  logging.info('no-answer threshold: %f', threshold)
+  return threshold
+
+
 @dataclasses.dataclass
 class ReasoningSpans:
   sound_id: str
@@ -129,7 +201,17 @@ ReasoningPredictionsCache = Mapping[str, types.TextPrediction]
 
 
 class ReasoningEvaluator:
-  """Evaluator for reasoning tasks."""
+  """Evaluator for reasoning tasks.
+
+  Attributes:
+    span_embeddings_by_sound_id: A mapping from sound_id to a sequence of span
+      embeddings.
+    distance_fn: The distance function to use for the predictions.
+    predict_fn: The predict function to use for the predictions.
+    no_answer_threshold: The threshold for the no-answer predictions. If None,
+      the threshold is determined by a GaussianMixture model fitted to the
+      scores of the predictions.
+  """
 
   def __init__(
       self,
@@ -138,7 +220,7 @@ class ReasoningEvaluator:
       ],
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
       predict_fn: evaluator.PredictFn = evaluator.top_1,  # pyrefly: ignore[bad-function-definition]
-      no_answer_threshold: float = 0.0,
+      no_answer_threshold: float | None = None,
   ):
     self.span_embeddings_by_sound_id = span_embeddings_by_sound_id
     self.distance_fn = distance_fn
@@ -160,7 +242,7 @@ class ReasoningEvaluator:
     Returns:
       A mapping from sound_id to the predicted answer string.
     """
-    predictions = {}
+    raw_predictions = {}
     for sound_id, embeddings in embeddings_by_sound_id.items():
       assert hasattr(embeddings, 'embedding')
       embedding: jaxtyping.Float[jaxtyping.Array, '1 D'] = embeddings.embedding  # pyrefly: ignore[bad-assignment]
@@ -174,17 +256,30 @@ class ReasoningEvaluator:
         scores = self.distance_fn(embedding[0], np.array(embeddings))  # pyrefly: ignore[bad-argument-type]
         top_span_score, top_span_id = self.predict_fn(scores)
         texts = [text.context.id for text in span_embeddings]
-        prediction = (
-            NO_ANSWER_STR
-            if top_span_score[0] < self.no_answer_threshold
-            else texts[top_span_id[0]]
-        )
+        prediction = (texts[top_span_id[0]], top_span_score[0])
       else:
         prediction = NO_ANSWER_STR
+      raw_predictions[sound_id] = prediction
+
+    no_answer_threshold = self.no_answer_threshold
+    if no_answer_threshold is None:
+      no_answer_threshold = find_no_answer_threshold_by_gmm([
+          pred[1] for pred in raw_predictions.values() if pred != NO_ANSWER_STR
+      ])
+
+    predictions = {}
+    for sound_id, raw_prediction in raw_predictions.items():
+      if raw_prediction == NO_ANSWER_STR:
+        prediction = NO_ANSWER_STR
+      else:
+        prediction, score = raw_prediction
+        if score < no_answer_threshold:
+          prediction = NO_ANSWER_STR
       predictions[sound_id] = types.TextPrediction(
           prediction=prediction,
           context=types.PredictionContextParams(id=sound_id),
       )
+
     return predictions
 
   def compute_metrics(

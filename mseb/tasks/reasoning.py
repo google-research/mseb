@@ -29,8 +29,9 @@ from mseb.evaluators import reasoning_evaluator
 
 _REASONING_NO_ANSWER_THRESHOLD = flags.DEFINE_float(
     'reasoning_no_answer_threshold',
-    0.8,
-    'NO_ANSWER_STR threshold for reasoning task.',
+    None,
+    'NO_ANSWER_STR threshold for reasoning task. If None, it will be computed'
+    ' from the data using GMM.',
 )
 
 CONTEXT_KEY = flags.DEFINE_string(
