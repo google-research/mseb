@@ -73,6 +73,17 @@ def cer(value: float = 0.0, std: float | None = None):
   )
 
 
+def ndcg(value: float = 0.0, std: float | None = None):
+  return types.Score(
+      metric='NDCG',
+      description='Normalized Discounted Cumulative Gain',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
+
+
 @dataclasses.dataclass
 class RerankingCandidates:
   sound_id: str
@@ -97,6 +108,7 @@ class RerankingEvaluator:
       distance_fn: evaluator.DistanceFn = evaluator.dot_product,
       predict_fn: evaluator.PredictFn = evaluator.top_inf,  # pyrefly: ignore[bad-function-definition]
       mrr_at_k: int = 10,
+      ndcg_at_k: int = 3,
   ):
     """Initializes the reranking evaluator.
 
@@ -106,11 +118,13 @@ class RerankingEvaluator:
       distance_fn: The distance function to use for computing the scores.
       predict_fn: The function to use for computing the predictions.
       mrr_at_k: Computes MRR @ `mrr_at_k`.
+      ndcg_at_k: Computes NDCG @ `ndcg_at_k`.
     """
     self.candidate_embeddings_by_sound_id = candidate_embeddings_by_sound_id
     self.distance_fn = distance_fn
     self.predict_fn = predict_fn
     self.mrr_at_k = mrr_at_k
+    self.ndcg_at_k = ndcg_at_k
 
   def compute_predictions(
       self, embeddings_by_sound_id: types.MultiModalEmbeddingCache
@@ -167,6 +181,7 @@ class RerankingEvaluator:
 
     values_by_metric: dict[str, list[types.WeightedValue]] = {
         'map': [],
+        'ndcg': [],
         'mrr': [],
         'wer': [],
         'cer': [],
@@ -236,6 +251,21 @@ class RerankingEvaluator:
                 ),
             )
         )
+        ndcg_value = float(
+            sklearn_metrics.ndcg_score(
+                y_true=[[
+                    item['text'] in candidates.texts for item in predicted_items
+                ]],
+                y_score=[[
+                    item.get('score', 1 / n)
+                    for n, item in enumerate(predicted_items, 1)
+                ]],
+                k=self.ndcg_at_k,
+            )
+        )
+        values_by_metric['ndcg'].append(
+            types.WeightedValue(value=ndcg_value)
+        )
         values_by_metric['invalid'].append(types.WeightedValue(value=0.0))
         values_by_metric['no_response'].append(types.WeightedValue(value=0.0))
       else:
@@ -250,6 +280,7 @@ class RerankingEvaluator:
         values_by_metric['cer'].append(types.WeightedValue(value=1.0))
         values_by_metric['mrr'].append(types.WeightedValue(value=0.0))
         values_by_metric['map'].append(types.WeightedValue(value=0.0))
+        values_by_metric['ndcg'].append(types.WeightedValue(value=0.0))
         values_by_metric['invalid'].append(
             types.WeightedValue(
                 value=float(
@@ -267,6 +298,9 @@ class RerankingEvaluator:
 
     map_score = map(
         *evaluator.compute_weighted_average_and_std(values_by_metric['map'])
+    )
+    ndcg_score = ndcg(
+        *evaluator.compute_weighted_average_and_std(values_by_metric['ndcg'])
     )
     mrr_score = mrr(
         *evaluator.compute_weighted_average_and_std(values_by_metric['mrr'])
@@ -301,6 +335,7 @@ class RerankingEvaluator:
     )
     return [
         map_score,
+        ndcg_score,
         wer_score,
         cer_score,
         mrr_score,

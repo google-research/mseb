@@ -80,6 +80,11 @@ except ImportError:
   pass
 
 try:
+  from .rerankings.salient_term.svq import *
+except ImportError:
+  pass
+
+try:
   from .retrievals.document_cross_lang.svq import *
 except ImportError:
   pass

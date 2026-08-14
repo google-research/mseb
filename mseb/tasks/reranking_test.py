@@ -68,8 +68,18 @@ class RerankingTest(absltest.TestCase):
             ),
         ]
 
-      def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
-        raise NotImplementedError()
+      def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:
+        for example in self.examples(sub_task='test'):
+          yield (
+              example.sound_id,
+              [
+                  types.Text(
+                      text=text,
+                      context=types.TextContextParams(id=text),
+                  )
+                  for text in example.texts
+              ],
+          )
 
       @property
       def sub_tasks(self) -> list[str]:
@@ -143,40 +153,47 @@ class RerankingTest(absltest.TestCase):
     self.assertLen(scores, 1)
     self.assertIn('test', scores)
     self.assertEqual(scores['test'][0].metric, 'MAP')
-    self.assertEqual(scores['test'][1].metric, 'WER')
-    self.assertEqual(scores['test'][2].metric, 'CER')
-    self.assertEqual(scores['test'][3].metric, 'MRR')
+    self.assertEqual(scores['test'][1].metric, 'NDCG')
+    self.assertEqual(scores['test'][2].metric, 'WER')
+    self.assertEqual(scores['test'][3].metric, 'CER')
+    self.assertEqual(scores['test'][4].metric, 'MRR')
 
   def test_reranking_task_setup(self):
 
     class MockRerankingTask(reranking.RerankingTask):
 
-      def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
+      def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:
         return [
-            [
-                types.Text(
-                    text='ref_1A',
-                    context=types.TextContextParams(id='ref_1A'),
-                ),
-                types.Text(
-                    text='ref_1B',
-                    context=types.TextContextParams(id='ref_1B'),
-                ),
-            ],
-            [
-                types.Text(
-                    text='ref_2A',
-                    context=types.TextContextParams(id='ref_2A'),
-                ),
-                types.Text(
-                    text='ref_2B',
-                    context=types.TextContextParams(id='ref_2B'),
-                ),
-                types.Text(
-                    text='ref_2C',
-                    context=types.TextContextParams(id='ref_2C'),
-                ),
-            ],
+            (
+                'utt_11697423627206642872',
+                [
+                    types.Text(
+                        text='ref_1A',
+                        context=types.TextContextParams(id='ref_1A'),
+                    ),
+                    types.Text(
+                        text='ref_1B',
+                        context=types.TextContextParams(id='ref_1B'),
+                    ),
+                ],
+            ),
+            (
+                'utt_15041124811443622614',
+                [
+                    types.Text(
+                        text='ref_2A',
+                        context=types.TextContextParams(id='ref_2A'),
+                    ),
+                    types.Text(
+                        text='ref_2B',
+                        context=types.TextContextParams(id='ref_2B'),
+                    ),
+                    types.Text(
+                        text='ref_2C',
+                        context=types.TextContextParams(id='ref_2C'),
+                    ),
+                ],
+            ),
         ]
 
       def multimodal_inputs(self) -> Iterable[types.Sound]:
@@ -225,22 +242,28 @@ class RerankingTest(absltest.TestCase):
 
       def candidate_lists(self):
         return [
-            [
-                types.Text(
-                    text='ref_1A',
-                    context=types.TextContextParams(id='ref_1A'),
-                ),
-                types.Text(
-                    text='ref_1B',
-                    context=types.TextContextParams(id='ref_1B'),
-                ),
-            ],
-            [
-                types.Text(
-                    text='ref_2A',
-                    context=types.TextContextParams(id='ref_2A'),
-                ),
-            ],
+            (
+                'utt_1',
+                [
+                    types.Text(
+                        text='ref_1A',
+                        context=types.TextContextParams(id='ref_1A'),
+                    ),
+                    types.Text(
+                        text='ref_1B',
+                        context=types.TextContextParams(id='ref_1B'),
+                    ),
+                ],
+            ),
+            (
+                'utt_2',
+                [
+                    types.Text(
+                        text='ref_2A',
+                        context=types.TextContextParams(id='ref_2A'),
+                    ),
+                ],
+            ),
         ]
 
       def multimodal_inputs(self):
@@ -265,16 +288,19 @@ class RerankingTest(absltest.TestCase):
 
       def candidate_lists(self):
         return [
-            [
-                types.Text(
-                    text='ref_1A',
-                    context=types.TextContextParams(id='ref_1A'),
-                ),
-                types.Text(
-                    text='ref_1B',
-                    context=types.TextContextParams(id='ref_1B'),
-                ),
-            ],
+            (
+                'utt_1',
+                [
+                    types.Text(
+                        text='ref_1A',
+                        context=types.TextContextParams(id='ref_1A'),
+                    ),
+                    types.Text(
+                        text='ref_1B',
+                        context=types.TextContextParams(id='ref_1B'),
+                    ),
+                ],
+            ),
         ]
 
       def multimodal_inputs(self):

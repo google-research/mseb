@@ -56,7 +56,7 @@ class RerankingTask(task.MSEBTask):
     except FileNotFoundError:
       if embeddings_cache is not None:
         embeddings_by_text = {}
-        for candidate_list in self.candidate_lists():
+        for _, candidate_list in self.candidate_lists():
           for candidate in candidate_list:
             embeddings_by_text[candidate.context.id] = embeddings_cache[
                 candidate.context.id
@@ -66,7 +66,7 @@ class RerankingTask(task.MSEBTask):
         )
       elif runner is not None:
         unique_candidates = {}
-        for candidate_list in self.candidate_lists():
+        for _, candidate_list in self.candidate_lists():
           for candidate in candidate_list:
             unique_candidates[candidate.text] = candidate
         embeddings_by_text = runner.run(
@@ -81,11 +81,10 @@ class RerankingTask(task.MSEBTask):
 
     embeddings_by_sound_id = {}
     if embeddings_by_text:
-      for sub_task in self.sub_tasks:
-        for candidates in self.examples(sub_task):
-          embeddings_by_sound_id[candidates.sound_id] = [
-              embeddings_by_text[text] for text in candidates.texts
-          ]
+      for utt_id, candidates in self.candidate_lists():
+        embeddings_by_sound_id[utt_id] = [
+            embeddings_by_text[candidate.text] for candidate in candidates
+        ]
 
     self._evaluator = reranking_evaluator.RerankingEvaluator(
         candidate_embeddings_by_sound_id=embeddings_by_sound_id
@@ -126,11 +125,11 @@ class RerankingTask(task.MSEBTask):
     """Get the list of sub-tasks for the reranking task."""
 
   @abc.abstractmethod
-  def candidate_lists(self) -> Iterable[Sequence[types.Text]]:
-    """Get the list of candidates for the reranking task."""
+  def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:
+    """Get the per-example lists of candidates for the reranking task."""
 
   def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
     """Get the candidates needed for setting up the reranking task."""
-    for candidate_list in self.candidate_lists():
+    for _, candidate_list in self.candidate_lists():
       for candidate in candidate_list:
         yield candidate

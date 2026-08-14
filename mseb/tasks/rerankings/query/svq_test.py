@@ -72,20 +72,14 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
         ' {"id": 2, "text": "a"}]',
     )
 
-  def test_get_texts_and_rank_by_id(self):
+  def test_get_rank_by_id(self):
     candidates = ['a', 'b', 'c']
-    texts, rank_by_id = svq._get_texts_and_rank_by_id(
-        candidates, randomize=True
-    )
-    self.assertEqual(texts, candidates)
+    rank_by_id = svq._get_rank_by_id(candidates, randomize=True)
     self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
 
-  def test_get_texts_and_rank_by_id_no_randomize(self):
+  def test_get_rank_by_id_no_randomize(self):
     candidates = ['a', 'b', 'c']
-    texts, rank_by_id = svq._get_texts_and_rank_by_id(
-        candidates, randomize=False
-    )
-    self.assertEqual(texts, candidates)
+    rank_by_id = svq._get_rank_by_id(candidates, randomize=False)
     self.assertIsNone(rank_by_id)
 
   def test_svq_query_reranking_candidate_lists(self):
@@ -93,7 +87,8 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertEqual(task.sub_tasks[0], 'query_reranking')
     candidate_lists = list(task.candidate_lists())
     self.assertLen(candidate_lists, 2)
-    candidates = candidate_lists[1]
+    utt_id, candidates = candidate_lists[1]
+    self.assertEqual(utt_id, 'utt_15041124811443622614')
     self.assertLen(candidates, 5)
     self.assertEqual(candidates[0].context.id, candidates[0].text)
     self.assertIsNone(candidates[0].context.title)
