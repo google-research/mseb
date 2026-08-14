@@ -23,7 +23,7 @@ import numpy.testing as npt
 import pyarrow.parquet as pq
 
 
-class SounStreamEncoderTest(absltest.TestCase):
+class SoundStreamEncoderTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()

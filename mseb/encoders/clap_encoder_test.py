@@ -20,9 +20,12 @@ from mseb import encoder
 from mseb import types
 from mseb.encoders import clap_encoder
 import numpy as np
+import pytest
 import torch
 
 
+# Optional due to segmentation fault when run under pytest.
+@pytest.mark.optional
 class ClapEncoderTest(absltest.TestCase):
   """Tests for the CLAP encoder classes and factory function."""
 

@@ -23,6 +23,7 @@ from mseb.encoders import encodec_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
+import pytest
 
 
 def encodec_cache_context(name: str):
@@ -32,6 +33,8 @@ def encodec_cache_context(name: str):
   return mock.patch.dict(os.environ, {'XDG_CACHE_HOME': new_xdg_cache_home})
 
 
+# Optional due to segmentation fault when run under pytest.
+@pytest.mark.optional
 class EncodecJointEncoderTest(absltest.TestCase):
 
   def setUp(self):

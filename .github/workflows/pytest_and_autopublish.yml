@@ -29,10 +29,10 @@ jobs:
           - name: "Scann"
             extras: "dev,scann"
             marker: "scann"
-
-          - name: "Segmentation"
-            extras: "dev,spacy"
-            marker: "segmentation"
+          # Uncomment when flakiness is reduced (b/546514284).
+          # - name: "Segmentation"
+          #   extras: "dev,spacy"
+          #   marker: "segmentation"
 
           - name: "Embedding"
             extras: "dev,scann"

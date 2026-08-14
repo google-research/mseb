@@ -22,6 +22,7 @@ from mseb.encoders import wav2vec_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
+import pytest
 import transformers
 
 
@@ -56,6 +57,8 @@ class MockWav2VecEncoder(wav2vec_encoder.Wav2VecEncoder):
     self.model.to(self.device)
 
 
+# Optional due to segmentation fault when run under pytest.
+@pytest.mark.optional
 class Wav2VecEncoderTest(absltest.TestCase):
 
   def setUp(self):

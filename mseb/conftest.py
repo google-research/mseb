@@ -20,7 +20,7 @@ import absl.flags
 
 # Force order of ML library loading for deterministic .so loading.
 import torch
-# import triton
+import transformers
 import jax
 import tensorflow
 
