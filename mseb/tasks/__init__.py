@@ -110,6 +110,11 @@ except ImportError:
   pass
 
 try:
+  from .segmentation_selections.salient_term.svq import *
+except ImportError:
+  pass
+
+try:
   from .transcriptions.speech.svq import *
 except ImportError:
   pass

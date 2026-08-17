@@ -15,8 +15,11 @@
 """Segmentation super task."""
 
 import abc
-from typing import Iterable
+import os
+from typing import Iterable, Sequence
 
+from absl import logging as logger
+from mseb import runner as runner_lib
 from mseb import task
 from mseb import types
 from mseb.evaluators import segmentation_evaluator
@@ -38,8 +41,8 @@ class SegmentationTask(task.MSEBTask):
     """Initializes the SegmentationTask.
 
     Args:
-      tau: The acceptable time tolerance in seconds for a segment match,
-        to be passed to the evaluator.
+      tau: The acceptable time tolerance in seconds for a segment match, to be
+        passed to the evaluator.
     """
     super().__init__()
     self._evaluator: segmentation_evaluator.SegmentationEvaluator | None = None
@@ -87,7 +90,7 @@ class SegmentationTask(task.MSEBTask):
       ValueError: If the evaluator has not been initialized via `setup()`.
     """
     if self._evaluator is None:
-      raise ValueError("Evaluator is not initialized. Did you call setup()?")
+      raise ValueError('Evaluator is not initialized. Did you call setup()?')
 
     results = {}
     for sub_task in self.sub_tasks:
@@ -100,3 +103,61 @@ class SegmentationTask(task.MSEBTask):
       results[sub_task] = final_scores
 
     return results
+
+
+class SegmentationSelectionTask(SegmentationTask):
+  """Segmentation selection task."""
+
+  def salient_term_lists(
+      self,
+  ) -> Iterable[tuple[str, Sequence[segmentation_evaluator.Segment]]]:
+    """Iterate all salient term lists in the corpus for this task."""
+    return []
+
+  def multimodal_objects_for_setup(self) -> Iterable[types.MultiModalObject]:
+    """Get all salient term needed for setting up the task."""
+    for _, term_list in self.salient_term_lists():
+      for term in term_list:
+        yield types.Text(
+            text=term.embedding,
+            context=types.TextContextParams(id=term.embedding),
+        )
+
+  @property
+  def embeddings_dir(self) -> str:
+    """The directory where the salient term embeddings cache is stored."""
+    return os.path.join(  # pyrefly: ignore[no-matching-overload]
+        task.TASK_CACHE_BASEPATH.value, 'segmentation_selection'
+    )
+
+  def setup(self, runner=None, embeddings_cache=None):
+    """Initializes the SegmentationEvaluator."""
+    super().setup(runner=runner, embeddings_cache=embeddings_cache)
+    if self.salient_term_lists():
+      try:
+        embeddings_path_prefix = os.path.join(self.embeddings_dir, 'embeddings')
+        logger.info(
+            'Loading salient term embeddings cache from %s',
+            embeddings_path_prefix,
+        )
+        _ = runner_lib.load_embeddings(embeddings_path_prefix)
+      except FileNotFoundError:
+        if embeddings_cache is not None:
+          term_embeddings = {}
+          for _, stl in self.salient_term_lists():
+            for st in stl:
+              term_embeddings[st.embedding] = embeddings_cache[st.embedding]
+          runner_lib.save_embeddings(
+              os.path.join(self.embeddings_dir, 'embeddings'), term_embeddings
+          )
+        elif runner is not None:
+          unique_terms = {}
+          for _, term_list in self.salient_term_lists():
+            for term in term_list:
+              unique_terms[term.embedding] = term.embedding
+          runner.run(unique_terms.values(), output_path=self.embeddings_dir)
+        else:
+          logger.warning(
+              'Salient term embeddings cache not found in cache directory. Did'
+              ' you create the cache by running run_task_setup?'
+          )

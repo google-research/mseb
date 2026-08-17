@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
 from absl.testing import absltest
 from mseb import types
 from mseb.evaluators import segmentation_evaluator
@@ -107,9 +108,7 @@ class SegmentationTaskTest(absltest.TestCase):
             timestamps=np.array([[1.0, 2.0], [3.0, 4.0]]),
             scores=np.array([0.9, 0.8]),
             context=types.SoundContextParams(
-                id="utt_1",
-                sample_rate=16000,
-                length=1
+                id="utt_1", sample_rate=16000, length=1
             ),
         )
     }
@@ -135,6 +134,180 @@ class SegmentationTaskTest(absltest.TestCase):
     ]
 
     self._assert_scores(results["test"], expected_scores)
+
+
+def _make_context(sound_id: str) -> types.SoundContextParams:
+  return types.SoundContextParams(id=sound_id, sample_rate=16000, length=16000)
+
+
+class SegmentationSelectionTaskTest(absltest.TestCase):
+
+  def test_multimodal_objects_for_setup_yields_terms(self):
+
+    class TaskWithTerms(segmentation.SegmentationSelectionTask):
+
+      sub_tasks = []
+
+      def examples(self, sub_task):
+        return []
+
+      def multimodal_inputs(self):
+        return []
+
+      def salient_term_lists(self):
+        return [
+            (
+                "list1",
+                [
+                    segmentation_evaluator.Segment("hello", 0.0, 1.0),
+                    segmentation_evaluator.Segment("world", 1.0, 2.0),
+                ],
+            ),
+            (
+                "list2",
+                [
+                    segmentation_evaluator.Segment("foo", 0.0, 1.0),
+                ],
+            ),
+        ]
+
+    task = TaskWithTerms()
+    objects = list(task.multimodal_objects_for_setup())
+    self.assertLen(objects, 3)
+    self.assertEqual(objects[0].text, "hello")
+    self.assertEqual(objects[1].text, "world")
+    self.assertEqual(objects[2].text, "foo")
+
+  def test_setup_with_embeddings_cache(self):
+    # When salient_term_lists is non-empty and embeddings_cache is provided,
+    # setup should populate term_embeddings_by_sound_id from the cache.
+
+    class TaskWithTerms(segmentation.SegmentationSelectionTask):
+
+      sub_tasks = []
+
+      def examples(self, sub_task):
+        return []
+
+      def multimodal_inputs(self):
+        return []
+
+      def salient_term_lists(self):
+        return [
+            (
+                "sound_1",
+                [
+                    segmentation_evaluator.Segment("dog bark", 0.0, 1.0),
+                ],
+            ),
+        ]
+
+    task = TaskWithTerms()
+    mock_embedding = types.SoundEmbedding(
+        embedding=np.array([[1.0, 0.0]]),
+        timestamps=np.array([[0.0, 1.0]]),
+        context=_make_context("term_dog"),
+    )
+    embeddings_cache = {"dog bark": mock_embedding}
+    with mock.patch.object(
+        type(task),
+        "embeddings_dir",
+        new_callable=mock.PropertyMock,
+        return_value="/tmp/test_cache",
+    ), mock.patch(
+        "mseb.tasks.segmentation.runner_lib.load_embeddings",
+        side_effect=FileNotFoundError,
+    ), mock.patch(
+        "mseb.tasks.segmentation.runner_lib.save_embeddings",
+    ):
+      task.setup(embeddings_cache=embeddings_cache)
+
+    self.assertIsNotNone(task._evaluator)
+
+  def test_setup_without_cache_or_runner_logs_warning(self):
+    # When salient_term_lists is non-empty but no cache, runner, or file
+    # exists, setup should log a warning and set term_embeddings to None.
+
+    class TaskWithTerms(segmentation.SegmentationSelectionTask):
+
+      sub_tasks = []
+
+      def examples(self, sub_task):
+        return []
+
+      def multimodal_inputs(self):
+        return []
+
+      def salient_term_lists(self):
+        return [
+            (
+                "sound_1",
+                [
+                    segmentation_evaluator.Segment("dog bark", 0.0, 1.0),
+                ],
+            ),
+        ]
+
+    task = TaskWithTerms()
+    with mock.patch.object(
+        type(task),
+        "embeddings_dir",
+        new_callable=mock.PropertyMock,
+        return_value="/tmp/test_cache",
+    ), mock.patch(
+        "mseb.tasks.segmentation.runner_lib.load_embeddings",
+        side_effect=FileNotFoundError,
+    ):
+      task.setup()  # No runner or embeddings_cache provided.
+
+    self.assertIsNotNone(task._evaluator)
+
+  def test_setup_with_embeddings_cache_saves_embeddings(self):
+    # Verify that setup saves embeddings when using embeddings_cache.
+
+    class TaskWithTerms(segmentation.SegmentationSelectionTask):
+
+      sub_tasks = []
+
+      def examples(self, sub_task):
+        return []
+
+      def multimodal_inputs(self):
+        return []
+
+      def salient_term_lists(self):
+        return [
+            (
+                "sound_1",
+                [
+                    segmentation_evaluator.Segment("dog bark", 0.0, 1.0),
+                ],
+            ),
+        ]
+
+    task = TaskWithTerms()
+    mock_embedding = types.SoundEmbedding(
+        embedding=np.array([[1.0, 0.0]]),
+        timestamps=np.array([[0.0, 1.0]]),
+        context=_make_context("term_dog"),
+    )
+    embeddings_cache = {"dog bark": mock_embedding}
+    mock_save = mock.MagicMock()
+    with mock.patch.object(
+        type(task),
+        "embeddings_dir",
+        new_callable=mock.PropertyMock,
+        return_value="/tmp/test_cache",
+    ), mock.patch(
+        "mseb.tasks.segmentation.runner_lib.load_embeddings",
+        side_effect=FileNotFoundError,
+    ), mock.patch(
+        "mseb.tasks.segmentation.runner_lib.save_embeddings",
+        mock_save,
+    ):
+      task.setup(embeddings_cache=embeddings_cache)
+
+    mock_save.assert_called_once()
 
 
 if __name__ == "__main__":
