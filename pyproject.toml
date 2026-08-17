@@ -101,6 +101,7 @@ exclude = [
 markers = [
     "optional: marks tests that require optional dependencies",
     "whisper: marks tests for the whisper optional dependency",
+    "segmentation: marks tests for the segmentation optional dependency",
     "scann: marks tests for the scann optional dependency",
     "embedding: marks tests to filter for embedding functionality",
 ]

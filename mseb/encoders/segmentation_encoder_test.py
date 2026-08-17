@@ -18,6 +18,7 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from etils import epath
 from mseb import types
 from mseb.datasets import simple_voice_questions
 import numpy as np
@@ -62,15 +63,15 @@ class TextSegmenterEncoderTest(absltest.TestCase):
             sample_rate=16000,
             length=32000,
             language='en',
-            text='dummy'
-        )
+            text='dummy',
+        ),
     )
 
   def test_longest_prefix_segmenter_handles_numeric_keys_from_table(self):
     japanese_idf_table_with_numbers = {
-        '日本': 4.5,      # "Japan"
-        2025: 1.8,        # A numeric token that pandas would read as a number
-        '東京': 3.2,      # "Tokyo"
+        '日本': 4.5,  # "Japan"
+        2025: 1.8,  # A numeric token that pandas would read as a number
+        '東京': 3.2,  # "Tokyo"
     }
     segmenter = segmentation_encoder.LongestPrefixIDFSegmenter(
         japanese_idf_table_with_numbers
@@ -97,8 +98,8 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
             sample_rate=16000,
             length=32000,
             language='en',
-            text='dummy'
-        )
+            text='dummy',
+        ),
     )
 
   def test_spacy_retokenizer_in_isolation(self):
@@ -107,7 +108,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
         ('national', 0, 0),
         ('labor', 1, 1),
         ('relations', 2, 2),
-        ('board', 3, 3)
+        ('board', 3, 3),
     ]
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
     retokenizer.setup()
@@ -118,8 +119,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
     retokenizer.setup()
     segmenter = segmentation_encoder.TokenIDFSegmenter(
-        retokenizer=retokenizer,
-        idf_table=IDF_TABLE
+        retokenizer=retokenizer, idf_table=IDF_TABLE
     )
     segmenter.setup()
     encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
@@ -140,8 +140,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
     retokenizer.setup()
     segmenter = segmentation_encoder.TokenIDFSegmenter(
-        retokenizer=retokenizer,
-        idf_table=IDF_TABLE
+        retokenizer=retokenizer, idf_table=IDF_TABLE
     )
     segmenter.setup()
     encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
@@ -152,7 +151,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
         embedding=self.mock_input_embedding.embedding,
         timestamps=self.mock_input_embedding.timestamps,
         context=self.mock_input_embedding.context,
-        scores=np.array([0.693147, 0.0])  # sum = 0.693147, exp(sum) approx 2.0  # pyrefly: ignore[bad-argument-type]
+        scores=np.array([0.693147, 0.0]),  # sum = 0.693147, exp(sum) approx 2.0  # pyrefly: ignore[bad-argument-type]
     )
 
     output_embeddings = encoder.encode([mock_input_with_scores])
@@ -172,8 +171,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     retokenizer = segmentation_encoder.SpacyRetokenizer(language='en')
     retokenizer.setup()
     segmenter = segmentation_encoder.TokenIDFSegmenter(
-        retokenizer=retokenizer,
-        idf_table=IDF_TABLE
+        retokenizer=retokenizer, idf_table=IDF_TABLE
     )
     segmenter.setup()
     encoder = segmentation_encoder.TextSegmenterEncoder(segmenter, top_k=2)
@@ -183,7 +181,7 @@ class SpacyTextSegmenterEncoderTest(absltest.TestCase):
     mock_input_empty = types.SoundEmbedding(
         embedding=np.array(['unknown', 'word']),
         timestamps=np.array([[0.1, 0.5], [0.6, 1.0]]),  # pyrefly: ignore[bad-argument-type]
-        context=self.mock_input_embedding.context
+        context=self.mock_input_embedding.context,
     )
 
     output_embeddings = encoder.encode([mock_input_empty])
@@ -208,7 +206,7 @@ class NormalizingRetokenizerTest(absltest.TestCase):
         ('word2', 1, 1),
         ('word3', 2, 2),
         ('word4!', 3, 3),
-        ('word5', 4, 4)
+        ('word5', 4, 4),
     ]
     retokenizer = segmentation_encoder.NormalizingRetokenizer()
     retokenizer.setup()
@@ -230,7 +228,7 @@ class SaliencyCascadeFactoryTest(parameterized.TestCase):
     self.assertTrue(
         os.path.exists(self.mini_dataset_path),
         f'Mini dataset not found at {self.mini_dataset_path}. '
-        'Please run create_test_dataset.py first.'
+        'Please run create_test_dataset.py first.',
     )
     dataset = simple_voice_questions.SimpleVoiceQuestionsDataset(
         base_path=self.mini_dataset_path
@@ -281,8 +279,7 @@ class SaliencyCascadeFactoryTest(parameterized.TestCase):
       temp_dir = self.create_tempdir()
       idf_table_path = os.path.join(temp_dir, idf_table_path)
       self.create_tempfile(
-          file_path=idf_table_path,
-          content=df.to_csv(index=False)
+          file_path=idf_table_path, content=df.to_csv(index=False)
       )
 
     # For the ASR case, ensure we aren't using the ground truth text.
@@ -290,7 +287,9 @@ class SaliencyCascadeFactoryTest(parameterized.TestCase):
       self.sound_input.context.text = None
 
     cascade_encoder = factory_func(
-        whisper_model_path='base.en',
+        whisper_model_path=str(
+            epath.resource_path('mseb') / 'testdata' / 'tiny.en.pt'
+        ),
         language='en',
         device='cpu',
         idf_table=idf_table,
@@ -314,8 +313,9 @@ class SaliencyCascadeFactoryTest(parameterized.TestCase):
 
     # These structural assertions are valid for both cases.
     self.assertEqual(
-        result.embedding.shape, result.scores.shape,
-        'Shape of embeddings and scores should match.'
+        result.embedding.shape,
+        result.scores.shape,
+        'Shape of embeddings and scores should match.',
     )
     self.assertNotEqual(result.timestamps.tolist(), [[0.0, 0.0]])
     duration = (
@@ -325,6 +325,7 @@ class SaliencyCascadeFactoryTest(parameterized.TestCase):
       self.assertLessEqual(timestamp[0], timestamp[1])
       self.assertGreaterEqual(timestamp[0], 0)
       self.assertLess(timestamp[1], duration + 1.0)
+
 
 if __name__ == '__main__':
   absltest.main()

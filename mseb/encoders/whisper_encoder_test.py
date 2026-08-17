@@ -18,6 +18,7 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from etils import epath
 from mseb import types
 from mseb.encoders import whisper_encoder
 import numpy as np
@@ -26,7 +27,7 @@ import pyarrow.parquet as pq
 import pytest
 import torch
 
-MODEL_PATH = 'base'
+MODEL_PATH = str(epath.resource_path('mseb') / 'testdata' / 'tiny.en.pt')
 
 _devices = ['cpu', 'cuda'] if torch.cuda.is_available() else ['cpu']
 _device_dicts = [dict(device=d) for d in _devices]
@@ -193,7 +194,7 @@ class PooledAudioEncoderTest(parameterized.TestCase):
     result = results[0]
     self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps.shape, [375, 2])
-    npt.assert_equal(result.embedding.shape, [375, 512])
+    npt.assert_equal(result.embedding.shape, [375, 384])
     assert enc.get_encode_flops(self.sound) is not None
     assert result.encoding_stats is not None
     assert result.encoding_stats.flops is not None
@@ -208,7 +209,7 @@ class PooledAudioEncoderTest(parameterized.TestCase):
     result = results[0]
     self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
-    npt.assert_equal(result.embedding.shape, [1, 512])
+    npt.assert_equal(result.embedding.shape, [1, 384])
 
   def test_encode_mean_pooling(self, device):
     enc = whisper_encoder.PooledAudioEncoder(
@@ -220,7 +221,7 @@ class PooledAudioEncoderTest(parameterized.TestCase):
     result = results[0]
     self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
-    npt.assert_equal(result.embedding.shape, [1, 512])
+    npt.assert_equal(result.embedding.shape, [1, 384])
 
   def test_encode_max_pooling(self, device):
     enc = whisper_encoder.PooledAudioEncoder(
@@ -232,7 +233,7 @@ class PooledAudioEncoderTest(parameterized.TestCase):
     result = results[0]
     self.assertIsInstance(result, types.SoundEmbedding)
     npt.assert_equal(result.timestamps, [[0, 7.5]])
-    npt.assert_equal(result.embedding.shape, [1, 512])
+    npt.assert_equal(result.embedding.shape, [1, 384])
 
 
 @pytest.mark.whisper
