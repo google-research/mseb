@@ -9,5 +9,4 @@ The Massive Sound Embedding Benchmark (MSEB) provides a framework for assessing
 sound embedding methods across diverse sound categories and tasks that leverage
 improved sound representations.
 
-The published leaderboard can be found at: https://google-research.github.io/mseb/leaderboard.html
-
+The published leaderboard can be found at: https://huggingface.co/spaces/google/mseb-leaderboard
