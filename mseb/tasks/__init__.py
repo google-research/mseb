@@ -148,3 +148,8 @@ try:
   from .brain_encodings.huthlab import *
 except ImportError:
   pass
+
+try:
+  from .retrievals.audio_to_audio.doppelganger import *
+except ImportError:
+  pass

@@ -65,14 +65,17 @@ class RetrievalTask(task.MSEBTask):
   def __init__(
       self,
       id_by_index_id_filepath: str = 'ids.txt',
+      top_k: int = 10,
   ):
     """Initializes the retrieval task.
 
     Args:
       id_by_index_id_filepath: The filepath to save the id by index id mapping.
+      top_k: The number of retrieved documents retained for metric computation.
     """
     super().__init__()
     self.id_by_index_id_filepath = id_by_index_id_filepath
+    self.top_k = top_k
     self._evaluator = None
 
   @property
@@ -118,7 +121,7 @@ class RetrievalTask(task.MSEBTask):
               for doc in self.documents()
           }
         searcher, id_by_index_id = retrieval_evaluator.build_index(
-            embeddings, allow_scann=_ALLOW_SCANN.value
+            embeddings, k=self.top_k, allow_scann=_ALLOW_SCANN.value
         )
         retrieval_evaluator.save_index(
             searcher, id_by_index_id, index_dir, self.id_by_index_id_filepath
@@ -131,7 +134,7 @@ class RetrievalTask(task.MSEBTask):
         searcher, id_by_index_id = None, None
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluator(
-        searcher=searcher, id_by_index_id=id_by_index_id  # pyrefly: ignore[bad-argument-type]
+        searcher=searcher, id_by_index_id=id_by_index_id, top_k=self.top_k  # pyrefly: ignore[bad-argument-type]
     )
 
   def setup_partitioned(
@@ -166,7 +169,7 @@ class RetrievalTask(task.MSEBTask):
               for doc in self.documents()
           }
         searcher, id_by_index_id = retrieval_evaluator.build_index(
-            embeddings, allow_scann=_ALLOW_SCANN.value
+            embeddings, k=self.top_k, allow_scann=_ALLOW_SCANN.value
         )
         retrieval_evaluator.save_index(
             searcher,
@@ -182,7 +185,7 @@ class RetrievalTask(task.MSEBTask):
         ) from FileNotFoundError
 
     self._evaluator = retrieval_evaluator.RetrievalEvaluatorPartitioned(
-        index_dir=index_dir
+        index_dir=index_dir, top_k=self.top_k
     )
 
   def compute_scores(

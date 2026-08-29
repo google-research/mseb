@@ -136,6 +136,17 @@ def em(value: float = 0.0, std: float | None = None):
   )
 
 
+def map(value: float = 0.0, std: float | None = None):  # pylint: disable=redefined-builtin
+  return types.Score(
+      metric='MAP',
+      description='Mean Average Precision',
+      value=value,
+      min=0,
+      max=1,
+      std=std,
+  )
+
+
 def compute_recall_at_k(
     reference: str | Sequence[str],
     predicted_neighbors: Sequence[str],
@@ -178,6 +189,7 @@ def _compute_metrics(
   values_by_metric = {
       'mrr': [],
       'em': [],
+      'map': [],
       'recall_at_k': [],
       'recall_at_inf': [],
       'invalid': [],
@@ -202,6 +214,13 @@ def _compute_metrics(
       values_by_metric['em'].append(
           types.WeightedValue(
               value=metrics_lib.compute_exact_match(
+                  reference_id.reference_id, ranked_doc_ids
+              )
+          )
+      )
+      values_by_metric['map'].append(
+          types.WeightedValue(
+              value=metrics_lib.compute_average_precision(
                   reference_id.reference_id, ranked_doc_ids
               )
           )
@@ -234,6 +253,7 @@ def _compute_metrics(
     else:
       values_by_metric['mrr'].append(types.WeightedValue(value=0.0))
       values_by_metric['em'].append(types.WeightedValue(value=0.0))
+      values_by_metric['map'].append(types.WeightedValue(value=0.0))
       values_by_metric['recall_at_k'].append(types.WeightedValue(value=0.0))
       values_by_metric['recall_at_inf'].append(types.WeightedValue(value=0.0))
       values_by_metric['ndcg'].append(types.WeightedValue(value=0.0))
@@ -257,6 +277,9 @@ def _compute_metrics(
   )
   em_score = em(
       *evaluator_lib.compute_weighted_average_and_std(values_by_metric['em'])
+  )
+  map_score = map(
+      *evaluator_lib.compute_weighted_average_and_std(values_by_metric['map'])
   )
   recall_at_k = evaluator_lib.compute_weighted_average_and_std(
       values_by_metric['recall_at_k']
@@ -318,6 +341,7 @@ def _compute_metrics(
   return [
       mrr_score,
       em_score,
+      map_score,
       recall_at_k_score,
       recall_at_inf_score,
       invalid_result_score,
@@ -471,6 +495,7 @@ def build_index(
       [_get_embedding(embeddings[did]) for did in id_by_index_id], np.float32
   )
   n = len(id_by_index_id)
+  k = min(k, n)
   if not allow_scann or n < 50_000:
     logger.info('Building brute force index with %d documents...', n)
     searcher = BruteForceSearcher(candidates, num_neighbors=k)

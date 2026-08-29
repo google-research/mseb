@@ -108,6 +108,39 @@ def compute_exact_match(
   return 0.0
 
 
+def compute_average_precision(
+    reference: str | Sequence[str], predicted_neighbors: Sequence[str]
+) -> float:
+  """Computes average precision for binary relevance.
+
+  The denominator is the total number of relevant documents, so callers must
+  provide a ranking deep enough to retrieve every relevant document when they
+  want full-ranking average precision.
+
+  Args:
+    reference: One or more ground-truth document IDs.
+    predicted_neighbors: Ranked list of predicted document IDs.
+
+  Returns:
+    Average precision in [0, 1].
+  """
+  if isinstance(reference, str):
+    reference = [reference]
+  relevant = set(reference)
+  if not relevant:
+    return 0.0
+
+  num_retrieved_relevant = 0
+  precision_sum = 0.0
+  seen_relevant = set()
+  for rank, neighbor in enumerate(predicted_neighbors, start=1):
+    if neighbor in relevant and neighbor not in seen_relevant:
+      seen_relevant.add(neighbor)
+      num_retrieved_relevant += 1
+      precision_sum += num_retrieved_relevant / rank
+  return precision_sum / len(relevant)
+
+
 def compute_ndcg_at_k(
     reference: str, predicted_neighbors: Sequence[str], k: int = 10
 ) -> float:
@@ -158,7 +191,7 @@ def compute_word_errors(
   stats = jiwer.process_words(reference=truth, hypothesis=hypothesis)
   return (
       stats.substitutions + stats.deletions + stats.insertions,
-      stats.hits + stats.substitutions + stats.deletions
+      stats.hits + stats.substitutions + stats.deletions,
   )
 
 
