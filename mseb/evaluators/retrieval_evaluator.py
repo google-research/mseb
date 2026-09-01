@@ -18,12 +18,15 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import dataclasses
+import functools
 import logging
 import math
 import os
 from typing import Mapping, Protocol, runtime_checkable
 
 from etils import epath
+import jax
+import jax.numpy as jnp
 import jaxtyping
 from mseb import evaluator as evaluator_lib
 from mseb import metrics as metrics_lib
@@ -49,11 +52,11 @@ class BruteForceSearcher:
       self, embeddings: np.ndarray
   ) -> tuple[np.ndarray, np.ndarray]:
     """Returns (ranked_index_ids, ranked_doc_scores) for a batch."""
-    dot_products = np.matmul(embeddings, self.candidates.T)
+    dot_products = np.asarray(self._matmul_jit(embeddings))
     # Use argpartition to get the top K indices (unsorted)
-    top_k_indices = np.argpartition(dot_products, -self.num_neighbors, axis=1)[
-        :, -self.num_neighbors :
-    ]
+    top_k_indices = np.argpartition(
+        dot_products, -self.num_neighbors, axis=1
+    )[:, -self.num_neighbors :]
     # Sort only the top K elements
     top_k_dots = np.take_along_axis(dot_products, top_k_indices, axis=1)
     sorted_top_k_idx = np.argsort(top_k_dots, axis=1)[:, ::-1]
@@ -61,8 +64,24 @@ class BruteForceSearcher:
     ranked_index_ids = np.take_along_axis(
         top_k_indices, sorted_top_k_idx, axis=1
     )
-    ranked_doc_scores = np.take_along_axis(top_k_dots, sorted_top_k_idx, axis=1)
+    ranked_doc_scores = np.take_along_axis(
+        top_k_dots, sorted_top_k_idx, axis=1
+    )
     return ranked_index_ids, ranked_doc_scores
+
+  @functools.cached_property
+  def _matmul_jit(self):
+    """Lazily JIT-compiles the dot-product computation."""
+    candidates = self.candidates
+
+    @functools.partial(jax.jit, device=jax.devices('cpu')[0])
+    def _impl_jit(embeddings: jnp.ndarray) -> jnp.ndarray:
+      return jnp.matmul(embeddings, candidates.T)
+
+    def _impl_naive(embeddings: np.ndarray) -> np.ndarray:
+      return embeddings @ candidates.T
+
+    return _impl_naive if candidates.shape[0] < 10_000 else _impl_jit
 
   def search(self, embedding: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     ranked_index_ids, ranked_doc_scores = self.search_batched(

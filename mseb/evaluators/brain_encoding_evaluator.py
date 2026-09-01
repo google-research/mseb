@@ -27,7 +27,7 @@ Uses JAX/XLA for multi-core CPU acceleration of the ridge regression.
 """
 
 import dataclasses
-import os
+import functools
 from typing import Sequence
 
 from absl import logging
@@ -35,9 +35,6 @@ import jax
 import jax.numpy as jnp
 from mseb import types
 import numpy as np
-
-# Default to CPU; set JAX_PLATFORMS=gpu or tpu to use accelerators.
-os.environ.setdefault('JAX_PLATFORMS', 'cpu')
 
 
 def mean_correlation_score(value: float = 0.0, std: float | None = None):
@@ -151,7 +148,9 @@ def _jax_columnwise_correlation(
   return jnp.sum(pred_zm * actual_zm, axis=0) / denom
 
 
-@jax.jit
+_cv_one_alpha_jit = None
+
+
 def _cv_one_alpha(
     s1: jax.Array,
     vt1_t: jax.Array,
@@ -184,7 +183,26 @@ def _cv_one_alpha(
     stim_half1: First half of the training stimuli.
     resp_half2: Second half of the training responses.
     alpha: Regularization value.
+
+  Returns:
+    Average per-voxel correlation for the two CV splits.
   """
+  global _cv_one_alpha_jit
+  if _cv_one_alpha_jit is None:
+    _cv_one_alpha_jit = functools.partial(
+        jax.jit, device=jax.devices('cpu')[0]
+    )(_cv_one_alpha_impl)
+  return _cv_one_alpha_jit(
+      s1, vt1_t, u1t_resp, stim_half2, resp_half1,
+      s2, vt2_t, u2t_resp, stim_half1, resp_half2, alpha,
+  )
+
+
+def _cv_one_alpha_impl(
+    s1, vt1_t, u1t_resp, stim_half2, resp_half1,
+    s2, vt2_t, u2t_resp, stim_half1, resp_half2, alpha,
+):
+  """Implementation of _cv_one_alpha."""
   # Predict second half from first half.
   d1 = s1 / (s1**2 + alpha)
   weights1 = vt1_t @ (d1[:, None] * u1t_resp)
@@ -201,7 +219,9 @@ def _cv_one_alpha(
   return (corr1 + corr2) / 2.0
 
 
-@jax.jit
+_predict_for_alpha_jit = None
+
+
 def _predict_for_alpha(
     s: jax.Array,
     vt_t: jax.Array,
@@ -210,6 +230,16 @@ def _predict_for_alpha(
     alpha: jax.Array,
 ) -> jax.Array:
   """JIT-compiled final prediction for a single alpha."""
+  global _predict_for_alpha_jit
+  if _predict_for_alpha_jit is None:
+    _predict_for_alpha_jit = functools.partial(
+        jax.jit, device=jax.devices('cpu')[0]
+    )(_predict_for_alpha_impl)
+  return _predict_for_alpha_jit(s, vt_t, ut_resp_masked, stim_test, alpha)
+
+
+def _predict_for_alpha_impl(s, vt_t, ut_resp_masked, stim_test, alpha):
+  """Implementation of _predict_for_alpha."""
   d = s / (s**2 + alpha)
   weights = vt_t @ (d[:, None] * ut_resp_masked)
   return stim_test @ weights
