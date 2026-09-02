@@ -14,14 +14,14 @@
 
 """SVQ span in-lang reasoning tasks."""
 
+import functools
 import os
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reasoning_evaluator
 from mseb.tasks import reasoning
-
 
 _filter_fn_by_sub_task = {
     'span_reasoning_in_lang': lambda x: True,
@@ -47,23 +47,28 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
 
   locale: str | None = None
 
-  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
 
   @property
   def embeddings_dir(self) -> str:
     assert self.locale is not None
-    return os.path.join(
-        super().embeddings_dir, f'svq_{self.locale}_span_reasoning_in_lang'
-    )
+    name = f'svq_{self.locale}_span_reasoning_in_lang'
+    return os.path.join(super().embeddings_dir, name)
+
+  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
+    df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
+    if self.locale:
+      df = df[df.locale == self.locale]
+    return df
 
   @property
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
   def multimodal_inputs(self) -> Iterable[types.SoundWithTitleAndContext]:
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
+    df = self._task_data(
         'span_reasoning_in_lang',
         dtype={
             'locale': str,
@@ -71,31 +76,31 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
             'page_title': str,
             reasoning.CONTEXT_KEY.value: str,
         },
-    ).to_dict('records'):
-      if example['locale'] == self.locale:
-        sound = svq_dataset.get_sound(example)
-        yield types.SoundWithTitleAndContext(
-            waveform=sound.waveform,
-            title_text=example['page_title'],
-            context_text=example[reasoning.CONTEXT_KEY.value],
-            context=sound.context,
-        )
+    )
+    for example in df.to_dict('records'):
+      sound = self.svq_dataset.get_sound(example)
+      yield types.SoundWithTitleAndContext(
+          waveform=sound.waveform,
+          title_text=example['page_title'],
+          context_text=example[reasoning.CONTEXT_KEY.value],
+          context=sound.context,
+      )
 
   def examples(
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
     filter_fn = _filter_fn_by_sub_task[sub_task]
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
-        _base_sub_task(sub_task),
+    df = self._task_data(
+        'span_reasoning_in_lang',
         dtype={
             'locale': str,
             'utt_id': str,
             'span': str,
             'spans': Sequence[str],
         },
-    ).to_dict('records'):
-      if example['locale'] == self.locale and filter_fn(example):
+    )
+    for example in df.to_dict('records'):
+      if filter_fn(example):
         yield reasoning_evaluator.ReasoningSpans(
             sound_id=example['utt_id'],
             reference_answer=example['span'],
@@ -103,440 +108,93 @@ class SVQSpanInLangReasoning(reasoning.ReasoningTask):
         )
 
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
-        'span_reasoning_in_lang', dtype={'locale': str, 'spans': Sequence[str]}
-    ).to_dict('records'):
-      if example['locale'] == self.locale:
-        yield [
-            types.Text(
-                text=span,
-                context=types.TextContextParams(id=span),
-            )
-            for span in example['spans']
-        ]
+    df = self._task_data(
+        'span_reasoning_in_lang',
+        dtype={
+            'locale': str,
+            'spans': Sequence[str],
+        },
+    )
+    for example in df.to_dict('records'):
+      yield [
+          types.Text(
+              text=span,
+              context=types.TextContextParams(id=span),
+          )
+          for span in example['spans']
+      ]
 
 
-class SVQArEgSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'ar_eg'
-  metadata = types.TaskMetadata(
-      name='SVQArEgSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['ar-EG'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
+# Locale -> (ClassName suffix, eval_lang)
+_SVQ_LOCALES = {
+    'ar_eg': ('ArEg', 'ar-EG'),
+    'ar_x_gulf': ('ArXGulf', 'ar-x-gulf'),
+    'ar_x_levant': ('ArXLevant', 'ar-x-levant'),
+    'ar_x_maghrebi': ('ArXMaghrebi', 'ar-x-maghrebi'),
+    'bn_bd': ('BnBd', 'bn-BD'),
+    'bn_in': ('BnIn', 'bn-IN'),
+    'en_au': ('EnAu', 'en-AU'),
+    'en_gb': ('EnGb', 'en-GB'),
+    'en_in': ('EnIn', 'en-IN'),
+    'en_ph': ('EnPh', 'en-PH'),
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+    'id_id': ('IdId', 'id-ID'),
+    'ko_kr': ('KoKr', 'ko-KR'),
+    'ru_ru': ('RuRu', 'ru-RU'),
+    'sw': ('Sw', 'sw'),
+    'te_in': ('TeIn', 'te-IN'),
+}
+
+
+def _make_task_class(
+    base_cls,
+    locale,
+    suffix,
+    eval_lang,
+    description,
+):
+  """Dynamically create a locale-specific task class."""
+  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          'locale': locale,
+          'metadata': types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference='https://huggingface.co/datasets/google/svq',
+              documentation_file='svq_retrieval.md',
+              dataset_documentation_file='dataset_svq.md',
+              type='SpanInLangReasoning',
+              category='speech',
+              main_score='GmeanF1',
+              revision='1.0.0',
+              dataset=types.Dataset(
+                  name='SVQ',
+                  path='https://huggingface.co/datasets/google/svq',
+                  revision='1.0.0',
+              ),
+              scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
+              eval_splits=['test'],
+              eval_langs=[eval_lang],
+              domains=['speech'],
+              task_subtypes=['reasoning'],
+          ),
+      },
   )
+  return cls
 
 
-class SVQArXGulfSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'ar_x_gulf'
-  metadata = types.TaskMetadata(
-      name='SVQArXGulfSpanInLangReasoning',
+# Generate all locale-specific classes and register them in the module.
+# Default size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQSpanInLangReasoning,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
       description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-gulf'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
   )
-
-
-class SVQArXLevantSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'ar_x_levant'
-  metadata = types.TaskMetadata(
-      name='SVQArXLevantSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-levant'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQArXMaghrebiSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'ar_x_maghrebi'
-  metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-maghrebi'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQBnBdSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'bn_bd'
-  metadata = types.TaskMetadata(
-      name='SVQBnBdSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['bn-BD'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQBnInSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'bn_in'
-  metadata = types.TaskMetadata(
-      name='SVQBnInSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['bn-IN'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnAuSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQEnAuSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnGbSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQEnGbSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnInSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQEnInSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnPhSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQEnPhSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQEnUsSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQEnUsSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQFiFiSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'fi_fi'
-  metadata = types.TaskMetadata(
-      name='SVQFiFiSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['fi-FI'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQIdIdSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'id_id'
-  metadata = types.TaskMetadata(
-      name='SVQIdIdSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['id-ID'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQKoKrSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'ko_kr'
-  metadata = types.TaskMetadata(
-      name='SVQKoKrSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['ko-KR'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQRuRuSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'ru_ru'
-  metadata = types.TaskMetadata(
-      name='SVQRuRuSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['ru-RU'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQSwSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'sw'
-  metadata = types.TaskMetadata(
-      name='SVQSwSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['sw'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
-
-
-class SVQTeInSpanInLangReasoning(SVQSpanInLangReasoning):
-  locale = 'te_in'
-  metadata = types.TaskMetadata(
-      name='SVQTeInSpanInLangReasoning',
-      description='Span in-lang reasoning task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_reasoning.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpanInLangReasoning',
-      category='speech',
-      main_score='GmeanF1',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
-      eval_splits=['test'],
-      eval_langs=['te-IN'],
-      domains=['speech'],
-      task_subtypes=['reasoning'],
-  )
+  globals()[_cls.__name__] = _cls

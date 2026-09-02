@@ -21,7 +21,6 @@ from absl.testing import flagsaver
 from mseb import dataset
 import pytest
 
-
 svq = pytest.importorskip("mseb.tasks.transcriptions.speech.svq")
 
 
@@ -78,6 +77,75 @@ class SVQEnUsSpeechTranscriptionTest(absltest.TestCase):
     task = svq.SVQEnUsSpeechTranscription()
     transform = task.multimodal_inputs_beam()
     self.assertIsNotNone(transform)
+
+
+class DynamicClassGenerationTest(absltest.TestCase):
+  """Tests for the factory-generated locale-specific task classes."""
+
+  def test_all_locale_classes_exist(self):
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f"SVQ{suffix}SpeechTranscription"
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f"Missing class {class_name} for locale {locale}",
+      )
+
+  def test_locale_class_has_correct_locale(self):
+    task_cls = getattr(svq, "SVQEnUsSpeechTranscription")
+    self.assertEqual(task_cls.locale, "en_us")
+
+  def test_locale_class_has_correct_metadata_name(self):
+    task_cls = getattr(svq, "SVQArEgSpeechTranscription")
+    self.assertEqual(task_cls.metadata.name, "SVQArEgSpeechTranscription")
+
+  def test_locale_class_has_correct_eval_langs(self):
+    task_cls = getattr(svq, "SVQFiFiSpeechTranscription")
+    self.assertEqual(task_cls.metadata.eval_langs, ["fi-FI"])
+
+  def test_locale_class_inherits_from_base(self):
+    task_cls = getattr(svq, "SVQKoKrSpeechTranscription")
+    self.assertTrue(issubclass(task_cls, svq.SVQSpeechTranscription))
+
+  def test_metadata_type_is_speech_transcription(self):
+    task_cls = getattr(svq, "SVQHiInSpeechTranscription")
+    self.assertEqual(task_cls.metadata.type, "SpeechTranscription")
+
+  def test_metadata_main_score_is_wer(self):
+    task_cls = getattr(svq, "SVQJaJpSpeechTranscription")
+    self.assertEqual(task_cls.metadata.main_score, "WER")
+
+  def test_total_class_count(self):
+    """26 locales (default) = 26 classes."""
+    num_expected = len(svq._SVQ_LOCALES)
+    generated = [
+        name
+        for name in dir(svq)
+        if name.startswith("SVQ")
+        and name != "SVQSpeechTranscription"
+        and isinstance(getattr(svq, name), type)
+        and issubclass(getattr(svq, name), svq.SVQSpeechTranscription)
+    ]
+    self.assertLen(generated, num_expected)
+
+  def test_ur_pk_locale_exists(self):
+    """Verify the new ur_pk locale is included."""
+    self.assertIn("ur_pk", svq._SVQ_LOCALES)
+    self.assertTrue(hasattr(svq, "SVQUrPkSpeechTranscription"))
+
+
+class BaseClassTest(absltest.TestCase):
+  """Tests for SVQSpeechTranscription base class attributes."""
+
+  def test_base_locale_is_none(self):
+    self.assertIsNone(svq.SVQSpeechTranscription.locale)
+
+  def test_sub_tasks(self):
+    task = svq.SVQSpeechTranscription()
+    self.assertIn("speech_transcription", task.sub_tasks)
+    self.assertIn("speech_transcription:clean", task.sub_tasks)
+    self.assertIn("speech_transcription:media_noise", task.sub_tasks)
+    self.assertIn("speech_transcription:traffic_noise", task.sub_tasks)
+    self.assertIn("speech_transcription:background_speech", task.sub_tasks)
 
 
 if __name__ == "__main__":

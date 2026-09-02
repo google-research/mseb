@@ -14,14 +14,14 @@
 
 """SVQ speech transcription tasks."""
 
-from typing import Iterable, Sequence
+import functools
+from typing import Any, Iterable
 
 from mseb import task as task_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import transcription_evaluator
 from mseb.tasks import transcription
-
 
 _filter_fn_by_sub_task = {
     'speech_transcription': lambda x: True,
@@ -47,16 +47,22 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
 
   locale: str | None = None
 
-  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
+
+  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
+    df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
+    if self.locale:
+      df = df[df.locale == self.locale]
+    return df
 
   @property
   def sub_tasks(self) -> list[str]:
     return list(_filter_fn_by_sub_task.keys())
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
+    df = self._task_data(
         'speech_transcription',
         dtype={  # pyrefly: ignore[bad-argument-type]
             'locale': str,
@@ -64,20 +70,20 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
             task_lib.TRANSCRIPT_KEY.value: str,
             transcription.CONTEXTUAL_BIAS_KEY.value: str,
         },
-    ).to_dict('records'):
-      if example['locale'] == self.locale:
-        sound = svq_dataset.get_sound(example)
-        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
-        if transcription.CONTEXTUAL_BIAS_KEY.value:
-          sound = types.SoundWithTitleAndContext(
-              waveform=sound.waveform,
-              context=sound.context,
-              context_text=example.get(transcription.CONTEXTUAL_BIAS_KEY.value),
-          )
-        yield sound
+    )
+    for example in df.to_dict('records'):
+      sound = self.svq_dataset.get_sound(example)
+      sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+      if transcription.CONTEXTUAL_BIAS_KEY.value:
+        sound = types.SoundWithTitleAndContext(
+            waveform=sound.waveform,
+            context=sound.context,
+            context_text=example.get(transcription.CONTEXTUAL_BIAS_KEY.value),
+        )
+      yield sound
 
   def multimodal_inputs_beam(self):
-    return self._get_dataset().get_task_sounds_beam(
+    return self.svq_dataset.get_task_sounds_beam(
         'speech_transcription', locale=self.locale
     )
 
@@ -85,16 +91,16 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
       self, sub_task: str
   ) -> Iterable[transcription_evaluator.TranscriptTruth]:
     filter_fn = _filter_fn_by_sub_task[sub_task]
-    svq_dataset = self._get_dataset()
-    for example in svq_dataset.get_task_data(
-        _base_sub_task(sub_task),
+    df = self._task_data(
+        'speech_transcription',
         dtype={
             'locale': str,
             'utt_id': str,
-            'transcript_truth': Sequence[str],
+            'transcript_truth': str,
         },
-    ).to_dict('records'):
-      if example['locale'] == self.locale and filter_fn(example):
+    )
+    for example in df.to_dict('records'):
+      if filter_fn(example):
         yield transcription_evaluator.TranscriptTruth(
             sound_id=example['utt_id'],
             text=example['transcript_truth'],
@@ -102,651 +108,88 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
         )
 
 
-class SVQArEgSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ar_eg'
-  metadata = types.TaskMetadata(
-      name='SVQArEgSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ar-EG'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
+# Locale -> (ClassName suffix, eval_lang)
+_SVQ_LOCALES = {
+    'ar_eg': ('ArEg', 'ar-EG'),
+    'ar_x_gulf': ('ArXGulf', 'ar-x-gulf'),
+    'ar_x_levant': ('ArXLevant', 'ar-x-levant'),
+    'ar_x_maghrebi': ('ArXMaghrebi', 'ar-x-maghrebi'),
+    'bn_bd': ('BnBd', 'bn-BD'),
+    'bn_in': ('BnIn', 'bn-IN'),
+    'en_au': ('EnAu', 'en-AU'),
+    'en_gb': ('EnGb', 'en-GB'),
+    'en_in': ('EnIn', 'en-IN'),
+    'en_ph': ('EnPh', 'en-PH'),
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+    'gu_in': ('GuIn', 'gu-IN'),
+    'hi_in': ('HiIn', 'hi-IN'),
+    'id_id': ('IdId', 'id-ID'),
+    'ja_jp': ('JaJp', 'ja-JP'),
+    'kn_in': ('KnIn', 'kn-IN'),
+    'ko_kr': ('KoKr', 'ko-KR'),
+    'ml_in': ('MlIn', 'ml-IN'),
+    'mr_in': ('MrIn', 'mr-IN'),
+    'ru_ru': ('RuRu', 'ru-RU'),
+    'sw': ('Sw', 'sw'),
+    'ta_in': ('TaIn', 'ta-IN'),
+    'te_in': ('TeIn', 'te-IN'),
+    'ur_in': ('UrIn', 'ur-IN'),
+    'ur_pk': ('UrPk', 'ur-PK'),
+}
+
+
+def _make_task_class(
+    base_cls,
+    locale,
+    suffix,
+    eval_lang,
+    description,
+):
+  """Dynamically create a locale-specific task class."""
+  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          'locale': locale,
+          'metadata': types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference='https://huggingface.co/datasets/google/svq',
+              documentation_file='svq_retrieval.md',
+              dataset_documentation_file='dataset_svq.md',
+              type='SpeechTranscription',
+              category='speech',
+              main_score='WER',
+              revision='1.0.0',
+              dataset=types.Dataset(
+                  name='SVQ',
+                  path='https://huggingface.co/datasets/google/svq',
+                  revision='1.0.0',
+              ),
+              scores=[
+                  transcription_evaluator.wer(),
+                  transcription_evaluator.ser(),
+              ],
+              eval_splits=['test'],
+              eval_langs=[eval_lang],
+              domains=['speech'],
+              task_subtypes=['transcription'],
+          ),
+      },
   )
+  return cls
 
 
-class SVQArXGulfSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ar_x_gulf'
-  metadata = types.TaskMetadata(
-      name='SVQArXGulfSpeechTranscription',
+# Generate all locale-specific classes and register them in the module.
+# Default size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQSpeechTranscription,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
       description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-gulf'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
   )
-
-
-class SVQArXLevantSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ar_x_levant'
-  metadata = types.TaskMetadata(
-      name='SVQArXLevantSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-levant'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQArXMaghrebiSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ar_x_maghrebi'
-  metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ar-x-maghrebi'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQBnBdSpeechTranscription(SVQSpeechTranscription):
-  locale = 'bn_bd'
-  metadata = types.TaskMetadata(
-      name='SVQBnBdSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['bn-BD'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQBnInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'bn_in'
-  metadata = types.TaskMetadata(
-      name='SVQBnInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['bn-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQEnAuSpeechTranscription(SVQSpeechTranscription):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQEnAuSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQEnGbSpeechTranscription(SVQSpeechTranscription):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQEnGbSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQEnInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQEnInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQEnPhSpeechTranscription(SVQSpeechTranscription):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQEnPhSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQEnUsSpeechTranscription(SVQSpeechTranscription):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQEnUsSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQFiFiSpeechTranscription(SVQSpeechTranscription):
-  locale = 'fi_fi'
-  metadata = types.TaskMetadata(
-      name='SVQFiFiSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['fi-FI'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQGuInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'gu_in'
-  metadata = types.TaskMetadata(
-      name='SVQGuInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['gu-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQHiInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'hi_in'
-  metadata = types.TaskMetadata(
-      name='SVQHiInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['hi-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQIdIdSpeechTranscription(SVQSpeechTranscription):
-  locale = 'id_id'
-  metadata = types.TaskMetadata(
-      name='SVQIdIdSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['id-ID'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQJaJpSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ja_jp'
-  metadata = types.TaskMetadata(
-      name='SVQJaJpSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ja-JP'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQKnInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'kn_in'
-  metadata = types.TaskMetadata(
-      name='SVQKnInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['kn-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQKoKrSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ko_kr'
-  metadata = types.TaskMetadata(
-      name='SVQKoKrSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ko-KR'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQMlInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ml_in'
-  metadata = types.TaskMetadata(
-      name='SVQMlInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ml-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQMrInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'mr_in'
-  metadata = types.TaskMetadata(
-      name='SVQMrInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['mr-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQRuRuSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ru_ru'
-  metadata = types.TaskMetadata(
-      name='SVQRuRuSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ru-RU'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQSwSpeechTranscription(SVQSpeechTranscription):
-  locale = 'sw'
-  metadata = types.TaskMetadata(
-      name='SVQSwSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['sw'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQTaInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ta_in'
-  metadata = types.TaskMetadata(
-      name='SVQTaInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ta-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQTeInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'te_in'
-  metadata = types.TaskMetadata(
-      name='SVQTeInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['te-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQUrInSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ur_in'
-  metadata = types.TaskMetadata(
-      name='SVQUrInSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ur-IN'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
-
-
-class SVQUrPkSpeechTranscription(SVQSpeechTranscription):
-  locale = 'ur_pk'
-  metadata = types.TaskMetadata(
-      name='SVQUrPkSpeechTranscription',
-      description='Speech transcription task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_transcription.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeechTranscription',
-      category='speech',
-      main_score='WER',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[transcription_evaluator.wer(), transcription_evaluator.ser()],
-      eval_splits=['test'],
-      eval_langs=['ur-PK'],
-      domains=['speech'],
-      task_subtypes=['transcription'],
-  )
+  globals()[_cls.__name__] = _cls
