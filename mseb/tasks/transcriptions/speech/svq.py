@@ -68,7 +68,7 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
             'locale': str,
             'utt_id': str,
             task_lib.TRANSCRIPT_KEY.value: str,
-            transcription.CONTEXTUAL_BIAS_KEY.value: str,
+            transcription.CONTEXTUAL_BIAS_KEY.value: str,  # pyrefly: ignore[bad-assignment]
         },
     )
     for example in df.to_dict('records'):
