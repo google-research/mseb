@@ -15,6 +15,7 @@
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from mseb import evaluator
 from mseb import types
 import numpy as np
@@ -157,6 +158,52 @@ class EvaluatorTest(absltest.TestCase):
     top_k_scores, top_k_ids = evaluator.top_k(scores, k=10)
     npt.assert_almost_equal(top_k_scores, np.array([8, 5, 2, 0]))
     npt.assert_equal(top_k_ids, np.array([1, 2, 0, 3]))
+
+
+
+class BatchedRankingTest(parameterized.TestCase):
+
+  @parameterized.product(
+      batch_shape=[(), (2,), (2, 3), (0,)], k=[0, 1, 3, 7, 10]
+  )
+  def test_top_k_preserves_batch_axes(self, batch_shape, k):
+    scores = np.random.default_rng(7).normal(size=(*batch_shape, 7))
+    original = scores.copy()
+    values, indices = evaluator.top_k(scores, k=k)
+    expected = np.sort(scores, axis=-1)[..., ::-1][..., :k]
+    npt.assert_array_equal(values, expected)
+    self.assertEqual(indices.shape, (*batch_shape, min(k, 7)))
+    self.assertTrue(np.issubdtype(indices.dtype, np.integer))
+    npt.assert_array_equal(values, np.take_along_axis(scores, indices, axis=-1))
+    npt.assert_array_equal(scores, original)
+
+  @parameterized.product(
+      batch_shape=[(), (2,), (2, 3), (0,)], mode=['top_1', 'top_inf']
+  )
+  def test_rankers_preserve_batch_axes(self, batch_shape, mode):
+    scores = np.random.default_rng(17).normal(size=(*batch_shape, 7))
+    values, indices = getattr(evaluator, mode)(scores)
+    k = 1 if mode == 'top_1' else 7
+    expected = np.sort(scores, axis=-1)[..., ::-1][..., :k]
+    npt.assert_array_equal(values, expected)
+    self.assertEqual(indices.shape, expected.shape)
+    npt.assert_array_equal(values, np.take_along_axis(scores, indices, axis=-1))
+
+  @parameterized.parameters(0, 3)
+  def test_top_k_empty_candidate_axis(self, k):
+    values, indices = evaluator.top_k(np.empty((2, 0)), k=k)
+    self.assertEqual(values.shape, (2, 0))
+    self.assertEqual(indices.shape, (2, 0))
+
+  def test_top_k_negative_count(self):
+    with self.assertRaises(ValueError):
+      evaluator.top_k(np.array([1.0, 2.0]), k=-1)
+
+  def test_noncontiguous_scores(self):
+    scores = np.arange(24).reshape(4, 6).T[:, ::-1]
+    values, indices = evaluator.top_k(scores, k=2)
+    npt.assert_array_equal(values, np.sort(scores, axis=-1)[:, ::-1][:, :2])
+    npt.assert_array_equal(values, np.take_along_axis(scores, indices, axis=-1))
 
 
 if __name__ == "__main__":
