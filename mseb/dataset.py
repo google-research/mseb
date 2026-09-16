@@ -19,7 +19,6 @@ from typing import Iterator, Optional, Any
 
 from absl import flags
 from mseb import types
-import numpy as np
 import pandas as pd
 
 
@@ -47,16 +46,12 @@ class BatchIterator:
 
   def __init__(self,
                dataset: "Dataset",
-               batch_size: int,
-               shuffle: bool = False):
+               batch_size: int):
     self.dataset = dataset
     self.batch_size = batch_size
-    self.shuffle = shuffle
     self.indices = list(range(len(dataset)))
 
   def __iter__(self) -> Iterator[list[types.Sound]]:
-    if self.shuffle:
-      np.random.shuffle(self.indices)
     for i in range(0, len(self.indices), self.batch_size):
       batch_indices = self.indices[i : i + self.batch_size]
       yield [self.dataset[idx] for idx in batch_indices]
@@ -129,7 +124,6 @@ class Dataset(abc.ABC):
 
   def as_batch_iterator(
       self, batch_size: int,
-      shuffle: bool = False
   ) -> BatchIterator:
     """Returns a convenient BatchIterator instance for this dataset."""
-    return BatchIterator(self, batch_size=batch_size, shuffle=shuffle)
+    return BatchIterator(self, batch_size=batch_size)
