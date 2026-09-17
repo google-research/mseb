@@ -57,10 +57,8 @@ class Flickr8kSpeechRetrieval(retrieval.RetrievalTask):
   def get_documents_source(self) -> flickr8k.Flickr8kDataset:
     return self._get_dataset()
 
-  @staticmethod
-  def documents_generator(
-      dataset: Any,
-  ) -> Iterable[types.Sound]:
+  @classmethod
+  def documents_generator(cls, dataset: Any) -> Iterable[types.Sound]:
     """Yields Sound objects for each spoken caption in the dataset."""
     for record in dataset.get_task_data().to_dict('records'):
       yield dataset.get_sound(record)

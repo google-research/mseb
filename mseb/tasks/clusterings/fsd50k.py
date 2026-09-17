@@ -14,6 +14,7 @@
 
 """FSD50K sound event clustering tasks."""
 
+import dataclasses
 from typing import Iterable
 
 from mseb import types
@@ -26,6 +27,7 @@ class FSD50KClustering(clustering.ClusteringTask):
   """Base class for sound event clustering on the FSD50K dataset."""
 
   split: str | None = None
+  size: str | None = None
 
   @property
   def _fsd_dataset(self) -> fsd50k.FSD50KDataset:
@@ -45,14 +47,27 @@ class FSD50KClustering(clustering.ClusteringTask):
     return labels[0] if labels else "no_label"
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    for record in self._fsd_dataset.get_task_data().to_dict("records"):
+    task_data = self._fsd_dataset.get_task_data()
+    if self.size is not None:
+      task_data = task_data[
+          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
+      ]
+    for record in task_data.to_dict("records"):
       yield self._fsd_dataset.get_sound(record)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
-    for record in self._fsd_dataset.get_task_data().to_dict("records"):
+    task_data = self._fsd_dataset.get_task_data()
+    if self.size is not None:
+      task_data = task_data[
+          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
+      ]
+    for record in task_data.to_dict("records"):
       example_id = str(record["fname"])
+      if self.size is not None:
+        if example_id not in getattr(fsd50k, f"{self.size}_ids")():
+          continue
       label = self._get_label(record)
       yield clustering_evaluator.ClusteringExample(example_id, label)
 
@@ -89,4 +104,12 @@ class FSD50KTestClustering(FSD50KClustering):
       eval_langs=["und"],
       domains=["audio", "acoustic", "environmental"],
       task_subtypes=["clustering"],
+  )
+
+
+class FSD50KTestClusteringDebug(FSD50KTestClustering):
+  size = "debug"
+  metadata = dataclasses.replace(
+      FSD50KTestClustering.metadata,
+      name="FSD50KTestClusteringDebug",
   )

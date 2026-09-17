@@ -30,6 +30,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
 
   locale: str | None = None
   filename: str | None = None
+  size: str | None = None
 
   @property
   def task_type(self) -> str:
@@ -42,6 +43,8 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
       return pattern.sub("_", name).lower()
 
     name = self.__class__.__name__
+    if self.size is not None:
+      name += f"_{self.size.capitalize()}"
     return os.path.join(super().weights_dir, _camel_to_snake(name))
 
   @property
@@ -56,6 +59,9 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
     df = self.speech_massive_dataset.get_task_data(task_data_key, dtype=dtype)
     if self.locale:
       df = df[df.locale == speech_massive.bcp47_by_locale[self.locale]]
+    if self.size is not None:
+      mask = df["id"].map(getattr(speech_massive, f"is_member_of_{self.size}"))
+      df = df[mask]
     return df
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
@@ -158,17 +164,22 @@ _SPEECH_MASSIVE_LOCALES = {
 }
 
 
-def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+def _make_task_class(
+    base_cls, locale, suffix, eval_lang, description, size=None
+):
   """Dynamically create a locale-specific task class."""
   class_name = (
       f'SpeechMassive{suffix}{base_cls.__name__[len("SpeechMassive"):]}'
   )
+  if size is not None:
+    class_name += size.capitalize()
   cls = type(
       class_name,
       (base_cls,),
       {
           "locale": locale,
           "filename": f"{eval_lang}/test-?????-of-?????.parquet",
+          "size": size,
           "metadata": types.TaskMetadata(
               name=class_name,
               description=description,
@@ -210,6 +221,35 @@ for _locale, (_suffix, _eval_lang) in _SPEECH_MASSIVE_LOCALES.items():
   _cls = _make_task_class(  # pylint: disable=invalid-name
       base_cls=SpeechMassiveIntentClassification,
       locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description="Speech Massive intent classification task.",
+  )
+  globals()[_cls.__name__] = _cls
+
+
+# Generate all locale-specific classes and register them in the module.
+# Compact size.
+for _locale, (_suffix, _eval_lang) in _SPEECH_MASSIVE_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SpeechMassiveIntentClassification,
+      locale=_locale,
+      size="compact",
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description="Speech Massive intent classification task.",
+  )
+  globals()[_cls.__name__] = _cls
+
+# Debug size.
+for _locale, (_suffix, _eval_lang) in {
+    "de_de": ("DeDe", "de-DE"),
+    "fr_fr": ("FrFr", "fr-FR"),
+}.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SpeechMassiveIntentClassification,
+      locale=_locale,
+      size="debug",
       suffix=_suffix,
       eval_lang=_eval_lang,
       description="Speech Massive intent classification task.",

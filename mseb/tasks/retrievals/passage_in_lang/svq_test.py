@@ -114,6 +114,34 @@ class DynamicClassGenerationTest(absltest.TestCase):
     task_cls = getattr(svq, 'SVQEnUsPassageInLangRetrieval')
     self.assertTrue(issubclass(task_cls, svq.SVQPassageInLangRetrieval))
 
+  def test_locale_class_default_size_is_none(self):
+    task_cls = getattr(svq, 'SVQEnUsPassageInLangRetrieval')
+    self.assertIsNone(task_cls.size)
+
+  def test_compact_classes_exist(self):
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}PassageInLangRetrievalCompact'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing compact class {class_name} for locale {locale}',
+      )
+
+  def test_compact_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQEnUsPassageInLangRetrievalCompact')
+    self.assertEqual(task_cls.size, 'compact')
+
+  def test_debug_classes_exist(self):
+    for suffix in ('EnUs', 'FiFi'):
+      class_name = f'SVQ{suffix}PassageInLangRetrievalDebug'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing debug class {class_name}',
+      )
+
+  def test_debug_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQEnUsPassageInLangRetrievalDebug')
+    self.assertEqual(task_cls.size, 'debug')
+
   def test_metadata_type_is_passage_in_lang_retrieval(self):
     task_cls = getattr(svq, 'SVQKoKrPassageInLangRetrieval')
     self.assertEqual(task_cls.metadata.type, 'PassageInLangRetrieval')
@@ -128,6 +156,9 @@ class BaseClassTest(absltest.TestCase):
 
   def test_base_locale_is_none(self):
     self.assertIsNone(svq.SVQPassageInLangRetrieval.locale)
+
+  def test_base_size_is_none(self):
+    self.assertIsNone(svq.SVQPassageInLangRetrieval.size)
 
   def test_sub_tasks(self):
     task = svq.SVQPassageInLangRetrieval()
@@ -144,7 +175,7 @@ class BaseClassTest(absltest.TestCase):
 @pytest.mark.scann
 @pytest.mark.optional
 class TaskDataFilteringTest(absltest.TestCase):
-  """Tests for _task_data locale filtering."""
+  """Tests for _task_data locale and size filtering."""
 
   def setUp(self):
     super().setUp()

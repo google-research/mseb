@@ -85,6 +85,8 @@ class SVQQueryReranking(reranking.RerankingTask):
   """SVQ query reranking."""
 
   locale: str | None = None
+  size: str | None = None
+  max_candidates_per_example: int | None = None
 
   @functools.cached_property
   def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
@@ -94,12 +96,17 @@ class SVQQueryReranking(reranking.RerankingTask):
   def embeddings_dir(self) -> str:
     assert self.locale is not None
     name = f'svq_{self.locale}_query_reranking'
+    if self.size is not None:
+      name += f'_{self.size}'
     return os.path.join(super().embeddings_dir, name)
 
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
     if self.locale:
       df = df[df.locale == self.locale]
+    if self.size is not None:
+      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      df = df[mask]
     return df
 
   @property
@@ -120,7 +127,8 @@ class SVQQueryReranking(reranking.RerankingTask):
       sound = self.svq_dataset.get_sound(example)
       sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
       context_text = _get_context_text(
-          example['candidates'], randomize=_RANDOMIZE_CANDIDATES.value
+          example['candidates'][: self.max_candidates_per_example],
+          randomize=_RANDOMIZE_CANDIDATES.value,
       )
       sound = types.SoundWithTitleAndContext(
           waveform=sound.waveform,
@@ -132,22 +140,21 @@ class SVQQueryReranking(reranking.RerankingTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
     df = self._task_data(
         _base_sub_task(sub_task),
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
     )
     for example in df.to_dict('records'):
-      if filter_fn(example):
-        rank_by_id = _get_rank_by_id(
-            example['candidates'], randomize=_RANDOMIZE_CANDIDATES.value
-        )
-        yield reranking_evaluator.RerankingCandidates(
-            sound_id=example['utt_id'],
-            texts=example['candidates'],
-            language=example['locale'],
-            rank_by_id=rank_by_id,
-        )
+      rank_by_id = _get_rank_by_id(
+          example['candidates'][: self.max_candidates_per_example],
+          randomize=_RANDOMIZE_CANDIDATES.value,
+      )
+      yield reranking_evaluator.RerankingCandidates(
+          sound_id=example['utt_id'],
+          texts=example['candidates'],
+          language=example['locale'],
+          rank_by_id=rank_by_id,
+      )
 
   def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:
     df = self._task_data(
@@ -159,9 +166,12 @@ class SVQQueryReranking(reranking.RerankingTask):
           example['utt_id'],
           [
               types.Text(
-                  text=candidate, context=types.TextContextParams(id=candidate)
+                  text=candidate,
+                  context=types.TextContextParams(id=candidate),
               )
-              for candidate in example['candidates']
+              for candidate in example['candidates'][
+                  : self.max_candidates_per_example
+              ]
           ],
       )
 
@@ -197,14 +207,26 @@ _SVQ_LOCALES = {
 }
 
 
-def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+def _make_task_class(
+    base_cls,
+    locale,
+    suffix,
+    eval_lang,
+    description,
+    size=None,
+    max_candidates_per_example=None,
+):
   """Dynamically create a locale-specific task class."""
   class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  if size is not None:
+    class_name += size.capitalize()
   cls = type(
       class_name,
       (base_cls,),
       {
           'locale': locale,
+          'size': size,
+          'max_candidates_per_example': max_candidates_per_example,
           'metadata': types.TaskMetadata(
               name=class_name,
               description=description,
@@ -243,6 +265,35 @@ for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
   _cls = _make_task_class(  # pylint: disable=invalid-name
       base_cls=SVQQueryReranking,
       locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Query reranking task.',
+  )
+  globals()[_cls.__name__] = _cls
+
+# Compact size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQQueryReranking,
+      locale=_locale,
+      size='compact',
+      max_candidates_per_example=100,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Query reranking task.',
+  )
+  globals()[_cls.__name__] = _cls
+
+# Debug size.
+for _locale, (_suffix, _eval_lang) in {
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+}.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQQueryReranking,
+      locale=_locale,
+      size='debug',
+      max_candidates_per_example=5,
       suffix=_suffix,
       eval_lang=_eval_lang,
       description='Query reranking task.',

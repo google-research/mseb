@@ -48,6 +48,7 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
   """SVQ passage in-lang retrieval."""
 
   locale: str | None = None
+  size: str | None = None
 
   @functools.cached_property
   def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
@@ -55,7 +56,10 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
 
   @property
   def index_dir(self) -> str:
-    return os.path.join(super().index_dir, 'svq_passage_retrieval_in_lang')
+    name = 'svq_passage_retrieval_in_lang'
+    if self.size is not None:
+      name += f'_{self.size}'
+    return os.path.join(super().index_dir, name)
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -65,18 +69,24 @@ class SVQPassageInLangRetrieval(retrieval.RetrievalTask):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
     if self.locale:
       df = df[df.locale == self.locale]
+    if self.size is not None:
+      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      df = df[mask]
     return df
 
   def get_documents_source(self) -> svq.SimpleVoiceQuestionsDataset:
     return self.svq_dataset
 
-  @staticmethod
-  def documents_generator(svq_dataset: Any) -> Iterable[types.Text]:
+  @classmethod
+  def documents_generator(cls, svq_dataset: Any) -> Iterable[types.Text]:
     """Yields Text documents from the given SVQ dataset index."""
     df = svq_dataset.get_task_data(
         'passage_retrieval_in_lang_index',
         dtype={'id': str, 'title': str, 'context': str},
     )
+    if cls.size is not None:
+      mask = df['id'].map(getattr(svq, f'is_member_of_{cls.size}'))
+      df = df[mask]
     for example in df.to_dict('records'):
       yield types.Text(
           text=example['context'],
@@ -166,14 +176,19 @@ _SVQ_LOCALES = {
 }
 
 
-def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+def _make_task_class(
+    base_cls, locale, suffix, eval_lang, description, size=None
+):
   """Dynamically create a locale-specific task class."""
   class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  if size is not None:
+    class_name += size.capitalize()
   cls = type(
       class_name,
       (base_cls,),
       {
           'locale': locale,
+          'size': size,
           'metadata': types.TaskMetadata(
               name=class_name,
               description=description,
@@ -206,6 +221,33 @@ for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
   _cls = _make_task_class(  # pylint: disable=invalid-name
       base_cls=SVQPassageInLangRetrieval,
       locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Passage in-lang retrieval task.',
+  )
+  globals()[_cls.__name__] = _cls
+
+# Compact size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQPassageInLangRetrieval,
+      locale=_locale,
+      size='compact',
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Passage in-lang retrieval task.',
+  )
+  globals()[_cls.__name__] = _cls
+
+# Debug size.
+for _locale, (_suffix, _eval_lang) in {
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+}.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQPassageInLangRetrieval,
+      locale=_locale,
+      size='debug',
       suffix=_suffix,
       eval_lang=_eval_lang,
       description='Passage in-lang retrieval task.',

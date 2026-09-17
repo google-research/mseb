@@ -239,9 +239,9 @@ class RetrievalTask(task.MSEBTask):
   def get_documents_source(self) -> Any:
     """Get the source of the documents for the retrieval task."""
 
-  @staticmethod
+  @classmethod
   @abc.abstractmethod
-  def documents_generator(documents_source: Any) -> Iterable[types.Text]:
+  def documents_generator(cls, documents_source: Any) -> Iterable[types.Text]:
     """Get the list of documents for the retrieval task."""
     raise NotImplementedError
 

@@ -57,9 +57,9 @@ class SpokenCocoSpeechRetrieval(retrieval.RetrievalTask):
   def get_documents_source(self) -> spoken_coco.SpokenCocoDataset:
     return self._get_dataset()
 
-  @staticmethod
+  @classmethod
   def documents_generator(
-      dataset: spoken_coco.SpokenCocoDataset,
+      cls, dataset: spoken_coco.SpokenCocoDataset
   ) -> Iterable[types.Sound]:
     """Yields Sound objects for each spoken caption in the dataset."""
     for record in dataset.get_task_data().to_dict('records'):

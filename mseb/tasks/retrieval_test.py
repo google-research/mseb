@@ -85,8 +85,8 @@ class RetrievalTest(absltest.TestCase):
       def get_documents_source(self):
         return
 
-      @staticmethod
-      def documents_generator(not_used) -> Iterable[types.Text]:
+      @classmethod
+      def documents_generator(cls, not_used) -> Iterable[types.Text]:
         del not_used
         return []
 
@@ -136,8 +136,8 @@ class RetrievalTest(absltest.TestCase):
       def get_documents_source(self):
         return
 
-      @staticmethod
-      def documents_generator(not_used) -> Iterable[types.Text]:
+      @classmethod
+      def documents_generator(cls, not_used) -> Iterable[types.Text]:
         del not_used
         return [
             types.Text(
@@ -181,8 +181,8 @@ class RetrievalTest(absltest.TestCase):
       def get_documents_source(self):
         return None
 
-      @staticmethod
-      def documents_generator(not_used):
+      @classmethod
+      def documents_generator(cls, not_used):
         del not_used
         return [
             types.Text(
@@ -220,8 +220,8 @@ class RetrievalTest(absltest.TestCase):
       def get_documents_source(self):
         return None
 
-      @staticmethod
-      def documents_generator(not_used):
+      @classmethod
+      def documents_generator(cls, not_used):
         del not_used
         return [
             types.Text(

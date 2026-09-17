@@ -70,8 +70,8 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
   def get_documents_source(self) -> Any:
     return f'wikipedia/20190301.{self.language}'
 
-  @staticmethod
-  def documents_generator(dataset: Any) -> Iterable[types.Text]:
+  @classmethod
+  def documents_generator(cls, dataset: Any) -> Iterable[types.Text]:
     ds = tfds.load(dataset, split='train')
     for example in ds.as_numpy_iterator():
       title = example['title'].decode('utf-8')
@@ -151,8 +151,8 @@ class SVQDocumentInLangRetrievalSmallIndex(SVQDocumentInLangRetrieval):
   def get_documents_source(self) -> Any:
     return self._get_svq_dataset()
 
-  @staticmethod
-  def documents_generator(dataset: Any) -> Iterable[types.Text]:
+  @classmethod
+  def documents_generator(cls, dataset: Any) -> Iterable[types.Text]:
     for example in dataset.get_task_data(
         'document_retrieval_in_lang_small_index',
         dtype={'title': str, 'text': str},

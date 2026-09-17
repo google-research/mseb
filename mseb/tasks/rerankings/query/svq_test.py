@@ -180,6 +180,79 @@ class DynamicClassGenerationTest(absltest.TestCase):
     task_cls = getattr(svq, 'SVQKoKrQueryReranking')
     self.assertTrue(issubclass(task_cls, svq.SVQQueryReranking))
 
+  def test_locale_class_default_size_is_none(self):
+    task_cls = getattr(svq, 'SVQSwQueryReranking')
+    self.assertIsNone(task_cls.size)
+
+  def test_compact_classes_exist(self):
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}QueryRerankingCompact'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing compact class {class_name} for locale {locale}',
+      )
+
+  def test_compact_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQEnUsQueryRerankingCompact')
+    self.assertEqual(task_cls.size, 'compact')
+
+  def test_compact_class_has_correct_locale(self):
+    task_cls = getattr(svq, 'SVQRuRuQueryRerankingCompact')
+    self.assertEqual(task_cls.locale, 'ru_ru')
+
+  def test_compact_class_inherits_from_base(self):
+    task_cls = getattr(svq, 'SVQTeInQueryRerankingCompact')
+    self.assertTrue(issubclass(task_cls, svq.SVQQueryReranking))
+
+  def test_debug_classes_exist(self):
+    for suffix in ('EnUs', 'FiFi'):
+      class_name = f'SVQ{suffix}QueryRerankingDebug'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing debug class {class_name}',
+      )
+
+  def test_debug_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQEnUsQueryRerankingDebug')
+    self.assertEqual(task_cls.size, 'debug')
+
+  def test_debug_only_en_us_and_fi_fi(self):
+    """Debug classes should only exist for en-US and fi-FI."""
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}QueryRerankingDebug'
+      if locale in ('en_us', 'fi_fi'):
+        self.assertTrue(hasattr(svq, class_name))
+      else:
+        self.assertFalse(
+            hasattr(svq, class_name),
+            f'Unexpected debug class {class_name}',
+        )
+
+  def test_max_candidates_per_example(self):
+    self.assertIsNone(svq.SVQEnUsQueryReranking.max_candidates_per_example)
+    self.assertEqual(
+        svq.SVQEnUsQueryRerankingCompact.max_candidates_per_example, 100
+    )
+    self.assertEqual(
+        svq.SVQEnUsQueryRerankingDebug.max_candidates_per_example, 5
+    )
+
+  def test_embeddings_dir_with_size(self):
+    temp_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver((svq.task_lib.TASK_CACHE_BASEPATH, temp_dir)):
+      task_compact = svq.SVQEnUsQueryRerankingCompact()
+      self.assertTrue(
+          task_compact.embeddings_dir.endswith(
+              os.path.join('rerankings', 'svq_en_us_query_reranking_compact')
+          )
+      )
+      task_debug = svq.SVQEnUsQueryRerankingDebug()
+      self.assertTrue(
+          task_debug.embeddings_dir.endswith(
+              os.path.join('rerankings', 'svq_en_us_query_reranking_debug')
+          )
+      )
+
   def test_metadata_type_is_query_reranking(self):
     task_cls = getattr(svq, 'SVQHiInQueryReranking')
     self.assertEqual(task_cls.metadata.type, 'QueryReranking')
@@ -189,8 +262,8 @@ class DynamicClassGenerationTest(absltest.TestCase):
     self.assertEqual(task_cls.metadata.main_score, 'MAP')
 
   def test_total_class_count(self):
-    """26 locales = 26 classes."""
-    num_locales = len(svq._SVQ_LOCALES)
+    """26 locales * 2 (default + compact) + 2 debug = 54 classes."""
+    num_locales = len(svq._SVQ_LOCALES) * 2 + 2
     generated = [
         name
         for name in dir(svq)

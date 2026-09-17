@@ -84,6 +84,7 @@ class SVQSalientTermReranking(reranking.RerankingTask):
   """SVQ salient term reranking."""
 
   locale: str | None = None
+  size: str | None = None
 
   @functools.cached_property
   def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
@@ -93,12 +94,17 @@ class SVQSalientTermReranking(reranking.RerankingTask):
   def embeddings_dir(self) -> str:
     assert self.locale is not None
     name = f'svq_{self.locale}_salient_term_reranking'
+    if self.size is not None:
+      name += f'_{self.size}'
     return os.path.join(super().embeddings_dir, name)
 
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
     if self.locale:
       df = df[df.locale == self.locale]
+    if self.size is not None:
+      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      df = df[mask]
     return df
 
   @property
@@ -209,17 +215,21 @@ _SVQ_LOCALES = {
 def _make_task_class(
     base_cls,
     locale,
+    size,
     suffix,
     eval_lang,
     description,
 ):
   """Dynamically create a locale-specific task class."""
   class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  if size is not None:
+    class_name += size.capitalize()
   cls = type(
       class_name,
       (base_cls,),
       {
           'locale': locale,
+          'size': size,
           'metadata': types.TaskMetadata(
               name=class_name,
               description=description,
@@ -258,8 +268,37 @@ for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
   _cls = _make_task_class(  # pylint: disable=invalid-name
       base_cls=SVQSalientTermReranking,
       locale=_locale,
+      size=None,
       suffix=_suffix,
       eval_lang=_eval_lang,
       description='Salient term reranking task.',
+  )
+  globals()[_cls.__name__] = _cls
+
+
+# Compact size.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQSalientTermReranking,
+      locale=_locale,
+      size='compact',
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Query reranking task.',
+  )
+  globals()[_cls.__name__] = _cls
+
+# Debug size.
+for _locale, (_suffix, _eval_lang) in {
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+}.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQSalientTermReranking,
+      locale=_locale,
+      size='debug',
+      suffix=_suffix,
+      eval_lang=_eval_lang,
+      description='Query reranking task.',
   )
   globals()[_cls.__name__] = _cls

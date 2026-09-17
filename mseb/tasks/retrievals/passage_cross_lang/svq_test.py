@@ -47,6 +47,30 @@ class DynamicClassGenerationTest(absltest.TestCase):
     task_cls = getattr(svq, 'SVQUrPkPassageCrossLangRetrieval')
     self.assertTrue(issubclass(task_cls, svq.SVQPassageCrossLangRetrieval))
 
+  def test_locale_class_default_size_is_none(self):
+    task_cls = getattr(svq, 'SVQRuRuPassageCrossLangRetrieval')
+    self.assertIsNone(task_cls.size)
+
+  def test_compact_classes_exist(self):
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}PassageCrossLangRetrievalCompact'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing compact class {class_name} for locale {locale}',
+      )
+
+  def test_compact_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQFiFiPassageCrossLangRetrievalCompact')
+    self.assertEqual(task_cls.size, 'compact')
+
+  def test_compact_class_has_correct_locale(self):
+    task_cls = getattr(svq, 'SVQArXGulfPassageCrossLangRetrievalCompact')
+    self.assertEqual(task_cls.locale, 'ar_x_gulf')
+
+  def test_compact_class_inherits_from_base(self):
+    task_cls = getattr(svq, 'SVQTeInPassageCrossLangRetrievalCompact')
+    self.assertTrue(issubclass(task_cls, svq.SVQPassageCrossLangRetrieval))
+
   def test_metadata_type_is_passage_cross_lang_retrieval(self):
     task_cls = getattr(svq, 'SVQHiInPassageCrossLangRetrieval')
     self.assertEqual(task_cls.metadata.type, 'PassageCrossLangRetrieval')
@@ -55,9 +79,18 @@ class DynamicClassGenerationTest(absltest.TestCase):
     task_cls = getattr(svq, 'SVQJaJpPassageCrossLangRetrieval')
     self.assertEqual(task_cls.metadata.main_score, 'MRR')
 
+  def test_no_debug_classes(self):
+    """Cross-lang does not generate debug variants."""
+    for suffix in ('ArEg', 'FiFi', 'EnUs'):
+      class_name = f'SVQ{suffix}PassageCrossLangRetrievalDebug'
+      self.assertFalse(
+          hasattr(svq, class_name),
+          f'Unexpected debug class {class_name}',
+      )
+
   def test_total_class_count(self):
-    """19 locales variants (default) = 19 classes."""
-    num_locales = len(svq._SVQ_LOCALES)
+    """19 locales * 2 variants (default + compact) = 38 classes."""
+    num_locales = len(svq._SVQ_LOCALES) * 2
     generated = [
         name
         for name in dir(svq)
@@ -74,6 +107,9 @@ class BaseClassTest(absltest.TestCase):
 
   def test_base_locale_is_none(self):
     self.assertIsNone(svq.SVQPassageCrossLangRetrieval.locale)
+
+  def test_base_size_is_none(self):
+    self.assertIsNone(svq.SVQPassageCrossLangRetrieval.size)
 
   def test_sub_tasks(self):
     task = svq.SVQPassageCrossLangRetrieval()

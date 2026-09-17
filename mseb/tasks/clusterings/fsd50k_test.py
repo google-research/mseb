@@ -145,5 +145,59 @@ class FSD50KClusteringTest(absltest.TestCase):
     self.assertEqual(sounds[1].context.id, '175151')
 
 
+class BaseClassTest(absltest.TestCase):
+  """Tests for FSD50KClustering base class attributes."""
+
+  def test_base_split_is_none(self):
+    self.assertIsNone(fsd50k.FSD50KClustering.split)
+
+  def test_sub_tasks(self):
+    # sub_tasks is a property, but we can check via an instance with mocked
+    # split.
+    task = fsd50k.FSD50KTestClustering()
+    self.assertEqual(task.sub_tasks, ['sound_event'])
+
+  def test_split_none_raises(self):
+    task = fsd50k.FSD50KClustering()
+    with self.assertRaises(ValueError):
+      _ = task._fsd_dataset
+
+  def test_get_label_single(self):
+    task = fsd50k.FSD50KClustering()
+    self.assertEqual(task._get_label({'labels': 'Music'}), 'Music')
+
+  def test_get_label_multi(self):
+    task = fsd50k.FSD50KClustering()
+    self.assertEqual(task._get_label({'labels': 'Bark,Siren,Speech'}), 'Bark')
+
+
+class FSD50KTestClusteringMetadataTest(absltest.TestCase):
+  """Tests for FSD50KTestClustering metadata and class attributes."""
+
+  def test_split(self):
+    self.assertEqual(fsd50k.FSD50KTestClustering.split, 'test')
+
+  def test_metadata_name(self):
+    self.assertEqual(
+        fsd50k.FSD50KTestClustering.metadata.name, 'FSD50KTestClustering'
+    )
+
+  def test_metadata_type(self):
+    self.assertEqual(fsd50k.FSD50KTestClustering.metadata.type, 'Clustering')
+
+  def test_metadata_main_score(self):
+    self.assertEqual(
+        fsd50k.FSD50KTestClustering.metadata.main_score, 'VMeasure'
+    )
+
+  def test_metadata_category(self):
+    self.assertEqual(fsd50k.FSD50KTestClustering.metadata.category, 'audio')
+
+  def test_inherits_from_base(self):
+    self.assertTrue(
+        issubclass(fsd50k.FSD50KTestClustering, fsd50k.FSD50KClustering)
+    )
+
+
 if __name__ == '__main__':
   absltest.main()

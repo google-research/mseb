@@ -25,6 +25,7 @@ Evaluation uses the standard RetrievalTask ScaNN-based pipeline: build an index
 over image embeddings, query with audio embeddings, compute MRR/EM/Recall.
 """
 
+import dataclasses
 import os
 from typing import Iterable
 
@@ -37,6 +38,8 @@ from mseb.tasks import retrieval
 class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
   """SpokenCOCO audio-to-image retrieval task."""
 
+  size: str | None = None
+
   def __init__(self):
     super().__init__()
     self._dataset = None
@@ -48,7 +51,10 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
 
   @property
   def index_dir(self) -> str:
-    return os.path.join(super().index_dir, 'spoken_coco_image_retrieval')
+    name = 'spoken_coco_image_retrieval'
+    if self.size is not None:
+      name += f'_{self.size}'
+    return os.path.join(super().index_dir, name)
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -57,19 +63,26 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
   def get_documents_source(self) -> spoken_coco.SpokenCocoDataset:
     return self._get_dataset()
 
-  @staticmethod
+  @classmethod
   def documents_generator(
-      dataset: spoken_coco.SpokenCocoDataset,
+      cls, dataset: spoken_coco.SpokenCocoDataset
   ) -> Iterable[types.Image]:
     """Yields Image objects for each unique image in the dataset."""
     for record in dataset.get_unique_images():
-      yield dataset.get_image(record)
+      # if cls._should_include_record(record['image']):
+      if cls.size is None or getattr(spoken_coco, f'is_member_of_{cls.size}')(
+          record['image']
+      ):
+        yield dataset.get_image(record)
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     """Yields Sound objects for each spoken caption in the dataset."""
     dataset = self._get_dataset()
     for record in dataset.get_task_data().to_dict('records'):
-      yield dataset.get_sound(record)
+      if self.size is None or getattr(spoken_coco, f'is_member_of_{self.size}')(
+          record['uttid']
+      ):
+        yield dataset.get_sound(record)
 
   def examples(
       self, sub_task: str
@@ -77,10 +90,13 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
     """Yields (sound_id, reference_id) pairs mapping captions to images."""
     dataset = self._get_dataset()
     for record in dataset.get_task_data().to_dict('records'):
-      yield retrieval_evaluator.RetrievalReferenceId(
-          sound_id=record['uttid'],
-          reference_id=record['image'],
-      )
+      if self.size is None or getattr(spoken_coco, f'is_member_of_{self.size}')(
+          record['uttid']
+      ):
+        yield retrieval_evaluator.RetrievalReferenceId(
+            sound_id=record['uttid'],
+            reference_id=record['image'],
+        )
 
   metadata = types.TaskMetadata(
       name='SpokenCocoEnImageRetrieval',
@@ -106,4 +122,16 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
       eval_langs=['en'],
       domains=['speech', 'image'],
       task_subtypes=['retrieval'],
+  )
+
+
+class SpokenCocoImageRetrievalDebug(SpokenCocoImageRetrieval):
+  """SpokenCOCO audio-to-image retrieval task for debugging."""
+
+  size = 'debug'
+
+  metadata = dataclasses.replace(
+      SpokenCocoImageRetrieval.metadata,
+      name='SpokenCocoImageRetrievalDebug',
+      description='Audio-to-image retrieval on SpokenCOCO for debugging.',
   )

@@ -130,6 +130,42 @@ class DynamicClassGenerationTest(absltest.TestCase):
         )
     )
 
+  def test_locale_class_default_size_is_none(self):
+    task_cls = getattr(
+        speech_massive_intent, 'SpeechMassiveRuRuIntentClassification'
+    )
+    self.assertIsNone(task_cls.size)
+
+  def test_debug_classes_exist(self):
+    for suffix in ('DeDe', 'FrFr'):
+      class_name = f'SpeechMassive{suffix}IntentClassificationDebug'
+      self.assertTrue(
+          hasattr(speech_massive_intent, class_name),
+          f'Missing debug class {class_name}',
+      )
+
+  def test_debug_class_has_correct_size(self):
+    task_cls = getattr(
+        speech_massive_intent,
+        'SpeechMassiveDeDeIntentClassificationDebug',
+    )
+    self.assertEqual(task_cls.size, 'debug')
+
+  def test_debug_only_de_de_and_fr_fr(self):
+    """Debug classes should only exist for de-DE and fr-FR."""
+    for locale, (
+        suffix,
+        _,
+    ) in speech_massive_intent._SPEECH_MASSIVE_LOCALES.items():
+      class_name = f'SpeechMassive{suffix}IntentClassificationDebug'
+      if locale in ('de_de', 'fr_fr'):
+        self.assertTrue(hasattr(speech_massive_intent, class_name))
+      else:
+        self.assertFalse(
+            hasattr(speech_massive_intent, class_name),
+            f'Unexpected debug class {class_name}',
+        )
+
   def test_metadata_type_is_intent_classification(self):
     task_cls = getattr(
         speech_massive_intent, 'SpeechMassiveViVnIntentClassification'
@@ -156,7 +192,9 @@ class DynamicClassGenerationTest(absltest.TestCase):
             speech_massive_intent.SpeechMassiveIntentClassification,
         )
     ]
-    self.assertLen(generated, num_locales)  # 12 default
+    self.assertLen(
+        generated, num_locales * 2 + 2
+    )  # 12 default + 12 compact + 2 debug
 
 
 class BaseClassTest(absltest.TestCase):
@@ -165,6 +203,11 @@ class BaseClassTest(absltest.TestCase):
   def test_base_locale_is_none(self):
     self.assertIsNone(
         speech_massive_intent.SpeechMassiveIntentClassification.locale
+    )
+
+  def test_base_size_is_none(self):
+    self.assertIsNone(
+        speech_massive_intent.SpeechMassiveIntentClassification.size
     )
 
   def test_base_filename_is_none(self):
@@ -179,6 +222,44 @@ class BaseClassTest(absltest.TestCase):
   def test_task_type(self):
     task = speech_massive_intent.SpeechMassiveIntentClassification()
     self.assertEqual(task.task_type, 'multi_class')
+
+
+class DebugClassesTest(absltest.TestCase):
+  """Tests for Debug variants."""
+
+  def test_debug_dede_has_correct_locale(self):
+    task_cls = getattr(
+        speech_massive_intent, 'SpeechMassiveDeDeIntentClassificationDebug'
+    )
+    self.assertEqual(task_cls.locale, 'de_de')
+
+  def test_debug_dede_has_debug_size(self):
+    task_cls = getattr(
+        speech_massive_intent, 'SpeechMassiveDeDeIntentClassificationDebug'
+    )
+    self.assertEqual(task_cls.size, 'debug')
+
+  def test_debug_frfr_has_debug_size(self):
+    task_cls = getattr(
+        speech_massive_intent, 'SpeechMassiveFrFrIntentClassificationDebug'
+    )
+    self.assertEqual(task_cls.size, 'debug')
+
+  @mock.patch('mseb.utils.download_from_hf')
+  def test_debug_dede_filters_examples(self, _):
+    """Debug IDs filter reduces the examples from testdata."""
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent.parent.parent,
+        'testdata',
+    )
+    with flagsaver.flagsaver((
+        dataset._DATASET_BASEPATH,
+        os.path.join(testdata_path, 'speech_massive'),
+    )):
+      task = speech_massive_intent.SpeechMassiveDeDeIntentClassificationDebug()
+      # Debug IDs are unlikely to match testdata IDs, so expect fewer results.
+      examples = list(task.examples('intent_classification'))
+      self.assertLessEqual(len(examples), 2)
 
 
 if __name__ == '__main__':

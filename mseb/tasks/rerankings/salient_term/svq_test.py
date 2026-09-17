@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import inspect
 import json
 import os
@@ -21,6 +22,7 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import dataset
+from mseb import task as task_lib
 from mseb import types
 from mseb.tasks.rerankings.salient_term import svq
 import numpy as np
@@ -43,6 +45,7 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': ['weather', 'boston', 'forecast'],
             'environment': 'clean',
             'text': 'fake_transcript_001',
+            'passage_id': 'passage_001',
         },
         {
             'utt_id': 'en_us_002',
@@ -52,6 +55,7 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': ['music', 'playlist'],
             'environment': 'media_noise',
             'text': 'fake_transcript_002',
+            'passage_id': 'passage_002',
         },
         {
             'utt_id': 'de_de_001',
@@ -61,6 +65,7 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': ['wetter'],
             'environment': 'clean',
             'text': 'fake_transcript_003',
+            'passage_id': 'passage_003',
         },
     ]
 
@@ -70,15 +75,38 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
         for record in self.mock_records:
           f.write(json.dumps(record) + '\n')
 
+    audio_dir = os.path.join(self.testdata_dir.full_path, 'audio')
+    os.makedirs(audio_dir, exist_ok=True)
+    by_loc_env = collections.defaultdict(list)
+    for record in self.mock_records:
+      by_loc_env[(record['locale'], record['environment'])].append(record)
+
+    for env in ('clean', 'media_noise', 'traffic_noise', 'background_speech'):
+      if ('en_us', env) not in by_loc_env or not by_loc_env[('en_us', env)]:
+        by_loc_env[('en_us', env)] = [{
+            'locale': 'en_us',
+            'utt_id': f'dummy_en_us_{env}',
+            'environment': env,
+            'rerankings/salient_term': False,
+            'candidate_salient_terms': [],
+            'topk_salient_terms': [],
+            'text': '',
+            'passage_id': 'no_passage_id',
+        }]
+
+    for (loc, env), records in by_loc_env.items():
+      path = os.path.join(audio_dir, f'utts_{loc}_{env}.jsonl')
+      with open(path, 'w') as f:
+        for r in records:
+          f.write(json.dumps(r) + '\n')
+
     self.enter_context(
         flagsaver.flagsaver(
             (dataset._DATASET_BASEPATH, self.testdata_dir.full_path)
         )
     )
     self.enter_context(
-        flagsaver.flagsaver(
-            (svq._RANDOMIZE_CANDIDATE_SALIENT_TERMS, False)
-        )
+        flagsaver.flagsaver((svq._RANDOMIZE_CANDIDATE_SALIENT_TERMS, False))
     )
 
     self.mock_get_sound = self.enter_context(
@@ -192,9 +220,7 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
 
   def test_examples_for_background_speech_sub_task_empty(self):
     task = svq.SVQEnUsSalientTermReranking()
-    examples = list(
-        task.examples('salient_term_reranking:background_speech')
-    )
+    examples = list(task.examples('salient_term_reranking:background_speech'))
     self.assertEmpty(examples)
 
   def test_all_task_configurations(self):
@@ -248,6 +274,196 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
     candidates = ['a', 'b', 'c']
     rank_by_id = svq._get_rank_by_id(candidates, randomize=True)
     self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
+
+
+class DynamicClassGenerationTest(absltest.TestCase):
+  """Tests for the factory-generated locale-specific task classes."""
+
+  def test_all_locale_classes_exist(self):
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}SalientTermReranking'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing class {class_name} for locale {locale}',
+      )
+
+  def test_locale_class_has_correct_locale(self):
+    task_cls = getattr(svq, 'SVQEnUsSalientTermReranking')
+    self.assertEqual(task_cls.locale, 'en_us')
+
+  def test_locale_class_has_correct_metadata_name(self):
+    task_cls = getattr(svq, 'SVQArEgSalientTermReranking')
+    self.assertEqual(task_cls.metadata.name, 'SVQArEgSalientTermReranking')
+
+  def test_locale_class_has_correct_eval_langs(self):
+    task_cls = getattr(svq, 'SVQFiFiSalientTermReranking')
+    self.assertEqual(task_cls.metadata.eval_langs, ['fi-FI'])
+
+  def test_locale_class_inherits_from_base(self):
+    task_cls = getattr(svq, 'SVQKoKrSalientTermReranking')
+    self.assertTrue(issubclass(task_cls, svq.SVQSalientTermReranking))
+
+  def test_locale_class_default_size_is_none(self):
+    task_cls = getattr(svq, 'SVQSwSalientTermReranking')
+    self.assertIsNone(task_cls.size)
+
+  def test_compact_classes_exist(self):
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}SalientTermRerankingCompact'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing compact class {class_name} for locale {locale}',
+      )
+
+  def test_compact_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQEnUsSalientTermRerankingCompact')
+    self.assertEqual(task_cls.size, 'compact')
+
+  def test_compact_class_has_correct_locale(self):
+    task_cls = getattr(svq, 'SVQRuRuSalientTermRerankingCompact')
+    self.assertEqual(task_cls.locale, 'ru_ru')
+
+  def test_compact_class_inherits_from_base(self):
+    task_cls = getattr(svq, 'SVQTeInSalientTermRerankingCompact')
+    self.assertTrue(issubclass(task_cls, svq.SVQSalientTermReranking))
+
+  def test_debug_classes_exist(self):
+    for suffix in ('EnUs', 'FiFi'):
+      class_name = f'SVQ{suffix}SalientTermRerankingDebug'
+      self.assertTrue(
+          hasattr(svq, class_name),
+          f'Missing debug class {class_name}',
+      )
+
+  def test_debug_class_has_correct_size(self):
+    task_cls = getattr(svq, 'SVQEnUsSalientTermRerankingDebug')
+    self.assertEqual(task_cls.size, 'debug')
+
+  def test_debug_only_en_us_and_fi_fi(self):
+    """Debug classes should only exist for en-US and fi-FI."""
+    for locale, (suffix, _) in svq._SVQ_LOCALES.items():
+      class_name = f'SVQ{suffix}SalientTermRerankingDebug'
+      if locale in ('en_us', 'fi_fi'):
+        self.assertTrue(hasattr(svq, class_name))
+      else:
+        self.assertFalse(
+            hasattr(svq, class_name),
+            f'Unexpected debug class {class_name}',
+        )
+
+  def test_metadata_type_is_salient_term_reranking(self):
+    task_cls = getattr(svq, 'SVQHiInSalientTermReranking')
+    self.assertEqual(task_cls.metadata.type, 'SalientTermReranking')
+
+  def test_metadata_main_score_is_ndcg(self):
+    task_cls = getattr(svq, 'SVQJaJpSalientTermReranking')
+    self.assertEqual(task_cls.metadata.main_score, 'NDCG')
+
+  def test_total_class_count(self):
+    """26 locales * 2 (default + compact) + 2 debug = 54 classes."""
+    num_expected = len(svq._SVQ_LOCALES) * 2 + 2
+    generated = [
+        name
+        for name in dir(svq)
+        if name.startswith('SVQ')
+        and name != 'SVQSalientTermReranking'
+        and isinstance(getattr(svq, name), type)
+        and issubclass(getattr(svq, name), svq.SVQSalientTermReranking)
+    ]
+    self.assertLen(generated, num_expected)
+
+  def test_ur_pk_locale_exists(self):
+    """Verify the new ur_pk locale is included."""
+    self.assertIn('ur_pk', svq._SVQ_LOCALES)
+    self.assertTrue(hasattr(svq, 'SVQUrPkSalientTermReranking'))
+    self.assertTrue(hasattr(svq, 'SVQUrPkSalientTermRerankingCompact'))
+
+  def test_embeddings_dir_with_size(self):
+    temp_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver((task_lib.TASK_CACHE_BASEPATH, temp_dir)):
+      task_compact = svq.SVQEnUsSalientTermRerankingCompact()
+      self.assertTrue(
+          task_compact.embeddings_dir.endswith(
+              os.path.join(
+                  'rerankings', 'svq_en_us_salient_term_reranking_compact'
+              )
+          )
+      )
+      task_debug = svq.SVQEnUsSalientTermRerankingDebug()
+      self.assertTrue(
+          task_debug.embeddings_dir.endswith(
+              os.path.join(
+                  'rerankings', 'svq_en_us_salient_term_reranking_debug'
+              )
+          )
+      )
+
+
+class BaseClassTest(absltest.TestCase):
+  """Tests for SVQSalientTermReranking base class attributes."""
+
+  def test_base_locale_is_none(self):
+    self.assertIsNone(svq.SVQSalientTermReranking.locale)
+
+  def test_base_size_is_none(self):
+    self.assertIsNone(svq.SVQSalientTermReranking.size)
+
+  def test_sub_tasks(self):
+    task = svq.SVQSalientTermReranking()
+    self.assertIn('salient_term_reranking', task.sub_tasks)
+    self.assertIn('salient_term_reranking:clean', task.sub_tasks)
+    self.assertIn('salient_term_reranking:media_noise', task.sub_tasks)
+    self.assertIn('salient_term_reranking:traffic_noise', task.sub_tasks)
+    self.assertIn('salient_term_reranking:background_speech', task.sub_tasks)
+
+  def test_embeddings_dir_raises_without_locale(self):
+    temp_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver((task_lib.TASK_CACHE_BASEPATH, temp_dir)):
+      task = svq.SVQSalientTermReranking()
+      with self.assertRaises(AssertionError):
+        _ = task.embeddings_dir
+
+
+class TaskDataFilteringTest(absltest.TestCase):
+  """Tests for _task_data filtering."""
+
+  def test_task_data_filters_by_task_boolean(self):
+    temp_dir = self.create_tempdir().full_path
+    with open(os.path.join(temp_dir, 'custom_task.jsonl'), 'w') as f:
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_1',
+              'locale': 'en_us',
+          })
+          + '\n'
+      )
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_2',
+              'locale': 'en_us',
+          })
+          + '\n'
+      )
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_3',
+              'locale': 'en_us',
+          })
+          + '\n'
+      )
+    with open(os.path.join(temp_dir, 'utt_index.jsonl'), 'w') as f:
+      for i, uid in enumerate(['utt_1', 'utt_2', 'utt_3']):
+        f.write(
+            json.dumps({'utt_id': uid, 'locale': 'en_us', 'index': i}) + '\n'
+        )
+
+    task = svq.SVQEnUsSalientTermReranking()
+    with flagsaver.flagsaver((dataset._DATASET_BASEPATH, temp_dir)):
+      task.__dict__.pop('svq_dataset', None)
+      filtered_df = task._task_data('custom_task')
+      self.assertEqual(
+          filtered_df['utt_id'].tolist(), ['utt_1', 'utt_2', 'utt_3']
+      )
 
 
 if __name__ == '__main__':

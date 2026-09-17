@@ -14,13 +14,13 @@
 
 """FSD50K multi-label classification tasks."""
 
+import dataclasses
 from typing import Iterable, Sequence
 
 from mseb import types
 from mseb.datasets import fsd50k
 from mseb.evaluators import classification_evaluator
 from mseb.tasks import classification
-
 
 ReferenceType = classification_evaluator.MultiLabelClassificationReference
 
@@ -29,6 +29,7 @@ class FSD50KClassification(classification.ClassificationTask):
   """Base class for multi-label classification on the FSD50K dataset."""
 
   split: str | None = None
+  size: str | None = None
 
   def _get_dataset(self):
     return fsd50k.FSD50KDataset(split=self.split)  # pyrefly: ignore[bad-argument-type]
@@ -48,7 +49,12 @@ class FSD50KClassification(classification.ClassificationTask):
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     fsd_dataset = self._get_dataset()
-    for record in fsd_dataset.get_task_data().to_dict("records"):
+    task_data = fsd_dataset.get_task_data()
+    if self.size is not None:
+      task_data = task_data[
+          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
+      ]
+    for record in task_data.to_dict("records"):
       yield fsd_dataset.get_sound(record)
 
   def examples(self, sub_task: str) -> Iterable[ReferenceType]:
@@ -56,7 +62,12 @@ class FSD50KClassification(classification.ClassificationTask):
       raise ValueError("`split` must be set by a concrete task subclass.")
 
     fsd_dataset = self._get_dataset()
-    for _, record in enumerate(fsd_dataset.get_task_data().to_dict("records")):
+    task_data = fsd_dataset.get_task_data()
+    if self.size is not None:
+      task_data = task_data[
+          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
+      ]
+    for _, record in enumerate(task_data.to_dict("records")):
       example_id = str(record["fname"])
       label_ids = record["labels"].split(",")
       yield classification_evaluator.MultiLabelClassificationReference(
@@ -105,4 +116,12 @@ class FSD50KTestClassification(FSD50KClassification):
       eval_langs=["und"],
       domains=["audio", "acoustic", "environmental"],
       task_subtypes=["classification"],
+  )
+
+
+class FSD50KTestClassificationDebug(FSD50KTestClassification):
+  size = "debug"
+  metadata = dataclasses.replace(
+      FSD50KTestClassification.metadata,
+      name="FSD50KTestClassificationDebug",
   )

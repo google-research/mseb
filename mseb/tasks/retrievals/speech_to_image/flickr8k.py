@@ -57,10 +57,8 @@ class Flickr8kImageRetrieval(retrieval.RetrievalTask):
   def get_documents_source(self) -> flickr8k.Flickr8kDataset:
     return self._get_dataset()
 
-  @staticmethod
-  def documents_generator(
-      dataset: Any,
-  ) -> Iterable[types.Image]:
+  @classmethod
+  def documents_generator(cls, dataset: Any) -> Iterable[types.Image]:
     """Yields Image objects for each unique image in the dataset."""
     for record in dataset.get_unique_images():
       yield dataset.get_image(record)
