@@ -16,10 +16,12 @@
 
 import fnmatch
 import glob
+import hashlib
 import io
 import json
 import logging
 import os
+import re
 from typing import Any, Mapping
 
 import apache_beam as beam
@@ -395,3 +397,62 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       )
 
     return transform
+
+
+# Matches either:
+# 1) Start of string: (?:^)
+# 2) A delimiter (- or _) following alphanumeric/prefix characters:
+#    (?<=[a-zA-Z0-9_])[-_]
+# followed by an optional minus sign and a large run of digits
+#    (default >= 6 digits):
+_PASSAGE_ID_PATTERN = re.compile(r"(?:^|(?<=[a-zA-Z0-9_])[-_])(-?\d{6,})")
+
+
+def parse_passage_id(passage_id: str, min_digits: int = 6) -> int:
+  """Extracts the large signed integer ID from a passage ID string.
+
+  Handles:
+    - Positive IDs with prefixes (e.g. "korean-7766157635581715307-8")
+    - Negative IDs with prefixes (e.g. "arabic--3663137242854443418-hardneg-0")
+    - Standalone positive/negative IDs (e.g. "-7615928064691233550",
+    "8484105171262018122")
+    - Trailing suffixes (e.g. "-hardneg", "-hardneg-2", "-unanswerable")
+
+  Args:
+    passage_id: The input ID string.
+    min_digits: Minimum digits required to distinguish the ID from small suffix
+      numbers like `-8` or `-2` (default is 6; SVQ IDs are typically 18-19
+      digits).
+
+  Returns:
+    The integer value of the large ID.
+
+  Raises:
+    ValueError: If no large ID number is found in `passage_id`.
+  """
+  clean_str = passage_id.strip('\'"“” \t\n')
+  pattern = (
+      _PASSAGE_ID_PATTERN
+      if min_digits == 6
+      else re.compile(rf"(?:^|(?<=[a-zA-Z0-9_])[-_])(-?\d{{{min_digits},}})")
+  )
+  match = pattern.search(clean_str)
+  if not match:
+    raise ValueError(f"No large ID number found in: {passage_id!r}")
+  return int(match.group(1))
+
+
+def is_member_of_debug(passage_id: str) -> bool:
+  _debug_ids: frozenset[str] = frozenset([
+      "1023841985531689286",  # english
+      "2888513011661240822",  # finnish
+  ])
+  return str(parse_passage_id(passage_id)) in _debug_ids
+
+
+def is_member_of_compact(passage_id: str) -> bool:
+  digest = hashlib.sha256(
+      str(parse_passage_id(passage_id)).encode("utf-8")
+  ).digest()
+  fp64 = int.from_bytes(digest[:8], byteorder="little")
+  return fp64 % 10 == 0

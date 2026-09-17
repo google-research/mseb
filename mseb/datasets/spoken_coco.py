@@ -195,3 +195,18 @@ class SpokenCocoDataset(audio_image_base.AudioImageDataset):
     if dtype:
       df = df.astype(dtype)
     return df
+
+
+def is_member_of_debug(wav_or_image: str) -> bool:
+  """Returns whether the wav or image is in the debug set."""
+  debug_ids = frozenset([
+      'val2014/COCO_val2014_000000325114.jpg',
+      'm071506418gb9vo0w5xq3-3LUY3GC63Z0R9PYEETJGN5HO4UEP7B_325114_629297',
+      'm221bzbcdh4ro4-3ZQIG0FLQEGJ4OWB8D0RLD5NKVLWVB_325114_628718',
+      'm2zco7272xa5e0-3RANCT1ZVFHR36908WUQ2DQJVTZBU1_325114_615377',
+      'val2014/COCO_val2014_000000333745.jpg',
+      'm071506418gb9vo0w5xq3-3LUY3GC63Z0R9PYEETJGN5HO4UEP7B_333745_580115',
+      'm12u9503bzdrjl-3ZPBJO59KP1FDH10MTEXEOPT4EWDHC_333745_579770',
+      'm2ogmlp7avprkd-3M1CVSFP605US3XRL9APX19ODS7QAM_333745_584324',
+  ])
+  return wav_or_image in debug_ids

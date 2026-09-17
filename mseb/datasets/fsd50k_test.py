@@ -128,5 +128,18 @@ class FSD50KDatasetTest(absltest.TestCase):
     self.assertEqual(sound2.context.id, '175151')
     self.assertLen(sound2.waveform, 32000)
 
+
+class DebugIdsTest(absltest.TestCase):
+
+  def test_is_member_of_debug_true(self):
+    self.assertTrue(fsd50k.is_member_of_debug('345111'))
+    self.assertTrue(fsd50k.is_member_of_debug('160826'))
+    self.assertTrue(fsd50k.is_member_of_debug('420945'))
+
+  def test_is_member_of_debug_false(self):
+    self.assertFalse(fsd50k.is_member_of_debug('non_existent_id'))
+    self.assertFalse(fsd50k.is_member_of_debug(''))
+
+
 if __name__ == '__main__':
   absltest.main()

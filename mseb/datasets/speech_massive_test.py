@@ -178,5 +178,31 @@ class SpeechMassiveTest(absltest.TestCase):
       )
 
 
+class DebugAndCompactIdsTest(absltest.TestCase):
+
+  def test_is_member_of_debug_true(self):
+    self.assertTrue(speech_massive.is_member_of_debug("6902"))
+    self.assertTrue(speech_massive.is_member_of_debug("13734"))
+    self.assertTrue(speech_massive.is_member_of_debug("16603"))
+
+  def test_is_member_of_debug_false(self):
+    self.assertFalse(speech_massive.is_member_of_debug("non_existent_id"))
+    self.assertFalse(speech_massive.is_member_of_debug(""))
+
+  def test_is_member_of_compact_true(self):
+    self.assertTrue(speech_massive.is_member_of_compact("0"))
+    self.assertTrue(speech_massive.is_member_of_compact("10125"))
+
+  def test_is_member_of_compact_false(self):
+    self.assertFalse(speech_massive.is_member_of_compact("non_existent_id"))
+    self.assertFalse(speech_massive.is_member_of_compact(""))
+
+  def test_is_member_of_compact_size(self):
+    count = 0
+    for i in range(20_000):
+      count += int(speech_massive.is_member_of_compact(str(i)))
+    self.assertEqual(count, 500)
+
+
 if __name__ == "__main__":
   absltest.main()

@@ -142,8 +142,9 @@ class SpokenCocoDatasetTest(absltest.TestCase):
 
   def test_get_task_data_with_dtype(self):
     df = self.dataset.get_task_data(dtype={'uttid': str, 'speaker': str})
-    self.assertEqual(df['uttid'].dtype,
-                     pd.StringDtype(na_value=np.nan))
+    self.assertEqual(
+        df['uttid'].dtype,
+    pd.StringDtype(na_value=np.nan))
 
   def test_data_is_cached(self):
     """Verify that _load_data caches the parsed JSON."""
@@ -227,6 +228,26 @@ class DownloadSpokenCocoTest(absltest.TestCase):
     ) as mock_dl:
       spoken_coco.maybe_download_spoken_coco(dest_dir=dest_dir, split='val')
       mock_dl.assert_not_called()
+
+
+class DebugIdsTest(absltest.TestCase):
+
+  def test_is_member_of_debug_true(self):
+    self.assertTrue(
+        spoken_coco.is_member_of_debug('val2014/COCO_val2014_000000325114.jpg')
+    )
+    self.assertTrue(
+        spoken_coco.is_member_of_debug(
+            'm071506418gb9vo0w5xq3-3LUY3GC63Z0R9PYEETJGN5HO4UEP7B_325114_629297'
+        )
+    )
+    self.assertTrue(
+        spoken_coco.is_member_of_debug('val2014/COCO_val2014_000000333745.jpg')
+    )
+
+  def test_is_member_of_debug_false(self):
+    self.assertFalse(spoken_coco.is_member_of_debug('non_existent_id'))
+    self.assertFalse(spoken_coco.is_member_of_debug(''))
 
 
 if __name__ == '__main__':
