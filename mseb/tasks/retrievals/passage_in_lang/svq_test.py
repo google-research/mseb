@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import pathlib
 import shutil
@@ -37,6 +38,10 @@ def _setup_testdata(test_case):
   shutil.copytree(testdata_path, cache_dir)
   os.chmod(cache_dir, 0o755)
   pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, '.git')))
+  shutil.copyfile(
+      os.path.join(cache_dir, 'passage_retrieval_in_lang.jsonl'),
+      os.path.join(cache_dir, 'utts_en_us_clean.jsonl'),
+  )
   test_case.enter_context(
       flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
   )
@@ -197,6 +202,48 @@ class TaskDataFilteringTest(absltest.TestCase):
         dtype={'locale': str, 'utt_id': str},
     )
     self.assertNotEmpty(df)
+
+  def test_task_data_filters_by_task_list(self):
+    temp_dir = self.create_tempdir().full_path
+    with open(os.path.join(temp_dir, 'custom_task.jsonl'), 'w') as f:
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_1',
+              'locale': 'en_us',
+              'retrievals/passage_in_lang': True,
+              'rerankings/salient_term': True,
+          })
+          + '\n'
+      )
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_2',
+              'locale': 'en_us',
+              'retrievals/passage_in_lang': False,
+              'rerankings/salient_term': True,
+          })
+          + '\n'
+      )
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_3',
+              'locale': 'en_us',
+              'retrievals/passage_in_lang': True,
+              'rerankings/salient_term': False,
+          })
+          + '\n'
+      )
+    with open(os.path.join(temp_dir, 'utt_index.jsonl'), 'w') as f:
+      for i, uid in enumerate(['utt_1', 'utt_2', 'utt_3']):
+        f.write(
+            json.dumps({'utt_id': uid, 'locale': 'en_us', 'index': i}) + '\n'
+        )
+
+    task = svq.SVQEnUsPassageInLangRetrieval()
+    with flagsaver.flagsaver((dataset._DATASET_BASEPATH, temp_dir)):
+      task.__dict__.pop('svq_dataset', None)
+      filtered_df = task._task_data('custom_task')
+      self.assertEqual(filtered_df['utt_id'].tolist(), ['utt_1', 'utt_3'])
 
 
 if __name__ == '__main__':

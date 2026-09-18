@@ -23,7 +23,8 @@ from apache_beam.testing import test_pipeline
 from apache_beam.testing import util as beam_testing_util
 from mseb.datasets import simple_voice_questions as svq
 import pandas as pd
-
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 # Mock the array_record dependency
 sys.modules["array_record"] = mock.MagicMock()
@@ -60,8 +61,6 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
         pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
     )
     temp_dir = self.create_tempdir().full_path
-    audio_dir = os.path.join(temp_dir, "audio")
-    os.makedirs(audio_dir)
 
     # 1. Create task data parquet
     task_df = pd.DataFrame({
@@ -69,7 +68,15 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
         "task": ["p_task"],
         "passage_text": ["text in parquet"],
     })
-    task_df.to_parquet(os.path.join(temp_dir, "test_p_task.parquet"))
+    table = pa.Table.from_pandas(task_df)
+    custom_meta = {
+        **(table.schema.metadata or {}),
+        b"mseb_dataset": b"svq",
+        b"mseb_version": b"2.0.0",
+        b"mseb_schema_version": b"2",
+    }
+    table = table.replace_schema_metadata(custom_meta)
+    pq.write_table(table, os.path.join(temp_dir, "test_p_task.parquet"))
 
     # 2. Use real wav for audio bytes
     with open(os.path.join(testdata_path, "roses-are.wav"), "rb") as f_wav:
@@ -85,7 +92,7 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
         "text": ["hello parquet"],
         "waveform": [real_wav],
     })
-    audio_df.to_parquet(os.path.join(audio_dir, "utts_en_us_clean.parquet"))
+    audio_df.to_parquet(os.path.join(temp_dir, "utts_en_us_clean.parquet"))
 
     # 3. Load dataset
     dataset = svq.SimpleVoiceQuestionsDataset(base_path=temp_dir)
@@ -130,6 +137,30 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
     self.assertEqual(example.id, "english-1064747448949054415-7")
     self.assertEqual(example.title, "Little Albert experiment")
     self.assertTrue(example.context.startswith("Albert was about one year old"))
+
+  def test_get_task_path_with_wildcard(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+
+    # 1. task_name with wildcard: test_task*
+    path = dataset._get_task_path("test_task*")
+    self.assertTrue(path.endswith("test_task*.jsonl"))
+
+    # 2. get_task_data with wildcard returns dataframe
+    task_df = dataset.get_task_data("test_task*")
+    self.assertIsInstance(task_df, pd.DataFrame)
+    self.assertLen(task_df, 1)
+
+  def test_get_task_data_jsonl_deprecation_warning(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+    with self.assertLogs(level="WARNING") as cm:
+      _ = dataset.get_task_data("test_task")
+    self.assertTrue(any("JSONL is deprecated" in msg for msg in cm.output))
 
 
 class SimpleVoiceQuestionsBeamTest(absltest.TestCase):

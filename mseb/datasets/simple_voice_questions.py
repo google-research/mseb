@@ -25,12 +25,14 @@ import re
 from typing import Any, Mapping
 
 import apache_beam as beam
+
 from array_record.python import array_record_module as array_record
 from etils import epath
 from mseb import dataset
 from mseb import types
 from mseb import utils
 from mseb.datasets import base
+from packaging import version
 import pandas as pd
 import pyarrow.parquet as pq
 
@@ -52,7 +54,7 @@ LANGUAGES = [
     "sw",
     "ta",
     "te",
-    "ur"
+    "ur",
 ]
 
 
@@ -98,7 +100,7 @@ class _UttLookup:
             # Stream bytes natively via epath, restricting memory to 'waveform'
             self.readers[path] = (
                 "parquet",
-                pq.read_table(io.BytesIO(f.read()), columns=["waveform"])
+                pq.read_table(io.BytesIO(f.read()), columns=["waveform"]),
             )
         elif epath.Path(array_record_path).exists():
           self.readers[path] = (
@@ -219,7 +221,7 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
         name="Simple Voice Questions (SVQ)",
         description="A dataset for evaluating sound representations.",
         homepage="https://huggingface.co/datasets/google/svq",
-        version="1.0.0",
+        version="2.0.0",
         license="CC BY 4.0",
         mseb_tasks=[
             "classification",
@@ -247,8 +249,8 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
             utt_index_path,
             e,
         )
-        # Fallback to scanning audio/*.parquet
-        all_files = utils.list_hf_files(self.repo_id, path="audio")
+        # Fallback to scanning *.parquet
+        all_files = utils.list_hf_files(self.repo_id, path=".")
 
         files = [
             f
@@ -257,21 +259,14 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
         ]
         if not files:
           raise FileNotFoundError(
-              f"No parquet files found in {self.repo_id}/audio"
+              f"No parquet files found in {self.repo_id}"
           ) from e
     else:
       utt_index_path = os.path.join(self.base_path, "utt_index.jsonl")  # pyrefly: ignore[no-matching-overload]
       if epath.Path(utt_index_path).exists():
         return pd.read_json(utt_index_path, lines=True)
 
-      audio_dir = os.path.join(self.base_path, "audio")  # pyrefly: ignore[no-matching-overload]
-      if not epath.Path(audio_dir).exists():
-        raise FileNotFoundError(
-            f"Master index {utt_index_path} not found and audio dir {audio_dir}"
-            " not found."
-        )
-
-      files = glob.glob(os.path.join(audio_dir, "*.parquet"))
+      files = glob.glob(os.path.join(self.base_path, "utts_*.parquet"))  # pyrefly: ignore[no-matching-overload]
 
     cols = [
         "utt_id",
@@ -295,7 +290,7 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
         with epath.Path(f).open("rb") as parquet_file:
           table = pq.read_table(io.BytesIO(parquet_file.read()), columns=cols)
         basename = os.path.basename(f)
-        rel_name = os.path.join("audio", os.path.splitext(basename)[0])
+        rel_name = os.path.splitext(basename)[0]
 
       pylist = (
           table.to_pylist() if not self.streaming else table.to_dict("records")
@@ -340,19 +335,47 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     return types.Sound(waveform=waveform, context=context)  # pyrefly: ignore[bad-argument-type]
 
   def _get_task_path(self, task_name: str) -> str:
-    """Returns the path to the task file for the given task name."""
-    jsonl_path = os.path.join(self.base_path, f"{task_name}.jsonl")  # pyrefly: ignore[no-matching-overload]
-    if epath.Path(jsonl_path).exists():
-      return jsonl_path
+    """Returns the path to the task file for the given task name.
 
-    parquet_path = os.path.join(self.base_path, f"{task_name}.parquet")  # pyrefly: ignore[no-matching-overload]
-    if epath.Path(parquet_path).exists():
-      return parquet_path
+    Args:
+      task_name: The name or wildcard pattern of the task file (e.g.,
+        "utts_en_us_clean" or "utts_en_us_*"). Supports wildcards to
+        match multiple environment files across a locale. Parquet format is
+        preferred; JSONL format is deprecated and will be removed in a future
+        release.
+
+    Returns:
+      The path to the task file.
+
+    Raises:
+      FileNotFoundError: If the task file does not exist.
+    """
+    full_path_prefix = os.path.join(self.base_path, task_name)  # pyrefly: ignore[no-matching-overload]
+    target_dir = os.path.dirname(full_path_prefix)
+    file_pattern = os.path.basename(task_name)
+    base_target = epath.Path(target_dir)
+
+    parquet_paths = base_target.glob(f"{file_pattern}.parquet")
+    if list(parquet_paths):
+      return f"{full_path_prefix}.parquet"
+
+    jsonl_paths = base_target.glob(f"{file_pattern}.jsonl")
+    if list(jsonl_paths):
+      return f"{full_path_prefix}.jsonl"
 
     raise FileNotFoundError(
         f"Task file not found for task '{task_name}' in {self.base_path}. "
         "Tried .parquet and .jsonl"
     )
+
+  def get_parquet_version(
+      self, file_path: epath.Path
+  ) -> version.Version | None:
+    with file_path.open("rb") as parquet_f:
+      schema = pq.read_schema(parquet_f)
+    if schema.metadata and b"mseb_version" in schema.metadata:
+      return version.parse(schema.metadata[b"mseb_version"].decode("utf-8"))
+    return None
 
   def get_task_data(
       self, task_name: str | None = None, dtype: Mapping[str, Any] | None = None
@@ -360,8 +383,11 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     """Loads the task data for the given task name.
 
     Args:
-      task_name: The name of the task file (e.g., "span_retrieval_cross_lang").
-      dtype: The dtype for the columns.
+      task_name: The name or wildcard pattern of the task file (e.g.,
+        "span_retrieval_cross_lang" or "utts_en_us_*"). Parquet format is
+        preferred; JSONL format is deprecated and will be removed in a future
+        release.
+      dtype: The dtype for the columns (deprecated, only used for JSONL format).
 
     Returns:
       A pandas DataFrame containing the task data.
@@ -370,10 +396,33 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       FileNotFoundError: If the task file does not exist.
     """
     path = self._get_task_path(task_name)  # pyrefly: ignore[bad-argument-type]
+    matched_files = sorted(
+        epath.Path(os.path.dirname(path)).glob(os.path.basename(path))
+    )
+    if not matched_files:
+      raise FileNotFoundError(f"No files matched '{path}'")
     if path.endswith(".parquet"):
-      return pd.read_parquet(path)
+      svq_version = version.parse(self.metadata.version)
+      for f in matched_files:
+        parquet_version = self.get_parquet_version(f)
+        if parquet_version is None or parquet_version < svq_version:
+          raise ValueError(
+              f"Parquet files with version < {svq_version} are not supported."
+          )
+      dfs = []
+      for f in matched_files:
+        with f.open("rb") as parquet_f:
+          dfs.append(pd.read_parquet(parquet_f))
     else:
-      return pd.read_json(path, lines=True, dtype=dtype)  # pyrefly: ignore[no-matching-overload]
+      logging.warning(
+          "Reading task data from JSONL is deprecated and will be removed in a"
+          " future release. Please use Parquet format instead."
+      )
+      dfs = []
+      for f in matched_files:
+        with f.open("rb") as jsonl_f:
+          dfs.append(pd.read_json(jsonl_f, lines=True, dtype=dtype))  # pyrefly: ignore[no-matching-overload]
+    return pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]  # pyrefly: ignore[bad-return]
 
   def get_task_data_beam(self, task_name: str) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""

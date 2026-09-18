@@ -44,8 +44,17 @@ class SVQEnUsSpanInLangReasoningTest(absltest.TestCase):
     shutil.copytree(testdata_path, cache_dir)
     os.chmod(cache_dir, 0o755)
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
+    shutil.copyfile(
+        os.path.join(cache_dir, "span_reasoning_in_lang.jsonl"),
+        os.path.join(cache_dir, "utts_en_us_clean.jsonl"),
+    )
     self.enter_context(
         flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
+    )
+    self.enter_context(
+        flagsaver.flagsaver(
+            (svq.reasoning.CONTEXT_KEY, "span_context_text_in_lang")
+        )
     )
 
   def test_svq_span_in_lang_reasoning_span_lists(self):

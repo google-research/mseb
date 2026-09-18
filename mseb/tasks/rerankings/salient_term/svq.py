@@ -34,19 +34,27 @@ _RANDOMIZE_CANDIDATE_SALIENT_TERMS = flags.DEFINE_bool(
     'potential bias in the order of the candidates.',
 )
 
-_filter_fn_by_sub_task = {
-    'salient_term_reranking': lambda x: True,
-    'salient_term_reranking:clean': lambda x: x['environment'] == 'clean',
-    'salient_term_reranking:media_noise': (
-        lambda x: x['environment'] == 'media_noise'
-    ),
-    'salient_term_reranking:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'salient_term_reranking:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
+
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
+
+  Examples:
+    'salient_term_reranking:clean' -> 'clean'
+    'salient_term_reranking' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 def _seed_from_candidates(candidates: Sequence[str]) -> int:
@@ -100,20 +108,34 @@ class SVQSalientTermReranking(reranking.RerankingTask):
 
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
-    if self.locale:
-      df = df[df.locale == self.locale]
+    df = df[df['rerankings/salient_term']]
     if self.size is not None:
-      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      candidate_cols = [
+          'span_context_id_cross_lang',
+          'span_context_id_in_lang',
+          'passage_id_cross_lang',
+          'passage_id_in_lang',
+      ]
+      available_cols = [col for col in candidate_cols if col in df.columns]
+      assert candidate_cols
+      coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
+      mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
     return df
 
   @property
   def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
+    return [
+        'salient_term_reranking',
+        'salient_term_reranking:clean',
+        'salient_term_reranking:media_noise',
+        'salient_term_reranking:traffic_noise',
+        'salient_term_reranking:background_speech',
+    ]
 
   def multimodal_inputs(self) -> Iterable[types.SoundWithTitleAndContext]:
     df = self._task_data(
-        'salient_term',
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
             'utt_id': str,
@@ -138,9 +160,8 @@ class SVQSalientTermReranking(reranking.RerankingTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
     df = self._task_data(
-        'salient_term',
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
         dtype={
             'locale': str,
             'utt_id': str,
@@ -149,36 +170,37 @@ class SVQSalientTermReranking(reranking.RerankingTask):
         },
     )
     for example in df.to_dict('records'):
-      if filter_fn(example):
-        rank_by_id = _get_rank_by_id(
-            example['candidate_salient_terms'],
-            randomize=_RANDOMIZE_CANDIDATE_SALIENT_TERMS.value,
-        )
-        yield reranking_evaluator.RerankingCandidates(
-            sound_id=example['utt_id'],
-            texts=example['topk_salient_terms'],
-            language=example['locale'],
-            rank_by_id=rank_by_id,
-        )
+      rank_by_id = _get_rank_by_id(
+          example['candidate_salient_terms'],
+          randomize=_RANDOMIZE_CANDIDATE_SALIENT_TERMS.value,
+      )
+      yield reranking_evaluator.RerankingCandidates(
+          sound_id=example['utt_id'],
+          texts=example['topk_salient_terms'],
+          language=example['locale'],
+          rank_by_id=rank_by_id,
+      )
 
   def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:
     df = self._task_data(
-        'salient_term',
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
             'candidate_salient_terms': Sequence[str],
         },
     )
     for example in df.to_dict('records'):
-      yield (
-          example['utt_id'],
-          [
+      seen = set()
+      texts = []
+      for candidate in example['candidate_salient_terms']:
+        if candidate not in seen:
+          texts.append(
               types.Text(
                   text=candidate, context=types.TextContextParams(id=candidate)
               )
-              for candidate in example['candidate_salient_terms']
-          ],
-      )
+          )
+          seen.add(candidate)
+      yield (example['utt_id'], texts)
 
 
 # Locale -> (ClassName suffix, eval_lang)

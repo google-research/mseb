@@ -35,9 +35,7 @@ _REASONING_NO_ANSWER_THRESHOLD = flags.DEFINE_float(
 )
 
 CONTEXT_KEY = flags.DEFINE_string(
-    'context_key',
-    'passage_text',
-    'Key to use for the context in the task data.',
+    'context_key', None, 'Key to use for the context in the task data.'
 )
 
 logger = logging.getLogger(__name__)

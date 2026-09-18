@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
+import json
 import os
 import pathlib
+import shutil
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
@@ -42,17 +45,29 @@ class SVQClusteringTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.enter_context(
-        flagsaver.flagsaver(
-            (dataset._DATASET_BASEPATH, self.get_testdata_path())
-        )
-    )
-
-  def get_testdata_path(self, *args):
     testdata_path = os.path.join(
         pathlib.Path(os.path.abspath(__file__)).parent.parent.parent, 'testdata'
     )
-    return os.path.join(testdata_path, *args)
+    temp_dir = self.create_tempdir().full_path
+    shutil.copytree(testdata_path, temp_dir, dirs_exist_ok=True)
+    os.chmod(temp_dir, 0o755)
+    utt_index_path = os.path.join(temp_dir, 'utt_index.jsonl')
+    with open(utt_index_path, 'r') as f:
+      records = [json.loads(line) for line in f if line.strip()]
+
+    by_loc_env = collections.defaultdict(list)
+    for record in records:
+      by_loc_env[(record['locale'], record['environment'])].append(record)
+
+    for (loc, env), recs in by_loc_env.items():
+      path = os.path.join(temp_dir, f'utts_{loc}_{env}.jsonl')
+      with open(path, 'w') as f:
+        for r in recs:
+          f.write(json.dumps(r) + '\n')
+
+    self.enter_context(
+        flagsaver.flagsaver((dataset._DATASET_BASEPATH, temp_dir))
+    )
 
   def test_clustering_task(self):
     encoder = get_test_encoder()

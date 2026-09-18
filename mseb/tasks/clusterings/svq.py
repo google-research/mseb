@@ -33,12 +33,22 @@ class SVQClustering(clustering.ClusteringTask):
   def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
 
-  def _task_data(self):
-    df = self.svq_dataset.get_task_data('utt_index')
-    if self.locale:
-      df = df[df.locale == self.locale]
+  def _task_data(self, sub_task: str | None = None):
+    locale_pattern = '*' if self.locale is None else self.locale
+    df = self.svq_dataset.get_task_data(f'utts_{locale_pattern}_*')
+    if sub_task:
+      df = df[df[f'clusterings/{sub_task}']]
     if self.size is not None:
-      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      candidate_cols = [
+          'span_context_id_cross_lang',
+          'span_context_id_in_lang',
+          'passage_id_cross_lang',
+          'passage_id_in_lang',
+      ]
+      available_cols = [col for col in candidate_cols if col in df.columns]
+      assert candidate_cols
+      coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
+      mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
     return df
 
@@ -51,15 +61,16 @@ class SVQClustering(clustering.ClusteringTask):
       yield self.svq_dataset.get_sound(example)
 
   def multimodal_inputs_beam(self):
+    locale_pattern = '*' if self.locale is None else self.locale
     return self.svq_dataset.get_task_sounds_beam(
-        'utt_index', locale=self.locale
+        f'utts_{locale_pattern}_*', locale=self.locale
     )
 
   def examples(
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     """Get (utt_id, label) examples from svq dataset."""
-    for example in self._task_data().to_dict('records'):
+    for example in self._task_data(sub_task).to_dict('records'):
       yield clustering_evaluator.ClusteringExample(
           example['utt_id'], example[sub_task]
       )

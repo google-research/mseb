@@ -23,23 +23,27 @@ from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reasoning_evaluator
 from mseb.tasks import reasoning
 
-_filter_fn_by_sub_task = {
-    'span_reasoning_cross_lang': lambda x: True,
-    'span_reasoning_cross_lang:clean': lambda x: x['environment'] == 'clean',
-    'span_reasoning_cross_lang:media_noise': (
-        lambda x: x['environment'] == 'media_noise'
-    ),
-    'span_reasoning_cross_lang:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'span_reasoning_cross_lang:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
 
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(':')[0]
+  Examples:
+    'span_reasoning_cross_lang:clean' -> 'clean'
+    'span_reasoning_cross_lang' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
@@ -60,65 +64,72 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
       name += f'_{self.size}'
     return os.path.join(super().embeddings_dir, name)
 
+  @property
+  def sub_tasks(self) -> list[str]:
+    return [
+        'span_reasoning_cross_lang',
+        'span_reasoning_cross_lang:clean',
+        'span_reasoning_cross_lang:media_noise',
+        'span_reasoning_cross_lang:traffic_noise',
+        'span_reasoning_cross_lang:background_speech',
+    ]
+
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
-    if self.locale:
-      df = df[df.locale == self.locale]
+    df = df[df['reasonings/span_cross_lang']]
     if self.size is not None:
-      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      mask = df['span_context_id_cross_lang'].map(
+          getattr(svq, f'is_member_of_{self.size}')
+      )
       df = df[mask]
     return df
 
-  @property
-  def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
-
   def multimodal_inputs(self) -> Iterable[types.SoundWithTitleAndContext]:
+    default_context_key = 'span_context_title_cross_lang'
+    context_key = reasoning.CONTEXT_KEY.value or default_context_key
     df = self._task_data(
-        'span_reasoning_cross_lang',
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
             'utt_id': str,
-            'page_title': str,
-            reasoning.CONTEXT_KEY.value: str,
+            'span_context_title_cross_lang': str,
+            context_key: str,
         },
     )
     for example in df.to_dict('records'):
       sound = self.svq_dataset.get_sound(example)
       yield types.SoundWithTitleAndContext(
           waveform=sound.waveform,
-          title_text=example['page_title'],
-          context_text=example[reasoning.CONTEXT_KEY.value],
+          title_text=example['span_context_title_cross_lang'],
+          context_text=example[context_key],
           context=sound.context,
       )
 
   def examples(
       self, sub_task: str
   ) -> Iterable[reasoning_evaluator.ReasoningSpans]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
     df = self._task_data(
-        'span_reasoning_cross_lang',
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
         dtype={
             'locale': str,
             'utt_id': str,
-            'span': str,
-            'spans': Sequence[str],
+            'span_cross_lang': str,
+            'spans_cross_lang': Sequence[str],
         },
     )
     for example in df.to_dict('records'):
-      if filter_fn(example):
-        yield reasoning_evaluator.ReasoningSpans(
-            sound_id=example['utt_id'],
-            reference_answer=example['span'],
-            texts=example['spans'],
-        )
+      yield reasoning_evaluator.ReasoningSpans(
+          sound_id=example['utt_id'],
+          reference_answer=example['span_cross_lang'],
+          texts=example['spans_cross_lang'],
+      )
 
   def span_lists(self) -> Iterable[Sequence[types.Text]]:
     df = self._task_data(
-        'span_reasoning_cross_lang',
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
-            'spans': Sequence[str],
+            'spans_cross_lang': Sequence[str],
         },
     )
     for example in df.to_dict('records'):
@@ -127,7 +138,7 @@ class SVQSpanCrossLangReasoning(reasoning.ReasoningTask):
               text=span,
               context=types.TextContextParams(id=span),
           )
-          for span in example['spans']
+          for span in example['spans_cross_lang']
       ]
 
 

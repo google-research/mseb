@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import pathlib
+import shutil
 from unittest import mock
 
 from absl.testing import absltest
@@ -22,7 +24,6 @@ from mseb import dataset
 from mseb import types
 import numpy as np
 import pytest
-
 
 svq = pytest.importorskip("mseb.tasks.stabilities.speech.svq")
 
@@ -37,10 +38,25 @@ class SVQStabilityTest(absltest.TestCase):
         "testdata",
     )
     # Redirect the dataset loader to use the mini local version
+    cache_dir = self.create_tempdir().full_path
+    shutil.rmtree(cache_dir)
+    shutil.copytree(os.path.join(testdata_path, "svq_mini"), cache_dir)
+    os.chmod(cache_dir, 0o755)
+    pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
+    with open(os.path.join(cache_dir, "utt_index.jsonl")) as f_in, open(
+        os.path.join(cache_dir, "utts_en_us_clean.jsonl"), "w"
+    ) as f_out:
+      for line in f_in:
+        record = json.loads(line)
+        if (
+            record.get("locale") == "en_us"
+            and record.get("environment") == "clean"
+        ):
+          f_out.write(line)
     self.enter_context(
         flagsaver.flagsaver((
             dataset._DATASET_BASEPATH,
-            os.path.join(testdata_path, "svq_mini"),
+            cache_dir,
         ))
     )
 
@@ -60,11 +76,14 @@ class SVQStabilityTest(absltest.TestCase):
     for sound in sounds:
       self.assertEqual(sound.context.language, "en_us")
       # Ensure no noise-environment IDs were accidentally included.
-      self.assertNotIn(sound.context.id, [
-          "utt_6844631007344632667",   # background_speech
-          "utt_2295501949967963013",   # media_noise
-          "utt_15933473411391011897",  # traffic_noise
-      ])
+      self.assertNotIn(
+          sound.context.id,
+          [
+              "utt_6844631007344632667",  # background_speech
+              "utt_2295501949967963013",  # media_noise
+              "utt_15933473411391011897",  # traffic_noise
+          ],
+      )
 
   @mock.patch("mseb.utils.download_from_hf")
   def test_svq_stability_augmentation_expansion(self, _):
@@ -96,7 +115,9 @@ class SVQStabilityTest(absltest.TestCase):
     dummy_emb = types.SoundEmbedding(
         embedding=np.zeros((2, 128)),
         timestamps=np.zeros((2, 2)),
-        context=types.SoundContextParams(id="test", sample_rate=16000, length=2)
+        context=types.SoundContextParams(
+            id="test", sample_rate=16000, length=2
+        ),
     )
     cache.get.return_value = dummy_emb
     # The parent StabilityTask.compute_scores should handle the math.

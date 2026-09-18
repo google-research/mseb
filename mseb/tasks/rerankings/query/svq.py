@@ -33,21 +33,27 @@ _RANDOMIZE_CANDIDATES = flags.DEFINE_bool(
     'Whether to randomize the candidates.',
 )
 
-_filter_fn_by_sub_task = {
-    'query_reranking': lambda x: True,
-    'query_reranking:clean': lambda x: x['environment'] == 'clean',
-    'query_reranking:media_noise': lambda x: x['environment'] == 'media_noise',
-    'query_reranking:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'query_reranking:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
 
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(':')[0]
+  Examples:
+    'document_retrieval_cross_lang:clean' -> 'clean'
+    'document_retrieval_cross_lang' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 def _seed_from_candidates(candidates: Sequence[str]) -> int:
@@ -102,20 +108,34 @@ class SVQQueryReranking(reranking.RerankingTask):
 
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
-    if self.locale:
-      df = df[df.locale == self.locale]
+    df = df[df['rerankings/query']]
     if self.size is not None:
-      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      candidate_cols = [
+          'span_context_id_cross_lang',
+          'span_context_id_in_lang',
+          'passage_id_cross_lang',
+          'passage_id_in_lang',
+      ]
+      available_cols = [col for col in candidate_cols if col in df.columns]
+      assert candidate_cols
+      coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
+      mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
     return df
 
   @property
   def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
+    return [
+        'query_reranking',
+        'query_reranking:clean',
+        'query_reranking:media_noise',
+        'query_reranking:traffic_noise',
+        'query_reranking:background_speech',
+    ]
 
   def multimodal_inputs(self) -> Iterable[types.SoundWithTitleAndContext]:
     df = self._task_data(
-        'query_reranking',
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
             'utt_id': str,
@@ -141,7 +161,7 @@ class SVQQueryReranking(reranking.RerankingTask):
       self, sub_task: str
   ) -> Iterable[reranking_evaluator.RerankingCandidates]:
     df = self._task_data(
-        _base_sub_task(sub_task),
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
     )
     for example in df.to_dict('records'):
@@ -158,7 +178,7 @@ class SVQQueryReranking(reranking.RerankingTask):
 
   def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:
     df = self._task_data(
-        'query_reranking',
+        f'utts_{self.locale}_*',
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
     )
     for example in df.to_dict('records'):

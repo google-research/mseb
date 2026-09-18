@@ -23,23 +23,27 @@ from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import transcription_evaluator
 from mseb.tasks import transcription
 
-_filter_fn_by_sub_task = {
-    'speech_transcription': lambda x: True,
-    'speech_transcription:clean': lambda x: x['environment'] == 'clean',
-    'speech_transcription:media_noise': (
-        lambda x: x['environment'] == 'media_noise'
-    ),
-    'speech_transcription:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'speech_transcription:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
 
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(':')[0]
+  Examples:
+    'speech_transcription:clean' -> 'clean'
+    'speech_transcription' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 class SVQSpeechTranscription(transcription.TranscriptionTask):
@@ -52,22 +56,37 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
   def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
 
+  @property
+  def sub_tasks(self) -> list[str]:
+    return [
+        'speech_transcription',
+        'speech_transcription:clean',
+        'speech_transcription:media_noise',
+        'speech_transcription:traffic_noise',
+        'speech_transcription:background_speech',
+    ]
+
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
     if self.locale:
       df = df[df.locale == self.locale]
     if self.size is not None:
-      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      candidate_cols = [
+          'span_context_id_cross_lang',
+          'span_context_id_in_lang',
+          'passage_id_cross_lang',
+          'passage_id_in_lang',
+      ]
+      available_cols = [col for col in candidate_cols if col in df.columns]
+      assert available_cols
+      coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
+      mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
     return df
 
-  @property
-  def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
-
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     df = self._task_data(
-        'speech_transcription',
+        f'utts_{self.locale}_*',
         dtype={  # pyrefly: ignore[bad-argument-type]
             'locale': str,
             'utt_id': str,
@@ -88,15 +107,14 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
 
   def multimodal_inputs_beam(self):
     return self.svq_dataset.get_task_sounds_beam(
-        'speech_transcription', locale=self.locale
+        f'utts_{self.locale}_*', locale=self.locale
     )
 
   def examples(
       self, sub_task: str
   ) -> Iterable[transcription_evaluator.TranscriptTruth]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
     df = self._task_data(
-        'speech_transcription',
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
         dtype={
             'locale': str,
             'utt_id': str,
@@ -104,12 +122,11 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
         },
     )
     for example in df.to_dict('records'):
-      if filter_fn(example):
-        yield transcription_evaluator.TranscriptTruth(
-            sound_id=example['utt_id'],
-            text=example['transcript_truth'],
-            language=example['locale'],
-        )
+      yield transcription_evaluator.TranscriptTruth(
+          sound_id=example['utt_id'],
+          text=example['transcript_truth'],
+          language=example['locale'],
+      )
 
 
 # Locale -> (ClassName suffix, eval_lang)

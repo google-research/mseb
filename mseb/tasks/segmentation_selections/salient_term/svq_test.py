@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import json
 import os
 from unittest import mock
@@ -26,7 +27,6 @@ from mseb import types
 from mseb.tasks.segmentation_selections.salient_term import svq
 import numpy as np
 
-
 FLAGS = flags.FLAGS
 
 
@@ -40,6 +40,7 @@ def _setup_testdata(test_case):
           "locale": "en_us",
           "index": "fake_index:0",
           "environment": "clean",
+          "segmentation_selections/salient_term": True,
           "topk_salient_terms": ["weather", "boston"],
           "topk_salient_terms_timestamps": [[1.5, 2.0], [2.8, 3.5]],
           "candidate_salient_terms": ["weather", "boston", "forecast"],
@@ -54,6 +55,7 @@ def _setup_testdata(test_case):
           "locale": "en_us",
           "index": "fake_index:1",
           "environment": "media_noise",
+          "segmentation_selections/salient_term": True,
           "topk_salient_terms": ["music"],
           "topk_salient_terms_timestamps": [[4.0, 4.8]],
           "candidate_salient_terms": ["music", "playlist"],
@@ -64,6 +66,7 @@ def _setup_testdata(test_case):
           "locale": "de_de",
           "index": "fake_index:2",
           "environment": "clean",
+          "segmentation_selections/salient_term": True,
           "topk_salient_terms": ["wetter"],
           "topk_salient_terms_timestamps": [[1.1, 2.2]],
           "candidate_salient_terms": ["wetter"],
@@ -74,6 +77,18 @@ def _setup_testdata(test_case):
           "locale": "en_us",
           "index": "fake_index:3",
           "environment": "traffic_noise",
+          "segmentation_selections/salient_term": True,
+          "topk_salient_terms": [],
+          "topk_salient_terms_timestamps": [],
+          "candidate_salient_terms": [],
+          "candidate_salient_terms_timestamps": [],
+      },
+      {
+          "utt_id": "en_us_004_bg",
+          "locale": "en_us",
+          "index": "fake_index:4",
+          "environment": "background_speech",
+          "segmentation_selections/salient_term": False,
           "topk_salient_terms": [],
           "topk_salient_terms_timestamps": [],
           "candidate_salient_terms": [],
@@ -81,11 +96,20 @@ def _setup_testdata(test_case):
       },
   ]
 
-  for filename in ("utt_index.jsonl", "salient_term.jsonl"):
-    fake_jsonl_path = os.path.join(testdata_dir.full_path, filename)
-    with open(fake_jsonl_path, "w") as f:
-      for record in mock_records:
-        f.write(json.dumps(record) + "\n")
+  fake_jsonl_path = os.path.join(testdata_dir.full_path, "utt_index.jsonl")
+  with open(fake_jsonl_path, "w") as f:
+    for record in mock_records:
+      f.write(json.dumps(record) + "\n")
+
+  by_loc_env = collections.defaultdict(list)
+  for record in mock_records:
+    by_loc_env[(record["locale"], record["environment"])].append(record)
+
+  for (loc, env), records in by_loc_env.items():
+    path = os.path.join(testdata_dir.full_path, f"utts_{loc}_{env}.jsonl")
+    with open(path, "w") as f:
+      for r in records:
+        f.write(json.dumps(r) + "\n")
 
   test_case.enter_context(
       flagsaver.flagsaver((dataset._DATASET_BASEPATH, testdata_dir.full_path))
@@ -106,17 +130,18 @@ def _setup_testdata(test_case):
   return testdata_dir, mock_get_sound
 
 
-class BaseSubTaskTest(absltest.TestCase):
-  """Tests for the _base_sub_task helper."""
+class GetEnvironmentTest(absltest.TestCase):
+  """Tests for the _get_environment helper."""
 
   def test_no_colon(self):
-    self.assertEqual(svq._base_sub_task("salient_term"), "salient_term")
+    self.assertEqual(svq._get_environment("salient_term"), "*")
 
   def test_with_colon(self):
-    self.assertEqual(svq._base_sub_task("salient_term:clean"), "salient_term")
+    self.assertEqual(svq._get_environment("salient_term:clean"), "clean")
 
   def test_multiple_colons(self):
-    self.assertEqual(svq._base_sub_task("a:b:c"), "a")
+    with self.assertRaises(ValueError):
+      svq._get_environment("a:b:c")
 
 
 class SVQSalientTermSegmentationSelectionBaseTest(absltest.TestCase):
@@ -236,24 +261,24 @@ class SVQSalientTermSegmentationSelectionTest(parameterized.TestCase):
 
   def test_examples_skips_mismatched_lengths(self):
     mismatched_record = {
-        "utt_id": "en_us_004_bad",
+        "utt_id": "en_us_005_bad",
         "locale": "en_us",
-        "index": "fake_index:4",
+        "index": "fake_index:5",
         "environment": "clean",
+        "segmentation_selections/salient_term": True,
         "topk_salient_terms": ["dog", "cat"],
         "topk_salient_terms_timestamps": [[1.0, 2.0]],  # only 1 timestamp
         "candidate_salient_terms": ["dog"],
         "candidate_salient_terms_timestamps": [[1.0, 2.0]],
     }
-    for filename in ("utt_index.jsonl", "salient_term.jsonl"):
-      path = os.path.join(self.testdata_dir.full_path, filename)
-      with open(path, "a") as f:
-        f.write(json.dumps(mismatched_record) + "\n")
+    path = os.path.join(self.testdata_dir.full_path, "utts_en_us_clean.jsonl")
+    with open(path, "a") as f:
+      f.write(json.dumps(mismatched_record) + "\n")
 
     task = svq.SVQEnUsSalientTermSegmentationSelectionTask()
     examples = list(task.examples("salient_term"))
     example_ids = [ex.example_id for ex in examples]
-    self.assertNotIn("en_us_004_bad", example_ids)
+    self.assertNotIn("en_us_005_bad", example_ids)
 
   # --- salient_term_lists() tests ---
 
@@ -320,18 +345,14 @@ class SVQSalientTermSegmentationSelectionTest(parameterized.TestCase):
     self.assertEqual(task.metadata.eval_langs, ["en-US"])
     self.assertEqual(task.metadata.category, "speech")
 
-  def test_task_data_filters_by_locale(self):
+  def test_task_data(self):
     task = svq.SVQEnUsSalientTermSegmentationSelectionTask()
-    df = task._task_data("salient_term", dtype={"locale": str, "utt_id": str})
+    df = task._task_data(
+        f"utts_{task.locale}_*", dtype={"locale": str, "utt_id": str}
+    )
     for row in df.to_dict("records"):
       self.assertEqual(row["locale"], "en_us")
-
-  def test_task_data_base_returns_all(self):
-    task = svq.SVQSalientTermSegmentationSelectionTask()
-    df = task._task_data("salient_term", dtype={"locale": str, "utt_id": str})
-    locales = set(df["locale"].tolist())
-    self.assertIn("en_us", locales)
-    self.assertIn("de_de", locales)
+      self.assertTrue(row["segmentation_selections/salient_term"])
 
 
 class DynamicClassGenerationTest(parameterized.TestCase):

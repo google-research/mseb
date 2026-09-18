@@ -24,19 +24,27 @@ from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import segmentation_evaluator
 from mseb.tasks import segmentation
 
-_filter_fn_by_sub_task = {
-    "salient_term": lambda x: True,
-    "salient_term:clean": lambda x: x["environment"] == "clean",
-    "salient_term:media_noise": lambda x: x["environment"] == "media_noise",
-    "salient_term:traffic_noise": lambda x: x["environment"] == "traffic_noise",
-    "salient_term:background_speech": (
-        lambda x: x["environment"] == "background_speech"
-    ),
-}
 
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(":")[0]
+  Examples:
+    'salient_term:clean' -> 'clean'
+    'salient_term' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(":")
+  if len(sub_task_parts) == 1:
+    return "*"
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f"Invalid sub_task: {sub_task}")
 
 
 class SVQSalientTermSegmentationSelectionTask(
@@ -52,28 +60,32 @@ class SVQSalientTermSegmentationSelectionTask(
 
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
-    if self.locale:
-      df = df[df.locale == self.locale]
+    df = df[df["segmentation_selections/salient_term"]]
     return df
 
   @property
   def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
+    return [
+        "salient_term",
+        "salient_term:clean",
+        "salient_term:media_noise",
+        "salient_term:traffic_noise",
+        "salient_term:background_speech",
+    ]
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     if self.locale is None:
       raise ValueError("`locale` must be set by a concrete task subclass.")
 
     df = self._task_data(
-        "salient_term",
+        f"utts_{self.locale}_*",
         dtype={
             "locale": str,
             "utt_id": str,
         },
     )
     for record in df.to_dict("records"):
-      utt_id = record["utt_id"]
-      yield self.svq_dataset.get_sound({"utt_id": utt_id})
+      yield self.svq_dataset.get_sound({"utt_id": record["utt_id"]})
 
   def examples(
       self, sub_task: str
@@ -81,9 +93,8 @@ class SVQSalientTermSegmentationSelectionTask(
     if self.locale is None:
       raise ValueError("`locale` must be set by a concrete task subclass.")
 
-    filter_fn = _filter_fn_by_sub_task[sub_task]
     df = self._task_data(
-        _base_sub_task(sub_task),
+        f"utts_{self.locale}_{_get_environment(sub_task)}",
         dtype={
             "locale": str,
             "utt_id": str,
@@ -92,25 +103,29 @@ class SVQSalientTermSegmentationSelectionTask(
         },
     )
     for record in df.to_dict("records"):
-      if filter_fn(record):
-        utt_id = record["utt_id"]
-        terms = record.get("topk_salient_terms")
-        timestamps = record.get("topk_salient_terms_timestamps")
+      terms = record.get("topk_salient_terms")
+      timestamps = record.get("topk_salient_terms_timestamps")
 
-        if not terms or not timestamps or len(terms) != len(timestamps):
-          continue
+      if (
+          terms is None
+          or len(terms) == 0
+          or timestamps is None
+          or len(timestamps) == 0
+          or len(terms) != len(timestamps)
+      ):
+        continue
 
-        segments = [
-            segmentation_evaluator.Segment(
-                embedding=term,
-                start_time=ts[0],
-                end_time=ts[1],
-            )
-            for term, ts in zip(terms, timestamps)
-        ]
-        yield segmentation_evaluator.SegmentationReference(
-            example_id=utt_id, segments=segments
-        )
+      segments = [
+          segmentation_evaluator.Segment(
+              embedding=term,
+              start_time=ts[0],
+              end_time=ts[1],
+          )
+          for term, ts in zip(terms, timestamps)
+      ]
+      yield segmentation_evaluator.SegmentationReference(
+          example_id=record["utt_id"], segments=segments
+      )
 
   @property
   def embeddings_dir(self) -> str:
@@ -125,31 +140,36 @@ class SVQSalientTermSegmentationSelectionTask(
     if self.locale is None:
       raise ValueError("`locale` must be set by a concrete task subclass.")
 
-    svq_dataset = self.svq_dataset
-    for record in svq_dataset.get_task_data(
-        "salient_term",
+    df = self._task_data(
+        f"utts_{self.locale}_*",
         dtype={
             "locale": str,
             "utt_id": str,
             "candidate_salient_terms": Sequence[str],
             "candidate_salient_terms_timestamps": Sequence[tuple[float, float]],
         },
-    ).to_dict("records"):
-      if record["locale"] == self.locale:
-        terms = record.get("candidate_salient_terms")
-        timestamps = record.get("candidate_salient_terms_timestamps")
-        if terms:
-          yield (
-              record["utt_id"],
-              [
-                  segmentation_evaluator.Segment(
-                      embedding=term,
-                      start_time=timestamp[0],
-                      end_time=timestamp[1],
-                  )
-                  for term, timestamp in zip(terms, timestamps)  # pyrefly: ignore[bad-argument-type]
-              ],
-          )
+    )
+    for record in df.to_dict("records"):
+      terms = record.get("candidate_salient_terms")
+      timestamps = record.get("candidate_salient_terms_timestamps")
+      if (
+          terms is not None
+          and len(terms) > 0
+          and timestamps is not None
+          and len(timestamps) > 0
+          and len(timestamps) == len(terms)
+      ):
+        yield (
+            record["utt_id"],
+            [
+                segmentation_evaluator.Segment(
+                    embedding=term,
+                    start_time=timestamp[0],
+                    end_time=timestamp[1],
+                )
+                for term, timestamp in zip(terms, timestamps)  # pyrefly: ignore[bad-argument-type]
+            ],
+        )
 
 
 # Locale -> (ClassName suffix, eval_lang)

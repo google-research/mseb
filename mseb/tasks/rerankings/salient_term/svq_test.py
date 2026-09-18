@@ -30,6 +30,26 @@ import numpy as np
 FLAGS = flags.FLAGS
 
 
+class GetEnvironmentTest(absltest.TestCase):
+  """Tests for the _get_environment helper."""
+
+  def test_no_colon(self):
+    self.assertEqual(svq._get_environment('salient_term_reranking'), '*')
+
+  def test_with_colon(self):
+    self.assertEqual(
+        svq._get_environment('salient_term_reranking:clean'), 'clean'
+    )
+    self.assertEqual(
+        svq._get_environment('salient_term_reranking:media_noise'),
+        'media_noise',
+    )
+
+  def test_multiple_colons(self):
+    with self.assertRaises(ValueError):
+      svq._get_environment('a:b:c')
+
+
 class SVQSalientTermRerankingTest(absltest.TestCase):
 
   def setUp(self):
@@ -45,7 +65,11 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': ['weather', 'boston', 'forecast'],
             'environment': 'clean',
             'text': 'fake_transcript_001',
-            'passage_id': 'passage_001',
+            'rerankings/salient_term': True,
+            'span_context_id_cross_lang': None,
+            'span_context_id_in_lang': None,
+            'passage_id_cross_lang': None,
+            'passage_id_in_lang': 'passage_001',
         },
         {
             'utt_id': 'en_us_002',
@@ -55,7 +79,11 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': ['music', 'playlist'],
             'environment': 'media_noise',
             'text': 'fake_transcript_002',
-            'passage_id': 'passage_002',
+            'rerankings/salient_term': True,
+            'span_context_id_cross_lang': None,
+            'span_context_id_in_lang': None,
+            'passage_id_cross_lang': None,
+            'passage_id_in_lang': 'passage_002',
         },
         {
             'utt_id': 'de_de_001',
@@ -65,18 +93,36 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': ['wetter'],
             'environment': 'clean',
             'text': 'fake_transcript_003',
-            'passage_id': 'passage_003',
+            'rerankings/salient_term': True,
+            'span_context_id_cross_lang': None,
+            'span_context_id_in_lang': None,
+            'passage_id_cross_lang': None,
+            'passage_id_in_lang': 'passage_003',
         },
     ]
 
-    for filename in ('utt_index.jsonl', 'salient_term.jsonl'):
-      fake_jsonl_path = os.path.join(self.testdata_dir.full_path, filename)
-      with open(fake_jsonl_path, 'w') as f:
-        for record in self.mock_records:
-          f.write(json.dumps(record) + '\n')
+    fake_jsonl_path = os.path.join(
+        self.testdata_dir.full_path, 'utt_index.jsonl'
+    )
+    with open(fake_jsonl_path, 'w') as f:
+      for record in self.mock_records:
+        f.write(json.dumps(record) + '\n')
 
-    audio_dir = os.path.join(self.testdata_dir.full_path, 'audio')
-    os.makedirs(audio_dir, exist_ok=True)
+    by_loc_env = collections.defaultdict(list)
+    for record in self.mock_records:
+      by_loc_env[(record['locale'], record['environment'])].append(record)
+
+    for env in ('clean', 'media_noise', 'traffic_noise', 'background_speech'):
+      by_loc_env.setdefault(('en_us', env), [])
+
+    for (loc, env), records in by_loc_env.items():
+      path = os.path.join(
+          self.testdata_dir.full_path, f'utts_{loc}_{env}.jsonl'
+      )
+      with open(path, 'w') as f:
+        for r in records:
+          f.write(json.dumps(r) + '\n')
+
     by_loc_env = collections.defaultdict(list)
     for record in self.mock_records:
       by_loc_env[(record['locale'], record['environment'])].append(record)
@@ -91,11 +137,16 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
             'candidate_salient_terms': [],
             'topk_salient_terms': [],
             'text': '',
-            'passage_id': 'no_passage_id',
+            'span_context_id_cross_lang': None,
+            'span_context_id_in_lang': None,
+            'passage_id_cross_lang': None,
+            'passage_id_in_lang': None,
         }]
 
     for (loc, env), records in by_loc_env.items():
-      path = os.path.join(audio_dir, f'utts_{loc}_{env}.jsonl')
+      path = os.path.join(
+          self.testdata_dir.full_path, f'utts_{loc}_{env}.jsonl'
+      )
       with open(path, 'w') as f:
         for r in records:
           f.write(json.dumps(r) + '\n')
@@ -107,6 +158,25 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
     )
     self.enter_context(
         flagsaver.flagsaver((svq._RANDOMIZE_CANDIDATE_SALIENT_TERMS, False))
+    )
+
+    orig_get_task_data = svq.svq.SimpleVoiceQuestionsDataset.get_task_data
+
+    def mock_get_task_data(ds_self, task_name=None, dtype=None):
+      if task_name and 'salient_term_reranking' in task_name:
+        parts = task_name.split('salient_term_reranking')
+        sub_task = 'salient_term_reranking' + parts[1]
+        env = svq._get_environment(sub_task)
+        task_name = f'{parts[0]}{env}'
+      return orig_get_task_data(ds_self, task_name, dtype=dtype)
+
+    self.enter_context(
+        mock.patch.object(
+            svq.svq.SimpleVoiceQuestionsDataset,
+            'get_task_data',
+            side_effect=mock_get_task_data,
+            autospec=True,
+        )
     )
 
     self.mock_get_sound = self.enter_context(
@@ -434,6 +504,7 @@ class TaskDataFilteringTest(absltest.TestCase):
           json.dumps({
               'utt_id': 'utt_1',
               'locale': 'en_us',
+              'rerankings/salient_term': True,
           })
           + '\n'
       )
@@ -441,6 +512,7 @@ class TaskDataFilteringTest(absltest.TestCase):
           json.dumps({
               'utt_id': 'utt_2',
               'locale': 'en_us',
+              'rerankings/salient_term': False,
           })
           + '\n'
       )
@@ -448,6 +520,7 @@ class TaskDataFilteringTest(absltest.TestCase):
           json.dumps({
               'utt_id': 'utt_3',
               'locale': 'en_us',
+              'rerankings/salient_term': True,
           })
           + '\n'
       )
@@ -461,9 +534,7 @@ class TaskDataFilteringTest(absltest.TestCase):
     with flagsaver.flagsaver((dataset._DATASET_BASEPATH, temp_dir)):
       task.__dict__.pop('svq_dataset', None)
       filtered_df = task._task_data('custom_task')
-      self.assertEqual(
-          filtered_df['utt_id'].tolist(), ['utt_1', 'utt_2', 'utt_3']
-      )
+      self.assertEqual(filtered_df['utt_id'].tolist(), ['utt_1', 'utt_3'])
 
 
 if __name__ == '__main__':

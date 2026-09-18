@@ -25,23 +25,27 @@ from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 from mseb.tasks.retrievals import utils
 
-_filter_fn_by_sub_task = {
-    'passage_retrieval_cross_lang': lambda x: True,
-    'passage_retrieval_cross_lang:clean': lambda x: x['environment'] == 'clean',
-    'passage_retrieval_cross_lang:media_noise': (
-        lambda x: x['environment'] == 'media_noise'
-    ),
-    'passage_retrieval_cross_lang:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'passage_retrieval_cross_lang:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
 
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(':')[0]
+  Examples:
+    'passage_retrieval_cross_lang:clean' -> 'clean'
+    'passage_retrieval_cross_lang' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
@@ -63,14 +67,21 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
+    return [
+        'passage_retrieval_cross_lang',
+        'passage_retrieval_cross_lang:clean',
+        'passage_retrieval_cross_lang:media_noise',
+        'passage_retrieval_cross_lang:traffic_noise',
+        'passage_retrieval_cross_lang:background_speech',
+    ]
 
   def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
     df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
-    if self.locale:
-      df = df[df.locale == self.locale]
+    df = df[df['retrievals/passage_cross_lang']]
     if self.size is not None:
-      mask = df['passage_id'].map(getattr(svq, f'is_member_of_{self.size}'))
+      mask = df['passage_id_cross_lang'].map(
+          getattr(svq, f'is_member_of_{self.size}')
+      )
       df = df[mask]
     return df
 
@@ -100,7 +111,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
     truncation = None
     backfill = None
     df = self._task_data(
-        'passage_retrieval_cross_lang',
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
             'utt_id': str,
@@ -113,7 +124,7 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
       if retrieval.RETRIEVED_ITEMS_KEY.value:
         if backfill is None:
           backfill_df = self._task_data(
-              'passage_retrieval_in_lang', dtype={'utt_id': str}
+              f'utts_{self.locale}_*', dtype={'utt_id': str}
           )
           backfill = utils.BackFillRetrievedItemTexts(
               self.documents(),
@@ -142,16 +153,15 @@ class SVQPassageCrossLangRetrieval(retrieval.RetrievalTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
     df = self._task_data(
-        _base_sub_task(sub_task),
-        dtype={'locale': str, 'utt_id': str, 'passage_id': str},
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
+        dtype={'locale': str, 'utt_id': str, 'passage_id_cross_lang': str},
     )
     for example in df.to_dict('records'):
-      if filter_fn(example):
-        yield retrieval_evaluator.RetrievalReferenceId(
-            sound_id=example['utt_id'], reference_id=example['passage_id']
-        )
+      yield retrieval_evaluator.RetrievalReferenceId(
+          sound_id=example['utt_id'],
+          reference_id=example['passage_id_cross_lang'],
+      )
 
 
 # Locale -> (ClassName suffix, eval_lang)

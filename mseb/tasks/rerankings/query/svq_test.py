@@ -14,6 +14,9 @@
 
 """Tests for SVQ query reranking tasks."""
 
+import collections
+import inspect
+import json
 import os
 import pathlib
 import shutil
@@ -22,10 +25,10 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import dataset
+from mseb import task as task_lib
 from mseb import types
+from mseb.tasks.rerankings.query import svq
 import pytest
-
-svq = pytest.importorskip('mseb.tasks.rerankings.query.svq')
 
 FLAGS = flags.FLAGS
 
@@ -40,10 +43,130 @@ def _setup_testdata(test_case):
   shutil.rmtree(cache_dir)
   shutil.copytree(testdata_path, cache_dir)
   os.chmod(cache_dir, 0o755)
+  for root, dirs, files in os.walk(cache_dir):
+    for d in dirs:
+      os.chmod(os.path.join(root, d), 0o755)
+    for f in files:
+      os.chmod(os.path.join(root, f), 0o644)
   pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, '.git')))
+
+  # Update query_reranking.jsonl with boolean task column 'rerankings/query':
+  # True.
+  query_reranking_path = os.path.join(cache_dir, 'query_reranking.jsonl')
+  with open(query_reranking_path, 'r') as f:
+    records = [json.loads(line) for line in f if line.strip()]
+
+  for r in records:
+    r['rerankings/query'] = True
+
+  # Add an extra record for another locale to verify locale-specific filtering
+  de_record = {
+      'text': 'Wie schmilzt Stahl?',
+      'speaker_id': 'speaker_de_001',
+      'speaker_gender': 'female',
+      'speaker_age': 30,
+      'environment': 'clean',
+      'locale': 'de_de',
+      'utt_id': 'utt_de_001',
+      'rerankings/query': True,
+      'candidates': ['Wie schmilzt Stahl?', 'Wann schmilzt Stahl?'],
+  }
+  records.append(de_record)
+
+  with open(query_reranking_path, 'w') as f:
+    for r in records:
+      f.write(json.dumps(r) + '\n')
+
+  by_loc_env = collections.defaultdict(list)
+  for record in records:
+    by_loc_env[(record['locale'], record['environment'])].append(record)
+
+  for env in ('clean', 'media_noise', 'traffic_noise', 'background_speech'):
+    if ('en_us', env) not in by_loc_env or not by_loc_env[('en_us', env)]:
+      by_loc_env[('en_us', env)] = [{
+          'locale': 'en_us',
+          'utt_id': f'dummy_en_us_{env}',
+          'environment': env,
+          'rerankings/query': False,
+          'candidates': [],
+          'text': '',
+      }]
+
+  for (loc, env), recs in by_loc_env.items():
+    path = os.path.join(cache_dir, f'utts_{loc}_{env}.jsonl')
+    with open(path, 'w') as f:
+      for r in recs:
+        f.write(json.dumps(r) + '\n')
+
   test_case.enter_context(
       flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
   )
+
+
+class GetEnvironmentTest(absltest.TestCase):
+  """Tests for the _get_environment helper."""
+
+  def test_no_colon(self):
+    self.assertEqual(svq._get_environment('query_reranking'), '*')
+
+  def test_with_colon(self):
+    self.assertEqual(svq._get_environment('query_reranking:clean'), 'clean')
+    self.assertEqual(
+        svq._get_environment('query_reranking:media_noise'),
+        'media_noise',
+    )
+    self.assertEqual(
+        svq._get_environment('query_reranking:traffic_noise'),
+        'traffic_noise',
+    )
+    self.assertEqual(
+        svq._get_environment('query_reranking:background_speech'),
+        'background_speech',
+    )
+
+  def test_multiple_colons(self):
+    with self.assertRaises(ValueError):
+      svq._get_environment('a:b:c')
+
+
+class QueryRerankingHelpersTest(absltest.TestCase):
+  """Tests for helper functions in the svq module."""
+
+  def test_seed_from_candidates(self):
+    candidates = ['a', 'b', 'c']
+    seed = svq._seed_from_candidates(candidates)
+    self.assertEqual(
+        seed,
+        106066814613367738644872591937025180872126396142919988090859577352361712472268,
+    )
+
+  def test_get_context_text_randomize(self):
+    candidates = ['a', 'b', 'c']
+    context_text = svq._get_context_text(candidates, randomize=True)
+    self.assertEqual(
+        context_text,
+        '[{"id": 0, "text": "b"}, {"id": 1, "text": "c"},'
+        ' {"id": 2, "text": "a"}]',
+    )
+
+  def test_get_context_text_no_randomize(self):
+    candidates = ['a', 'b', 'c']
+    context_text = svq._get_context_text(candidates, randomize=False)
+    self.assertEqual(
+        context_text,
+        '[{"id": 0, "text": "a"}, {"id": 1, "text": "b"},'
+        ' {"id": 2, "text": "c"}]',
+    )
+
+  def test_get_rank_by_id_randomize(self):
+    candidates = ['a', 'b', 'c']
+    rank_by_id = svq._get_rank_by_id(candidates, randomize=True)
+    self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
+
+  def test_get_rank_by_id_no_randomize(self):
+    candidates = ['a', 'b', 'c']
+    rank_by_id = svq._get_rank_by_id(candidates, randomize=False)
+    self.assertIsNone(rank_by_id)
 
 
 @pytest.mark.whisper
@@ -55,32 +178,33 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     _setup_testdata(self)
     self.enter_context(flagsaver.flagsaver((svq._RANDOMIZE_CANDIDATES, False)))
 
-  def test_seed_from_candidates(self):
-    candidates = ['a', 'b', 'c']
-    seed = svq._seed_from_candidates(candidates)
-    self.assertEqual(
-        seed,
-        106066814613367738644872591937025180872126396142919988090859577352361712472268,
-    )
+  def test_sub_tasks_property(self):
+    task = svq.SVQEnUsQueryReranking()
+    expected = [
+        'query_reranking',
+        'query_reranking:clean',
+        'query_reranking:media_noise',
+        'query_reranking:traffic_noise',
+        'query_reranking:background_speech',
+    ]
+    self.assertEqual(task.sub_tasks, expected)
 
-  def test_get_context_text(self):
-    candidates = ['a', 'b', 'c']
-    context_text = svq._get_context_text(candidates, randomize=True)
-    self.assertEqual(
-        context_text,
-        '[{"id": 0, "text": "b"}, {"id": 1, "text": "c"},'
-        ' {"id": 2, "text": "a"}]',
-    )
+  def test_metadata(self):
+    task = svq.SVQEnUsQueryReranking()
+    self.assertEqual(task.metadata.name, 'SVQEnUsQueryReranking')
+    self.assertEqual(task.metadata.main_score, 'MAP')
+    self.assertEqual(task.metadata.type, 'QueryReranking')
+    self.assertEqual(task.metadata.category, 'speech')
 
-  def test_get_rank_by_id(self):
-    candidates = ['a', 'b', 'c']
-    rank_by_id = svq._get_rank_by_id(candidates, randomize=True)
-    self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
-
-  def test_get_rank_by_id_no_randomize(self):
-    candidates = ['a', 'b', 'c']
-    rank_by_id = svq._get_rank_by_id(candidates, randomize=False)
-    self.assertIsNone(rank_by_id)
+  def test_embeddings_dir(self):
+    temp_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver((task_lib.TASK_CACHE_BASEPATH, temp_dir)):
+      task = svq.SVQEnUsQueryReranking()
+      self.assertTrue(
+          task.embeddings_dir.endswith(
+              os.path.join('rerankings', 'svq_en_us_query_reranking')
+          )
+      )
 
   def test_svq_query_reranking_candidate_lists(self):
     task = svq.SVQEnUsQueryReranking()
@@ -105,6 +229,12 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertEqual(
         candidates[4].text, 'At what heat intensity does steel melt?'
     )
+
+  def test_candidate_lists_filters_by_locale(self):
+    task = svq.SVQEnUsQueryReranking()
+    candidate_lists = list(task.candidate_lists())
+    sound_ids = [utt_id for utt_id, _ in candidate_lists]
+    self.assertNotIn('utt_de_001', sound_ids)
 
   def test_svq_query_reranking_sounds(self):
     task = svq.SVQEnUsQueryReranking()
@@ -147,10 +277,48 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertEqual(example.sound_id, 'utt_11697423627206642872')
     self.assertLen(example.texts, 5)
     self.assertEqual(example.language, 'en_us')
+    self.assertIsNone(example.rank_by_id)
     example = examples[1]
     self.assertEqual(example.sound_id, 'utt_15041124811443622614')
     self.assertLen(example.texts, 5)
     self.assertEqual(example.language, 'en_us')
+    self.assertIsNone(example.rank_by_id)
+
+  def test_examples_clean_sub_task(self):
+    task = svq.SVQEnUsQueryReranking()
+    examples = list(task.examples('query_reranking:clean'))
+    self.assertLen(examples, 1)
+    self.assertEqual(examples[0].sound_id, 'utt_15041124811443622614')
+
+  def test_examples_background_speech_sub_task(self):
+    task = svq.SVQEnUsQueryReranking()
+    examples = list(task.examples('query_reranking:background_speech'))
+    self.assertLen(examples, 1)
+    self.assertEqual(examples[0].sound_id, 'utt_11697423627206642872')
+
+  def test_examples_traffic_noise_sub_task_empty(self):
+    task = svq.SVQEnUsQueryReranking()
+    examples = list(task.examples('query_reranking:traffic_noise'))
+    self.assertEmpty(examples)
+
+  def test_examples_media_noise_sub_task_empty(self):
+    task = svq.SVQEnUsQueryReranking()
+    examples = list(task.examples('query_reranking:media_noise'))
+    self.assertEmpty(examples)
+
+  def test_examples_filters_by_locale(self):
+    task = svq.SVQEnUsQueryReranking()
+    examples = list(task.examples('query_reranking'))
+    sound_ids = [ex.sound_id for ex in examples]
+    self.assertNotIn('utt_de_001', sound_ids)
+
+  def test_examples_randomized(self):
+    with flagsaver.flagsaver((svq._RANDOMIZE_CANDIDATES, True)):
+      task = svq.SVQEnUsQueryReranking()
+      examples = list(task.examples('query_reranking'))
+      self.assertLen(examples, 2)
+      self.assertIsNotNone(examples[0].rank_by_id)
+      self.assertIsInstance(examples[0].rank_by_id, dict)
 
 
 class DynamicClassGenerationTest(absltest.TestCase):
@@ -239,7 +407,7 @@ class DynamicClassGenerationTest(absltest.TestCase):
 
   def test_embeddings_dir_with_size(self):
     temp_dir = self.create_tempdir().full_path
-    with flagsaver.flagsaver((svq.task_lib.TASK_CACHE_BASEPATH, temp_dir)):
+    with flagsaver.flagsaver((task_lib.TASK_CACHE_BASEPATH, temp_dir)):
       task_compact = svq.SVQEnUsQueryRerankingCompact()
       self.assertTrue(
           task_compact.embeddings_dir.endswith(
@@ -274,6 +442,26 @@ class DynamicClassGenerationTest(absltest.TestCase):
     ]
     self.assertLen(generated, num_locales)
 
+  def test_all_task_configurations(self):
+    task_classes = [
+        obj
+        for _, obj in inspect.getmembers(svq, inspect.isclass)
+        if issubclass(obj, svq.SVQQueryReranking)
+        and obj is not svq.SVQQueryReranking
+        and getattr(obj, 'locale', None) is not None
+    ]
+    self.assertNotEmpty(task_classes)
+
+    for task_class in task_classes:
+      with self.subTest(task_name=task_class.__name__):
+        task = task_class()
+        self.assertIsInstance(task.locale, str)
+        self.assertNotEmpty(task.locale)
+        self.assertEqual(task.metadata.name, task_class.__name__)
+        self.assertEqual(task.metadata.type, 'QueryReranking')
+        self.assertEqual(task.metadata.main_score, 'MAP')
+        self.assertEqual(task.metadata.category, 'speech')
+
 
 class BaseClassTest(absltest.TestCase):
   """Tests for SVQQueryReranking base class attributes."""
@@ -292,32 +480,70 @@ class BaseClassTest(absltest.TestCase):
     ]
     self.assertEqual(task.sub_tasks, expected)
 
+  def test_embeddings_dir_raises_without_locale(self):
+    temp_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver((task_lib.TASK_CACHE_BASEPATH, temp_dir)):
+      task = svq.SVQQueryReranking()
+      with self.assertRaises(AssertionError):
+        _ = task.embeddings_dir
+
 
 @pytest.mark.whisper
 @pytest.mark.optional
 class TaskDataFilteringTest(absltest.TestCase):
-  """Tests for _task_data locale filtering."""
+  """Tests for _task_data filtering."""
 
   def setUp(self):
     super().setUp()
     _setup_testdata(self)
 
-  def test_task_data_filters_by_locale(self):
+  def test_task_data_loads_matching_rows(self):
     task = svq.SVQEnUsQueryReranking()
     df = task._task_data(
         'query_reranking',
         dtype={'locale': str, 'utt_id': str},
     )
-    for row in df.to_dict('records'):
-      self.assertEqual(row['locale'], 'en_us')
-
-  def test_task_data_no_locale_returns_all(self):
-    task = svq.SVQQueryReranking()
-    df = task._task_data(
-        'query_reranking',
-        dtype={'locale': str, 'utt_id': str},
-    )
     self.assertNotEmpty(df)
+    self.assertTrue(df['rerankings/query'].all())
+
+  def test_task_data_filters_by_task_boolean(self):
+    temp_dir = self.create_tempdir().full_path
+    with open(os.path.join(temp_dir, 'custom_task.jsonl'), 'w') as f:
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_1',
+              'locale': 'en_us',
+              'rerankings/query': True,
+          })
+          + '\n'
+      )
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_2',
+              'locale': 'en_us',
+              'rerankings/query': False,
+          })
+          + '\n'
+      )
+      f.write(
+          json.dumps({
+              'utt_id': 'utt_3',
+              'locale': 'en_us',
+              'rerankings/query': True,
+          })
+          + '\n'
+      )
+    with open(os.path.join(temp_dir, 'utt_index.jsonl'), 'w') as f:
+      for i, uid in enumerate(['utt_1', 'utt_2', 'utt_3']):
+        f.write(
+            json.dumps({'utt_id': uid, 'locale': 'en_us', 'index': i}) + '\n'
+        )
+
+    task = svq.SVQEnUsQueryReranking()
+    with flagsaver.flagsaver((dataset._DATASET_BASEPATH, temp_dir)):
+      task.__dict__.pop('svq_dataset', None)
+      filtered_df = task._task_data('custom_task')
+      self.assertEqual(filtered_df['utt_id'].tolist(), ['utt_1', 'utt_3'])
 
 
 if __name__ == '__main__':

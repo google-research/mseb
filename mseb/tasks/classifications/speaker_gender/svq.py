@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Speech Massive Speaker-gender classification tasks."""
+"""SVQ Speaker-gender classification tasks."""
 
+import functools
 import os
-from typing import Iterable
+from typing import Any, Iterable
 
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
@@ -23,31 +24,41 @@ from mseb.evaluators import classification_evaluator
 from mseb.tasks import classification
 
 
-_filter_fn_by_sub_task = {
-    'speaker_gender_classification': lambda x: True,
-    'speaker_gender_classification:clean': (
-        lambda x: x['environment'] == 'clean'
-    ),
-    'speaker_gender_classification:media_noise': (
-        lambda x: x['environment'] == 'media_noise'
-    ),
-    'speaker_gender_classification:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'speaker_gender_classification:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
+  Examples:
+    'speaker_gender_classification:clean' -> 'clean'
+    'speaker_gender_classification' -> '*'
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(':')[0]
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 class SVQSpeakerGenderClassification(classification.ClassificationTask):
   """SVQ speaker-gender classification task."""
 
   locale: str | None = None
+
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+    return svq.SimpleVoiceQuestionsDataset()
+
+  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
+    ds = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
+    ds = ds[ds['classifications/speaker_gender']]
+    return ds
 
   @property
   def task_type(self) -> str:
@@ -63,32 +74,46 @@ class SVQSpeakerGenderClassification(classification.ClassificationTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
-
-  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
-    return svq.SimpleVoiceQuestionsDataset()
+    return [
+        'speaker_gender_classification',
+        'speaker_gender_classification:clean',
+        'speaker_gender_classification:media_noise',
+        'speaker_gender_classification:traffic_noise',
+        'speaker_gender_classification:background_speech',
+    ]
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    dataset = self._get_dataset()
-    for example in dataset.get_task_data('utt_index').to_dict('records'):
-      if example['locale'] == self.locale:
-        yield dataset.get_sound(example)
+    if self.locale is None:
+      raise ValueError('`locale` must be set by a concrete task subclass.')
+
+    df = self._task_data(
+        f'utts_{self.locale}_*',
+        dtype={'locale': str, 'utt_id': str},
+    )
+    for example in df.to_dict('records'):
+      yield self.svq_dataset.get_sound(example)
 
   def examples(
       self, sub_task: str
   ) -> Iterable[classification_evaluator.ClassificationReference]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
-    dataset = self._get_dataset()
+    if self.locale is None:
+      raise ValueError('`locale` must be set by a concrete task subclass.')
+
     class_labels = set(self.class_labels())
-    for example in dataset.get_task_data('utt_index').to_dict('records'):
-      if (
-          example['locale'] == self.locale
-          and filter_fn(example)
-          and example['speaker_gender'].capitalize() in class_labels
-      ):
+    df = self._task_data(
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
+        dtype={
+            'locale': str,
+            'utt_id': str,
+            'speaker_gender': str,
+        },
+    )
+    for example in df.to_dict('records'):
+      gender = example.get('speaker_gender')
+      if gender.capitalize() in class_labels:
         yield classification_evaluator.ClassificationReference(
             example_id=example['utt_id'],
-            label_id=example['speaker_gender'].capitalize(),
+            label_id=gender.capitalize(),
         )
 
   def class_labels(self) -> Iterable[str]:
@@ -98,807 +123,84 @@ class SVQSpeakerGenderClassification(classification.ClassificationTask):
     )
 
 
-class SVQArEgSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ar_eg'
-  metadata = types.TaskMetadata(
-      name='SVQArEgSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ar-EG'],
-      domains=['speech'],
-      task_subtypes=['classification'],
+# Locale -> (ClassName suffix, eval_lang)
+_SVQ_LOCALES = {
+    'ar_eg': ('ArEg', 'ar-EG'),
+    'ar_x_gulf': ('ArXGulf', 'ar-x-gulf'),
+    'ar_x_levant': ('ArXLevant', 'ar-x-levant'),
+    'ar_x_maghrebi': ('ArXMaghrebi', 'ar-x-maghrebi'),
+    'bn_bd': ('BnBd', 'bn-BD'),
+    'bn_in': ('BnIn', 'bn-IN'),
+    'en_au': ('EnAu', 'en-AU'),
+    'en_gb': ('EnGb', 'en-GB'),
+    'en_in': ('EnIn', 'en-IN'),
+    'en_ph': ('EnPh', 'en-PH'),
+    'en_us': ('EnUs', 'en-US'),
+    'fi_fi': ('FiFi', 'fi-FI'),
+    'gu_in': ('GuIn', 'gu-IN'),
+    'hi_in': ('HiIn', 'hi-IN'),
+    'id_id': ('IdId', 'id-ID'),
+    'ja_jp': ('JaJp', 'ja-JP'),
+    'kn_in': ('KnIn', 'kn-IN'),
+    'ko_kr': ('KoKr', 'ko-KR'),
+    'ml_in': ('MlIn', 'ml-IN'),
+    'mr_in': ('MrIn', 'mr-IN'),
+    'ru_ru': ('RuRu', 'ru-RU'),
+    'sw': ('Sw', 'sw'),
+    'ta_in': ('TaIn', 'ta-IN'),
+    'te_in': ('TeIn', 'te-IN'),
+    'ur_in': ('UrIn', 'ur-IN'),
+    'ur_pk': ('UrPk', 'ur-PK'),
+}
+
+
+def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+  """Dynamically create a locale-specific task class."""
+  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  cls = type(
+      class_name,
+      (base_cls,),
+      {
+          'locale': locale,
+          'metadata': types.TaskMetadata(
+              name=class_name,
+              description=description,
+              reference='https://huggingface.co/datasets/google/svq',
+              documentation_file='svq_classification.md',
+              dataset_documentation_file='dataset_svq.md',
+              type='SpeakerGenderClassification',
+              category='speech',
+              main_score='Accuracy',
+              revision='1.0.0',
+              dataset=types.Dataset(
+                  name='SVQ',
+                  path='https://huggingface.co/datasets/google/svq',
+                  revision='1.0.0',
+              ),
+              scores=[
+                  classification_evaluator.accuracy(),
+                  classification_evaluator.balanced_accuracy(),
+                  classification_evaluator.weighted_f1(),
+                  classification_evaluator.weighted_precision(),
+                  classification_evaluator.weighted_recall(),
+              ],
+              eval_splits=['test'],
+              eval_langs=[eval_lang],
+              domains=['speech'],
+              task_subtypes=['classification'],
+          ),
+      },
   )
+  return cls
 
 
-class SVQArXGulfSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ar_x_gulf'
-  metadata = types.TaskMetadata(
-      name='SVQArXGulfSpeakerGenderClassification',
+# Generate all locale-specific classes and register them in the module.
+for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
+  _cls = _make_task_class(  # pylint: disable=invalid-name
+      base_cls=SVQSpeakerGenderClassification,
+      locale=_locale,
+      suffix=_suffix,
+      eval_lang=_eval_lang,
       description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ar-x-gulf'],
-      domains=['speech'],
-      task_subtypes=['classification'],
   )
-
-
-class SVQArXLevantSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ar_x_levant'
-  metadata = types.TaskMetadata(
-      name='SVQArXLevantSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ar-x-levant'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQArXMaghrebiSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ar_x_maghrebi'
-  metadata = types.TaskMetadata(
-      name='SVQArXMaghrebiSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ar-x-maghrebi'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQBnBdSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'bn_bd'
-  metadata = types.TaskMetadata(
-      name='SVQBnBdSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['bn-BD'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQBnInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'bn_in'
-  metadata = types.TaskMetadata(
-      name='SVQBnInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['bn-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQEnAuSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'en_au'
-  metadata = types.TaskMetadata(
-      name='SVQEnAuSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['en-AU'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQEnGbSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'en_gb'
-  metadata = types.TaskMetadata(
-      name='SVQEnGbSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['en-GB'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQEnInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'en_in'
-  metadata = types.TaskMetadata(
-      name='SVQEnInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['en-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQEnPhSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'en_ph'
-  metadata = types.TaskMetadata(
-      name='SVQEnPhSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['en-PH'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQEnUsSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'en_us'
-  metadata = types.TaskMetadata(
-      name='SVQEnUsSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['en-US'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQFiFiSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'fi_fi'
-  metadata = types.TaskMetadata(
-      name='SVQFiFiSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['fi-FI'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQGuInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'gu_in'
-  metadata = types.TaskMetadata(
-      name='SVQGuInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['gu-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQHiInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'hi_in'
-  metadata = types.TaskMetadata(
-      name='SVQHiInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['hi-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQIdIdSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'id_id'
-  metadata = types.TaskMetadata(
-      name='SVQIdIdSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['id-ID'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQJaJpSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ja_jp'
-  metadata = types.TaskMetadata(
-      name='SVQJaJpSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ja-JP'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQKnInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'kn_in'
-  metadata = types.TaskMetadata(
-      name='SVQKnInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['kn-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQKoKrSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ko_kr'
-  metadata = types.TaskMetadata(
-      name='SVQKoKrSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ko-KR'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQMlInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ml_in'
-  metadata = types.TaskMetadata(
-      name='SVQMlInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ml-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQMrInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'mr_in'
-  metadata = types.TaskMetadata(
-      name='SVQMrInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['mr-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQRuRuSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ru_ru'
-  metadata = types.TaskMetadata(
-      name='SVQRuRuSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ru-RU'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQSwSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'sw'
-  metadata = types.TaskMetadata(
-      name='SVQSwSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['sw'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQTaInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ta_in'
-  metadata = types.TaskMetadata(
-      name='SVQTaInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ta-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQTeInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'te_in'
-  metadata = types.TaskMetadata(
-      name='SVQTeInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['te-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQUrInSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ur_in'
-  metadata = types.TaskMetadata(
-      name='SVQUrInSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ur-IN'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
-
-
-class SVQUrPkSpeakerGenderClassification(SVQSpeakerGenderClassification):
-  locale = 'ur_pk'
-  metadata = types.TaskMetadata(
-      name='SVQUrPkSpeakerGenderClassification',
-      description='Speaker-gender classification task.',
-      reference='https://huggingface.co/datasets/google/svq',
-      documentation_file='svq_classification.md',
-      dataset_documentation_file='dataset_svq.md',
-      type='SpeakerGenderClassification',
-      category='speech',
-      main_score='Accuracy',
-      revision='1.0.0',
-      dataset=types.Dataset(
-          name='SVQ',
-          path='https://huggingface.co/datasets/google/svq',
-          revision='1.0.0',
-      ),
-      scores=[
-          classification_evaluator.accuracy(),
-          classification_evaluator.balanced_accuracy(),
-          classification_evaluator.weighted_f1(),
-          classification_evaluator.weighted_precision(),
-          classification_evaluator.weighted_recall(),
-      ],
-      eval_splits=['test'],
-      eval_langs=['ur-PK'],
-      domains=['speech'],
-      task_subtypes=['classification'],
-  )
+  globals()[_cls.__name__] = _cls

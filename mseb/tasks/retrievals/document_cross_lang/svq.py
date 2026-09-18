@@ -14,6 +14,7 @@
 
 """SVQ document cross-lang retrieval tasks."""
 
+import functools
 import os
 from typing import Any, Iterable
 
@@ -25,25 +26,27 @@ from mseb.tasks import retrieval
 from mseb.tasks.retrievals import utils
 import tensorflow_datasets as tfds
 
-_filter_fn_by_sub_task = {
-    'document_retrieval_cross_lang': lambda x: True,
-    'document_retrieval_cross_lang:clean': (
-        lambda x: x['environment'] == 'clean'
-    ),
-    'document_retrieval_cross_lang:media_noise': (
-        lambda x: x['environment'] == 'media_noise'
-    ),
-    'document_retrieval_cross_lang:traffic_noise': (
-        lambda x: x['environment'] == 'traffic_noise'
-    ),
-    'document_retrieval_cross_lang:background_speech': (
-        lambda x: x['environment'] == 'background_speech'
-    ),
-}
 
+def _get_environment(sub_task: str) -> str:
+  """Returns the environment for the given sub_task.
 
-def _base_sub_task(sub_task: str) -> str:
-  return sub_task.split(':')[0]
+  Examples:
+    'document_retrieval_cross_lang:clean' -> 'clean'
+    'document_retrieval_cross_lang' -> '*'
+
+  Args:
+    sub_task: The sub_task name.
+
+  Returns:
+    The environment for the given sub_task.
+  """
+  sub_task_parts = sub_task.split(':')
+  if len(sub_task_parts) == 1:
+    return '*'
+  elif len(sub_task_parts) == 2:
+    return sub_task_parts[1]
+  else:
+    raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
 class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
@@ -51,7 +54,8 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
 
   locale: str | None = None
 
-  def _get_svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
 
   @property
@@ -60,7 +64,22 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
 
   @property
   def sub_tasks(self) -> list[str]:
-    return list(_filter_fn_by_sub_task.keys())
+    return [
+        'document_retrieval_cross_lang',
+        'document_retrieval_cross_lang:clean',
+        'document_retrieval_cross_lang:media_noise',
+        'document_retrieval_cross_lang:traffic_noise',
+        'document_retrieval_cross_lang:background_speech',
+    ]
+
+  def _task_data(
+      self,
+      task_data_key: str,
+      dtype: dict[str, Any] | None = None,
+  ):
+    df = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
+    df = df[df['retrievals/document_cross_lang']]
+    return df
 
   def get_documents_source(self) -> Any:
     return 'wikipedia/20190301.en'
@@ -78,59 +97,55 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     truncation = None
     backfill = None
-    svq_dataset = self._get_svq_dataset()
-    for example in svq_dataset.get_task_data(
-        'document_retrieval_cross_lang',
+    for example in self._task_data(
+        f'utts_{self.locale}_*',
         dtype={
             'locale': str,
             'utt_id': str,
             task_lib.TRANSCRIPT_KEY.value: str,
         },
     ).to_dict('records'):
-      if example['locale'] == self.locale:
-        sound = svq_dataset.get_sound({'utt_id': example['utt_id']})
-        sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
-        if retrieval.RETRIEVED_ITEMS_KEY.value:
-          if backfill is None:
-            backfill = utils.BackFillRetrievedItemTexts(
-                self.documents(),
-                utils.BackFillRetrievedItemTexts.get_empty_text_by_id([
-                    x.get(retrieval.RETRIEVED_ITEMS_KEY.value)
-                    for x in svq_dataset.get_task_data(
-                        'document_retrieval_cross_lang', dtype={'utt_id': str}
-                    ).to_dict('records')
-                ]),
+      sound = self.svq_dataset.get_sound({'utt_id': example['utt_id']})
+      sound.context.text = example[task_lib.TRANSCRIPT_KEY.value]
+      if retrieval.RETRIEVED_ITEMS_KEY.value:
+        if backfill is None:
+          backfill = utils.BackFillRetrievedItemTexts(
+              self.documents(),
+              utils.BackFillRetrievedItemTexts.get_empty_text_by_id([
+                  x.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+                  for x in self._task_data(
+                      f'utts_{self.locale}_*', dtype={'utt_id': str}
+                  ).to_dict('records')
+              ]),
+          )
+        context_text = backfill.backfill(
+            example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
+        )
+        if utils.MAX_CONTEXT_TOKENS.value and utils.TOKENIZER_NAME.value:
+          if truncation is None:
+            truncation = utils.ListPredictionTruncation(
+                max_tokens=utils.MAX_CONTEXT_TOKENS.value,
+                tokenizer_name=utils.TOKENIZER_NAME.value,
             )
-          context_text = backfill.backfill(
-              example.get(retrieval.RETRIEVED_ITEMS_KEY.value)
-          )
-          if utils.MAX_CONTEXT_TOKENS.value and utils.TOKENIZER_NAME.value:
-            if truncation is None:
-              truncation = utils.ListPredictionTruncation(
-                  max_tokens=utils.MAX_CONTEXT_TOKENS.value,
-                  tokenizer_name=utils.TOKENIZER_NAME.value,
-              )
-            context_text = truncation.maybe_truncate(context_text)
-          sound = types.SoundWithTitleAndContext(
-              waveform=sound.waveform,
-              context=sound.context,
-              context_text=context_text,
-          )
-        yield sound
+          context_text = truncation.maybe_truncate(context_text)
+        sound = types.SoundWithTitleAndContext(
+            waveform=sound.waveform,
+            context=sound.context,
+            context_text=context_text,
+        )
+      yield sound
 
   def examples(
       self, sub_task: str
   ) -> Iterable[retrieval_evaluator.RetrievalReferenceId]:
-    filter_fn = _filter_fn_by_sub_task[sub_task]
-    svq_dataset = self._get_svq_dataset()
-    for example in svq_dataset.get_task_data(
-        _base_sub_task(sub_task),
-        dtype={'locale': str, 'utt_id': str, 'page_title': str},
+    for example in self._task_data(
+        f'utts_{self.locale}_{_get_environment(sub_task)}',
+        dtype={'locale': str, 'utt_id': str, 'page_title_cross_lang': str},
     ).to_dict('records'):
-      if example['locale'] == self.locale and filter_fn(example):
-        yield retrieval_evaluator.RetrievalReferenceId(
-            sound_id=example['utt_id'], reference_id=example['page_title']
-        )
+      yield retrieval_evaluator.RetrievalReferenceId(
+          sound_id=example['utt_id'],
+          reference_id=example['page_title_cross_lang'],
+      )
 
 
 class SVQDocumentCrossLangRetrievalSmallIndex(SVQDocumentCrossLangRetrieval):
@@ -144,7 +159,7 @@ class SVQDocumentCrossLangRetrievalSmallIndex(SVQDocumentCrossLangRetrieval):
     )
 
   def get_documents_source(self) -> Any:
-    return self._get_svq_dataset()
+    return self.svq_dataset
 
   @classmethod
   def documents_generator(cls, dataset: Any) -> Iterable[types.Text]:

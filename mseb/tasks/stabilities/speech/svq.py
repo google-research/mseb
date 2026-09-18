@@ -14,7 +14,8 @@
 
 """SVQ stability tasks split by representation mode."""
 
-from typing import Iterable, Type
+import functools
+from typing import Any, Iterable, Type
 
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
@@ -30,16 +31,17 @@ class SVQStabilityBase(stability.StabilityTask):
   shifts under noise.
   """
 
-  locale: str = ""
+  locale: str | None = None
   mode: str = ""  # Set to "continuous" or "discrete" by the factory
 
-  def _get_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
-    """Returns an instance of the SVQ dataset.
-
-    Returns:
-      An initialized SimpleVoiceQuestionsDataset object.
-    """
+  @functools.cached_property
+  def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
     return svq.SimpleVoiceQuestionsDataset()
+
+  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
+    ds = self.svq_dataset.get_task_data(task_data_key, dtype=dtype)
+    ds = ds[ds["stabilities/speech"]]
+    return ds
 
   def base_sounds(self) -> Iterable[types.Sound]:
     """Yields clean recordings to serve as stability anchors.
@@ -56,16 +58,16 @@ class SVQStabilityBase(stability.StabilityTask):
     if not self.locale:
       raise ValueError("`locale` must be set by a concrete task subclass.")
 
-    svq_dataset = self._get_dataset()
-    for utt_id, record in svq_dataset.utt_id_to_record.items():
-      if record["locale"] == self.locale and record["environment"] == "clean":
-        yield svq_dataset.get_sound({"utt_id": utt_id})
+    df = self._task_data(
+        f"utts_{self.locale}_clean",
+        dtype={"utt_id": str},
+    )
+    for example in df.to_dict("records"):
+      yield self.svq_dataset.get_sound(example)
 
 
 def create_svq_stability_variant(
-    locale: str,
-    lang_code: str,
-    mode: str
+    locale: str, lang_code: str, mode: str
 ) -> Type[SVQStabilityBase]:
   """Factory to create a specific Task class for a locale and mode.
 
@@ -126,6 +128,7 @@ def create_svq_stability_variant(
           ),
       },
   )
+
 
 # Full set of SVQ Locales
 _LOCALES = {
