@@ -30,7 +30,7 @@ from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
 from mseb.encoders import encoder_registry
-from mseb.encoders.registration import raw  # pylint: disable=unused-import
+from mseb.encoders import registration  # pylint: disable=unused-import
 
 FLAGS = flags.FLAGS
 
