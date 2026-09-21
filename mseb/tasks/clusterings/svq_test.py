@@ -92,68 +92,68 @@ class DynamicClassGenerationTest(absltest.TestCase):
 
   def test_all_locale_classes_exist(self):
     for locale, (suffix, _) in svq._SVQ_LOCALES.items():
-      class_name = f'SVQ{suffix}Clustering'
+      class_name = f'SVQClustering{suffix}'
       self.assertTrue(
           hasattr(svq, class_name),
           f'Missing class {class_name} for locale {locale}',
       )
 
   def test_locale_class_has_correct_locale(self):
-    task_cls = getattr(svq, 'SVQEnUsClustering')
+    task_cls = getattr(svq, 'SVQClusteringEnUs')
     self.assertEqual(task_cls.locale, 'en_us')
 
   def test_locale_class_has_correct_metadata_name(self):
-    task_cls = getattr(svq, 'SVQArEgClustering')
-    self.assertEqual(task_cls.metadata.name, 'SVQArEgClustering')
+    task_cls = getattr(svq, 'SVQClusteringArEg')
+    self.assertEqual(task_cls.metadata.name, 'SVQClusteringArEg')
 
   def test_locale_class_has_correct_eval_langs(self):
-    task_cls = getattr(svq, 'SVQFiFiClustering')
+    task_cls = getattr(svq, 'SVQClusteringFiFi')
     self.assertEqual(task_cls.metadata.eval_langs, ['fi-FI'])
 
   def test_locale_class_inherits_from_base(self):
-    task_cls = getattr(svq, 'SVQKoKrClustering')
+    task_cls = getattr(svq, 'SVQClusteringKoKr')
     self.assertTrue(issubclass(task_cls, svq.SVQClustering))
 
   def test_locale_class_default_size_is_none(self):
-    task_cls = getattr(svq, 'SVQSwClustering')
+    task_cls = getattr(svq, 'SVQClusteringSw')
     self.assertIsNone(task_cls.size)
 
   def test_compact_classes_exist(self):
     for locale, (suffix, _) in svq._SVQ_LOCALES.items():
-      class_name = f'SVQ{suffix}ClusteringCompact'
+      class_name = f'SVQClustering{suffix}Compact'
       self.assertTrue(
           hasattr(svq, class_name),
           f'Missing compact class {class_name} for locale {locale}',
       )
 
   def test_compact_class_has_correct_size(self):
-    task_cls = getattr(svq, 'SVQEnUsClusteringCompact')
+    task_cls = getattr(svq, 'SVQClusteringEnUsCompact')
     self.assertEqual(task_cls.size, 'compact')
 
   def test_compact_class_has_correct_locale(self):
-    task_cls = getattr(svq, 'SVQRuRuClusteringCompact')
+    task_cls = getattr(svq, 'SVQClusteringRuRuCompact')
     self.assertEqual(task_cls.locale, 'ru_ru')
 
   def test_compact_class_inherits_from_base(self):
-    task_cls = getattr(svq, 'SVQTeInClusteringCompact')
+    task_cls = getattr(svq, 'SVQClusteringTeInCompact')
     self.assertTrue(issubclass(task_cls, svq.SVQClustering))
 
   def test_debug_classes_exist(self):
     for suffix in ('EnUs', 'FiFi'):
-      class_name = f'SVQ{suffix}ClusteringDebug'
+      class_name = f'SVQClustering{suffix}Debug'
       self.assertTrue(
           hasattr(svq, class_name),
           f'Missing debug class {class_name}',
       )
 
   def test_debug_class_has_correct_size(self):
-    task_cls = getattr(svq, 'SVQEnUsClusteringDebug')
+    task_cls = getattr(svq, 'SVQClusteringEnUsDebug')
     self.assertEqual(task_cls.size, 'debug')
 
   def test_debug_only_en_us_and_fi_fi(self):
     """Debug classes should only exist for en-US and fi-FI."""
     for locale, (suffix, _) in svq._SVQ_LOCALES.items():
-      class_name = f'SVQ{suffix}ClusteringDebug'
+      class_name = f'SVQClustering{suffix}Debug'
       if locale in ('en_us', 'fi_fi'):
         self.assertTrue(hasattr(svq, class_name))
       else:
@@ -163,11 +163,11 @@ class DynamicClassGenerationTest(absltest.TestCase):
         )
 
   def test_metadata_type_is_clustering(self):
-    task_cls = getattr(svq, 'SVQHiInClustering')
+    task_cls = getattr(svq, 'SVQClusteringHiIn')
     self.assertEqual(task_cls.metadata.type, 'Clustering')
 
   def test_metadata_main_score_is_vmeasure(self):
-    task_cls = getattr(svq, 'SVQJaJpClustering')
+    task_cls = getattr(svq, 'SVQClusteringJaJp')
     self.assertEqual(task_cls.metadata.main_score, 'VMeasure')
 
   def test_total_class_count(self):

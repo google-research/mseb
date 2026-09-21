@@ -115,7 +115,7 @@ def _make_task_class(
     base_cls, locale, suffix, eval_lang, description, size=None
 ):
   """Dynamically create a locale-specific task class."""
-  class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
+  class_name = f'{base_cls.__name__}{suffix}'
   if size is not None:
     class_name += size.capitalize()
   cls = type(
