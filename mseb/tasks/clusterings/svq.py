@@ -46,7 +46,9 @@ class SVQClustering(clustering.ClusteringTask):
           'passage_id_in_lang',
       ]
       available_cols = [col for col in candidate_cols if col in df.columns]
-      assert candidate_cols
+      assert available_cols, (
+          f'No available columns for size {self.size} in {df.columns}'
+      )
       coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
       mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
