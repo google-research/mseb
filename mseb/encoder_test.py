@@ -207,6 +207,130 @@ class CollectionEncoderTest(absltest.TestCase):
     self.assertIsInstance(sound_embedding, types.SoundEmbedding)
     self.assertEqual(sound_embedding.embedding.shape, (10, 8))
 
+  def test_encode_subclass_falls_back_to_base_class_encoder(self):
+    # SoundWithTitleAndContext is not registered, so it must resolve to the
+    # encoder registered for its base class, Sound.
+    base_encoder = MockMultiModalEncoder()
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: base_encoder}
+    )
+    sound = types.SoundWithTitleAndContext(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
+        title_text="title",
+        context_text="context",
+    )
+    sound_embeddings = enc.encode([sound])
+    self.assertLen(sound_embeddings, 1)
+    self.assertIsInstance(sound_embeddings[0], types.SoundEmbedding)
+
+  def test_encoder_for_prefers_exact_match_over_base_class(self):
+    base_encoder = MockMultiModalEncoder()
+    exact_encoder = MockMultiModalEncoder()
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={
+            types.Sound: base_encoder,
+            types.SoundWithTitleAndContext: exact_encoder,
+        }
+    )
+    self.assertIs(
+        enc._encoder_for(types.SoundWithTitleAndContext), exact_encoder
+    )
+    self.assertIs(enc._encoder_for(types.Sound), base_encoder)
+
+  def test_encoder_for_unregistered_type_raises(self):
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: MockMultiModalEncoder()}
+    )
+    with self.assertRaisesRegex(KeyError, "No encoder for input type Text"):
+      enc._encoder_for(types.Text)
+
+  def _collection_encoder(self):
+    return encoder.CollectionEncoder(
+        encoder_by_input_type={
+            types.Sound: MockMultiModalEncoder(),
+            types.Text: MockMultiModalEncoder(),
+        }
+    )
+
+  def _sound(self, id_="test"):
+    return types.Sound(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(sample_rate=2, length=4, id=id_),
+    )
+
+  def _sound_with_title_and_context(self):
+    return types.SoundWithTitleAndContext(
+        waveform=np.array([1.0, 2.0, 3.0, 4.0]),
+        context=types.SoundContextParams(sample_rate=2, length=4, id="test"),
+        title_text="title",
+        context_text="context",
+    )
+
+  def test_check_input_types_accepts_registered_type(self):
+    enc = self._collection_encoder()
+    enc._check_input_types([self._sound()])  # Should not raise.
+
+  def test_check_input_types_accepts_homogeneous_batch(self):
+    enc = self._collection_encoder()
+    enc._check_input_types([self._sound("a"), self._sound("b")])
+
+  def test_check_input_types_accepts_subclass_of_registered_type(self):
+    # Must agree with _encode, which resolves subclasses to the encoder of
+    # their nearest registered base class.
+    enc = self._collection_encoder()
+    enc._check_input_types([self._sound_with_title_and_context()])
+
+  def test_check_input_types_rejects_unregistered_type(self):
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: MockMultiModalEncoder()}
+    )
+    text = types.Text(text="hello", context=types.TextContextParams(id="test"))
+    with self.assertRaisesRegex(
+        KeyError,
+        "No encoder for input type Text; registered input types are"
+        r" \('Sound',\)",
+    ):
+      enc._check_input_types([text])
+
+  def test_check_input_types_rejects_mixed_batch(self):
+    enc = self._collection_encoder()
+    text = types.Text(text="hello", context=types.TextContextParams(id="test"))
+    with self.assertRaisesRegex(ValueError, "all inputs of the same type"):
+      enc._check_input_types([self._sound(), text])
+
+  def test_check_input_types_rejects_mixed_batch_in_either_order(self):
+    # The homogeneity test keys off batch[0], so guard both orderings.
+    enc = self._collection_encoder()
+    text = types.Text(text="hello", context=types.TextContextParams(id="test"))
+    with self.assertRaisesRegex(ValueError, "all inputs of the same type"):
+      enc._check_input_types([text, self._sound()])
+
+  def test_check_input_types_rejects_base_class_after_subclass(self):
+    # isinstance() is asymmetric: a plain Sound is not an instance of
+    # SoundWithTitleAndContext, so this ordering is heterogeneous.
+    enc = self._collection_encoder()
+    with self.assertRaisesRegex(ValueError, "all inputs of the same type"):
+      enc._check_input_types(
+          [self._sound_with_title_and_context(), self._sound()]
+      )
+
+  def test_check_input_types_empty_batch_does_not_raise(self):
+    enc = self._collection_encoder()
+    enc._check_input_types([])
+
+  def test_encode_rejects_unregistered_type(self):
+    enc = encoder.CollectionEncoder(
+        encoder_by_input_type={types.Sound: MockMultiModalEncoder()}
+    )
+    text = types.Text(text="hello", context=types.TextContextParams(id="test"))
+    with self.assertRaisesRegex(
+        KeyError,
+        "No encoder for input type Text; registered input types are"
+        r" \('Sound',\)",
+    ):
+      enc.encode([text])
+
 
 class ResampleSoundTest(parameterized.TestCase):
 

@@ -22,7 +22,6 @@ import librosa
 from mseb import types
 import numpy as np
 
-
 INVALID_ANSWER_STR = types.LLM_INVALID_ANSWER_STR
 NO_RESPONSE_STR = types.LLM_NO_RESPONSE_STR
 
@@ -240,6 +239,13 @@ class CollectionEncoder(MultiModalEncoder):
   type that are used for a task. The batches of inputs are assumed to be all of
   the same type.
 
+  The encoder used for a batch is resolved from the batch's input type: an
+  exactly registered type wins, otherwise the encoder of its nearest registered
+  base class is used (see `_encoder_for`). This lets a subclass of a registered
+  input type be encoded by the encoder registered for that base class. If
+  neither the input type nor any of its base classes is registered, a `KeyError`
+  is raised.
+
   Example (retrieval task): A collection encoder consisting of a sound encoder
   (for the audio query) and a text encoder (for generating the index of text
   documents).
@@ -264,17 +270,64 @@ class CollectionEncoder(MultiModalEncoder):
 
   @final
   def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
-    if not all(isinstance(x, type(batch[0])) for x in batch):
+    """Validates that the batch is homogeneous and has a resolvable encoder.
+
+    Resolution is delegated to `_encoder_for` so that this check agrees with
+    what `_encode` will actually do: a subclass of a registered type is
+    accepted and handled by its nearest registered base class's encoder.
+
+    Args:
+      batch: A batch of inputs to check.
+
+    Raises:
+      ValueError: If the batch mixes input types.
+      KeyError: If no encoder is registered for the batch's input type or any
+        of its base classes.
+    """
+    if not batch:
+      return
+    dtype = type(batch[0])
+    if not all(isinstance(x, dtype) for x in batch):
       raise ValueError(
           "CollectionEncoder only supports a batch of all inputs of the same"
-          " type, type must be one of:"
-          f" {tuple(self._encoder_by_input_type.keys())}."
+          f" type, got {sorted({type(x).__name__ for x in batch})}."
       )
+    self._encoder_for(dtype)
+
+  def _encoder_for(
+      self, dtype: Type[types.MultiModalObject]
+  ) -> MultiModalEncoder:
+    """Returns the encoder for dtype, or for its nearest registered base class.
+
+    `dtype.__mro__` is ordered nearest-first, so the first registered class it
+    contains is by definition the closest base class. An exact match wins
+    because `dtype.__mro__[0] is dtype`.
+
+    Args:
+      dtype: The input type to look up.
+
+    Returns:
+      The encoder registered for dtype or its nearest base class.
+
+    Raises:
+      KeyError: If neither dtype nor any of its base classes is registered.
+    """
+    try:
+      return next(
+          self._encoder_by_input_type[cls]
+          for cls in dtype.__mro__
+          if cls in self._encoder_by_input_type
+      )
+    except StopIteration as e:
+      raise KeyError(
+          f"No encoder for input type {dtype.__name__}; registered input types"
+          f" are {tuple(t.__name__ for t in self._encoder_by_input_type)}."
+      ) from e
 
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
   ) -> Sequence[types.MultiModalObject]:
-    return self._encoder_by_input_type[type(batch[0])].encode(batch)
+    return self._encoder_for(type(batch[0])).encode(batch)
 
 
 class SpeechToTextWithTitleAndContextEncoder(MultiModalEncoder):
