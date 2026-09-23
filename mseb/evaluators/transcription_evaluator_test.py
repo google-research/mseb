@@ -136,6 +136,123 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
     self.assertIn('WordCount', scores[4].metric)
     npt.assert_equal(scores[4].value, 4)
 
+  def test_compute_metrics_cjk(self):
+    evaluator = transcription_evaluator.TranscriptionEvaluator()
+
+    # Test Chinese (cmn_hans_cn / cmn-hans-cn) - TC2SC and space removal
+    scores_zh = evaluator.compute_metrics(
+        transcript_by_sound_id={
+            'zh_test': types.TextPrediction(
+                prediction='繁体字 错误',
+                context=types.PredictionContextParams(id='zh_test'),
+            )
+        },
+        transcript_truths=[
+            transcription_evaluator.TranscriptTruth(
+                sound_id='zh_test',
+                text='繁體字 測試。',
+                language='cmn-hans-cn',
+            ),
+        ],
+    )
+    # Truth:         "繁體字 測試。" ->
+    # normalized:    "繁體字 測試" ->
+    # TC2SC:         "繁体字 测试" ->
+    # space-removal: "繁体字测试" (len 5)
+    # Hyp:           "繁体字 错误" ->
+    # normalized:    "繁体字 错误" ->
+    # space-removal: "繁体字错误" (len 5)
+    # Edits: 2 substitutions (测->错, 试->误) -> CER = 2/5 = 0.4
+    # We expect 5 baseline scores + 2 CJK scores = 7 scores
+    self.assertLen(scores_zh, 7)
+    self.assertEqual(scores_zh[5].metric, 'CER')
+    self.assertAlmostEqual(scores_zh[5].value, 2 / 5)
+    self.assertEqual(scores_zh[6].metric, 'CharCount')
+    self.assertEqual(scores_zh[6].value, 5.0)
+
+    # Test Japanese (ja_jp) - Space removal, no TC2SC
+    scores_ja = evaluator.compute_metrics(
+        transcript_by_sound_id={
+            'ja_test': types.TextPrediction(
+                prediction='日本語 てすと',
+                context=types.PredictionContextParams(id='ja_test'),
+            )
+        },
+        transcript_truths=[
+            transcription_evaluator.TranscriptTruth(
+                sound_id='ja_test',
+                text='日本語 テスト。',
+                language='ja_jp',
+            ),
+        ],
+    )
+    # Truth:         "日本語 テスト。" ->
+    # normalized:    "日本語 テスト" ->
+    # space-removal: "日本語テスト" (len 6)
+    # Hyp:           "日本語 てすと" ->
+    # normalized:    "日本語 てすと" ->
+    # space-removal: "日本語てすと" (len 6)
+    # Edits: 3 substitutions (テ->て, ス->す, ト->と) -> CER = 3/6 = 0.5
+    self.assertLen(scores_ja, 7)
+    self.assertEqual(scores_ja[0].metric, 'WER')
+    self.assertEqual(scores_ja[1].metric, 'SER')
+    self.assertEqual(scores_ja[5].metric, 'CER')
+    self.assertAlmostEqual(scores_ja[5].value, 3 / 6)
+    self.assertEqual(scores_ja[6].metric, 'CharCount')
+    self.assertEqual(scores_ja[6].value, 6.0)
+
+    # Test Korean (ko_kr) - No space removal, no TC2SC
+    scores_ko = evaluator.compute_metrics(
+        transcript_by_sound_id={
+            'ko_test': types.TextPrediction(
+                prediction='한국어 태스트',
+                context=types.PredictionContextParams(id='ko_test'),
+            )
+        },
+        transcript_truths=[
+            transcription_evaluator.TranscriptTruth(
+                sound_id='ko_test',
+                text='한국어 테스트。',
+                language='ko_kr',
+            ),
+        ],
+    )
+    # Truth:      "한국어 테스트。" ->
+    # normalized: "한국어 테스트" (len 7 space: 한, 국, 어,  , 테, 스, 트)
+    # Hyp:        "한국어 태스트" ->
+    # normalized: "한국어 태스트" (len 7 including space)
+    # Edits: 1 substitution (테->태) -> CER = 1/7
+    self.assertLen(scores_ko, 7)
+    self.assertEqual(scores_ko[0].metric, 'WER')
+    self.assertEqual(scores_ko[1].metric, 'SER')
+    self.assertEqual(scores_ko[5].metric, 'CER')
+    self.assertAlmostEqual(scores_ko[5].value, 1 / 7)
+    self.assertEqual(scores_ko[6].metric, 'CharCount')
+    self.assertEqual(scores_ko[6].value, 7.0)
+
+  def test_compute_metrics_non_cjk(self):
+    evaluator = transcription_evaluator.TranscriptionEvaluator()
+    # Non-CJK should not have CER and CharCount
+    scores = evaluator.compute_metrics(
+        transcript_by_sound_id={
+            'test': types.TextPrediction(
+                prediction='This is toast.',
+                context=types.PredictionContextParams(id='test'),
+            )
+        },
+        transcript_truths=[
+            transcription_evaluator.TranscriptTruth(
+                sound_id='test',
+                text='This is a test.',
+                language='en',
+            ),
+        ],
+    )
+    self.assertLen(scores, 5)
+    # WER, SER, NoResultRate, UtteranceCount, WordCount
+    self.assertEqual(scores[0].metric, 'WER')
+    self.assertEqual(scores[1].metric, 'SER')
+
 
 if __name__ == '__main__':
   absltest.main()

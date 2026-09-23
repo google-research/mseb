@@ -35,6 +35,7 @@ dependencies = [
     "numpy",
     "openai",
     "openai-whisper",
+    "opencc",
     "pandas",
     "protobuf",
     "pyarrow",

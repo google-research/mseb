@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import dataclasses
 import functools
+import re
 from typing import Callable, Mapping, Sequence
 
 import jaxtyping
@@ -25,6 +26,7 @@ from mseb import evaluator
 from mseb import metrics
 from mseb import types
 import numpy as np
+import opencc
 from whisper.normalizers import basic
 from whisper.normalizers import english
 
@@ -51,6 +53,48 @@ def ser(value: float = 0.0, std: float | None = None):
   )
 
 
+def cer(value: float = 0.0, std: float | None = None):
+  return types.Score(
+      metric='CER',
+      description='Character Error Rate',
+      value=value,
+      min=0,
+      max=float('inf'),
+      std=std,
+  )
+
+
+# Locales for which a character error rate is reported in addition to the
+# word-based metrics, because words are not whitespace-delimited (or are only
+# inconsistently so) in these writing systems.
+_CJK_LOCALES = frozenset({'cmn_hans_cn', 'ja_jp', 'ko_kr'})
+
+# OpenCC configuration for Traditional Chinese -> Simplified Chinese. The
+# '.json' suffix is required when the package's bundled config directory is not
+# present on disk (e.g. when configs are loaded from runfiles).
+_TRADITIONAL_TO_SIMPLIFIED_CONFIG = 't2s.json'
+
+
+@functools.lru_cache(maxsize=None)
+def _get_converter(config: str) -> opencc.OpenCC:
+  """Returns a converter for `config`, loading its dictionaries only once."""
+  return opencc.OpenCC(config)
+
+
+def tc2sc(text: str) -> str:
+  """Returns `text` converted from Traditional to Simplified Chinese."""
+  return _get_converter(_TRADITIONAL_TO_SIMPLIFIED_CONFIG).convert(text)
+
+
+_remove_spaces = functools.partial(re.sub, r'\s+', '')
+
+
+# Replicates behavior of jiwer.Compose as we don't want import the dep here.
+def _compose(function_list):
+  """Returns a function that chains functions in function_list."""
+  return lambda v: functools.reduce(lambda res, f: f(res), function_list, v)
+
+
 @dataclasses.dataclass
 class TranscriptTruth:
   sound_id: str
@@ -72,7 +116,15 @@ def text_transform(language: str) -> Callable[[str], str]:
 
 
 class TranscriptionEvaluator:
-  """Evaluator for transcription tasks."""
+  """Evaluator for transcription tasks.
+
+  In addition to the word-based metrics, a character error rate is reported for
+  CJK locales, where whitespace does not delimit words. The same text
+  normalization is applied to the reference and the hypothesis as for the
+  word-based metrics, plus language-specific transformations: traditional
+  characters are converted to simplified ones with OpenCC for `cmn_hans_cn`,
+  and whitespace is stripped for `cmn_hans_cn` and `ja_jp`.
+  """
 
   def compute_predictions(
       self, embeddings_by_sound_id: types.MultiModalEmbeddingCache
@@ -175,10 +227,72 @@ class TranscriptionEvaluator:
         min=0,
         max=float('inf'),
     )
-    return [
+    scores = [
         wer_score,
         ser_score,
         no_result_score,
         utt_count_score,
         word_count_score,
     ]
+    scores.extend(
+        self._compute_cjk_metrics(transcript_by_sound_id, transcript_truths)
+    )
+    return scores
+
+  def _compute_cjk_metrics(
+      self,
+      transcript_by_sound_id: Mapping[str, types.TextPrediction],
+      transcript_truths: Sequence[TranscriptTruth],
+  ) -> list[types.Score]:
+    """Returns CER and CharCount over the CJK subset of `transcript_truths`.
+
+    Returns an empty list if none of the truths are in a CJK locale, so that
+    non-CJK evaluations are unaffected.
+
+    Args:
+      transcript_by_sound_id: The predicted transcripts, keyed by sound id.
+      transcript_truths: The reference transcripts.
+    """
+    cer_values = []
+
+    for transcript_truth in transcript_truths:
+      locale = transcript_truth.language.lower().replace('-', '_')
+      if locale not in _CJK_LOCALES:
+        continue
+
+      transcript = transcript_by_sound_id[transcript_truth.sound_id]
+
+      hyp = (
+          transcript.prediction
+          if transcript.prediction != types.LLM_NO_RESPONSE_STR
+          else ''
+      )
+      # Apply the same text norm as the word-based metrics, and any
+      # CJK-specific transforms on top of it.
+      transforms = [transcript_truth.text_transform]
+      if locale == 'cmn_hans_cn':
+        transforms.append(tc2sc)
+      if locale in {'cmn_hans_cn', 'ja_jp'}:
+        transforms.append(_remove_spaces)
+      char_error_count, ref_char_count = metrics.compute_character_errors(
+          truth=transcript_truth.text,
+          hypothesis=hyp,
+          reference_transform=_compose(transforms),
+          hypothesis_transform=_compose(transforms),
+      )
+      cer_values.append(
+          types.WeightedValue(value=char_error_count, weight=ref_char_count)
+      )
+
+    if not cer_values:
+      return []
+
+    cer_val, cer_std = evaluator.compute_weighted_average_and_std(cer_values)
+    char_count_score = types.Score(
+        metric='CharCount',
+        description='Number of characters in reference transcripts.',
+        value=float(sum(w.weight for w in cer_values)),
+        min=0,
+        max=float('inf'),
+    )
+    return [cer(cer_val, cer_std), char_count_score]
