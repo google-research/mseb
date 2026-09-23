@@ -92,9 +92,9 @@ def _create_mock_dataset(base_dir: str) -> None:
 
 def _make_task_with_mock_data(
     testdata_dir: str,
-) -> spoken_coco_task.SpokenCocoSpeechRetrieval:
+) -> spoken_coco_task.SpokenCocoEnSpeechRetrieval:
   """Creates a task instance backed by mock data."""
-  task = spoken_coco_task.SpokenCocoSpeechRetrieval()
+  task = spoken_coco_task.SpokenCocoEnSpeechRetrieval()
   task._dataset = spoken_coco.SpokenCocoDataset(
       base_path=testdata_dir, split='val'
   )
@@ -103,8 +103,8 @@ def _make_task_with_mock_data(
 
 @pytest.mark.scann
 @pytest.mark.optional
-class SpokenCocoSpeechRetrievalTest(absltest.TestCase):
-  """Tests for the SpokenCocoSpeechRetrieval task class."""
+class SpokenCocoEnSpeechRetrievalTest(absltest.TestCase):
+  """Tests for the SpokenCocoEnSpeechRetrieval task class."""
 
   def setUp(self):
     super().setUp()

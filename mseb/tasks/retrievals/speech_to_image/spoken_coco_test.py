@@ -102,17 +102,17 @@ def _create_mock_dataset(base_dir: str) -> None:
 
 def _make_task_with_mock_data(
     testdata_dir: str,
-) -> spoken_coco_task.SpokenCocoImageRetrieval:
+) -> spoken_coco_task.SpokenCocoEnImageRetrieval:
   """Creates a task instance backed by mock data."""
-  task = spoken_coco_task.SpokenCocoImageRetrieval()
+  task = spoken_coco_task.SpokenCocoEnImageRetrieval()
   task._dataset = spoken_coco.SpokenCocoDataset(
       base_path=testdata_dir, split='val'
   )
   return task
 
 
-class SpokenCocoImageRetrievalTest(absltest.TestCase):
-  """Tests for the SpokenCocoImageRetrieval task class."""
+class SpokenCocoEnImageRetrievalTest(absltest.TestCase):
+  """Tests for the SpokenCocoEnImageRetrieval task class."""
 
   def setUp(self):
     super().setUp()
@@ -215,9 +215,9 @@ class SpokenCocoImageRetrievalTest(absltest.TestCase):
 
   def test_task_is_registered(self):
     """Verify that the task name is set correctly in metadata."""
-    self.assertIsNotNone(spoken_coco_task.SpokenCocoImageRetrieval.metadata)
+    self.assertIsNotNone(spoken_coco_task.SpokenCocoEnImageRetrieval.metadata)
     self.assertEqual(
-        spoken_coco_task.SpokenCocoImageRetrieval.metadata.name,
+        spoken_coco_task.SpokenCocoEnImageRetrieval.metadata.name,
         'SpokenCocoEnImageRetrieval',
     )
 

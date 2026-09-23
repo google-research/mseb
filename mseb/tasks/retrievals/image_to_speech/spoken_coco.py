@@ -96,6 +96,10 @@ class SpokenCocoSpeechRetrieval(retrieval.RetrievalTask):
           sound_id=img_id, reference_id=utt_ids
       )
 
+
+class SpokenCocoEnSpeechRetrieval(SpokenCocoSpeechRetrieval):
+  """SpokenCOCO English image-to-speech retrieval task."""
+
   metadata = types.TaskMetadata(
       name='SpokenCocoEnSpeechRetrieval',
       description=(

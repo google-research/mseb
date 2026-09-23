@@ -14,7 +14,6 @@
 
 """FSD50K multi-label classification tasks."""
 
-import dataclasses
 from typing import Iterable, Sequence
 
 from mseb import types
@@ -119,9 +118,44 @@ class FSD50KTestClassification(FSD50KClassification):
   )
 
 
-class FSD50KTestClassificationDebug(FSD50KTestClassification):
+class FSD50KTestClassificationDebug(FSD50KClassification):
+  split = "test"
   size = "debug"
-  metadata = dataclasses.replace(
-      FSD50KTestClassification.metadata,
+  metadata = types.TaskMetadata(
       name="FSD50KTestClassificationDebug",
+      description=(
+          "Multi-label sound event classification on the test split of "
+          "the FSD50K dataset."
+      ),
+      reference="""@article{fonseca2022fsd50k,
+ author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
+ title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
+ journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
+ volume  = {30},
+ pages   = {829--852},
+ year    = {2021},
+ doi     = {10.1109/TASLP.2022.3149014}
+}""",
+      documentation_file="fsd50k_classification.md",
+      dataset_documentation_file="dataset_fsd50k.md",
+      type="Classification",
+      category="audio",
+      main_score="mAP",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          name="FSD50K",
+          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
+          revision="1.0.0",
+      ),
+      scores=[
+          classification_evaluator.mean_average_precision(),
+          classification_evaluator.micro_f1(),
+          classification_evaluator.macro_f1(),
+          classification_evaluator.hamming_loss(),
+          classification_evaluator.subset_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["und"],
+      domains=["audio", "acoustic", "environmental"],
+      task_subtypes=["classification"],
   )

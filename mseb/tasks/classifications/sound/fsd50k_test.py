@@ -150,14 +150,6 @@ class FSD50KTestClassificationMetadataTest(absltest.TestCase):
 class DebugClassTest(absltest.TestCase):
   """Tests for FSD50KTestClassificationDebug."""
 
-  def test_inherits_from_test_classification(self):
-    self.assertTrue(
-        issubclass(
-            fsd50k.FSD50KTestClassificationDebug,
-            fsd50k.FSD50KTestClassification,
-        )
-    )
-
   def test_size_is_debug(self):
     self.assertEqual(fsd50k.FSD50KTestClassificationDebug.size, 'debug')
 

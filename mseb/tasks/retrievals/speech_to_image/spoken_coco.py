@@ -25,7 +25,6 @@ Evaluation uses the standard RetrievalTask ScaNN-based pipeline: build an index
 over image embeddings, query with audio embeddings, compute MRR/EM/Recall.
 """
 
-import dataclasses
 import os
 from typing import Iterable
 
@@ -98,6 +97,10 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
             reference_id=record['image'],
         )
 
+
+class SpokenCocoEnImageRetrieval(SpokenCocoImageRetrieval):
+  """SpokenCOCO English audio-to-image retrieval task."""
+
   metadata = types.TaskMetadata(
       name='SpokenCocoEnImageRetrieval',
       description=(
@@ -125,13 +128,33 @@ class SpokenCocoImageRetrieval(retrieval.RetrievalTask):
   )
 
 
-class SpokenCocoImageRetrievalDebug(SpokenCocoImageRetrieval):
+class SpokenCocoEnImageRetrievalDebug(SpokenCocoImageRetrieval):
   """SpokenCOCO audio-to-image retrieval task for debugging."""
 
   size = 'debug'
 
-  metadata = dataclasses.replace(
-      SpokenCocoImageRetrieval.metadata,
-      name='SpokenCocoImageRetrievalDebug',
-      description='Audio-to-image retrieval on SpokenCOCO for debugging.',
+  metadata = types.TaskMetadata(
+      name='SpokenCocoEnImageRetrievalDebug',
+      description=(
+          'Audio-to-image retrieval on SpokenCOCO: retrieve the correct'
+          ' MS COCO image given a spoken English caption.'
+      ),
+      reference='https://groups.csail.mit.edu/sls/downloads/placesaudio/',
+      type='ImageRetrieval',
+      category='speech',
+      main_score='MRR',
+      revision='1.0.0',
+      dataset=types.Dataset(
+          name='SpokenCOCO',
+          path=(
+              'https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz'
+              'audio_image/spoken_coco_en'
+          ),
+          revision='1.0.0',
+      ),
+      scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
+      eval_splits=['val'],
+      eval_langs=['en'],
+      domains=['speech', 'image'],
+      task_subtypes=['retrieval'],
   )

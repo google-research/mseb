@@ -14,7 +14,6 @@
 
 """FSD50K sound event clustering tasks."""
 
-import dataclasses
 from typing import Iterable
 
 from mseb import types
@@ -107,9 +106,37 @@ class FSD50KTestClustering(FSD50KClustering):
   )
 
 
-class FSD50KTestClusteringDebug(FSD50KTestClustering):
+class FSD50KTestClusteringDebug(FSD50KClustering):
+  split = "test"
   size = "debug"
-  metadata = dataclasses.replace(
-      FSD50KTestClustering.metadata,
+  metadata = types.TaskMetadata(
       name="FSD50KTestClusteringDebug",
+      description=(
+          "Sound event clustering on the test split of the FSD50K dataset."
+      ),
+      reference="""@article{fonseca2022fsd50k,
+ author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
+ title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
+ journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
+ volume  = {30},
+ pages   = {829--852},
+ year    = {2021},
+ doi     = {10.1109/TASLP.2022.3149014}
+}""",
+      documentation_file="fsd50k_clustering.md",
+      dataset_documentation_file="dataset_fsd50k.md",
+      type="Clustering",
+      category="audio",
+      main_score="VMeasure",
+      revision="1.0.0",
+      dataset=types.Dataset(
+          name="FSD50K",
+          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
+          revision="1.0.0",
+      ),
+      scores=[clustering_evaluator.vmeasure_score()],
+      eval_splits=["test"],
+      eval_langs=["und"],
+      domains=["audio", "acoustic", "environmental"],
+      task_subtypes=["clustering"],
   )
