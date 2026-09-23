@@ -69,7 +69,7 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
     waveforms = [item.waveform for item in resampled_sound_batch]
 
     inputs = self.processor(
-        audios=waveforms,
+        audio=waveforms,
         sampling_rate=target_sr,
         return_tensors="pt",
         padding=True
@@ -78,6 +78,7 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
 
     with torch.no_grad():
       audio_embeds = self.model.get_audio_features(**inputs)
+      audio_embeds = audio_embeds.pooler_output
       audio_embeds = audio_embeds.to("cpu").numpy()
 
     output_embeddings = []
@@ -141,6 +142,7 @@ class _CLAPTextEncoder(encoder.MultiModalEncoder):
 
     with torch.no_grad():
       text_embeds = self.model.get_text_features(**inputs)
+      text_embeds = text_embeds.pooler_output
       text_embeds = text_embeds.to("cpu").numpy()
 
     output_embeddings = []
