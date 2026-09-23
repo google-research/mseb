@@ -28,12 +28,6 @@ from mseb import task
 from mseb import types
 from mseb.evaluators import retrieval_evaluator
 
-_NUM_PARTITIONS = flags.DEFINE_integer(
-    'num_partitions',
-    1,
-    'Number of partitions to use for the retrieval task.',
-)
-
 RETRIEVED_ITEMS_KEY = flags.DEFINE_string(
     'retrieved_items_key',
     None,
@@ -60,7 +54,15 @@ logger = logging.getLogger(__name__)
 
 
 class RetrievalTask(task.MSEBTask):
-  """Retrieval task."""
+  """Retrieval task.
+
+  Attributes:
+    num_partitions: The number of partitions the document index is split into.
+      Concrete tasks whose index is too large to build or load in one piece
+      should override this with a value greater than 1.
+  """
+
+  num_partitions: int = 1
 
   def __init__(
       self,
@@ -95,8 +97,8 @@ class RetrievalTask(task.MSEBTask):
       embeddings_cache: types.MultiModalEmbeddingCache | None = None,
   ):
     """Create the index."""
-    if _NUM_PARTITIONS.value > 1:
-      self.setup_partitioned(_NUM_PARTITIONS.value, runner, embeddings_cache)
+    if self.num_partitions > 1:
+      self.setup_partitioned(self.num_partitions, runner, embeddings_cache)
     else:
       self.setup_unpartitioned(runner, embeddings_cache)
 

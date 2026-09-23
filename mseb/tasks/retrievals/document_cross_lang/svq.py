@@ -53,6 +53,8 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
   """SVQ document cross-lang retrieval."""
 
   locale: str | None = None
+  # The full Wikipedia index is too large to build or load in one piece.
+  num_partitions = 10
 
   @functools.cached_property
   def svq_dataset(self) -> svq.SimpleVoiceQuestionsDataset:
@@ -150,6 +152,9 @@ class SVQDocumentCrossLangRetrieval(retrieval.RetrievalTask):
 
 class SVQDocumentCrossLangRetrievalSmallIndex(SVQDocumentCrossLangRetrieval):
   """SVQ document cross-lang retrieval with small index."""
+
+  # The small index fits in a single partition.
+  num_partitions = 1
 
   @property
   def index_dir(self) -> str:

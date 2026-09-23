@@ -200,7 +200,9 @@ _SVQ_LOCALES = {
 }
 
 
-def _make_task_class(base_cls, locale, suffix, eval_lang, description):
+def _make_task_class(
+    base_cls, locale, suffix, eval_lang, description, num_partitions=1
+):
   """Dynamically create a locale-specific task class."""
   class_name = f'SVQ{suffix}{base_cls.__name__[len("SVQ"):]}'
   cls = type(
@@ -208,6 +210,7 @@ def _make_task_class(base_cls, locale, suffix, eval_lang, description):
       (base_cls,),
       {
           'locale': locale,
+          'num_partitions': num_partitions,
           'metadata': types.TaskMetadata(
               name=class_name,
               description=description,
@@ -243,6 +246,9 @@ for _locale, (_suffix, _eval_lang) in _SVQ_LOCALES.items():
       suffix=_suffix,
       eval_lang=_eval_lang,
       description='Document in-lang retrieval task.',
+      # The en-US index is the only in-lang index large enough to need
+      # partitioning.
+      num_partitions=10 if _locale == 'en_us' else 1,
   )
   globals()[_cls.__name__] = _cls
 

@@ -168,10 +168,8 @@ class RetrievalEncoderTest(absltest.TestCase):
     self.enter_context(
         flagsaver.flagsaver((task_lib.TASK_CACHE_BASEPATH, index_dir))
     )
-    self.enter_context(
-        flagsaver.flagsaver((retrieval_task._NUM_PARTITIONS, num_partitions))
-    )
     task = MockRetrievalTask()
+    task.num_partitions = num_partitions
     task.setup()
 
     encoder = retrieval_encoder.RetrievalEncoder(top_k=2)

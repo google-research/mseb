@@ -44,9 +44,11 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     ) | None = None
     self._documents: Callable[[], Iterable[types.Text]] | None = None
     self._text_by_id: dict[str, str] | None = None
+    self._num_partitions: int | None = None
 
   def set_task(self, task: retrieval_task.RetrievalTask) -> None:
     self._index_dir = retrieval_task.INDEX_DIR.value or task.index_dir
+    self._num_partitions = task.num_partitions
     self._documents = functools.partial(
         task.documents_generator, task.get_documents_source()
     )
@@ -58,7 +60,7 @@ class RetrievalEncoder(encoder.MultiModalEncoder):
     logging.info(
         'Created text_by_id mapping for %d documents.', len(self._text_by_id)
     )
-    if retrieval_task._NUM_PARTITIONS.value == 1:  # pylint: disable=protected-access
+    if self._num_partitions == 1:
       searcher, id_by_index_id = retrieval_evaluator.load_index(
           self._index_dir, self._id_by_index_id_filepath  # pyrefly: ignore[bad-argument-type]
       )
