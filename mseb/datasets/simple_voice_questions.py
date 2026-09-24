@@ -37,6 +37,11 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 
+# Single source of truth for the SVQ dataset version/revision. Referenced by
+# task metadata (`types.Dataset.revision`) so that it only needs to be bumped
+# here.
+VERSION = "2.0.0"
+
 LANGUAGES = [
     "ar",
     "bn",
@@ -221,7 +226,7 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
         name="Simple Voice Questions (SVQ)",
         description="A dataset for evaluating sound representations.",
         homepage="https://huggingface.co/datasets/google/svq",
-        version="2.0.0",
+        version=VERSION,
         license="CC BY 4.0",
         mseb_tasks=[
             "classification",

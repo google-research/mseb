@@ -197,7 +197,7 @@ def _make_task_class(
               dataset=types.Dataset(
                   name='SVQ',
                   path='https://huggingface.co/datasets/google/svq',
-                  revision='1.0.0',
+                  revision=svq.VERSION,
               ),
               scores=[reasoning_evaluator.gmean_f1(), reasoning_evaluator.f1()],
               eval_splits=['test'],

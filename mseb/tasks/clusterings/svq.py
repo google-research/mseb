@@ -139,7 +139,7 @@ def _make_task_class(
               dataset=types.Dataset(
                   name='SVQ',
                   path='https://huggingface.co/datasets/google/svq',
-                  revision='1.0.0',
+                  revision=svq.VERSION,
               ),
               scores=[clustering_evaluator.vmeasure_score()],
               eval_splits=['test'],

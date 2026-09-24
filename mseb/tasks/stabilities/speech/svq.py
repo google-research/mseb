@@ -118,7 +118,7 @@ def create_svq_stability_variant(
               dataset=types.Dataset(
                   name="SVQ",
                   path="https://huggingface.co/datasets/google/svq",
-                  revision="1.0.0",
+                  revision=svq.VERSION,
               ),
               scores=[main_score_obj],
               eval_splits=["test"],

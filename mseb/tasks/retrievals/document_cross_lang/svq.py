@@ -226,7 +226,7 @@ def _make_task_class(base_cls, locale, suffix, eval_lang, description):
               dataset=types.Dataset(
                   name='SVQ',
                   path='https://huggingface.co/datasets/google/svq',
-                  revision='1.0.0',
+                  revision=svq.VERSION,
               ),
               scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
               eval_splits=['test'],
