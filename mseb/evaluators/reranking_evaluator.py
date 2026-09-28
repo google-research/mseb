@@ -89,9 +89,7 @@ class RerankingCandidates:
   sound_id: str
   texts: Sequence[str]
   language: str  # For text normalization.
-  rank_by_id: Mapping[int, int] | None = (
-      None  # If None, we assume that id = rank.
-  )
+  candidate_texts: Sequence[str]
 
 
 RerankingPredictionsCache = Mapping[str, types.ListPrediction]
@@ -194,11 +192,8 @@ class RerankingEvaluator:
         predicted_items = prediction.items
         for item in predicted_items:
           try:
-            if candidates.rank_by_id is not None:
-              rank = candidates.rank_by_id[int(item['id'])]
-            else:
-              rank = int(item['id'])
-            item['text'] = item.get('text', candidates.texts[rank])  # pyrefly: ignore[unsupported-operation]
+            rank = int(item['id'])
+            item['text'] = item.get('text', candidates.candidate_texts[rank])  # pyrefly: ignore[unsupported-operation]
           except (IndexError, KeyError):
             item['text'] = ''  # pyrefly: ignore[unsupported-operation]
 
@@ -234,12 +229,7 @@ class RerankingEvaluator:
             types.WeightedValue(
                 value=sklearn_metrics.average_precision_score(
                     y_true=[
-                        metrics.compute_word_errors(
-                            truth=candidates.texts[0],
-                            hypothesis=item['text'],
-                            text_transform=text_transform(candidates.language),
-                        )[0]
-                        == 0.0
+                        item['text'] in candidates.texts
                         for item in predicted_items
                     ],
                     # If score is not present, assign pseudo-scores to preserve

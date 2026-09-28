@@ -80,7 +80,7 @@ class RerankingEvaluatorTest(parameterized.TestCase):
               {'id': 0, 'score': 0.5},  # b l i
               {'id': 2, 'score': 0.0},  # x y z
           ],
-          rank_by_id=None,
+          candidate_texts=['b l i', 'b l a', 'x y z'],
       ),
       dict(
           testcase_name='rank_by_id',
@@ -89,10 +89,10 @@ class RerankingEvaluatorTest(parameterized.TestCase):
               {'id': 1, 'score': 0.5},  # b l i
               {'id': 0, 'score': 0.0},  # x y z
           ],
-          rank_by_id={0: 2, 1: 0, 2: 1},
+          candidate_texts=['x y z', 'b l i', 'b l a'],
       ),
   )
-  def test_compute_metrics(self, items, rank_by_id):
+  def test_compute_metrics(self, items, candidate_texts):
     evaluator = reranking_evaluator.RerankingEvaluator(
         candidate_embeddings_by_sound_id={}, mrr_at_k=2
     )
@@ -101,9 +101,9 @@ class RerankingEvaluatorTest(parameterized.TestCase):
         candidates_batch=[
             reranking_evaluator.RerankingCandidates(
                 sound_id='test',
-                texts=['b l i', 'b l a', 'x y z'],
+                texts=['b l i'],
                 language='en',
-                rank_by_id=rank_by_id,
+                candidate_texts=candidate_texts,
             ),
         ],
     )

@@ -18,7 +18,7 @@ import functools
 import hashlib
 import os
 import random
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Sequence
 
 from absl import flags
 from mseb import task as task_lib
@@ -62,30 +62,22 @@ def _seed_from_candidates(candidates: Sequence[str]) -> int:
   return int(sha_hash, 16)
 
 
-def _get_context_text(candidates: Sequence[str], randomize: bool) -> str:
+def _maybe_randomize_candidates(
+    candidates: Sequence[str], randomize: bool
+) -> Sequence[str]:
   if randomize:
     candidates = list(candidates)
     random.seed(_seed_from_candidates(candidates))
     random.shuffle(candidates)
     random.seed()
+  return candidates
 
+
+def _get_context_text(candidates: Sequence[str], randomize: bool) -> str:
+  candidates = _maybe_randomize_candidates(candidates, randomize)
   return types.ValidListPrediction(
       items=[{'id': i, 'text': c} for i, c in enumerate(candidates)]
   ).to_json()
-
-
-def _get_rank_by_id(
-    candidates: Sequence[str], randomize: bool
-) -> Mapping[int, int] | None:
-  if not randomize:
-    return None
-
-  random.seed(_seed_from_candidates(candidates))
-  rank_by_id = list(range(len(candidates)))
-  random.shuffle(rank_by_id)
-  rank_by_id = {i: r for i, r in enumerate(rank_by_id)}
-  random.seed()
-  return rank_by_id
 
 
 class SVQSalientTermReranking(reranking.RerankingTask):
@@ -117,9 +109,9 @@ class SVQSalientTermReranking(reranking.RerankingTask):
           'passage_id_in_lang',
       ]
       available_cols = [col for col in candidate_cols if col in df.columns]
-      assert available_cols, (
-          f'No available columns for size {self.size} in {df.columns}'
-      )
+      assert (
+          available_cols
+      ), f'No available columns for size {self.size} in {df.columns}'
       coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
       mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
@@ -172,7 +164,7 @@ class SVQSalientTermReranking(reranking.RerankingTask):
         },
     )
     for example in df.to_dict('records'):
-      rank_by_id = _get_rank_by_id(
+      candidate_texts = _maybe_randomize_candidates(
           example['candidate_salient_terms'],
           randomize=_RANDOMIZE_CANDIDATE_SALIENT_TERMS.value,
       )
@@ -180,7 +172,7 @@ class SVQSalientTermReranking(reranking.RerankingTask):
           sound_id=example['utt_id'],
           texts=example['topk_salient_terms'],
           language=example['locale'],
-          rank_by_id=rank_by_id,
+          candidate_texts=candidate_texts,
       )
 
   def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:

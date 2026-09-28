@@ -58,13 +58,15 @@ class RerankingTest(absltest.TestCase):
         return [
             reranking_evaluator.RerankingCandidates(
                 sound_id='utt_11697423627206642872',
-                texts=['ref_1A', 'ref_1B'],
+                texts=['ref_1A'],
                 language='en',
+                candidate_texts=['ref_1A', 'ref_1B'],
             ),
             reranking_evaluator.RerankingCandidates(
                 sound_id='utt_15041124811443622614',
-                texts=['ref_2A', 'ref_2B', 'ref_2C'],
+                texts=['ref_2A'],
                 language='en',
+                candidate_texts=['ref_2A', 'ref_2B', 'ref_2C'],
             ),
         ]
 
@@ -77,7 +79,7 @@ class RerankingTest(absltest.TestCase):
                       text=text,
                       context=types.TextContextParams(id=text),
                   )
-                  for text in example.texts
+                  for text in example.candidate_texts
               ],
           )
 
@@ -206,13 +208,15 @@ class RerankingTest(absltest.TestCase):
         return [
             reranking_evaluator.RerankingCandidates(
                 sound_id='utt_11697423627206642872',
-                texts=['ref_1A', 'ref_1B'],
+                texts=['ref_1A'],
                 language='en',
+                candidate_texts=['ref_1A', 'ref_1B'],
             ),
             reranking_evaluator.RerankingCandidates(
                 sound_id='utt_15041124811443622614',
-                texts=['ref_2A', 'ref_2B', 'ref_2C'],
+                texts=['ref_2A'],
                 language='en',
+                candidate_texts=['ref_2A', 'ref_2B', 'ref_2C'],
             ),
         ]
 
@@ -310,8 +314,9 @@ class RerankingTest(absltest.TestCase):
         return [
             reranking_evaluator.RerankingCandidates(
                 sound_id='utt_1',
-                texts=['ref_1A', 'ref_1B'],
+                texts=['ref_1A'],
                 language='en',
+                candidate_texts=['ref_1A', 'ref_1B'],
             ),
         ]
 

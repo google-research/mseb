@@ -18,14 +18,17 @@ import functools
 import hashlib
 import os
 import random
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Sequence
 
 from absl import flags
+from mseb import metrics
 from mseb import task as task_lib
 from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reranking_evaluator
 from mseb.tasks import reranking
+from whisper.normalizers import basic
+from whisper.normalizers import english
 
 _RANDOMIZE_CANDIDATES = flags.DEFINE_bool(
     'randomize_candidates',
@@ -61,30 +64,22 @@ def _seed_from_candidates(candidates: Sequence[str]) -> int:
   return int(sha_hash, 16)
 
 
-def _get_context_text(candidates: Sequence[str], randomize: bool) -> str:
+def _maybe_randomize_candidates(
+    candidates: Sequence[str], randomize: bool
+) -> Sequence[str]:
   if randomize:
     candidates = list(candidates)
     random.seed(_seed_from_candidates(candidates))
     random.shuffle(candidates)
     random.seed()
+  return candidates
 
+
+def _get_context_text(candidates: Sequence[str], randomize: bool) -> str:
+  candidates = _maybe_randomize_candidates(candidates, randomize)
   return types.ValidListPrediction(
       items=[{'id': i, 'text': c} for i, c in enumerate(candidates)]
   ).to_json()
-
-
-def _get_rank_by_id(
-    candidates: Sequence[str], randomize: bool
-) -> Mapping[int, int] | None:
-  if not randomize:
-    return None
-
-  random.seed(_seed_from_candidates(candidates))
-  rank_by_id = list(range(len(candidates)))
-  random.shuffle(rank_by_id)
-  rank_by_id = {i: r for i, r in enumerate(rank_by_id)}
-  random.seed()
-  return rank_by_id
 
 
 class SVQQueryReranking(reranking.RerankingTask):
@@ -117,9 +112,9 @@ class SVQQueryReranking(reranking.RerankingTask):
           'passage_id_in_lang',
       ]
       available_cols = [col for col in candidate_cols if col in df.columns]
-      assert available_cols, (
-          f'No available columns for size {self.size} in {df.columns}'
-      )
+      assert (
+          available_cols
+      ), f'No available columns for size {self.size} in {df.columns}'
       coalesced = df[available_cols].bfill(axis=1).iloc[:, 0]
       mask = coalesced.map(getattr(svq, f'is_member_of_{self.size}'))
       df = df[mask]
@@ -167,15 +162,32 @@ class SVQQueryReranking(reranking.RerankingTask):
         dtype={'locale': str, 'utt_id': str, 'candidates': Sequence[str]},
     )
     for example in df.to_dict('records'):
-      rank_by_id = _get_rank_by_id(
+      candidate_texts = _maybe_randomize_candidates(
           example['candidates'][: self.max_candidates_per_example],
           randomize=_RANDOMIZE_CANDIDATES.value,
       )
+      text_transform = (
+          english.EnglishTextNormalizer()
+          if example['locale'].split('_')[0].lower() == 'en'
+          else basic.BasicTextNormalizer()
+      )
+      texts = [
+          candidate
+          for candidate in example['candidates'][
+              : self.max_candidates_per_example
+          ]
+          if metrics.compute_word_errors(
+              truth=example['candidates'][0],
+              hypothesis=candidate,
+              text_transform=text_transform,
+          )[0]
+          == 0.0
+      ]
       yield reranking_evaluator.RerankingCandidates(
           sound_id=example['utt_id'],
-          texts=example['candidates'],
+          texts=texts,
           language=example['locale'],
-          rank_by_id=rank_by_id,
+          candidate_texts=candidate_texts,
       )
 
   def candidate_lists(self) -> Iterable[tuple[str, Sequence[types.Text]]]:

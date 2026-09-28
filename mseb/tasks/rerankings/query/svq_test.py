@@ -158,15 +158,19 @@ class QueryRerankingHelpersTest(absltest.TestCase):
         ' {"id": 2, "text": "c"}]',
     )
 
-  def test_get_rank_by_id_randomize(self):
+  def test_randomize_candidates(self):
     candidates = ['a', 'b', 'c']
-    rank_by_id = svq._get_rank_by_id(candidates, randomize=True)
-    self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
+    randomized_candidates = svq._maybe_randomize_candidates(
+        candidates, randomize=True
+    )
+    self.assertEqual(randomized_candidates, ['b', 'c', 'a'])
 
-  def test_get_rank_by_id_no_randomize(self):
+  def test_no_randomize_candidates(self):
     candidates = ['a', 'b', 'c']
-    rank_by_id = svq._get_rank_by_id(candidates, randomize=False)
-    self.assertIsNone(rank_by_id)
+    randomized_candidates = svq._maybe_randomize_candidates(
+        candidates, randomize=False
+    )
+    self.assertEqual(randomized_candidates, ['a', 'b', 'c'])
 
 
 @pytest.mark.whisper
@@ -275,14 +279,14 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     self.assertLen(examples, 2)
     example = examples[0]
     self.assertEqual(example.sound_id, 'utt_11697423627206642872')
-    self.assertLen(example.texts, 5)
+    self.assertLen(example.texts, 1)
     self.assertEqual(example.language, 'en_us')
-    self.assertIsNone(example.rank_by_id)
+    self.assertLen(example.candidate_texts, 5)
     example = examples[1]
     self.assertEqual(example.sound_id, 'utt_15041124811443622614')
-    self.assertLen(example.texts, 5)
+    self.assertLen(example.texts, 1)
     self.assertEqual(example.language, 'en_us')
-    self.assertIsNone(example.rank_by_id)
+    self.assertLen(example.candidate_texts, 5)
 
   def test_examples_clean_sub_task(self):
     task = svq.SVQEnUsQueryReranking()
@@ -311,14 +315,6 @@ class SVQEnUsQueryRerankingTest(absltest.TestCase):
     examples = list(task.examples('query_reranking'))
     sound_ids = [ex.sound_id for ex in examples]
     self.assertNotIn('utt_de_001', sound_ids)
-
-  def test_examples_randomized(self):
-    with flagsaver.flagsaver((svq._RANDOMIZE_CANDIDATES, True)):
-      task = svq.SVQEnUsQueryReranking()
-      examples = list(task.examples('query_reranking'))
-      self.assertLen(examples, 2)
-      self.assertIsNotNone(examples[0].rank_by_id)
-      self.assertIsInstance(examples[0].rank_by_id, dict)
 
 
 class DynamicClassGenerationTest(absltest.TestCase):

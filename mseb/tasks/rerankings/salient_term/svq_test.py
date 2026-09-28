@@ -327,10 +327,12 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
     self.assertIn('weather', context_text)
     self.assertIn('boston', context_text)
 
-  def test_rank_by_id_no_randomize(self):
+  def test_maybe_randomize_candidates_no_randomize(self):
     candidates = ['a', 'b', 'c']
-    rank_by_id = svq._get_rank_by_id(candidates, randomize=False)
-    self.assertIsNone(rank_by_id)
+    randomized_candidates = svq._maybe_randomize_candidates(
+        candidates, randomize=False
+    )
+    self.assertEqual(candidates, randomized_candidates)
 
   def test_get_context_text_randomize(self):
     candidates = ['weather', 'boston']
@@ -340,10 +342,12 @@ class SVQSalientTermRerankingTest(absltest.TestCase):
         '[{"id": 0, "text": "weather"}, {"id": 1, "text": "boston"}]',
     )
 
-  def test_rank_by_id_randomize(self):
+  def test_maybe_randomize_candidates_randomize(self):
     candidates = ['a', 'b', 'c']
-    rank_by_id = svq._get_rank_by_id(candidates, randomize=True)
-    self.assertEqual(rank_by_id, {0: 1, 1: 2, 2: 0})
+    randomized_candidates = svq._maybe_randomize_candidates(
+        candidates, randomize=True
+    )
+    self.assertEqual(randomized_candidates, ['b', 'c', 'a'])
 
 
 class DynamicClassGenerationTest(absltest.TestCase):
