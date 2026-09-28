@@ -26,6 +26,7 @@ import urllib.request
 
 from etils import epath
 import fsspec
+import jaxtyping
 import librosa
 from mseb import encoder
 from mseb import types
@@ -97,7 +98,7 @@ def read_hf_parquet(
 
 def read_audio(
     file_path: str, target_sr: Optional[int] = None
-) -> tuple[np.ndarray, int]:
+) -> tuple[jaxtyping.Float[jaxtyping.Array, "T"], int]:
   """Reads an audio file."""
   with epath.Path(file_path).open("rb") as f:
     waveform, orig_sr = soundfile.read(io.BytesIO(f.read()), dtype="float32")
