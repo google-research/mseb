@@ -316,8 +316,8 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       raise ValueError(f"Utterance ID '{utt_id}' not found in corpus.")
     record = self.utt_id_to_record[utt_id]
     # We need to manually add utt_id back as it's the index now
-    record["utt_id"] = utt_id
-    return self._get_sound(record)
+    record["utt_id"] = utt_id  # pyrefly: ignore[unsupported-operation]
+    return self._get_sound(record)  # pyrefly: ignore[bad-argument-type]
 
   def _get_sound(self, record: dict[str, Any]) -> types.Sound:
     """Loads a single utterance from its record in the utterance index."""
