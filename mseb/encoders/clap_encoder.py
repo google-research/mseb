@@ -136,7 +136,9 @@ class _CLAPTextEncoder(encoder.MultiModalEncoder):
     inputs = self.processor(
         text=texts,
         return_tensors="pt",
-        padding=True
+        padding=True,
+        truncation=True,
+        max_length=min(self.processor.tokenizer.model_max_length, 512),  # pyrefly: ignore[missing-attribute]
     )
     inputs = {k: v.to(self.device) for k, v in inputs.items()}
 

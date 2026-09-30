@@ -234,6 +234,7 @@ class ClapEncoderTest(absltest.TestCase):
   def test_text_encoder_encode(self, mock_model_load, mock_processor_load):
     mock_processor = mock.Mock()
     mock_model = mock.Mock()
+    mock_processor.tokenizer.model_max_length = 512
     mock_processor_load.return_value = mock_processor
     mock_model_load.return_value = mock_model
     # Mock the return value of the processor call
@@ -296,6 +297,13 @@ class ClapEncoderTest(absltest.TestCase):
     audio_encoder._check_input_types(batch)  # Should not raise.
 
 
+class _TinyTokenizer:
+  """Stand-in for tokenizer providing `model_max_length`."""
+
+  def __init__(self, model_max_length: int = 512):
+    self.model_max_length = model_max_length
+
+
 class _TinyClapProcessor:
   """Stand-in for `ClapProcessor` shaped for `ClapRealModelTest`'s tiny model.
 
@@ -315,12 +323,14 @@ class _TinyClapProcessor:
       num_mel_bins: int,
       vocab_size: int,
       seq_length: int,
+      model_max_length: int = 512,
   ):
     # The real feature extractor, which only supplies `sampling_rate` to the
     # encoder, and needs no pretrained files.
     self.feature_extractor = transformers.ClapFeatureExtractor(
         sampling_rate=sampling_rate
     )
+    self.tokenizer = _TinyTokenizer(model_max_length=model_max_length)
     self._time_length = time_length
     self._num_mel_bins = num_mel_bins
     self._vocab_size = vocab_size
@@ -334,6 +344,8 @@ class _TinyClapProcessor:
       sampling_rate: int | None = None,
       return_tensors: str | None = None,
       padding: bool | None = None,
+      truncation: bool | None = None,
+      max_length: int | None = None,
   ) -> dict[str, torch.Tensor]:
     self.call_kwargs = dict(
         text=text,
@@ -341,6 +353,8 @@ class _TinyClapProcessor:
         sampling_rate=sampling_rate,
         return_tensors=return_tensors,
         padding=padding,
+        truncation=truncation,
+        max_length=max_length,
     )
     if audio is not None:
       return {
@@ -494,6 +508,9 @@ class ClapRealModelTest(absltest.TestCase):
         self.processor.call_kwargs["text"],
         [text.text for text in self.text_batch],
     )
+    self.assertTrue(self.processor.call_kwargs["truncation"])
+    self.assertTrue(self.processor.call_kwargs["padding"])
+    self.assertEqual(self.processor.call_kwargs["max_length"], 512)
     self.assertLen(embeddings, len(self.text_batch))
     for text, embedding in zip(self.text_batch, embeddings):
       text_embedding = cast(types.TextEmbedding, embedding)
