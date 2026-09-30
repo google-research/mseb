@@ -64,9 +64,6 @@ class FSD50KClustering(clustering.ClusteringTask):
       ]
     for record in task_data.to_dict("records"):
       example_id = str(record["fname"])
-      if self.size is not None:
-        if example_id not in getattr(fsd50k, f"{self.size}_ids")():
-          continue
       label = self._get_label(record)
       yield clustering_evaluator.ClusteringExample(example_id, label)
 

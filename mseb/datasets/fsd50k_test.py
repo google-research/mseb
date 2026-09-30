@@ -132,11 +132,21 @@ class FSD50KDatasetTest(absltest.TestCase):
 class DebugIdsTest(absltest.TestCase):
 
   def test_is_member_of_debug_true(self):
-    self.assertTrue(fsd50k.is_member_of_debug('345111'))
-    self.assertTrue(fsd50k.is_member_of_debug('160826'))
-    self.assertTrue(fsd50k.is_member_of_debug('420945'))
+    self.assertTrue(fsd50k.is_member_of_debug('37199'))
+    self.assertTrue(fsd50k.is_member_of_debug('175151'))
+    self.assertTrue(fsd50k.is_member_of_debug('253463'))
+    self.assertTrue(fsd50k.is_member_of_debug('329838'))
+    self.assertTrue(fsd50k.is_member_of_debug('1277'))
+    self.assertTrue(fsd50k.is_member_of_debug(37199))
+    self.assertTrue(fsd50k.is_member_of_debug(175151))
+    self.assertTrue(fsd50k.is_member_of_debug(253463))
+    self.assertTrue(fsd50k.is_member_of_debug(329838))
+    self.assertTrue(fsd50k.is_member_of_debug(1277))
 
   def test_is_member_of_debug_false(self):
+    self.assertFalse(fsd50k.is_member_of_debug('345111'))
+    self.assertFalse(fsd50k.is_member_of_debug('160826'))
+    self.assertFalse(fsd50k.is_member_of_debug('420945'))
     self.assertFalse(fsd50k.is_member_of_debug('non_existent_id'))
     self.assertFalse(fsd50k.is_member_of_debug(''))
 

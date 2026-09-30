@@ -66,7 +66,7 @@ class FSD50KClassification(classification.ClassificationTask):
       task_data = task_data[
           task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
       ]
-    for _, record in enumerate(task_data.to_dict("records")):
+    for record in task_data.to_dict("records"):
       example_id = str(record["fname"])
       label_ids = record["labels"].split(",")
       yield classification_evaluator.MultiLabelClassificationReference(

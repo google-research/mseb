@@ -217,7 +217,7 @@ class FSD50KDataset(base.MsebDataset):
     return types.Sound(waveform=waveform, context=context)
 
 
-def is_member_of_debug(fname: str) -> bool:
+def is_member_of_debug(fname: str | int) -> bool:
   """Returns whether the FSD50K file name is in the debug set."""
-  debug_ids = frozenset(['345111', '160826', '420945', '420946', '420947'])
-  return fname in debug_ids
+  debug_ids = frozenset(['37199', '175151', '253463', '329838', '1277'])
+  return str(fname) in debug_ids

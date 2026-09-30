@@ -17,7 +17,7 @@
 import functools
 import os
 import re
-from typing import Any, Iterable
+from typing import Iterable
 
 from mseb import types
 from mseb.datasets import speech_massive
@@ -55,8 +55,10 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
   def speech_massive_dataset(self) -> speech_massive.SpeechMassiveDataset:
     return speech_massive.SpeechMassiveDataset(filename=self.filename)  # pyrefly: ignore[bad-argument-type]
 
-  def _task_data(self, task_data_key: str, dtype: dict[str, Any] | None = None):
-    df = self.speech_massive_dataset.get_task_data(task_data_key, dtype=dtype)
+  def _task_data(self, task_name: str | None = None, with_audio: bool = False):
+    df = self.speech_massive_dataset.get_task_data(
+        task_name=task_name, with_audio=with_audio
+    )
     if self.locale:
       df = df[df.locale == speech_massive.bcp47_by_locale[self.locale]]
     if self.size is not None:
@@ -65,9 +67,8 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
     return df
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    dataset = self.speech_massive_dataset
-    for example in dataset.get_task_data(with_audio=True).to_dict("records"):
-      yield dataset.get_sound(example)
+    for example in self._task_data(with_audio=True).to_dict("records"):
+      yield self.speech_massive_dataset.get_sound(example)
 
   def multimodal_inputs_beam(self):
     return self.speech_massive_dataset.get_task_sounds_beam()
@@ -75,8 +76,7 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
   def examples(
       self, sub_task: str
   ) -> Iterable[classification_evaluator.ClassificationReference]:
-    dataset = self.speech_massive_dataset
-    for example in dataset.get_task_data().to_dict("records"):
+    for example in self._task_data().to_dict("records"):
       yield classification_evaluator.ClassificationReference(
           example_id=example["path"],
           label_id=example["intent_str"],
