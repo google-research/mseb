@@ -164,27 +164,34 @@ def top_1(
     jaxtyping.Float[jaxtyping.Array, '*B 1'],
     jaxtyping.Int[jaxtyping.Array, '*B 1'],
 ]:
-  """Returns the top-1 value and its index of scores."""
-  top_id = np.argmax(scores)
-  return np.array([scores[top_id]]), np.array([top_id])  # pyrefly: ignore[bad-return]
+  """Returns the top-1 value and index along the last axis of scores."""
+  top_id = np.argmax(scores, axis=-1)[..., np.newaxis]
+  return np.take_along_axis(scores, top_id, axis=-1), top_id
 
 
 def top_k(scores: jaxtyping.Float[jaxtyping.Array, '*B N'], k: int) -> tuple[
     jaxtyping.Float[jaxtyping.Array, '*B k'],
     jaxtyping.Int[jaxtyping.Array, '*B k'],
 ]:
-  """Returns top k values and their indices of scores."""
-  k = min(k, len(scores))
-  ids_k = np.argpartition(scores, -k, axis=-1)[-k:]
-  ids = np.argsort(scores[ids_k], axis=-1)[::-1]
-  ids_k = ids_k[ids]
-  return scores[ids_k], ids_k  # pyrefly: ignore[bad-return]
+  """Returns top k values and indices along the last axis of scores."""
+  if k < 0:
+    raise ValueError(f'k must be non-negative, got {k}.')
+  k = min(k, scores.shape[-1])
+  if k == 0:
+    return scores[..., :0], np.empty(scores.shape[:-1] + (0,), dtype=np.intp)
+  ids_k = np.argpartition(scores, -k, axis=-1)[..., -k:]
+  values_k = np.take_along_axis(scores, ids_k, axis=-1)
+  order = np.argsort(values_k, axis=-1)[..., ::-1]
+  return (
+      np.take_along_axis(values_k, order, axis=-1),
+      np.take_along_axis(ids_k, order, axis=-1),
+  )
 
 
 def top_inf(scores: jaxtyping.Float[jaxtyping.Array, '*B N']) -> tuple[
     jaxtyping.Float[jaxtyping.Array, '*B N'],
     jaxtyping.Int[jaxtyping.Array, '*B N'],
 ]:
-  """Returns the values and their indices of scores in descending order."""
+  """Returns values and indices sorted descending along the last axis."""
   ids = np.argsort(-scores, axis=-1)
-  return scores[ids], ids  # pyrefly: ignore[bad-return]
+  return np.take_along_axis(scores, ids, axis=-1), ids
