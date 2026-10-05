@@ -595,6 +595,10 @@ class SegmentationEvaluator:
         map_value = metrics.average_precision_score(
             np.array(y_true), np.array(y_score)
         )
+        # sklearn normalizes recall by matched positives in y_true. Detection
+        # recall must include every reference, including missed segments.
+        num_references = sum(len(gts) for gts in ground_truths.values())
+        map_value *= sum(y_true) / num_references
       else:
         map_value = 0.0
       map_score = mean_average_precision(map_value)
