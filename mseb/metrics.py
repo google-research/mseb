@@ -265,7 +265,8 @@ def compute_lp_norm(
 
   If temporal lengths differ, the shorter sequence is zero-padded
   to match the longer sequence. This measures rigid point-to-point distance
-  while naturally penalizing dropped or hallucinated frames.
+  while naturally penalizing dropped or hallucinated frames. The norm is taken
+  over all time and embedding coordinates, not as a matrix operator norm.
 
   Args:
     z1: Array of shape (time_steps_1, embedding_dim).
@@ -295,7 +296,7 @@ def compute_lp_norm(
       z2_padded[:t2] = z2
       z2 = z2_padded
 
-  dist = float(np.linalg.norm(z1 - z2, ord=p))
+  dist = float(np.linalg.norm((z1 - z2).reshape(-1), ord=p))
 
   return {'raw_distance': dist, 'reference_length': float(t1)}
 
