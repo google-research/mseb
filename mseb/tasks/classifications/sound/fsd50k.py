@@ -14,6 +14,7 @@
 
 """FSD50K multi-label classification tasks."""
 
+import functools
 from typing import Iterable, Sequence
 
 from mseb import types
@@ -30,8 +31,15 @@ class FSD50KClassification(classification.ClassificationTask):
   split: str | None = None
   size: str | None = None
 
-  def _get_dataset(self):
-    return fsd50k.FSD50KDataset(split=self.split)  # pyrefly: ignore[bad-argument-type]
+  @functools.cached_property
+  def _fsd_dataset(self) -> fsd50k.FSD50KDataset:
+    filter_fn = None
+    if self.size is not None:
+      filter_fn = getattr(fsd50k, f"is_member_of_{self.size}")
+    return fsd50k.FSD50KDataset(
+        split=self.split,  # pyrefly: ignore[bad-argument-type]
+        filter_fn=filter_fn,
+    )
 
   @property
   def task_type(self) -> str:
@@ -42,17 +50,11 @@ class FSD50KClassification(classification.ClassificationTask):
     return ["classification"]
 
   def class_labels(self) -> Sequence[str]:
-    # The class labels are the same regardless of the split.
-    fsd_dataset = fsd50k.FSD50KDataset(split="test")
-    return fsd_dataset.class_labels
+    return self._fsd_dataset.class_labels
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
-    fsd_dataset = self._get_dataset()
+    fsd_dataset = self._fsd_dataset
     task_data = fsd_dataset.get_task_data()
-    if self.size is not None:
-      task_data = task_data[
-          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
-      ]
     for record in task_data.to_dict("records"):
       yield fsd_dataset.get_sound(record)
 
@@ -60,12 +62,8 @@ class FSD50KClassification(classification.ClassificationTask):
     if self.split is None:
       raise ValueError("`split` must be set by a concrete task subclass.")
 
-    fsd_dataset = self._get_dataset()
+    fsd_dataset = self._fsd_dataset
     task_data = fsd_dataset.get_task_data()
-    if self.size is not None:
-      task_data = task_data[
-          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
-      ]
     for record in task_data.to_dict("records"):
       example_id = str(record["fname"])
       label_ids = record["labels"].split(",")

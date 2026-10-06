@@ -36,7 +36,6 @@ from packaging import version
 import pandas as pd
 import pyarrow.parquet as pq
 
-
 # Single source of truth for the SVQ dataset version/revision. Referenced by
 # task metadata (`types.Dataset.revision`) so that it only needs to be bumped
 # here.
@@ -344,10 +343,9 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
 
     Args:
       task_name: The name or wildcard pattern of the task file (e.g.,
-        "utts_en_us_clean" or "utts_en_us_*"). Supports wildcards to
-        match multiple environment files across a locale. Parquet format is
-        preferred; JSONL format is deprecated and will be removed in a future
-        release.
+        "utts_en_us_clean" or "utts_en_us_*"). Supports wildcards to match
+        multiple environment files across a locale. Parquet format is preferred;
+        JSONL format is deprecated and will be removed in a future release.
 
     Returns:
       The path to the task file.
@@ -417,7 +415,10 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       dfs = []
       for f in matched_files:
         with f.open("rb") as parquet_f:
-          dfs.append(pd.read_parquet(parquet_f))
+          # Audio is loaded on demand by `get_sound`.
+          cols = list(set(pq.read_schema(parquet_f).names) - set(["waveform"]))
+          parquet_f.seek(0)
+          dfs.append(pd.read_parquet(parquet_f, columns=cols))
     else:
       logging.warning(
           "Reading task data from JSONL is deprecated and will be removed in a"
@@ -484,7 +485,7 @@ def parse_passage_id(passage_id: str, min_digits: int = 6) -> int:
   Raises:
     ValueError: If no large ID number is found in `passage_id`.
   """
-  clean_str = passage_id.strip('\'"“” \t\n')
+  clean_str = passage_id.strip("'\"“” \t\n")
   pattern = (
       _PASSAGE_ID_PATTERN
       if min_digits == 6

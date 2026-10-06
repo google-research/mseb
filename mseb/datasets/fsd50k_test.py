@@ -20,6 +20,7 @@ from mseb import types
 from mseb.datasets import fsd50k
 import numpy as np
 import pandas as pd
+from pyarrow import parquet as pq
 from scipy.io import wavfile
 
 
@@ -127,6 +128,103 @@ class FSD50KDatasetTest(absltest.TestCase):
     sound2 = dataset.get_sound(task_data.iloc[1].to_dict())
     self.assertEqual(sound2.context.id, '175151')
     self.assertLen(sound2.waveform, 32000)
+
+  @mock.patch.object(fsd50k, '_PARQUET_BATCH_SIZE', 1)
+  def test_filter_fn_with_parquet_cache(self):
+    pd.DataFrame({
+        'fname': [37199, 999999, 175151],
+        'labels': ['Music', 'Music', 'Guitar'],
+        'waveform': [
+            np.ones(160, dtype=np.float32),
+            np.ones(320, dtype=np.float32),
+            np.ones(480, dtype=np.float32),
+        ],
+        'sample_rate': [16000, 16000, 16000],
+    }).to_parquet(os.path.join(self.testdata_dir.full_path, 'test.parquet'))
+
+    dataset = fsd50k.FSD50KDataset(
+        split='test',
+        base_path=self.testdata_dir.full_path,
+        filter_fn=fsd50k.is_member_of_debug,
+    )
+
+    task_data = dataset.get_task_data()
+    self.assertEqual(list(task_data['fname']), [37199, 175151])
+    sound = dataset.get_sound(task_data.iloc[1].to_dict())
+    self.assertEqual(sound.context.id, '175151')
+    self.assertLen(sound.waveform, 480)
+    self.assertLen(
+        fsd50k.FSD50KDataset(
+            split='test', base_path=self.testdata_dir.full_path
+        ),
+        3,
+    )
+
+  @mock.patch.object(fsd50k, '_PARQUET_BATCH_SIZE', 1)
+  def test_filter_fn_stops_reading_after_last_match(self):
+    pd.DataFrame({
+        'fname': [37199, 175151, 999999],
+        'labels': ['Music', 'Guitar', 'Music'],
+        'waveform': [np.ones(160, dtype=np.float32)] * 3,
+        'sample_rate': [16000] * 3,
+    }).to_parquet(os.path.join(self.testdata_dir.full_path, 'test.parquet'))
+    iter_batches = pq.ParquetFile.iter_batches
+    num_batches = 0
+
+    def counting_iter_batches(*args, **kwargs):
+      nonlocal num_batches
+      for batch in iter_batches(*args, **kwargs):
+        num_batches += 1
+        yield batch
+
+    with mock.patch.object(
+        pq.ParquetFile, 'iter_batches', counting_iter_batches
+    ):
+      dataset = fsd50k.FSD50KDataset(
+          split='test',
+          base_path=self.testdata_dir.full_path,
+          filter_fn=fsd50k.is_member_of_debug,
+      )
+
+    self.assertEqual(list(dataset.get_task_data()['fname']), [37199, 175151])
+    self.assertEqual(num_batches, 2)
+
+  @mock.patch('mseb.utils.download_from_hf')
+  def test_filter_fn_without_parquet_cache(self, _):
+    dataset = fsd50k.FSD50KDataset(
+        split='test',
+        base_path=self.testdata_dir.full_path,
+        filter_fn=lambda fname: fname == 175151,
+    )
+
+    self.assertEqual(list(dataset.get_task_data()['fname']), [175151])
+    # The cache that was written contains all examples.
+    self.assertLen(
+        fsd50k.FSD50KDataset(
+            split='test', base_path=self.testdata_dir.full_path
+        ),
+        2,
+    )
+
+  @mock.patch.object(fsd50k, '_PARQUET_BATCH_SIZE', 1)
+  def test_filter_fn_without_matches(self):
+    pd.DataFrame({
+        'fname': [999999, 888888],
+        'labels': ['Music', 'Guitar'],
+        'waveform': [np.ones(160, dtype=np.float32)] * 2,
+        'sample_rate': [16000] * 2,
+    }).to_parquet(os.path.join(self.testdata_dir.full_path, 'test.parquet'))
+
+    with self.assertLogs(level='WARNING'):
+      dataset = fsd50k.FSD50KDataset(
+          split='test',
+          base_path=self.testdata_dir.full_path,
+          filter_fn=fsd50k.is_member_of_debug,
+      )
+
+    task_data = dataset.get_task_data()
+    self.assertEmpty(task_data)
+    self.assertIn('fname', task_data.columns)
 
 
 class DebugIdsTest(absltest.TestCase):

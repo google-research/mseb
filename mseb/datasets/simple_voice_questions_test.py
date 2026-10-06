@@ -67,6 +67,7 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
         "utt_id": ["utt_p1"],
         "task": ["p_task"],
         "passage_text": ["text in parquet"],
+        "waveform": [b"audio bytes"],
     })
     table = pa.Table.from_pandas(task_df)
     custom_meta = {
@@ -111,6 +112,7 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
     loaded_task_df = dataset.get_task_data("test_p_task")
     self.assertLen(loaded_task_df, 1)
     self.assertEqual(loaded_task_df.iloc[0]["utt_id"], "utt_p1")
+    self.assertNotIn("waveform", loaded_task_df.columns)
 
   def test_get_task_data_for_text_index(self):
     testdata_path = os.path.join(

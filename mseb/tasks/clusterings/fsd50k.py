@@ -14,6 +14,7 @@
 
 """FSD50K sound event clustering tasks."""
 
+import functools
 from typing import Iterable
 
 from mseb import types
@@ -28,13 +29,14 @@ class FSD50KClustering(clustering.ClusteringTask):
   split: str | None = None
   size: str | None = None
 
-  @property
+  @functools.cached_property
   def _fsd_dataset(self) -> fsd50k.FSD50KDataset:
-    if not hasattr(self, "_fsd_dataset_cache"):
-      if self.split is None:
-        raise ValueError("`split` must be set by a concrete task subclass.")
-      self._fsd_dataset_cache = fsd50k.FSD50KDataset(split=self.split)
-    return self._fsd_dataset_cache  # pytype: disable=attribute-error
+    if self.split is None:
+      raise ValueError("`split` must be set by a concrete task subclass.")
+    filter_fn = None
+    if self.size is not None:
+      filter_fn = getattr(fsd50k, f"is_member_of_{self.size}")
+    return fsd50k.FSD50KDataset(split=self.split, filter_fn=filter_fn)
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -47,10 +49,6 @@ class FSD50KClustering(clustering.ClusteringTask):
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     task_data = self._fsd_dataset.get_task_data()
-    if self.size is not None:
-      task_data = task_data[
-          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
-      ]
     for record in task_data.to_dict("records"):
       yield self._fsd_dataset.get_sound(record)
 
@@ -58,10 +56,6 @@ class FSD50KClustering(clustering.ClusteringTask):
       self, sub_task: str
   ) -> Iterable[clustering_evaluator.ClusteringExample]:
     task_data = self._fsd_dataset.get_task_data()
-    if self.size is not None:
-      task_data = task_data[
-          task_data["fname"].apply(getattr(fsd50k, f"is_member_of_{self.size}"))
-      ]
     for record in task_data.to_dict("records"):
       example_id = str(record["fname"])
       label = self._get_label(record)

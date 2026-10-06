@@ -15,7 +15,7 @@
 """FSD50K dataset."""
 
 import os
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 import urllib.request
 
 from absl import logging
@@ -28,6 +28,10 @@ import pandas as pd
 from pyarrow import parquet as pq
 
 _PARQUET_BATCH_SIZE = 1024
+# Read Parquet column chunks in blocks of this size instead of all at once.
+# Each read from Placer has a high fixed cost, so smaller blocks are slower.
+# In measurements, 1 GiB blocks were slower, too.
+_PARQUET_BUFFER_SIZE = 256 * 1024 * 1024
 
 
 class FSD50KDataset(base.MsebDataset):
@@ -39,6 +43,7 @@ class FSD50KDataset(base.MsebDataset):
       base_path: str | None = None,
       repo_id: str = 'Fhrozen/FSD50k',
       streaming: bool = False,
+      filter_fn: Callable[[Any], bool] | None = None,
   ):
     if split not in ['validation', 'test']:
       raise ValueError(f'Split must be validation or test, but got {split}.')
@@ -48,8 +53,13 @@ class FSD50KDataset(base.MsebDataset):
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
     self.streaming = streaming
+    # If set, only the examples whose `fname` satisfies `filter_fn` are loaded.
+    # `fname` is passed as stored, which is an `int` for the FSD50K metadata.
+    self._filter_fn = filter_fn
 
     self._data = self._load_metadata()
+    if filter_fn is not None and self._data.empty:
+      logging.warning('No FSD50K %s examples match filter_fn.', self.split)
     self._load_vocabulary()
 
   def __len__(self) -> int:
@@ -160,6 +170,10 @@ class FSD50KDataset(base.MsebDataset):
     dataset from Hugging Face, processes the data via `_load_csv`, and saves
     the result to a new `.parquet` file to accelerate all future loads.
 
+    If `filter_fn` is set, only the matching rows are returned. When reading
+    the cache, the other rows are dropped batch by batch, before their audio is
+    converted to pandas, and reading stops after the last matching row.
+
     Returns:
       A pandas DataFrame containing the dataset's metadata.
     """
@@ -169,12 +183,26 @@ class FSD50KDataset(base.MsebDataset):
           'Loading FSD50K %s split from cache...', self.split
       )
       with epath.Path(cache_path).open('rb') as f:
-        parquet_file = pq.ParquetFile(f)
-        df = pd.DataFrame()
+        parquet_file = pq.ParquetFile(f, buffer_size=_PARQUET_BUFFER_SIZE)
+        num_matches = None
+        if self._filter_fn is not None:
+          # Count the matching rows, to stop reading after the last one.
+          fnames = parquet_file.read(columns=['fname'])['fname'].to_pylist()
+          num_matches = sum(1 for fname in fnames if self._filter_fn(fname))
+        dfs = []
+        num_rows = 0
         for batch in parquet_file.iter_batches(batch_size=_PARQUET_BATCH_SIZE):
-          batch_df = batch.to_pandas()
-          df = pd.concat([df, batch_df])
-        return df  # pyrefly: ignore[bad-return]
+          if self._filter_fn is not None:
+            batch = batch.filter(
+                [self._filter_fn(fname) for fname in batch['fname'].to_pylist()]
+            )
+          dfs.append(batch.to_pandas())
+          num_rows += batch.num_rows
+          if num_rows == num_matches:
+            break
+        if not dfs:
+          return pd.DataFrame()
+        return pd.concat(dfs, ignore_index=True)  # pyrefly: ignore[bad-return]
     logging.info(
         'Cache not found. Processing FSD50K %s split from source...',
         self.split,
@@ -187,6 +215,8 @@ class FSD50KDataset(base.MsebDataset):
           'Saving FSD50K %s split to cache at %s', self.split, cache_path
       )
       df.to_parquet(cache_path, row_group_size=32)
+    if self._filter_fn is not None:
+      df = df[df['fname'].apply(self._filter_fn)]
     return df
 
   def _load_wav_for_row(self, row):
