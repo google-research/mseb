@@ -330,7 +330,11 @@ def build_task_dataframe(
         dataset_vals.append(0.0)
 
     if dataset_vals:
-      row["Task Average"] = round(float(np.mean(dataset_vals)), 2)
+      avg_val = float(np.mean(dataset_vals))
+      if t_clean == "transcription":
+        row["Task Average"] = round(100.0 - avg_val, 2)
+      else:
+        row["Task Average"] = round(avg_val, 2)
     else:
       row["Task Average"] = 0.0
 
@@ -350,9 +354,12 @@ def build_task_dataframe(
     df = df[[c for c in ordered_cols if c in df.columns]]
     if "Task Average" in df.columns:
       spec = MSEB_TASKS.get(t_clean)
-      is_lib = (
-          spec.metric_direction.name == "LOWER_IS_BETTER" if spec else False
-      )
+      if t_clean == "transcription":
+        is_lib = False  # Transcription value is 100-val.
+      elif spec:
+        is_lib = spec.metric_direction.name == "LOWER_IS_BETTER"
+      else:
+        is_lib = False
       df = df.sort_values(
           by=["Task Average"], ascending=is_lib, na_position="last"
       ).reset_index(drop=True)
@@ -726,7 +733,12 @@ def compute_dynamic_task_average(
         row_scores.append(0.0)
 
     if active_datasets:
-      averages.append(round(float(np.mean(row_scores)), 2))
+      avg_val = float(np.mean(row_scores))
+      t_clean = task_key.lower().strip()
+      if t_clean == "transcription":
+        averages.append(round(100.0 - avg_val, 2))
+      else:
+        averages.append(round(avg_val, 2))
     else:
       averages.append(np.nan)
 
@@ -736,7 +748,12 @@ def compute_dynamic_task_average(
   if "Task Average" in df_copy.columns:
     t_clean = task_key.lower().strip()
     spec = MSEB_TASKS.get(t_clean)
-    is_lib = spec.metric_direction.name == "LOWER_IS_BETTER" if spec else False
+    if t_clean == "transcription":
+      is_lib = False  # Transcription value is 100-val.
+    elif spec:
+      is_lib = spec.metric_direction.name == "LOWER_IS_BETTER"
+    else:
+      is_lib = False
     df_copy = df_copy.sort_values(
         by=["Task Average"],
         ascending=is_lib,
