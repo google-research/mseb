@@ -124,8 +124,8 @@ def create_inactive_task_notice(task_spec: TaskSpec) -> gr.HTML:
   """Renders a notice for tasks with no evaluation records in the active results catalog."""
   html = f"""
     <div class="inactive-task-banner">
-        ⚠️ <strong>Note:</strong> No evaluated models are currently available inn
-        <code>results/google/</code> for <strong>{task_spec.display_name}</sstrong>.
+        ⚠️ <strong>Note:</strong> No evaluated models are currently available in
+        <code>results/</code> for <strong>{task_spec.display_name}</strong>.
         Showing the canonical column schema.
     </div>
     """

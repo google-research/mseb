@@ -91,7 +91,6 @@ TASK_TYPE_TO_CANONICAL: Dict[str, str] = {
     "SpanCrossLangReasoning": "reasoning",
     "Reranking": "reranking",
     "QueryReranking": "reranking",
-    "Retrieval": "retrieval",
     "DocumentInLangRetrieval": "retrieval",
     "DocumentCrossLangRetrieval": "retrieval",
     "PassageInLangRetrieval": "retrieval",
@@ -116,20 +115,25 @@ def resolve_task_name(raw_type: Any, dataset_name: Any = "") -> str:
   """Normalizes raw task type string or dataset name into one of 9 canonical MSEB tasks."""
   if isinstance(raw_type, (list, tuple)) and raw_type:
     raw_type = raw_type[0]
-  raw_str = str(raw_type or "")
-  raw_lower = raw_str.lower().strip()
+  raw_str = str(raw_type or "").strip()
+  if raw_str in TASK_TYPE_TO_CANONICAL:
+    return TASK_TYPE_TO_CANONICAL[raw_str]
+  raw_lower = raw_str.lower()
   if raw_lower in TASK_TYPE_TO_CANONICAL:
     return TASK_TYPE_TO_CANONICAL[raw_lower]
 
-  for key, val in TASK_TYPE_TO_CANONICAL.items():
-    if key in raw_lower:
+  sorted_items = sorted(
+      TASK_TYPE_TO_CANONICAL.items(), key=lambda kv: len(kv[0]), reverse=True
+  )
+  for key, val in sorted_items:
+    if key.lower() in raw_lower:
       return val
 
   # Fallback to dataset name
-  d_str = str(dataset_name or "")
-  d_lower = d_str.lower().strip()
-  for key, val in TASK_TYPE_TO_CANONICAL.items():
-    if key in d_lower:
+  d_str = str(dataset_name or "").strip()
+  d_lower = d_str.lower()
+  for key, val in sorted_items:
+    if key.lower() in d_lower:
       return val
 
   return "classification"
@@ -186,8 +190,6 @@ def discover_models(results_dir: Optional[str] = None) -> List[ModelEntry]:
 
   Identifies top-level model folders and nested subconfiguration folders
   (e.g., asr=truth, asr=whisper) containing at least one .jsonl evaluation file.
-  Inherits model metadata (name, url) from parent model.json when not present
-  locally.
 
   Args:
       results_dir: Path to root evaluation results directory.
@@ -236,10 +238,11 @@ def discover_models(results_dir: Optional[str] = None) -> List[ModelEntry]:
       sub_config = "/".join(parts[1:]) if len(parts) > 1 else None
 
       meta = _resolve_model_metadata(root, abs_results_dir, metadata_cache)
-      if not isinstance(meta, dict):
-        meta = {}
-      base_name = str(meta.get("name") or top_model)
-      url = str(meta.get("url") or "")
+      meta = dict(meta) if isinstance(meta, dict) else {}
+      raw_name = str(meta.get("name") or "").strip()
+      raw_url = str(meta.get("url") or "").strip()
+      base_name = str(raw_name or top_model)
+      url = str(raw_url or "")
 
       display_name = f"{base_name} ({sub_config})" if sub_config else base_name
 
@@ -705,7 +708,7 @@ def load_all_evaluation_data(
   """Discovers all models and parses all JSONL evaluation files across results_dir.
 
   Args:
-      results_dir: Path to third_party/py/mseb/results/google/ directory.
+      results_dir: Path to directory containing jsonl results files.
 
   Returns:
       List of all parsed EvaluationRecord instances.

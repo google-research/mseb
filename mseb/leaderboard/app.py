@@ -51,8 +51,7 @@ def create_app(results_dir: Optional[str] = None) -> gr.Blocks:
 
   Args:
       results_dir: Optional path to directory containing JSONL evaluation
-        results. If None, resolves to canonical
-        `third_party/py/mseb/results/google/`.
+        results. If None, looks in ../results.
 
   Returns:
       gr.Blocks instance containing the complete multi-tab application.

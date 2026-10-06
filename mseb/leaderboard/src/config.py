@@ -376,8 +376,8 @@ def normalize_metric_for_svq(score: float, metric_name: str) -> float:
 
   if is_lib:
     if m_lower in ("wer", "ser", "cer", "worderrorrate"):
-      # Raw speech recognition error rate (fraction or percentage)
-      val = score * 100.0 if score <= 1.0 and score >= 0.0 else score
+      # Report percentage speech recognition error rate.
+      val = score * 100.0
       return max(0.0, 100.0 - val)
     elif m_lower in (
         "fad",
@@ -419,13 +419,30 @@ def get_source_file_url(file_path: Optional[str]) -> Optional[str]:
 
   results_dir = resolve_results_dir()
 
-  if os.path.isabs(p) and p.startswith(results_dir):
+  in_results_dir = False
+  if os.path.isabs(p):
+    abs_p = os.path.abspath(p)
+    abs_res = os.path.abspath(results_dir)
+    in_results_dir = pathlib.Path(abs_p).is_relative_to(abs_res)
+
+  if in_results_dir:
     rel_path = os.path.relpath(p, results_dir)
   else:
-    # Fallback if somehow not inside results_dir: just use the parent dir and
-    # filename which effectively forms 'model_name/basename.jsonl'
-    parent_dir = os.path.basename(os.path.dirname(p))
-    rel_path = f"{parent_dir}/{os.path.basename(p)}"
+    # Fallback if somehow not inside results_dir: include grandparent directory
+    # if parent_dir is a sub_config folder (e.g. 'gecko/asr=truth/file.jsonl').
+    parent_path = os.path.dirname(p)
+    parent_dir = os.path.basename(parent_path)
+    grandparent_dir = os.path.basename(os.path.dirname(parent_path))
+    if (
+        parent_dir
+        and grandparent_dir
+        and ("=" in parent_dir or parent_dir.startswith("asr"))
+    ):
+      rel_path = f"{grandparent_dir}/{parent_dir}/{os.path.basename(p)}"
+    elif parent_dir:
+      rel_path = f"{parent_dir}/{os.path.basename(p)}"
+    else:
+      rel_path = os.path.basename(p)
 
   base_url = base_url.rstrip("/")
   return f"{base_url}/{rel_path.replace(os.sep, '/')}"
@@ -475,8 +492,6 @@ def get_base_subtask_name(sub_task_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Filesystem Paths & Directory Resolution
 # ---------------------------------------------------------------------------
-
-
 def resolve_results_dir(custom_path: Optional[str] = None) -> str:
   """Returns the evaluation results directory."""
   if custom_path:

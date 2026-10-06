@@ -45,9 +45,8 @@ from src.data.parser import load_all_evaluation_data
 logger = logging.getLogger(__name__)
 
 
-def format_score_for_task_table(val: Optional[float], task_key: str) -> float:
+def format_score_for_task_table(val: Optional[float]) -> float:
   """Formats a raw score for display in a task-specific DataFrame."""
-  del task_key
   if val is None:
     return np.nan
   try:
@@ -56,11 +55,7 @@ def format_score_for_task_table(val: Optional[float], task_key: str) -> float:
     return np.nan
   if math.isnan(f_val):
     return np.nan
-
-  if 0.0 <= f_val <= 1.0:
-    return round(f_val * 100.0, 2)
-  else:
-    return round(f_val, 2)
+  return round(f_val * 100.0, 2)
 
 
 def _get_base_model_name(entry: ModelEntry) -> str:
@@ -69,6 +64,26 @@ def _get_base_model_name(entry: ModelEntry) -> str:
   if entry.sub_config and name.endswith(f" ({entry.sub_config})"):
     return name[: -len(f" ({entry.sub_config})")].strip()
   return name
+
+
+def _format_dataset_display_name(dataset_name: str, task_key: str) -> str:
+  """Formats dataset display name for task tables and column selectors."""
+  match task_key.lower().strip():
+    case "transcription":
+      return dataset_name.replace("SpeechTranscription", "")
+    case "classification":
+      return dataset_name.replace("Classification", "")
+    case "clustering":
+      return dataset_name.replace("Clustering", "")
+    case "reasoning":
+      return dataset_name.replace("Reasoning", "")
+    case "reranking":
+      return dataset_name.replace("Reranking", "")
+    case "retrieval":
+      return dataset_name.replace("Retrieval", "")
+    case _:
+      # Optional: handle default or unmatched keys
+      return dataset_name
 
 
 def build_overall_dataframe(
@@ -120,6 +135,8 @@ def build_overall_dataframe(
     tname = rec.task_name
     if tname not in raw_dataset_scores[mid]:
       continue
+    if tname in MSEB_TASKS and not MSEB_TASKS[tname].is_active:
+      continue
 
     val = rec.main_score_value
     if val is None or math.isnan(val):
@@ -163,11 +180,7 @@ def build_overall_dataframe(
         ]
         if ds_means:
           task_raw_mean = sum(ds_means) / len(ds_means)
-          if 0.0 <= task_raw_mean <= 1.0:
-            disp_val = task_raw_mean * 100.0
-          else:
-            disp_val = task_raw_mean
-          row[col_name] = round(disp_val, 2)
+          row[col_name] = format_score_for_task_table(task_raw_mean)
         else:
           row[col_name] = np.nan
       else:
@@ -250,31 +263,42 @@ def build_task_dataframe(
   """
   del models
   t_clean = task_name.lower().strip()
+  if t_clean in MSEB_TASKS and not MSEB_TASKS[t_clean].is_active:
+    return pd.DataFrame(columns=["Model", "Tags", "Task Average"])
+
   task_records = [r for r in records or [] if r.task_name == t_clean]
 
   if not task_records:
     return pd.DataFrame(columns=["Model", "Tags", "Task Average"])
 
   # Discover all evaluated datasets for this task
-  all_datasets = sorted(list(set(r.dataset_name for r in task_records)))
+  all_datasets = sorted(
+      list(
+          set(
+              _format_dataset_display_name(r.dataset_name, t_clean)
+              for r in task_records
+          )
+      )
+  )
 
   # Index models evaluated in this task
   model_recs: Dict[str, Tuple[ModelEntry, Dict[str, List[float]]]] = {}
   dataset_source_files: Dict[str, Dict[str, str]] = {}
   for r in task_records:
     mid = r.model_entry.entry_id
+    ds_name = _format_dataset_display_name(r.dataset_name, t_clean)
     if mid not in model_recs:
       model_recs[mid] = (r.model_entry, {})
       dataset_source_files[mid] = {}
     if r.source_file:
-      dataset_source_files[mid][r.dataset_name] = r.source_file
+      dataset_source_files[mid][ds_name] = r.source_file
 
     val = r.main_score_value
     if val is not None:
       try:
         f_val = float(val)
         if not math.isnan(f_val):
-          model_recs[mid][1].setdefault(r.dataset_name, []).append(f_val)
+          model_recs[mid][1].setdefault(ds_name, []).append(f_val)
       except (ValueError, TypeError):
         pass
 
@@ -298,7 +322,7 @@ def build_task_dataframe(
       scores = ds_dict.get(ds, [])
       if scores:
         mean_s = sum(scores) / len(scores)
-        disp_s = format_score_for_task_table(mean_s, t_clean)
+        disp_s = format_score_for_task_table(mean_s)
         row[ds] = disp_s
         dataset_vals.append(disp_s)
       else:
@@ -360,6 +384,8 @@ def _build_typed_model_scores(
   for r in recs:
     mid = r.model_entry.entry_id
     t = r.task_name.lower().strip()
+    if t in MSEB_TASKS and not MSEB_TASKS[t].is_active:
+      continue
     if mid in rec_group and t in rec_group[mid]:
       rec_group[mid][t].append(r)
 
@@ -390,10 +416,11 @@ def _build_typed_model_scores(
           try:
             f_val = float(r.main_score_value)
             if not math.isnan(f_val):
-              ds_raw_scores.setdefault(r.dataset_name, []).append(f_val)
+              ds_name = _format_dataset_display_name(r.dataset_name, t)
+              ds_raw_scores.setdefault(ds_name, []).append(f_val)
               norm_s = normalize_metric_for_svq(f_val, r.main_score_name)
               if not math.isnan(norm_s):
-                ds_svq_scores.setdefault(r.dataset_name, []).append(norm_s)
+                ds_svq_scores.setdefault(ds_name, []).append(norm_s)
           except (ValueError, TypeError):
             pass
 
