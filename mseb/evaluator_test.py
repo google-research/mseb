@@ -160,7 +160,6 @@ class EvaluatorTest(absltest.TestCase):
     npt.assert_equal(top_k_ids, np.array([1, 2, 0, 3]))
 
 
-
 class BatchedRankingTest(parameterized.TestCase):
 
   @parameterized.product(

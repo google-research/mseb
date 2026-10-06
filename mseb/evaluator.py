@@ -165,7 +165,7 @@ def top_1(
     jaxtyping.Int[jaxtyping.Array, '*B 1'],
 ]:
   """Returns the top-1 value and index along the last axis of scores."""
-  top_id = np.argmax(scores, axis=-1)[..., np.newaxis]
+  top_id = np.argmax(scores, axis=-1, keepdims=True)
   return np.take_along_axis(scores, top_id, axis=-1), top_id
 
 
