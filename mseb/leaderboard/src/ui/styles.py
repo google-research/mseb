@@ -190,8 +190,19 @@ CUSTOM_CSS = """
 
 .leaderboard-table table {
     width: 100% !important;
-    border-collapse: collapse !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
     font-size: 0.925rem;
+}
+
+.leaderboard-table table[aria-hidden="true"] {
+    width: max-content !important;
+}
+
+.leaderboard-table table[aria-hidden="true"] th,
+.leaderboard-table table[aria-hidden="true"] td {
+    width: auto !important;
+    white-space: nowrap !important;
 }
 
 .leaderboard-table th {
@@ -199,6 +210,7 @@ CUSTOM_CSS = """
     color: #334155 !important;
     font-weight: 700 !important;
     padding: 0.3rem 0.5rem !important;
+    box-sizing: border-box !important;
     text-align: center !important;
     border-bottom: 2px solid #e2e8f0 !important;
     white-space: nowrap !important;
@@ -210,11 +222,16 @@ CUSTOM_CSS = """
 .leaderboard-table th:first-child,
 .leaderboard-table th:nth-child(2),
 .leaderboard-table th:nth-child(3) {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    background-color: #f8fafc !important;
     text-align: left !important;
 }
 
 .leaderboard-table td {
     padding: 0.3rem 0.5rem !important;
+    box-sizing: border-box !important;
     border-bottom: 1px solid #f1f5f9 !important;
     text-align: center !important;
     vertical-align: middle !important;
@@ -232,10 +249,38 @@ CUSTOM_CSS = """
 .leaderboard-table td:first-child,
 .leaderboard-table td:nth-child(2),
 .leaderboard-table td:nth-child(3) {
+    position: sticky !important;
+    z-index: 5 !important;
+    background-color: var(--table-even-background-fill, #ffffff) !important;
     text-align: left !important;
 }
 
-.leaderboard-table tr:hover td {
+.leaderboard-table tr.row-odd td:first-child,
+.leaderboard-table tr.row-odd td:nth-child(2),
+.leaderboard-table tr.row-odd td:nth-child(3) {
+    background-color: var(--table-odd-background-fill, #f8fafc) !important;
+}
+
+.leaderboard-table th:first-child,
+.leaderboard-table td:first-child {
+    left: 0 !important;
+}
+
+.leaderboard-table th:nth-child(2),
+.leaderboard-table td:nth-child(2) {
+    left: var(--cell-width-0, 0px) !important;
+}
+
+.leaderboard-table th:nth-child(3),
+.leaderboard-table td:nth-child(3) {
+    left: calc(var(--cell-width-0, 0px) + var(--cell-width-1, 0px)) !important;
+    border-right: 1px solid #e2e8f0 !important;
+}
+
+.leaderboard-table tr:hover td,
+.leaderboard-table tr:hover td:first-child,
+.leaderboard-table tr:hover td:nth-child(2),
+.leaderboard-table tr:hover td:nth-child(3) {
     background-color: #f8fafc !important;
 }
 
