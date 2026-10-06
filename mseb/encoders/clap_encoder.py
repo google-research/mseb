@@ -16,7 +16,7 @@
 
 from __future__ import annotations
 
-from typing import cast, Optional, Sequence
+from typing import Optional, Sequence, cast
 
 from mseb import encoder
 from mseb import types
@@ -25,40 +25,75 @@ import torch
 import transformers
 
 
-class _CLAPAudioEncoder(encoder.MultiModalEncoder):
-  """Internal class to encode audio using the CLAP model's audio tower."""
+class _CLAPModelLoader:
+  """Loads a CLAP checkpoint on first use and caches it.
+
+  The audio and text towers are parts of the same `ClapModel` checkpoint.
+  `ClapEncoder` passes one loader to both tower encoders, so the checkpoint is
+  read, and held in memory, only once.
+  """
 
   def __init__(self, model_path: str, device: Optional[str] = None):
-    super().__init__()
     self.model_path = model_path
-    self.model: transformers.ClapModel | None = None
-    self.processor: transformers.ClapProcessor | None = None
     self.device = torch.device(
         device or ("cuda" if torch.cuda.is_available() else "cpu")
     )
+    self._loaded: Optional[
+        tuple[transformers.ClapModel, transformers.ClapProcessor]
+    ] = None
+
+  def load(self) -> tuple[transformers.ClapModel, transformers.ClapProcessor]:
+    """Returns the model and processor, loading them on the first call."""
+    if self._loaded is None:
+      processor = transformers.ClapProcessor.from_pretrained(self.model_path)
+      model = transformers.ClapModel.from_pretrained(self.model_path)
+      model.eval()
+      model.to(self.device)
+      self._loaded = (model, processor)
+      print(
+          f"CLAP model loaded from {self.model_path} on device: {self.device}"
+      )
+    return self._loaded
+
+
+class _CLAPAudioEncoder(encoder.MultiModalEncoder):
+  """Internal class to encode audio using the CLAP model's audio tower."""
+
+  def __init__(
+      self,
+      model_path: str,
+      device: Optional[str] = None,
+      loader: Optional[_CLAPModelLoader] = None,
+  ):
+    """Initializes the encoder.
+
+    Args:
+      model_path: The Hugging Face model path.
+      device: The device to load the model onto ("cuda", "cpu", or None).
+      loader: Loads the model. Pass the text encoder's loader to share one copy
+        of the checkpoint. If set, its model path and device are used.
+    """
+    super().__init__()
+    self._loader = loader or _CLAPModelLoader(model_path, device)
+    self.model_path = self._loader.model_path
+    self.model: Optional[transformers.ClapModel] = None
+    self.processor: Optional[transformers.ClapProcessor] = None
+    self.device = self._loader.device
 
   def _setup(self):
-    self.processor = transformers.ClapProcessor.from_pretrained(self.model_path)
-    self.model = transformers.ClapModel.from_pretrained(self.model_path)
-    self.model.eval()
-    self.model.to(self.device)
-    print(f"CLAP audio encoder loaded on device: {self.device}")
+    self.model, self.processor = self._loader.load()
 
-  def _check_input_types(self,
-                         batch: Sequence[types.MultiModalObject]
-                         ) -> None:
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.Sound) for x in batch):
       raise ValueError(
           "_CLAPAudioEncoder only supports a batch of Sound inputs."
       )
 
-  def _encode(self,
-              batch: Sequence[types.MultiModalObject]
-              ) -> Sequence[types.SoundEmbedding]:
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.SoundEmbedding]:
     if not self.model or not self.processor:
-      raise RuntimeError(
-          "Encoder is not set up. Please call .setup() first."
-      )
+      raise RuntimeError("Encoder is not set up. Please call .setup() first.")
 
     sound_batch = cast(Sequence[types.Sound], batch)
     target_sr = self.processor.feature_extractor.sampling_rate  # pyrefly: ignore[missing-attribute]
@@ -72,7 +107,7 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
         audio=waveforms,
         sampling_rate=target_sr,
         return_tensors="pt",
-        padding=True
+        padding=True,
     )
     inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
@@ -90,7 +125,7 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
           types.SoundEmbedding(
               embedding=embedding,
               timestamps=timestamps,  # pyrefly: ignore[bad-argument-type]
-              context=sound_item.context
+              context=sound_item.context,
           )
       )
     return output_embeddings
@@ -99,37 +134,39 @@ class _CLAPAudioEncoder(encoder.MultiModalEncoder):
 class _CLAPTextEncoder(encoder.MultiModalEncoder):
   """Internal class to encode text using the CLAP model's text tower."""
 
-  def __init__(self, model_path: str, device: Optional[str] = None):
+  def __init__(
+      self,
+      model_path: str,
+      device: Optional[str] = None,
+      loader: Optional[_CLAPModelLoader] = None,
+  ):
+    """Initializes the encoder.
+
+    Args:
+      model_path: The Hugging Face model path.
+      device: The device to load the model onto ("cuda", "cpu", or None).
+      loader: Loads the model. Pass the audio encoder's loader to share one copy
+        of the checkpoint. If set, its model path and device are used.
+    """
     super().__init__()
-    self.model_path = model_path
-    self.model: transformers.ClapModel | None = None
-    self.processor: transformers.ClapProcessor | None = None
-    self.device = torch.device(
-        device or ("cuda" if torch.cuda.is_available() else "cpu")
-    )
+    self._loader = loader or _CLAPModelLoader(model_path, device)
+    self.model_path = self._loader.model_path
+    self.model: Optional[transformers.ClapModel] = None
+    self.processor: Optional[transformers.ClapProcessor] = None
+    self.device = self._loader.device
 
   def _setup(self):
-    self.processor = transformers.ClapProcessor.from_pretrained(self.model_path)
-    self.model = transformers.ClapModel.from_pretrained(self.model_path)
-    self.model.eval()
-    self.model.to(self.device)
-    print(f"CLAP text encoder loaded on device: {self.device}")
+    self.model, self.processor = self._loader.load()
 
-  def _check_input_types(self,
-                         batch: Sequence[types.MultiModalObject]
-                         ) -> None:
+  def _check_input_types(self, batch: Sequence[types.MultiModalObject]) -> None:
     if not all(isinstance(x, types.Text) for x in batch):
-      raise ValueError(
-          "_CLAPTextEncoder only supports a batch of Text inputs."
-      )
+      raise ValueError("_CLAPTextEncoder only supports a batch of Text inputs.")
 
-  def _encode(self,
-              batch: Sequence[types.MultiModalObject]
-              ) -> Sequence[types.TextEmbedding]:
+  def _encode(
+      self, batch: Sequence[types.MultiModalObject]
+  ) -> Sequence[types.TextEmbedding]:
     if not self.model or not self.processor:
-      raise RuntimeError(
-          "Encoder is not set up. Please call .setup() first."
-      )
+      raise RuntimeError("Encoder is not set up. Please call .setup() first.")
 
     text_batch = cast(Sequence[types.Text], batch)
     texts = [item.text for item in text_batch]
@@ -155,20 +192,20 @@ class _CLAPTextEncoder(encoder.MultiModalEncoder):
           types.TextEmbedding(
               embedding=embedding,
               spans=spans,  # pyrefly: ignore[bad-argument-type]
-              context=text_item.context
+              context=text_item.context,
           )
       )
     return output_embeddings
 
 
-def ClapEncoder(
-    model_path: str = "laion/clap-htsat-unfused",
-    device: Optional[str] = None
+def ClapEncoder(  # pylint: disable=invalid-name
+    model_path: str = "laion/clap-htsat-unfused", device: Optional[str] = None
 ) -> encoder.CollectionEncoder:
   """Factory function to create a fully configured multi-modal CLAP encoder.
 
   This function builds a CollectionEncoder that contains both the audio and text
-  towers of the CLAP model, dispatched based on input type.
+  towers of the CLAP model, dispatched based on input type. The towers share one
+  loader, so the checkpoint is read, and held in memory, only once.
 
   Args:
     model_path: The Hugging Face model path.
@@ -177,7 +214,12 @@ def ClapEncoder(
   Returns:
     An initialized CollectionEncoder ready for setup and use.
   """
+  loader = _CLAPModelLoader(model_path=model_path, device=device)
   return encoder.CollectionEncoder({
-      types.Sound: _CLAPAudioEncoder(model_path=model_path, device=device),
-      types.Text: _CLAPTextEncoder(model_path=model_path, device=device),
+      types.Sound: _CLAPAudioEncoder(
+          model_path=model_path, device=device, loader=loader
+      ),
+      types.Text: _CLAPTextEncoder(
+          model_path=model_path, device=device, loader=loader
+      ),
   })

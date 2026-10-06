@@ -127,6 +127,30 @@ class ClapEncoderTest(absltest.TestCase):
   @mock.patch(
       "mseb.encoders.clap_encoder.transformers.ClapModel.from_pretrained"
   )
+  def test_clap_encoder_setup_loads_checkpoint_once(
+      self, mock_model_load, mock_processor_load
+  ):
+    encoder_instance = clap_encoder.ClapEncoder(model_path=self.model_path)
+    encoder_instance.setup()
+
+    # Both towers are parts of one checkpoint, so it is read only once.
+    mock_processor_load.assert_called_once_with(self.model_path)
+    mock_model_load.assert_called_once_with(self.model_path)
+    encoder_map = encoder_instance._encoder_by_input_type
+    audio_encoder = cast(
+        clap_encoder._CLAPAudioEncoder, encoder_map[types.Sound]
+    )
+    text_encoder = cast(clap_encoder._CLAPTextEncoder, encoder_map[types.Text])
+    for tower in (audio_encoder, text_encoder):
+      self.assertIs(tower.model, mock_model_load.return_value)
+      self.assertIs(tower.processor, mock_processor_load.return_value)
+
+  @mock.patch(
+      "mseb.encoders.clap_encoder.transformers.ClapProcessor.from_pretrained"
+  )
+  @mock.patch(
+      "mseb.encoders.clap_encoder.transformers.ClapModel.from_pretrained"
+  )
   def test_audio_encoder_encode(self, mock_model_load, mock_processor_load):
     mock_processor = mock.Mock()
     mock_model = mock.Mock()
