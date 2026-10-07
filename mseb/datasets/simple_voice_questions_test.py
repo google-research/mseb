@@ -409,7 +409,7 @@ class DebugAndCompactIdsTest(absltest.TestCase):
   def test_is_member_of_debug_true(self):
     for passage_id in self.en_us_debug_ids:
       self.assertTrue(svq.is_member_of_debug(passage_id))
-    fi_fi_debug_ids = frozenset(["finnish-2888513011661240822-0"])
+    fi_fi_debug_ids = frozenset(["finnish-6264265882157989975-0"])
     for passage_id in fi_fi_debug_ids:
       self.assertTrue(svq.is_member_of_debug(passage_id))
 

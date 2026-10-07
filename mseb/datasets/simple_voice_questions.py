@@ -500,7 +500,7 @@ def parse_passage_id(passage_id: str, min_digits: int = 6) -> int:
 def is_member_of_debug(passage_id: str) -> bool:
   _debug_ids: frozenset[str] = frozenset([
       "1023841985531689286",  # english
-      "2888513011661240822",  # finnish
+      "6264265882157989975",  # finnish
   ])
   return str(parse_passage_id(passage_id)) in _debug_ids
 
