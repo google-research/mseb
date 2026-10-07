@@ -61,7 +61,7 @@ class TfIdfEncoderTest(absltest.TestCase):
     self.assertLen(tv_embeddings, 1)
     assert isinstance(tv_embeddings[0], types.SoundEmbedding)
     self.assertEqual(
-        dict(tv_embeddings[0].embedding[0]),
+        dict(tv_embeddings[0].embedding[0]),  # pyrefly: ignore[no-matching-overload]
         {
             'national': np.float64(3.0),
             'relations': np.float64(4.0),
@@ -95,7 +95,7 @@ class TfIdfEncoderTest(absltest.TestCase):
     self.assertLen(tv_embeddings, 1)
     assert isinstance(tv_embeddings[0], types.SoundEmbedding)
     self.assertEmpty(
-        dict(tv_embeddings[0].embedding[0]),
+        dict(tv_embeddings[0].embedding[0]),  # pyrefly: ignore[no-matching-overload]
     )
 
   def test_combine_tf_idf_embeddings(self):

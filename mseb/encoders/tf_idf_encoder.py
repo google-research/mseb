@@ -198,7 +198,7 @@ def combine_tf_idf_embeddings(
     params: types.SoundContextParams,
 ) -> types.SoundEmbedding:
   """Combines TF-IDF embeddings into a single embedding."""
-  tvs = [dict(emb.embedding[0]) for emb in embeddings]
+  tvs = [dict(emb.embedding[0]) for emb in embeddings]  # pyrefly: ignore[no-matching-overload]
   weights = [np.exp(emb.scores[0]) for emb in embeddings]  # pyrefly: ignore[unsupported-operation]
   tv = term_vector_weighted_average(tvs, weights)  # pyrefly: ignore[bad-argument-type]
   return types.SoundEmbedding(
