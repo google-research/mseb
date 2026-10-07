@@ -24,8 +24,9 @@ import sklearn
 def cluster_kmeans(
     data: np.ndarray, nlabels: int, batch_size: int
 ) -> np.ndarray:
+  # Fixed seed, so that the scores are reproducible.
   model = sklearn.cluster.MiniBatchKMeans(
-      n_clusters=nlabels, batch_size=batch_size, n_init='auto'
+      n_clusters=nlabels, batch_size=batch_size, n_init='auto', random_state=0
   )
   model.fit(data)
   return model.labels_
