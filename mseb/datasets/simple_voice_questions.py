@@ -163,13 +163,25 @@ class _LoadAudioFn(beam.DoFn):
         language=record.get("locale"),
         speaker_id=str(record.get("speaker_id")),
         speaker_age=int(speaker_age_val) if pd.notna(speaker_age_val) else None,  # pyrefly: ignore[bad-argument-type]
-        speaker_gender=record.get("gender"),
+        speaker_gender=record.get("gender") or record.get("speaker_gender"),
         text=record.get("text"),
         waveform_start_second=0.0,
         waveform_end_second=len(waveform) / sr if sr > 0 else 0.0,
     )
     sound = types.Sound(waveform=waveform, context=context)  # pyrefly: ignore[bad-argument-type]
     yield record | {"sound": sound}
+
+
+class _ReadParquetRecordsFn(beam.DoFn):
+  """Reads non-waveform records from a parquet file."""
+
+  def process(self, file_path: str):
+    with epath.Path(file_path).open("rb") as parquet_f:
+      schema = pq.read_schema(parquet_f)
+    cols = [name for name in schema.names if name != "waveform"]
+    with epath.Path(file_path).open("rb") as parquet_f:
+      table = pq.read_table(io.BytesIO(parquet_f.read()), columns=cols)
+    yield from table.to_pylist()
 
 
 class ReadTaskData(beam.PTransform):
@@ -186,11 +198,29 @@ class ReadTaskData(beam.PTransform):
     self._task_path = task_path
 
   def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
-    return (
-        pcoll
-        | "ReadTaskJson" >> beam.io.ReadFromText(self._task_path)
-        | "ParseTaskJson" >> beam.Map(json.loads)
-        | "LoadAudio" >> beam.ParDo(_LoadAudioFn(self._base_path, self._index))
+    if self._task_path.endswith(".parquet"):
+      matched_files = [
+          str(f)
+          for f in sorted(
+              epath.Path(os.path.dirname(self._task_path)).glob(
+                  os.path.basename(self._task_path)
+              )
+          )
+      ]
+      records = (
+          pcoll
+          | "CreateParquetFiles" >> beam.Create(matched_files)
+          | "ReadParquetRecords" >> beam.ParDo(_ReadParquetRecordsFn())
+          | "ReshuffleParquetRecords" >> beam.Reshuffle()
+      )
+    else:
+      records = (
+          pcoll
+          | "ReadTaskJson" >> beam.io.ReadFromText(self._task_path)
+          | "ParseTaskJson" >> beam.Map(json.loads)
+      )
+    return records | "LoadAudio" >> beam.ParDo(
+        _LoadAudioFn(self._base_path, self._index)
     )
 
 
