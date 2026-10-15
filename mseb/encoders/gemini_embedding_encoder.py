@@ -43,7 +43,7 @@ def encoder_genai(  # pylint: disable=invalid-name
   """Encodes input texts using Gemini embedding model via GenAI API."""
   response = client.models.embed_content(
       model=model_name,
-      contents=[input[0] for input in inputs],
+      contents=[input[0] for input in inputs],  # pyrefly: ignore[bad-argument-type]
       config=genai.types.EmbedContentConfig(task_type=task_type),
   )
   embeddings = [x.values for x in response.embeddings]  # pyrefly: ignore[not-iterable]

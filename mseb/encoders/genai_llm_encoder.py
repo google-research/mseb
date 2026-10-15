@@ -114,7 +114,7 @@ class GenaiLLMTextEncoder(prompt_encoder.TextEncoderWithPrompt):
     for n_try in range(max_try):
       try:
         response = client.models.generate_content(
-            model=model_path, contents=prompt_content
+            model=model_path, contents=prompt_content  # pyrefly: ignore[bad-argument-type]
         ).text
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.warning('Failed to get prediction: %s, retrying %d: ', e, n_try)
