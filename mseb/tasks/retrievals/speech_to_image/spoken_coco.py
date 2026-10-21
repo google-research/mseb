@@ -114,10 +114,7 @@ class SpokenCocoEnImageRetrieval(SpokenCocoImageRetrieval):
       revision='1.0.0',
       dataset=types.Dataset(
           name='SpokenCOCO',
-          path=(
-              'https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz'
-              'audio_image/spoken_coco_en'
-          ),
+          path='https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz',
           revision='1.0.0',
       ),
       scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
@@ -146,10 +143,7 @@ class SpokenCocoEnImageRetrievalDebug(SpokenCocoImageRetrieval):
       revision='1.0.0',
       dataset=types.Dataset(
           name='SpokenCOCO',
-          path=(
-              'https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz'
-              'audio_image/spoken_coco_en'
-          ),
+          path='https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz',
           revision='1.0.0',
       ),
       scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],

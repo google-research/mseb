@@ -93,10 +93,7 @@ class Flickr8kImageRetrieval(retrieval.RetrievalTask):
       revision='1.0.0',
       dataset=types.Dataset(
           name='Flickr8kAudio',
-          path=(
-              '/cns/mb-d/home/gem-embed-cns-owner/audio/real_recording/'
-              'audio_image/flickr8k_en'
-          ),
+          path='https://groups.csail.mit.edu/sls/downloads/flickraudio/',
           revision='1.0.0',
       ),
       scores=[retrieval_evaluator.mrr(), retrieval_evaluator.em()],
