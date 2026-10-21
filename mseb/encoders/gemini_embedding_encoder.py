@@ -70,7 +70,7 @@ class GeminiEmbeddingTextEncoder(prompt_encoder_lib.TextEncoderWithPrompt):
         useful for removing special characters or formatting the text for better
         encoding results.
       prompt_template: Format of the prompt to be used for Gemini embedding, see
-        go/gem-embed-text-user-card ("How to Use") for more details. For
+        ("How to Use") for more details. For
         example, 'task: search result | query: {text}' for queries and 'title:
         {title} | text: {text}' for documents".
       task_type: Task type for Gemini embedding model. One of: None,
@@ -110,7 +110,7 @@ def GeminiEmbeddingTranscriptTruthEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      go/gem-embed-text-user-card ("How to Use") for more details. For example,
+      ("How to Use") for more details. For example,
       'task: search result | query: {text}' for queries and
       'title: {title} | text: {text}' for documents".
     task_type: Task type for Gemini embedding model. One of: None,
@@ -215,7 +215,7 @@ def GeminiEmbeddingWhisperEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      go/gem-embed-text-user-card (How to Use) for more details.
+      (How to Use) for more details.
     gemini_embedding_task_type: Task type for Gemini embedding model. One of:
       None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
       CLASSIFICATION, CLUSTERING.
@@ -254,7 +254,7 @@ def GeminiEmbeddingWithTitleAndContextWhisperEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      go/gem-embed-text-user-card (How to Use) for more details.
+      (How to Use) for more details.
     gemini_embedding_task_type: Task type for Gemini embedding model. One of:
       None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
       CLASSIFICATION, CLUSTERING.
@@ -363,7 +363,7 @@ def RetrievalGeminiEmbeddingTranscriptTruthEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      go/gem-embed-text-user-card ("How to Use") for more details. For example,
+      ("How to Use") for more details. For example,
       'task: search result | query: {text}' for queries and
       'title: {title} | text: {text}' for documents".
     task_type: Task type for Gemini embedding model. One of: None,
@@ -408,7 +408,7 @@ def RetrievalGeminiEmbeddingWhisperEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      go/gem-embed-text-user-card (How to Use) for more details.
+      (How to Use) for more details.
     gemini_embedding_task_type: Task type for Gemini embedding model. One of:
       None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
       CLASSIFICATION, CLUSTERING.
