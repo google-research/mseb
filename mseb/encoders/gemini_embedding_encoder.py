@@ -70,7 +70,7 @@ class GeminiEmbeddingTextEncoder(prompt_encoder_lib.TextEncoderWithPrompt):
         useful for removing special characters or formatting the text for better
         encoding results.
       prompt_template: Format of the prompt to be used for Gemini embedding, see
-        ("How to Use") for more details. For
+        https://ai.google.dev/gemini-api/docs/embeddings for more details. For
         example, 'task: search result | query: {text}' for queries and 'title:
         {title} | text: {text}' for documents".
       task_type: Task type for Gemini embedding model. One of: None,
@@ -110,8 +110,8 @@ def GeminiEmbeddingTranscriptTruthEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      ("How to Use") for more details. For example,
-      'task: search result | query: {text}' for queries and
+      https://ai.google.dev/gemini-api/docs/embeddings for more details. For
+      example, 'task: search result | query: {text}' for queries and
       'title: {title} | text: {text}' for documents".
     task_type: Task type for Gemini embedding model. One of: None,
       RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION,
@@ -215,7 +215,7 @@ def GeminiEmbeddingWhisperEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      (How to Use) for more details.
+      https://ai.google.dev/gemini-api/docs/embeddings for more details.
     gemini_embedding_task_type: Task type for Gemini embedding model. One of:
       None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
       CLASSIFICATION, CLUSTERING.
@@ -254,7 +254,7 @@ def GeminiEmbeddingWithTitleAndContextWhisperEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      (How to Use) for more details.
+      https://ai.google.dev/gemini-api/docs/embeddings for more details.
     gemini_embedding_task_type: Task type for Gemini embedding model. One of:
       None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
       CLASSIFICATION, CLUSTERING.
@@ -363,8 +363,8 @@ def RetrievalGeminiEmbeddingTranscriptTruthEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      ("How to Use") for more details. For example,
-      'task: search result | query: {text}' for queries and
+      https://ai.google.dev/gemini-api/docs/embeddings for more details. For
+      example, 'task: search result | query: {text}' for queries and
       'title: {title} | text: {text}' for documents".
     task_type: Task type for Gemini embedding model. One of: None,
       RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY, CLASSIFICATION,
@@ -408,7 +408,7 @@ def RetrievalGeminiEmbeddingWhisperEncoder(
       useful for removing special characters or formatting the text for better
       encoding results.
     prompt_template: Format of the prompt to be used for Gemini embedding, see
-      (How to Use) for more details.
+      https://ai.google.dev/gemini-api/docs/embeddings for more details.
     gemini_embedding_task_type: Task type for Gemini embedding model. One of:
       None, RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITY,
       CLASSIFICATION, CLUSTERING.

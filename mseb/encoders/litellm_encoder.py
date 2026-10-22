@@ -62,7 +62,6 @@ class LiteLLMTextEncoder(prompt_encoder.TextEncoderWithPrompt):
     Args:
       model_name: Name of the LLM model.
       api_key: API key for the OpenAI Transcriptions server.
-      ditto_config_id: Ditto config ID to use for the LLM.
       normalizer: A function that normalizes the text before encoding. This is
         useful for removing special characters or formatting the text for better
         encoding results.
@@ -152,7 +151,6 @@ def LiteLLMWithTitleAndContextTranscriptTruthEncoder(
   Args:
     model_name: Name of the LLM model.
     api_key: API key for the OpenAI Transcriptions server.
-    ditto_config_id: Ditto config ID to use for the LLM.
     normalizer: A function that normalizes the text before encoding. This is
       useful for removing special characters or formatting the text for better
       encoding results.

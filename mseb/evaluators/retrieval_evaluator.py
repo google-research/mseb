@@ -522,7 +522,7 @@ def build_index(
     if scann_ops_pybind is None:
       raise ImportError(
           'ScaNN library is required for indices with >= 50k documents.'
-          ' Install google3.research.scam or set allow_scann=False.'
+          ' Install scann or set allow_scann=False.'
       )
     num_leaves = math.isqrt(n)
     num_leaves_to_search = max(1, num_leaves // 10)
@@ -609,8 +609,7 @@ def load_index(
   except FileNotFoundError:
     if scann_ops_pybind is None:
       raise ImportError(
-          'ScaNN library is required to load this index.'
-          ' Install google3.research.scam.'
+          'ScaNN library is required to load this index. Install scann.'
       ) from None
     logger.info('Loading ScaNN index from %s', scann_base_dir)
     searcher = scann_ops_pybind.load_searcher(scann_base_dir)

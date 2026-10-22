@@ -29,7 +29,8 @@ from pyarrow import parquet as pq
 
 _PARQUET_BATCH_SIZE = 1024
 # Read Parquet column chunks in blocks of this size instead of all at once.
-# Each read from Placer has a high fixed cost, so smaller blocks are slower.
+# Each read from remote storage has a high fixed cost, so smaller blocks are
+# slower.
 # In measurements, 1 GiB blocks were slower, too.
 _PARQUET_BUFFER_SIZE = 256 * 1024 * 1024
 
