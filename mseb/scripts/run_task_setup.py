@@ -18,10 +18,10 @@ This script is used to setup a task, such as creating embeddings cache or the
 index for retrieval tasks.
 
 Usage:
-run_task_setup --encoder gecko_whisper_or_gecko \
+run_task_setup --encoder gemini_embedding_whisper_or_gemini_embedding \
     --task SVQEnUsPassageInLangRetrieval \
     --batch_size 2 \
-    --cache_basepath /tmp/mseb_cache/gecko_whisper_or_gecko
+    --cache_basepath /tmp/mseb_cache/gemini_embedding
 """
 
 from typing import Type
@@ -31,6 +31,7 @@ from mseb import runner as runner_lib
 from mseb import task as task_lib
 from mseb import tasks
 from mseb.encoders import encoder_registry
+from mseb.encoders import registration  # pylint: disable=unused-import
 
 FLAGS = flags.FLAGS
 

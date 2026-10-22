@@ -19,10 +19,10 @@ import sys
 import tempfile
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-google3_dir = os.path.dirname(
+tmp_base_dir = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 )
-tmp_test_lib_dir = os.path.join(google3_dir, "tmp_test_lib")
+tmp_test_lib_dir = os.path.join(tmp_base_dir, "tmp_test_lib")
 sys.path.append(tmp_test_lib_dir)
 
 # pylint: disable=g-import-not-at-top

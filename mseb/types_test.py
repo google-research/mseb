@@ -400,7 +400,7 @@ class StreamingSpeechToTextEventTest(absltest.TestCase):
 
   def test_validate_no_timestamp(self):
     # A sequence of events all without any timestamp is valid.
-    # TODO(wuke): Maybe we should raise an error instead?
+    # TODO(mseb-dev): Maybe we should raise an error instead?
     events = [
         types.StreamingSpeechToTextEvent(
             content_time=None, wall_time=None, finalized="", partial=""

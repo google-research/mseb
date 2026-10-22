@@ -89,7 +89,7 @@ def get_encoding_scores(
       types.Score(
           metric='flops',
           description='Flops used to encode.',
-          # TODO(tombagby): Correct aggregation?
+          # TODO(mseb-dev): Correct aggregation?
           value=float(stats[0].flops) if stats[0].flops is not None else 0.0,
           min=0,
           max=np.inf,

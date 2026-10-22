@@ -251,8 +251,8 @@ class RegistryConsistencyTest(absltest.TestCase):
 
   Assumes a fully populated registry. `mseb/tasks/__init__.py` wraps each task
   import in `try/except ImportError`, so a missing dependency would shrink the
-  registry and surface here as a spurious failure; the BUILD dep on
-  `//third_party/py/mseb/tasks` is what guarantees completeness.
+  registry and surface here as a spurious failure; importing `mseb.tasks` at
+  the top of this file guarantees completeness.
   """
 
   @classmethod

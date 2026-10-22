@@ -113,7 +113,7 @@ class HypothesesDecodingTask(whisper.decoding.DecodingTask):
     # sampled token and EOT
     tokens, sum_logprobs = self.decoder.finalize(tokens, sum_logprobs)
     tokens: list[list[torch.Tensor]] = [
-        [t[self.sample_begin : (t == tokenizer.eot).nonzero()[0, 0]] for t in s]  # pytype: disable=attribute-error
+        [t[self.sample_begin : (t == tokenizer.eot).nonzero()[0, 0]] for t in s]  # pyrefly: ignore[missing-attribute]
         for s in tokens
     ]
     # Remove special tokens from the text tokens.
@@ -211,8 +211,8 @@ class WhisperHypothesesEncoder(whisper_encoder.Whisper):
             context=params,
         )
     else:
-      # TODO(allauzen): Investigate how to compute timestamps without performing
-      # forced alignment.
+      # TODO(mseb-dev): Investigate how to compute timestamps without
+      # performing forced alignment.
       assert self.task == "transcribe", (
           "Forced alignment is only supported for transcription tasks."
       )

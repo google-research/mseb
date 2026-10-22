@@ -150,7 +150,7 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
         transcription = litellm.transcription(
             model=self._model_name,
             file=wav_file,
-            # TODO(allauzen): Add support for temperature.
+            # TODO(mseb-dev): Add support for temperature.
             response_format=response_format,
             timestamp_granularities=timestamp_granularity,
             api_key=self._api_key,

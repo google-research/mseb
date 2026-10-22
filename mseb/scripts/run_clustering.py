@@ -30,7 +30,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   encoder = raw_encoder.RawEncoder(
-      # TODO(tombagby): Should "name" or other metadata also be included
+      # TODO(mseb-dev): Should "name" or other metadata also be included
       # in Encoder for use when printing metrics?
       transform_fn=raw_encoder.spectrogram_transform,
       pooling='mean',

@@ -6,7 +6,7 @@ description = ""
 readme = "README.md"
 requires-python = ">=3.12"
 license = {file = "LICENSE"}
-authors = [{name = "mseb authors", email="mseb@google.com"}]
+authors = [{name = "mseb authors", email="mseb-dev@google.com"}]
 classifiers = [  # List of https://pypi.org/classifiers/
     "License :: OSI Approved :: Apache Software License",
     "Intended Audience :: Science/Research",

@@ -66,7 +66,7 @@ class ParquetDataset(base.MsebDataset):
   @property
   def metadata(self) -> types.DatasetMetadata:
     """Returns the structured metadata for the dataset."""
-    # TODO(tombagby): Store metadata in the parquet file.
+    # TODO(mseb-dev): Store metadata in the parquet file.
     return types.DatasetMetadata(
         name=f'Parquet_{self.dataset_name}_{self.task_name}',
         description=(
