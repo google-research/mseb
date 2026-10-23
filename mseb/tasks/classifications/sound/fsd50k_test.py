@@ -114,6 +114,25 @@ class BaseClassTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       list(task.examples('classification'))
 
+  def test_class_labels_with_split_none_reads_vocabulary_only(self):
+    vocab_only_dir = self.create_tempdir()
+    labels_dir = os.path.join(vocab_only_dir.full_path, 'labels')
+    os.makedirs(labels_dir)
+    pd.DataFrame({
+        'index': [0, 1],
+        'display_name': ['Bark', 'Siren'],
+        'mid': ['m0', 'm1'],
+    }).to_csv(
+        os.path.join(labels_dir, 'vocabulary.csv'),
+        index=False,
+        header=False,
+    )
+    with flagsaver.flagsaver(
+        (dataset._DATASET_BASEPATH, vocab_only_dir.full_path)
+    ):
+      task = fsd50k.FSD50KClassification()
+      self.assertEqual(list(task.class_labels()), ['Bark', 'Siren'])
+
 
 class FSD50KTestClassificationMetadataTest(absltest.TestCase):
   """Tests for FSD50KTestClassification metadata and class attributes."""

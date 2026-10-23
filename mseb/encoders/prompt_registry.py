@@ -23,9 +23,11 @@ import dataclasses
 import inspect
 import sys
 from typing import Any, Callable
+
+from mseb.datasets import fsd50k as fsd50k_dataset
 from mseb.encoders import prompt as prompt_lib
+from mseb.tasks.classifications.birdset import birdset as birdset_tasks
 from mseb.tasks.classifications.intent import speech_massive as speech_massive_intent
-from mseb.tasks.classifications.sound import fsd50k
 from mseb.tasks.classifications.speaker_gender import speech_massive as speech_massive_speaker_gender
 
 
@@ -40,7 +42,7 @@ class PromptMetadata:
 
   def load(self) -> prompt_lib.Prompt:
     """Loads the encoder."""
-    prompt = self.prompt(**self.params())  # pytype: disable=not-instantiable
+    prompt = self.prompt(**self.params())
     return prompt
 
 
@@ -74,8 +76,59 @@ sound_classification = PromptMetadata(
     name="sound_classification",
     prompt=prompt_lib.SoundClassificationPrompt,
     params=lambda: {
-        "class_labels": fsd50k.FSD50KClassification().class_labels()
+        "class_labels": fsd50k_dataset.FSD50KDataset.load_class_labels()
     },
+)
+
+birdset_classification = PromptMetadata(
+    name="birdset_classification",
+    prompt=prompt_lib.SoundClassificationPrompt,
+    params=lambda: {"sound_name": "Bird"},
+)
+
+
+def _make_birdset_prompt_metadata(
+    task_cls: type[birdset_tasks.BirdsetClassification],
+) -> PromptMetadata:
+  return PromptMetadata(
+      name=f"birdset_{task_cls.configuration.lower()}_classification",
+      prompt=prompt_lib.SoundClassificationPrompt,
+      params=lambda: {
+          "class_labels": list(task_cls().class_labels()),
+          "sound_name": "Bird",
+      },
+  )
+
+
+birdset_hsn_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetHSNClassification
+)
+birdset_nbp_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetNBPClassification
+)
+birdset_pow_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetPOWClassification
+)
+birdset_ssw_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetSSWClassification
+)
+birdset_sne_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetSNEClassification
+)
+birdset_per_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetPERClassification
+)
+birdset_nes_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetNESClassification
+)
+birdset_uhh_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetUHHClassification
+)
+birdset_xcm_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetXCMClassification
+)
+birdset_xcl_classification = _make_birdset_prompt_metadata(
+    birdset_tasks.BirdsetXCLClassification
 )
 
 retrieval = PromptMetadata(

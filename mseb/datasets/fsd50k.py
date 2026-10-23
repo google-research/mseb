@@ -108,21 +108,39 @@ class FSD50KDataset(base.MsebDataset):
   ) -> pd.DataFrame:
     return self._data
 
-  def _load_vocabulary(self) -> None:
-    if self.streaming:
-      vocab_path = self._hf_path('labels', 'vocabulary.csv')
+  @classmethod
+  def load_class_labels(
+      cls,
+      base_path: str | None = None,
+      repo_id: str = 'Fhrozen/FSD50k',
+      streaming: bool = False,
+  ) -> list[str]:
+    """Loads FSD50K class labels directly from vocabulary.csv."""
+    if streaming:
+      vocab_path = (
+          f'https://huggingface.co/datasets/{repo_id}/resolve/main/'
+          'labels/vocabulary.csv'
+      )
       vocab_df = pd.read_csv(
           vocab_path, header=None, names=['index', 'display_name', 'mid']
       )
     else:
-      vocab_path = self._path('labels', 'vocabulary.csv')
+      resolved_base_path = dataset.get_base_path(base_path)
+      vocab_path = os.path.join(resolved_base_path, 'labels', 'vocabulary.csv')  # pyrefly: ignore[no-matching-overload]
       if not epath.Path(vocab_path).exists():
         raise FileNotFoundError(f'Vocabulary file not found at {vocab_path}.')
       with epath.Path(vocab_path).open('r') as f:
         vocab_df = pd.read_csv(
             f, header=None, names=['index', 'display_name', 'mid']
         )
-    self._class_labels = vocab_df['display_name'].tolist()
+    return vocab_df['display_name'].tolist()
+
+  def _load_vocabulary(self) -> None:
+    self._class_labels = self.load_class_labels(
+        base_path=self.base_path,
+        repo_id=self.repo_id,
+        streaming=self.streaming,
+    )
     self.label_to_id = {label: i for i, label in enumerate(self._class_labels)}
 
   def _load_csv(self):

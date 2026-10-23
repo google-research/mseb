@@ -50,7 +50,7 @@ class FSD50KClassification(classification.ClassificationTask):
     return ["classification"]
 
   def class_labels(self) -> Sequence[str]:
-    return self._fsd_dataset.class_labels
+    return fsd50k.FSD50KDataset.load_class_labels()
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     fsd_dataset = self._fsd_dataset

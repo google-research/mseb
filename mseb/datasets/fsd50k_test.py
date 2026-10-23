@@ -129,6 +129,24 @@ class FSD50KDatasetTest(absltest.TestCase):
     self.assertEqual(sound2.context.id, '175151')
     self.assertLen(sound2.waveform, 32000)
 
+  def test_load_class_labels_without_split_metadata(self):
+    vocab_only_dir = self.create_tempdir()
+    labels_dir = os.path.join(vocab_only_dir.full_path, 'labels')
+    os.makedirs(labels_dir)
+    pd.DataFrame({
+        'index': [0, 1],
+        'display_name': ['Alarm', 'Bark'],
+        'mid': ['/m/07pp_mv', '/m/05tny_'],
+    }).to_csv(
+        os.path.join(labels_dir, 'vocabulary.csv'), header=False, index=False
+    )
+    self.assertEqual(
+        fsd50k.FSD50KDataset.load_class_labels(
+            base_path=vocab_only_dir.full_path
+        ),
+        ['Alarm', 'Bark'],
+    )
+
   @mock.patch.object(fsd50k, '_PARQUET_BATCH_SIZE', 1)
   def test_filter_fn_with_parquet_cache(self):
     pd.DataFrame({

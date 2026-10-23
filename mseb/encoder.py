@@ -183,6 +183,12 @@ class CascadeEncoder(MultiModalEncoder):
     super().__init__()
     self._encoders = encoders
 
+  def set_task(self, task) -> None:
+    """Propagates the current task to sub-encoders that support it."""
+    for sub_encoder in self._encoders:
+      if hasattr(sub_encoder, "set_task"):
+        sub_encoder.set_task(task)
+
   @final
   def _setup(self):
     for encoder in self._encoders:

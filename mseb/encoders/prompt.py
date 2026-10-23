@@ -17,6 +17,7 @@
 import abc
 import json
 import logging
+import re
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from mseb import types
@@ -49,15 +50,28 @@ class DefaultPrompt(Prompt):
     return response
 
 
+_MARKDOWN_CODE_FENCE_RE = re.compile(
+    r'^[ \t]*```(?:json)?[ \t]*\r?$',
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _StripMarkdownCodeFences(response: str) -> str:
+  """Strips markdown code fence lines around JSON responses when present."""
+  return _MARKDOWN_CODE_FENCE_RE.sub('', response).strip()
+
+
 def ProcessJsonResponse(
     response: str,
     keys: Sequence[str],
     key_to_value_map: Optional[Mapping[str, str]],
     invalid_response_value: str,
-) -> str:
+) -> Any:
   """Processes the json response."""
   try:
-    result = json.loads(response)
+    result = json.loads(_StripMarkdownCodeFences(response))
+    if not isinstance(result, Mapping):
+      return invalid_response_value
     for key in keys:
       if key in result:
         return result[key]
@@ -76,7 +90,9 @@ def ValidateJson(
 ) -> bool:
   """Validates the json response."""
   try:
-    result = json.loads(response)
+    result = json.loads(_StripMarkdownCodeFences(response))
+    if not isinstance(result, Mapping):
+      return False
     for key, expected_type in expected_types.items():
       if key not in result:
         return False
@@ -190,7 +206,7 @@ class ClassificationPrompt(Prompt):
     )
     if isinstance(result, list):
       result = ' '.join([str(x) for x in result])
-    if result not in self.class_labels:
+    if not isinstance(result, str) or result not in self.class_labels:
       return self.INVALID_ANSWER_STR
     return result
 
@@ -221,6 +237,24 @@ class SpeakerClassificationPrompt(ClassificationPrompt):
       self, class_labels: Sequence[str], prompt_template: str = PROMPT_TEMPLATE
   ):
     super().__init__(class_labels, prompt_template)
+
+
+def _ExtractAnswerStrings(
+    payload: Any, *, in_answer: bool = False
+) -> list[str]:
+  """Extracts candidate label strings from JSON objects or arrays."""
+  if isinstance(payload, Mapping):
+    if 'answer' in payload:
+      return _ExtractAnswerStrings(payload['answer'], in_answer=True)
+    return []
+  if isinstance(payload, list):
+    candidates = []
+    for item in payload:
+      candidates.extend(_ExtractAnswerStrings(item, in_answer=in_answer))
+    return candidates
+  if in_answer and isinstance(payload, str):
+    return [payload]
+  return []
 
 
 class SoundClassificationPrompt(Prompt):
@@ -258,7 +292,7 @@ Each JSON object should have the following structure:
     self.prompt_template = prompt_template.format(
         Sound_Name=sound_name,
         sound_name=sound_name.lower(),
-        class_labels=json.dumps(class_labels),
+        class_labels=json.dumps(list(class_labels)),
         max_num_labels=max_num_labels,
     )
 
@@ -269,17 +303,29 @@ Each JSON object should have the following structure:
     assert isinstance(response, str)
     if response == self.NO_RESPONSE_STR:
       return self.NO_RESPONSE_STR
-    lines = response.split('\n')
+    cleaned = _StripMarkdownCodeFences(response)
+    decoder = json.JSONDecoder()
+    idx = 0
+    n = len(cleaned)
     results = []
-    for line in lines:
-      result = ProcessJsonResponse(
-          line,
-          keys=['answer'],
-          key_to_value_map=None,
-          invalid_response_value=self.INVALID_ANSWER_STR,
-      )
-      if result in self.class_labels:
-        results.append(result)
+    while idx < n:
+      while idx < n and cleaned[idx].isspace():
+        idx += 1
+      if idx >= n:
+        break
+      try:
+        obj, end_idx = decoder.raw_decode(cleaned, idx)
+        idx = end_idx
+      except json.JSONDecodeError:
+        logging.warning('Failed to parse json: %s', cleaned[idx:])
+        brace_pos = cleaned.find('{', idx + 1)
+        bracket_pos = cleaned.find('[', idx + 1)
+        next_json_pos = [pos for pos in (brace_pos, bracket_pos) if pos != -1]
+        idx = min(next_json_pos) if next_json_pos else n
+        continue
+      for candidate in _ExtractAnswerStrings(obj):
+        if candidate in self.class_labels and candidate not in results:
+          results.append(candidate)
     if not results:
       return self.INVALID_ANSWER_STR
     return '\n'.join(results)
@@ -323,7 +369,7 @@ class RetrievalPrompt(Prompt):
     assert isinstance(response, str)
     if response != self.NO_RESPONSE_STR:
       try:
-        result = json.loads(response)
+        result = json.loads(_StripMarkdownCodeFences(response))
         if not isinstance(result, list):
           raise ValueError('Result is not a list of strings: %s' % result)
         for item in result:
@@ -380,7 +426,7 @@ class GptRetrievalPrompt(Prompt):
     assert isinstance(response, str)
     if response != self.NO_RESPONSE_STR:
       try:
-        result = json.loads(response)
+        result = json.loads(_StripMarkdownCodeFences(response))
         if not isinstance(result, list):
           raise ValueError('Result is not a list of strings: %s' % result)
         for item in result:
@@ -434,14 +480,17 @@ Each JSON object should have the following structure:
     assert isinstance(response, str)
     if response == self.NO_RESPONSE_STR:
       return self.NO_RESPONSE_STR
-    lines = response.split('\n')
+    lines = _StripMarkdownCodeFences(response).split('\n')
     results = []
     for line in lines:
+      cleaned_line = line.strip()
+      if not cleaned_line:
+        continue
       if ValidateJson(
-          line,
+          cleaned_line,
           {'term': str(), 'start_time': float(), 'end_time': float()},
       ):
-        result = json.loads(line)
+        result = json.loads(cleaned_line)
         results.append(result)
     if not results:
       return self.INVALID_ANSWER_STR
@@ -491,14 +540,17 @@ Each JSON object should have the following structure:
     assert isinstance(response, str)
     if response == self.NO_RESPONSE_STR:
       return self.NO_RESPONSE_STR
-    lines = response.split('\n')
+    lines = _StripMarkdownCodeFences(response).split('\n')
     results = []
     for line in lines:
+      cleaned_line = line.strip()
+      if not cleaned_line:
+        continue
       if ValidateJson(
-          line,
+          cleaned_line,
           {'term': str(), 'start_time': float(), 'end_time': float()},
       ):
-        result = json.loads(line)
+        result = json.loads(cleaned_line)
         results.append(result)
     if not results:
       return self.INVALID_ANSWER_STR
@@ -574,7 +626,7 @@ class RerankingPrompt(Prompt):
     assert isinstance(response, str)
     if response != self.NO_RESPONSE_STR:
       try:
-        result = json.loads(response)
+        result = json.loads(_StripMarkdownCodeFences(response))
         if not isinstance(result, Iterable):
           raise ValueError('Result is not a list: %s' % result)
         if not result:
@@ -644,7 +696,7 @@ Example Output:
     assert isinstance(response, str)
     if response != self.NO_RESPONSE_STR:
       try:
-        result = json.loads(response)
+        result = json.loads(_StripMarkdownCodeFences(response))
         if not isinstance(result, Iterable):
           raise ValueError('Result is not a list: %s' % result)
         if not result:

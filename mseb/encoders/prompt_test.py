@@ -69,6 +69,84 @@ class PromptTest(absltest.TestCase):
         ),
         self.INVALID_ANSWER_STR,
     )
+    for non_mapping_json in ("null", "123", "true", '"answer"', '["answer"]'):
+      self.assertEqual(
+          prompt_lib.ProcessJsonResponse(
+              non_mapping_json,
+              keys=["answer"],
+              key_to_value_map=dict({self.NO_ANSWER_STR: self.NO_ANSWER_STR}),
+              invalid_response_value=self.INVALID_ANSWER_STR,
+          ),
+          self.INVALID_ANSWER_STR,
+      )
+      self.assertFalse(
+          prompt_lib.ValidateJson(non_mapping_json, {"answer": str()})
+      )
+    self.assertEqual(
+        prompt_lib.ProcessJsonResponse(
+            '```json\n{"answer": "Paris"}\n```',
+            keys=["answer"],
+            key_to_value_map=None,
+            invalid_response_value=self.INVALID_ANSWER_STR,
+        ),
+        "Paris",
+    )
+    self.assertEqual(
+        prompt_lib.ProcessJsonResponse(
+            "```json\n"
+            + json.dumps({
+                "answer": "```code```",
+                "rationale": "Preserves internal fences.",
+            })
+            + "\n```",
+            keys=["answer"],
+            key_to_value_map=None,
+            invalid_response_value=self.INVALID_ANSWER_STR,
+        ),
+        "```code```",
+    )
+    self.assertTrue(
+        prompt_lib.ValidateJson(
+            '```json\n{"answer": "Paris"}\n```', {"answer": str()}
+        )
+    )
+
+  def test_classification_prompt(self):
+    prompt = prompt_lib.ClassificationPrompt(
+        class_labels=["alarm_set", "weather_query"]
+    )
+    self.assertEqual(
+        prompt.ProcessResponse('{"answer": "alarm_set"}'),
+        "alarm_set",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse('{"answer": {"nested": "alarm_set"}}'),
+        prompt.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse('{"answer": 42}'),
+        prompt.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse("null"),
+        prompt.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(prompt.NO_RESPONSE_STR),
+        prompt.NO_RESPONSE_STR,
+    )
+
+    speaker_prompt = prompt_lib.SpeakerClassificationPrompt(
+        class_labels=["male", "female"]
+    )
+    self.assertEqual(
+        speaker_prompt.ProcessResponse('{"answer": "female"}'),
+        "female",
+    )
+    self.assertEqual(
+        speaker_prompt.ProcessResponse('{"answer": {"nested": "female"}}'),
+        speaker_prompt.INVALID_ANSWER_STR,
+    )
 
   def test_reasoning_prompt(self):
     prompt = prompt_lib.ReasoningPrompt()
@@ -292,6 +370,49 @@ class PromptTest(absltest.TestCase):
             })
         ),
         self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            '{\n  "answer": "label_1"\n}\n{\n  "answer": "label_2"\n}'
+        ),
+        "label_1\nlabel_2",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse('{"answer": ["label_2", "label_1", "label_2"]}'),
+        "label_2\nlabel_1",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            '[{"answer": "label_1"}, {"answer": "label_3"}]'
+        ),
+        "label_1",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse('{"answer": {"invalid": 1}}'),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse('"label_1"'),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse("null"),
+        self.INVALID_ANSWER_STR,
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            '```json\n{"answer": "label_1"}\n```\n'
+            '```json\n{"answer": "label_2"}\n```'
+        ),
+        "label_1\nlabel_2",
+    )
+    self.assertEqual(
+        prompt.ProcessResponse(
+            'Here are the predicted sound classes:\n'
+            '```json\n{"answer": "label_1"}\n```\n'
+            '```json\n{"answer": "label_2"}\n```'
+        ),
+        "label_1\nlabel_2",
     )
     self.assertEqual(
         prompt.ProcessResponse(

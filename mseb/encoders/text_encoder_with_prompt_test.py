@@ -19,8 +19,10 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import flagsaver
+from mseb import tasks
 from mseb import types
 from mseb.encoders import prompt as prompt_lib
+from mseb.encoders import prompt_registry
 import numpy as np
 import pytest
 
@@ -235,6 +237,91 @@ class TextEncoderWithPromptTest(absltest.TestCase):
                 {"prompt_text": "default: hello", "model_response": "DEFAULT"}
             ),
         ),
+    )
+
+  def test_encode_resolves_task_prompt_process_response_lazily_via_set_task(
+      self,
+  ):
+    mock_encoder = MockTextEncoderWithPrompt(
+        prompt_template="default: {text}",
+        prompt_encode_fn=lambda prompts: ['{"answer": "alarm_set"}']  # pyrefly: ignore[bad-argument-type]
+        * len(prompts),
+    )
+    cls_prompt = prompt_lib.ClassificationPrompt(class_labels=["alarm_set"])
+    lazy_prompt_meta = mock.MagicMock()
+    lazy_prompt_meta.load.return_value = cls_prompt
+    mock_encoder.task_prompts = {"IntentClassification": lazy_prompt_meta}
+
+    mock_task = mock.MagicMock()
+    mock_task.metadata.name = "SpeechMassiveEnUsIntentClassification"
+    mock_task.metadata.type = "IntentClassification"
+    mock_task.metadata.category = "speech"
+
+    mock_encoder.set_task(mock_task)
+    lazy_prompt_meta.load.assert_not_called()
+
+    embedding = mock_encoder.encode(
+        [
+            types.Text(
+                text="wake me up at 7am",
+                context=types.TextContextParams(id="id1"),
+            ),
+            types.Text(
+                text="set another alarm",
+                context=types.TextContextParams(id="id2"),
+            ),
+        ]
+    )[0]
+    lazy_prompt_meta.load.assert_called_once_with()
+    self.assertEqual(embedding.embedding, np.array("alarm_set"))
+
+    # Subsequent batches for the same task reuse the cached prompt instance.
+    _ = mock_encoder.encode(
+        [
+            types.Text(
+                text="wake me up tomorrow",
+                context=types.TextContextParams(id="id3"),
+            )
+        ]
+    )
+    lazy_prompt_meta.load.assert_called_once_with()
+
+    # Switching tasks clears the instance cache.
+    mock_encoder.set_task(mock_task)
+    _ = mock_encoder.encode(
+        [
+            types.Text(
+                text="wake me up again",
+                context=types.TextContextParams(id="id4"),
+            )
+        ]
+    )
+    self.assertEqual(lazy_prompt_meta.load.call_count, 2)
+
+  def test_resolve_prompt_matches_task_mro_and_passes_class_labels(self):
+    mock_encoder = MockTextEncoderWithPrompt(prompt_template="default: {text}")
+    reasoning_prompt = prompt_lib.ReasoningPrompt()
+    bird_meta = prompt_registry.PromptMetadata(
+        name="test_bird_classification",
+        prompt=prompt_lib.SoundClassificationPrompt,
+        params=lambda: {"sound_name": "Bird"},
+    )
+    mock_encoder.task_prompts = {
+        "ReasoningTask": reasoning_prompt,
+        "SpeechMassiveIntentClassification": bird_meta,
+    }
+    self.assertIs(
+        mock_encoder._resolve_prompt("SVQEnUsSpanInLangReasoning"),
+        reasoning_prompt,
+    )
+    intent_task = tasks.get_task_by_name(
+        "SpeechMassiveDeDeIntentClassification"
+    )()
+    mock_encoder.set_task(intent_task)
+    resolved = mock_encoder._resolve_prompt()
+    self.assertIsInstance(resolved, prompt_lib.SoundClassificationPrompt)
+    self.assertEqual(
+        resolved.ProcessResponse('{"answer": "alarm_set"}'), "alarm_set"
     )
 
   def test_prompt_override_with_context_language(self):

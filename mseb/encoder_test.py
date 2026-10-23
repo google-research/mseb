@@ -145,6 +145,17 @@ class CascadeEncoderTest(absltest.TestCase):
     )
     self.assertEqual(enc.output_type(), types.SoundEmbedding)
 
+  def test_set_task_propagates_to_sub_encoders(self):
+    task_aware_sub_encoder = MockMultiModalEncoder()
+    task_aware_sub_encoder.set_task = mock.MagicMock()
+    plain_sub_encoder = MockMultiModalEncoder()
+    enc = encoder.CascadeEncoder(
+        encoders=[task_aware_sub_encoder, plain_sub_encoder]
+    )
+    fake_task = object()
+    enc.set_task(fake_task)
+    task_aware_sub_encoder.set_task.assert_called_once_with(fake_task)
+
 
 class IdentityEncoderTest(absltest.TestCase):
 
