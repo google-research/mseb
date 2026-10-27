@@ -24,6 +24,8 @@ from mseb import types
 from mseb.datasets import base
 import pandas as pd
 
+DEFAULT_BASE_PATH = None
+
 
 class BirdsetDataset(base.MsebDataset):
   """Birdset dataset for bird sound classification.
@@ -43,7 +45,9 @@ class BirdsetDataset(base.MsebDataset):
     """Initializes the dataset for a specific split and configuration.
 
     Args:
-      base_path: The root directory to store/find the HF dataset cache.
+      base_path: The root directory to store/find the HF dataset cache. If None,
+        falls back to `--dataset_basepath`, then a built-in default if one is
+        configured.
       split: The dataset split to load. Must be 'train', 'test', or 'test_5s'.
       configuration: The Birdset configuration (sub-dataset) to load,
         e.g., 'HSN', 'PER', 'XCL'.
@@ -53,7 +57,9 @@ class BirdsetDataset(base.MsebDataset):
           f"Split must be 'train', 'test', or 'test_5s', but got '{split}'."
       )
     super().__init__(base_path=base_path, split=split)
-    self.base_path = dataset.get_base_path(self.base_path)
+    self.base_path = dataset.get_base_path(
+        self.base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     self.configuration = configuration
     self._native_sr = 32_000
     self._ebird_code_names: list[str] | None = None

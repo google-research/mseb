@@ -25,19 +25,41 @@ import pandas as pd
 _DATASET_BASEPATH = flags.DEFINE_string(
     "dataset_basepath",
     None,
-    "Path to the MSEB dataset cache.",
+    "Path to the MSEB dataset cache. Overrides built-in dataset defaults.",
 )
 
 
-def get_base_path(basepath: str | None = None) -> str:
-  """Return basepath from argument or flag."""
+def get_base_path(
+    basepath: str | None = None,
+    default_basepath: str | None = None,
+) -> str:
+  """Resolves the dataset base path from argument, flag, or default.
+
+  Precedence order: explicit `basepath` argument > `--dataset_basepath` flag >
+  `default_basepath`.
+
+  Args:
+    basepath: Explicit dataset base path passed by the caller.
+    default_basepath: Fallback dataset base path when neither `basepath` nor
+      `--dataset_basepath` is set.
+
+  Returns:
+    The resolved dataset base path.
+
+  Raises:
+    ValueError: If `basepath`, `--dataset_basepath`, and `default_basepath` are
+      all None.
+  """
   if basepath is not None:
     return basepath
   if _DATASET_BASEPATH.value is not None:
     return _DATASET_BASEPATH.value
+  if default_basepath is not None:
+    return default_basepath
   raise ValueError(
       "basepath must be provided either as an argument or through the"
-      " --dataset_basepath flag."
+      " --dataset_basepath flag, and no default base path is configured for"
+      " this dataset."
   )
 
 

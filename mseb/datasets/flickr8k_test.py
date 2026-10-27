@@ -19,6 +19,7 @@ import os
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb.datasets import flickr8k
 import numpy as np
 import pandas as pd
@@ -152,6 +153,23 @@ class Flickr8kDatasetTest(absltest.TestCase):
       flickr8k.Flickr8kDataset(
           base_path=self.testdata_dir, split='unknown'
       ).get_task_data()
+
+  def test_default_base_path_resolution(self):
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(flickr8k, 'DEFAULT_BASE_PATH', self.testdata_dir):
+        ds = flickr8k.Flickr8kDataset(split='test')
+        self.assertEqual(ds.base_path, self.testdata_dir)
+
+  @mock.patch.object(flickr8k.audio_image_base, 'download_file')
+  def test_default_base_path_missing_files_raises_without_download(
+      self, mock_dl
+  ):
+    empty_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(flickr8k, 'DEFAULT_BASE_PATH', empty_dir):
+        with self.assertRaises(FileNotFoundError):
+          flickr8k.Flickr8kDataset(split='test')
+        mock_dl.assert_not_called()
 
 
 class DownloadFlickr8kTest(absltest.TestCase):

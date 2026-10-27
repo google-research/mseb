@@ -43,6 +43,8 @@ logger = logging.getLogger(__name__)
 _SPOKEN_COCO_URL = 'https://data.csail.mit.edu/placesaudio/SpokenCOCO.tar.gz'
 _MSCOCO_VAL2014_URL = 'http://images.cocodataset.org/zips/val2014.zip'
 
+DEFAULT_BASE_PATH = None
+
 
 def maybe_download_spoken_coco(dest_dir: str, split: str = 'val') -> None:
   """Downloads SpokenCOCO audio and MSCOCO images to dest_dir.
@@ -52,10 +54,25 @@ def maybe_download_spoken_coco(dest_dir: str, split: str = 'val') -> None:
   Args:
     dest_dir: Directory to download to.
     split: The dataset split (used to verify the JSON file exists).
+
+  Raises:
+    FileNotFoundError: If `dest_dir` is `DEFAULT_BASE_PATH` and expected dataset
+      files are missing.
   """
   json_path = os.path.join(dest_dir, f'SpokenCOCO_{split}.json')
   wavs_dir = os.path.join(dest_dir, 'wavs')
   images_dir = os.path.join(dest_dir, 'val2014')
+
+  if dest_dir == DEFAULT_BASE_PATH:
+    if (
+        not epath.Path(json_path).exists()
+        or not epath.Path(wavs_dir).is_dir()
+        or not epath.Path(images_dir).is_dir()
+    ):
+      raise FileNotFoundError(
+          f'Expected SpokenCOCO files not found in default base path {dest_dir}'
+      )
+    return
 
   # Download and extract SpokenCOCO (audio + JSON metadata).
   if not epath.Path(json_path).exists() or not epath.Path(wavs_dir).is_dir():
@@ -109,9 +126,8 @@ class SpokenCocoDataset(audio_image_base.AudioImageDataset):
       ...
     ]}
 
-  If base_path is not provided, the dataset is downloaded automatically to
-  a temporary directory. To persist downloads across runs, set base_path or
-  the download_dir argument.
+  If base_path is not provided, it falls back to `--dataset_basepath`, then a
+  built-in default if one is configured.
   """
 
   def __init__(
@@ -122,13 +138,14 @@ class SpokenCocoDataset(audio_image_base.AudioImageDataset):
     """Initializes the SpokenCOCO dataset.
 
     Args:
-      base_path: Path to the dataset root. If provided, data is loaded directly
-        from this path (no download). If None and download=True, the data is
-        downloaded automatically.
+      base_path: Path to the dataset root. If None, falls back to
+        `--dataset_basepath`, then a built-in default if one is configured.
       split: Dataset split ('val' or 'train').
     """
     super().__init__(base_path=base_path, split=split)
-    self.base_path = dataset.get_base_path(self.base_path)
+    self.base_path = dataset.get_base_path(
+        self.base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     maybe_download_spoken_coco(dest_dir=self.base_path, split=split)
     self._data = None
 

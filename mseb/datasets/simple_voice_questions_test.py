@@ -18,6 +18,7 @@ import sys
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util as beam_testing_util
@@ -54,6 +55,16 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
     self.assertEqual(task_record["utt_id"], "utt_14868079180393484423")
     self.assertEqual(task_record["task"], "retrieval_in_lang")
     self.assertIn("1480 and 1481", task_record["passage_text"])
+
+  def test_default_base_path_resolution(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(svq, "DEFAULT_BASE_PATH", testdata_path):
+        dataset = svq.SimpleVoiceQuestionsDataset()
+        self.assertEqual(dataset.base_path, testdata_path)
+        self.assertLen(dataset, 4)
 
   def test_parquet_reading(self):
     """Verifies reading from Parquet task and audio files."""

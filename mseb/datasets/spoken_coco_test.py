@@ -21,6 +21,7 @@ from unittest import mock
 import zipfile
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb.datasets import spoken_coco
 import numpy as np
 import pandas as pd
@@ -158,6 +159,25 @@ class SpokenCocoDatasetTest(absltest.TestCase):
     """When base_path is provided, it should be used directly."""
     ds = spoken_coco.SpokenCocoDataset(base_path=self.testdata_dir, split='val')
     self.assertEqual(ds.base_path, self.testdata_dir)
+
+  def test_default_base_path_resolution(self):
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          spoken_coco, 'DEFAULT_BASE_PATH', self.testdata_dir
+      ):
+        ds = spoken_coco.SpokenCocoDataset(split='val')
+        self.assertEqual(ds.base_path, self.testdata_dir)
+
+  @mock.patch.object(spoken_coco.audio_image_base, 'download_file')
+  def test_default_base_path_missing_files_raises_without_download(
+      self, mock_dl
+  ):
+    empty_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(spoken_coco, 'DEFAULT_BASE_PATH', empty_dir):
+        with self.assertRaises(FileNotFoundError):
+          spoken_coco.SpokenCocoDataset(split='val')
+        mock_dl.assert_not_called()
 
 
 class DownloadSpokenCocoTest(absltest.TestCase):

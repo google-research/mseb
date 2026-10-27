@@ -16,6 +16,7 @@ import os
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 import apache_beam as beam
 from apache_beam.testing import test_pipeline
 from apache_beam.testing import util as beam_util
@@ -103,6 +104,32 @@ class SpeechMassiveTest(absltest.TestCase):
     self.assertEqual(record.speaker_age, "40")
     self.assertEqual(record.intent_str, "audio_volume_mute")
     self.assertEqual(record.intent_idx, 46)
+
+  def test_default_base_path_resolution(self):
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          speech_massive, "DEFAULT_BASE_PATH", self.testdata_dir.full_path
+      ):
+        dataset = speech_massive.SpeechMassiveDataset(
+            filename="de-DE/test-00000-of-00001.parquet"
+        )
+        self.assertEqual(dataset.base_path, self.testdata_dir.full_path)
+        self.assertLen(dataset, 1)
+
+  @mock.patch("mseb.utils.download_from_hf")
+  def test_default_base_path_missing_file_raises_without_download(
+      self, mock_download
+  ):
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          speech_massive, "DEFAULT_BASE_PATH", self.testdata_dir.full_path
+      ):
+        dataset = speech_massive.SpeechMassiveDataset(
+            filename="de-DE/nonexistent.parquet"
+        )
+        with self.assertRaises(FileNotFoundError):
+          _ = len(dataset)
+        mock_download.assert_not_called()
 
   @mock.patch("mseb.utils.download_from_hf")
   def test_get_sound(self, _):

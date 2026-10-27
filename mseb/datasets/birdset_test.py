@@ -16,8 +16,10 @@
 
 import json
 import os
+from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import types
 from mseb.datasets import birdset
 import numpy as np
@@ -113,6 +115,15 @@ class BirdsetDatasetTest(absltest.TestCase):
     self.assertEqual(sound.context.speaker_gender, "male")
     self.assertEqual(sound.context.text, "astcal")
     self.assertEqual(sound.context.sample_rate, 32_000)
+
+  def test_default_base_path_resolution(self):
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          birdset, "DEFAULT_BASE_PATH", self.testdata_dir.full_path
+      ):
+        ds = birdset.BirdsetDataset(split="test_5s", configuration="HSN")
+        self.assertEqual(ds.base_path, self.testdata_dir.full_path)
+        self.assertLen(ds, 2)
 
 
 if __name__ == "__main__":

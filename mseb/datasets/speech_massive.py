@@ -43,6 +43,8 @@ bcp47_by_locale = {
 }
 locale_by_bcp47 = {v: k for k, v in bcp47_by_locale.items()}
 
+DEFAULT_BASE_PATH = None
+
 
 class SpeechMassiveDataset(base.MsebDataset):
   """SpeechMassive dataset."""
@@ -59,7 +61,9 @@ class SpeechMassiveDataset(base.MsebDataset):
 
     Args:
       filename: The file name relative to the base path.
-      base_path: The root directory to store/find the dataset.
+      base_path: The root directory to store/find the dataset. If None, falls
+        back to `--dataset_basepath`, then a built-in default if one is
+        configured.
       repo_id: The Hugging Face repository ID to download from. Defaults to the
         richer 'FBK-MT/Speech-MASSIVE' version, but the original
         'speechcolab/massive' is also supported.
@@ -68,7 +72,9 @@ class SpeechMassiveDataset(base.MsebDataset):
       token: Hugging Face authentication token for private/gated repos.
     """
     super().__init__(base_path=base_path, split="no_used")
-    self.base_path = dataset.get_base_path(self.base_path)
+    self.base_path = dataset.get_base_path(
+        self.base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     self.repo_id = repo_id
     self.filename = filename
     self.streaming = streaming
@@ -138,7 +144,7 @@ class SpeechMassiveDataset(base.MsebDataset):
           )
       )
 
-      if not parquet_files:
+      if not parquet_files and self.base_path != DEFAULT_BASE_PATH:
         self._download_and_prepare()
         parquet_files = tuple(
             epath.Path(os.path.dirname(parquet_path)).glob(

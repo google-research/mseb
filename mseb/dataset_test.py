@@ -16,6 +16,7 @@ import os
 from typing import Any
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import dataset
 from mseb import types
 import numpy as np
@@ -118,6 +119,27 @@ class DatasetTest(absltest.TestCase):
     # Check content of the first batch
     self.assertEqual(batches[0][0].context.id, "a")
     self.assertEqual(batches[0][1].context.id, "b")
+
+  def test_get_base_path_precedence(self):
+    self.assertEqual(
+        dataset.get_base_path("/explicit/path", "/default/path"),
+        "/explicit/path",
+    )
+    with flagsaver.flagsaver(dataset_basepath="/flag/path"):
+      self.assertEqual(
+          dataset.get_base_path("/explicit/path", "/default/path"),
+          "/explicit/path",
+      )
+      self.assertEqual(
+          dataset.get_base_path(None, "/default/path"),
+          "/flag/path",
+      )
+    self.assertEqual(
+        dataset.get_base_path(None, "/default/path"),
+        "/default/path",
+    )
+    with self.assertRaises(ValueError):
+      dataset.get_base_path(None, None)
 
 
 if __name__ == "__main__":

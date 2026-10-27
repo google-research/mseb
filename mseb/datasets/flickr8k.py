@@ -61,6 +61,8 @@ _SPLIT_TO_FILENAME = {
     'train': 'Flickr_8k.trainImages.txt',
 }
 
+DEFAULT_BASE_PATH = None
+
 
 def maybe_download_flickr8k(dest_dir: str) -> None:
   """Downloads Flickr8k audio, images, and text to dest_dir.
@@ -69,10 +71,25 @@ def maybe_download_flickr8k(dest_dir: str) -> None:
 
   Args:
     dest_dir: Directory to download to.
+
+  Raises:
+    FileNotFoundError: If `dest_dir` is `DEFAULT_BASE_PATH` and expected dataset
+      files are missing.
   """
   audio_dir = os.path.join(dest_dir, 'flickr_audio')
   images_dir = os.path.join(dest_dir, 'Images')
   captions_path = os.path.join(dest_dir, 'captions.txt')
+
+  if dest_dir == DEFAULT_BASE_PATH:
+    if (
+        not epath.Path(audio_dir).is_dir()
+        or not epath.Path(images_dir).is_dir()
+        or not epath.Path(captions_path).exists()
+    ):
+      raise FileNotFoundError(
+          f'Expected Flickr8k files not found in default base path {dest_dir}'
+      )
+    return
 
   # Download and extract Flickr8k audio (wav files + metadata).
   if not epath.Path(audio_dir).is_dir():
@@ -152,10 +169,8 @@ class Flickr8kDataset(audio_image_base.AudioImageDataset):
     - captions.txt    : CSV with columns (image, caption)
     - Flickr_8k.{test,dev,train}Images.txt : split image lists
 
-  If base_path is not provided, the dataset is downloaded automatically to
-  a temporary directory. Set the TMPDIR environment variable to control
-  where the temp directory is created, e.g.:
-    TMPDIR=/my/data/dir python my_script.py
+  If base_path is not provided, it falls back to `--dataset_basepath`, then a
+  built-in default if one is configured.
   """
 
   def __init__(
@@ -166,14 +181,14 @@ class Flickr8kDataset(audio_image_base.AudioImageDataset):
     """Initializes the Flickr8k dataset.
 
     Args:
-      base_path: Path to the dataset root. If provided, data is loaded directly
-        from this path (no download). If None, a temporary directory is created
-        and data is downloaded automatically. Set the TMPDIR environment
-        variable to control where the temp directory is created.
+      base_path: Path to the dataset root. If None, falls back to
+        `--dataset_basepath`, then a built-in default if one is configured.
       split: Dataset split ('test', 'dev', or 'train').
     """
     super().__init__(base_path=base_path, split=split)
-    self.base_path = dataset.get_base_path(self.base_path)
+    self.base_path = dataset.get_base_path(
+        self.base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     maybe_download_flickr8k(dest_dir=self.base_path)
     self._task_data: pd.DataFrame | None = None
 

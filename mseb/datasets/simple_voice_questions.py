@@ -36,10 +36,11 @@ from packaging import version
 import pandas as pd
 import pyarrow.parquet as pq
 
-# Single source of truth for the SVQ dataset version/revision. Referenced by
-# task metadata (`types.Dataset.revision`) so that it only needs to be bumped
-# here.
+# Single source of truth for the SVQ dataset version/revision (referenced by
+# task metadata `types.Dataset.revision`).
 VERSION = "2.0.0"
+
+DEFAULT_BASE_PATH = None
 
 LANGUAGES = [
     "ar",
@@ -238,8 +239,20 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
       streaming: bool = False,
       repo_id: str = "google/svq",
   ):
+    """Initializes the SimpleVoiceQuestionsDataset.
+
+    Args:
+      base_path: The root directory containing the SVQ dataset files. If None,
+        falls back to `--dataset_basepath`, then a built-in default if one is
+        configured.
+      split: Dataset split to load.
+      streaming: Whether to stream data from Hugging Face.
+      repo_id: Hugging Face repository ID.
+    """
     super().__init__(base_path=base_path, split=split)
-    self.base_path = dataset.get_base_path(self.base_path)
+    self.base_path = dataset.get_base_path(
+        self.base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     self.streaming = streaming
     self.repo_id = repo_id
     self._index = self._load_index()

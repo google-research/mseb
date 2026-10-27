@@ -16,6 +16,7 @@ import os
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import types
 from mseb.datasets import fsd50k
 import numpy as np
@@ -243,6 +244,31 @@ class FSD50KDatasetTest(absltest.TestCase):
     task_data = dataset.get_task_data()
     self.assertEmpty(task_data)
     self.assertIn('fname', task_data.columns)
+
+  def test_default_base_path_resolution(self):
+    pd.DataFrame({
+        'fname': [37199],
+        'labels': ['Music'],
+        'waveform': [np.ones(160, dtype=np.float32)],
+        'sample_rate': [16000],
+    }).to_parquet(os.path.join(self.testdata_dir.full_path, 'test.parquet'))
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          fsd50k, 'DEFAULT_BASE_PATH', self.testdata_dir.full_path
+      ):
+        dataset = fsd50k.FSD50KDataset(split='test')
+        self.assertEqual(dataset.base_path, self.testdata_dir.full_path)
+
+  @mock.patch('mseb.utils.download_from_hf')
+  def test_default_base_path_missing_cache_raises_without_download(
+      self, mock_download
+  ):
+    empty_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(fsd50k, 'DEFAULT_BASE_PATH', empty_dir):
+        with self.assertRaises(FileNotFoundError):
+          fsd50k.FSD50KDataset(split='test')
+        mock_download.assert_not_called()
 
 
 class DebugIdsTest(absltest.TestCase):

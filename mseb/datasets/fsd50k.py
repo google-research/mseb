@@ -34,6 +34,8 @@ _PARQUET_BATCH_SIZE = 1024
 # In measurements, 1 GiB blocks were slower, too.
 _PARQUET_BUFFER_SIZE = 256 * 1024 * 1024
 
+DEFAULT_BASE_PATH = None
+
 
 class FSD50KDataset(base.MsebDataset):
   """FSD50K dataset loader that works with the Hugging Face repository."""
@@ -46,11 +48,24 @@ class FSD50KDataset(base.MsebDataset):
       streaming: bool = False,
       filter_fn: Callable[[Any], bool] | None = None,
   ):
+    """Initializes the FSD50K dataset.
+
+    Args:
+      split: Dataset split ('validation' or 'test').
+      base_path: Root directory containing the dataset files or cache. If None,
+        falls back to `--dataset_basepath`, then a built-in default if one is
+        configured.
+      repo_id: Hugging Face repository ID.
+      streaming: Whether to stream data from Hugging Face.
+      filter_fn: Optional predicate over `fname` to filter loaded examples.
+    """
     if split not in ['validation', 'test']:
       raise ValueError(f'Split must be validation or test, but got {split}.')
 
     super().__init__(base_path=base_path, split=split)
-    self.base_path = dataset.get_base_path(self.base_path)
+    self.base_path = dataset.get_base_path(
+        self.base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
     self.streaming = streaming
@@ -125,7 +140,9 @@ class FSD50KDataset(base.MsebDataset):
           vocab_path, header=None, names=['index', 'display_name', 'mid']
       )
     else:
-      resolved_base_path = dataset.get_base_path(base_path)
+      resolved_base_path = dataset.get_base_path(
+          base_path, default_basepath=DEFAULT_BASE_PATH
+      )
       vocab_path = os.path.join(resolved_base_path, 'labels', 'vocabulary.csv')  # pyrefly: ignore[no-matching-overload]
       if not epath.Path(vocab_path).exists():
         raise FileNotFoundError(f'Vocabulary file not found at {vocab_path}.')
@@ -195,6 +212,10 @@ class FSD50KDataset(base.MsebDataset):
 
     Returns:
       A pandas DataFrame containing the dataset's metadata.
+
+    Raises:
+      FileNotFoundError: If the cache file is missing when using
+        `DEFAULT_BASE_PATH`.
     """
     cache_path = self._path(f'{self.split}.parquet')
     if epath.Path(cache_path).exists():
@@ -222,6 +243,10 @@ class FSD50KDataset(base.MsebDataset):
         if not dfs:
           return pd.DataFrame()
         return pd.concat(dfs, ignore_index=True)  # pyrefly: ignore[bad-return]
+    if not self.streaming and self.base_path == DEFAULT_BASE_PATH:
+      raise FileNotFoundError(
+          f'FSD50K cache file not found at {cache_path} in default base path.'
+      )
     logging.info(
         'Cache not found. Processing FSD50K %s split from source...',
         self.split,
