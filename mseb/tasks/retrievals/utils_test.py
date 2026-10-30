@@ -12,15 +12,63 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from absl import flags
 from absl.testing import absltest
 from mseb import types
 from mseb.tasks.retrievals import utils
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 FLAGS = flags.FLAGS
 
 
 class UtilsTest(absltest.TestCase):
+
+  def test_document_index_path(self):
+    self.assertEqual(
+        utils.document_index_path("/tmp/svq", "en"),
+        "/tmp/svq/document_retrieval_cross_lang_en_index-?????-of-?????.parquet",
+    )
+    with self.assertRaisesRegex(
+        ValueError, "Dataset base path is required for the document index"
+    ):
+      utils.document_index_path(None, "en")
+
+  def test_documents_from_parquet(self):
+    base_dir = self.create_tempdir().full_path
+    pq.write_table(
+        pa.table({"title": ["Doc 3"], "text": ["Text 3"]}),
+        os.path.join(
+            base_dir,
+            "document_retrieval_cross_lang_en_index-00001-of-00002.parquet",
+        ),
+    )
+    pq.write_table(
+        pa.table({"title": ["Doc 1", "Doc 2"], "text": ["Text 1", "Text 2"]}),
+        os.path.join(
+            base_dir,
+            "document_retrieval_cross_lang_en_index-00000-of-00002.parquet",
+        ),
+    )
+    pattern = utils.document_index_path(base_dir, "en")
+    documents = list(utils.documents_from_parquet(pattern, batch_size=1))
+    self.assertEqual(
+        [(d.context.id, d.context.title, d.text) for d in documents],
+        [
+            ("Doc 1", "Doc 1", "Text 1"),
+            ("Doc 2", "Doc 2", "Text 2"),
+            ("Doc 3", "Doc 3", "Text 3"),
+        ],
+    )
+
+  def test_documents_from_parquet_missing_files(self):
+    base_dir = self.create_tempdir().full_path
+    pattern = utils.document_index_path(base_dir, "en")
+    with self.assertRaisesRegex(
+        FileNotFoundError, "No document index files match"
+    ):
+      list(utils.documents_from_parquet(pattern))
 
   def test_get_empty_text_by_id(self):
     retrieved_items_str_list = [

@@ -14,9 +14,10 @@
 
 """SVQ document in-lang retrieval tasks."""
 
+from collections.abc import Iterable
 import functools
 import os
-from typing import Any, Iterable
+from typing import Any
 
 from mseb import task as task_lib
 from mseb import types
@@ -24,7 +25,6 @@ from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import retrieval_evaluator
 from mseb.tasks import retrieval
 from mseb.tasks.retrievals import utils
-import tensorflow_datasets as tfds
 
 
 def _get_environment(sub_task: str) -> str:
@@ -85,17 +85,11 @@ class SVQDocumentInLangRetrieval(retrieval.RetrievalTask):
     return df
 
   def get_documents_source(self) -> Any:
-    return f'wikipedia/20190301.{self.language}'
+    return utils.document_index_path(self.svq_dataset.base_path, self.language)
 
   @classmethod
   def documents_generator(cls, dataset: Any) -> Iterable[types.Text]:
-    ds = tfds.load(dataset, split='train')
-    for example in ds.as_numpy_iterator():
-      title = example['title'].decode('utf-8')
-      yield types.Text(
-          text=example['text'].decode('utf-8'),
-          context=types.TextContextParams(id=title, title=title),
-      )
+    return utils.documents_from_parquet(dataset)
 
   def multimodal_inputs(self) -> Iterable[types.Sound]:
     truncation = None
