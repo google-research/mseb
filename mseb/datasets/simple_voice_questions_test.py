@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from concurrent import futures
+import copy
 import os
 import pathlib
+import pickle
 import sys
+import threading
 from unittest import mock
 
 from absl.testing import absltest
@@ -174,6 +178,72 @@ class SimpleVoiceQuestionsTest(absltest.TestCase):
     with self.assertLogs(level="WARNING") as cm:
       _ = dataset.get_task_data("test_task")
     self.assertTrue(any("JSONL is deprecated" in msg for msg in cm.output))
+
+  def test_init_and_beam_transforms_skip_eager_index_load(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+
+    with mock.patch.object(
+        svq.SimpleVoiceQuestionsDataset, "_load_index", autospec=True
+    ) as mock_load_index:
+      dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+      data_transform = dataset.get_task_data_beam("test_task")
+      _ = dataset.get_task_sounds_beam("test_task", locale="en_us")
+      pickled_dataset_len = len(pickle.dumps(dataset))
+      pickled_transform_len = len(pickle.dumps(data_transform))
+
+    mock_load_index.assert_not_called()
+    self.assertIsNone(data_transform._index)
+    self.assertLess(pickled_dataset_len, 2048)
+    self.assertLess(pickled_transform_len, 2048)
+
+  def test_index_loads_once_on_demand_and_resets_across_copy(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+
+    with mock.patch.object(
+        dataset, "_load_index", wraps=dataset._load_index
+    ) as mock_load_index:
+      corpus_len = len(dataset)
+      sound = dataset.get_sound({"utt_id": "utt_14868079180393484423"})
+    pickled_len = len(pickle.dumps(dataset))
+    cloned_idle = copy.deepcopy(dataset)
+    cloned_sound = copy.deepcopy(dataset).get_sound(
+        {"utt_id": "utt_14868079180393484423"}
+    )
+
+    mock_load_index.assert_called_once()
+    self.assertEqual(corpus_len, 4)
+    self.assertEqual(sound.context.id, "utt_14868079180393484423")
+    self.assertLess(pickled_len, 2048)
+    self.assertIsNone(cloned_idle._index_df)
+    self.assertEqual(cloned_sound.waveform.shape, (88320,))
+
+  def test_concurrent_access_loads_index_once(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=testdata_path)
+    barrier = threading.Barrier(4)
+
+    def read_corpus(_: int) -> tuple[int, bool]:
+      barrier.wait()
+      return (
+          len(dataset),
+          "utt_14868079180393484423" in dataset.utt_id_to_record,
+      )
+
+    with mock.patch.object(
+        dataset, "_load_index", wraps=dataset._load_index
+    ) as mock_load_index:
+      with futures.ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(read_corpus, range(4)))
+
+    mock_load_index.assert_called_once()
+    self.assertEqual(results, [(4, True)] * 4)
 
 
 class SimpleVoiceQuestionsBeamTest(absltest.TestCase):

@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import threading
 from typing import Any, Mapping
 
 import apache_beam as beam
@@ -144,13 +145,20 @@ class _UttLookup:
 class _LoadAudioFn(beam.DoFn):
   """Loads audio for a single utterance."""
 
-  def __init__(self, base_path: str, index_df: pd.DataFrame):
+  def __init__(
+      self, base_path: str, index_df: pd.DataFrame | None = None
+  ):
     self._base_path = base_path
     self._index_df = index_df
     self._utt_lookup: _UttLookup | None = None
 
   def setup(self):
-    self._utt_lookup = _UttLookup(self._base_path, self._index_df)
+    index_df = self._index_df
+    if index_df is None:
+      index_df = SimpleVoiceQuestionsDataset(  # pylint: disable=protected-access
+          base_path=self._base_path
+      )._index
+    self._utt_lookup = _UttLookup(self._base_path, index_df)
 
   def process(self, record: dict[str, Any]):
     wav_bytes = self._utt_lookup(record["utt_id"])  # pyrefly: ignore[not-callable]
@@ -191,7 +199,7 @@ class ReadTaskData(beam.PTransform):
   def __init__(
       self,
       base_path: str,
-      index: pd.DataFrame,
+      index: pd.DataFrame | None,
       task_path: str,
   ):
     self._base_path = base_path
@@ -228,8 +236,8 @@ class ReadTaskData(beam.PTransform):
 class SimpleVoiceQuestionsDataset(base.MsebDataset):
   """Simple Voice Questions (SVQ) dataset.
 
-  This class loads the entire corpus of utterances and provides a method
-  to access specific evaluation task files.
+  This class lazily loads the corpus utterance index when needed and provides
+  methods to access specific evaluation task files.
   """
 
   def __init__(
@@ -255,11 +263,56 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     )
     self.streaming = streaming
     self.repo_id = repo_id
-    self._index = self._load_index()
-    self._utt_lookup = _UttLookup(
-        self.base_path, self._index, streaming=streaming, repo_id=repo_id
-    )
-    self.utt_id_to_record = self._index.set_index("utt_id").to_dict("index")
+    self._init_lock = threading.Lock()
+    self._index_df: pd.DataFrame | None = None
+    self._utt_lookup_instance: _UttLookup | None = None
+    self._utt_id_to_record_map: dict[str, dict[str, Any]] | None = None
+
+  def __getstate__(self) -> dict[str, Any]:
+    state = self.__dict__.copy()
+    state.pop("_init_lock", None)
+    state["_index_df"] = None
+    state["_utt_lookup_instance"] = None
+    state["_utt_id_to_record_map"] = None
+    return state
+
+  def __setstate__(self, state: dict[str, Any]) -> None:
+    self.__dict__.update(state)
+    self._init_lock = threading.Lock()
+
+  def _get_or_load_index_locked(self) -> pd.DataFrame:
+    if self._index_df is None:
+      self._index_df = self._load_index()
+    return self._index_df
+
+  @property
+  def _index(self) -> pd.DataFrame:
+    with self._init_lock:
+      return self._get_or_load_index_locked()
+
+  @property
+  def _utt_lookup(self) -> _UttLookup:
+    with self._init_lock:
+      if self._utt_lookup_instance is None:
+        assert self.base_path is not None
+        self._utt_lookup_instance = _UttLookup(
+            self.base_path,
+            self._get_or_load_index_locked(),
+            streaming=self.streaming,
+            repo_id=self.repo_id,
+        )
+      return self._utt_lookup_instance
+
+  @property
+  def utt_id_to_record(self) -> dict[str, dict[str, Any]]:
+    with self._init_lock:
+      if self._utt_id_to_record_map is None:
+        self._utt_id_to_record_map = (
+            self._get_or_load_index_locked()
+            .set_index("utt_id")
+            .to_dict("index")
+        )
+      return self._utt_id_to_record_map
 
   @property
   def metadata(self) -> types.DatasetMetadata:
@@ -477,7 +530,7 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     """Loads the task data with audio for the given task name with beam."""
     return ReadTaskData(
         self.base_path,  # pyrefly: ignore[bad-argument-type]
-        self._index,
+        None,
         self._get_task_path(task_name),
     )
 
