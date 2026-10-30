@@ -19,12 +19,16 @@ import dataclasses
 from typing import Any
 
 from absl import logging
+import apache_beam as beam
 import bagz
 from etils import epath
 from mseb import types
 import msgpack
 import numpy as np
 import tqdm
+
+from bagz.beam import bagzio
+_write_to_bagz = bagzio.WriteToBagz
 
 _SERIALIZABLE_TYPES = {
     cls.__name__: cls
@@ -137,3 +141,21 @@ def play(prefix: str) -> dict[str, types.MultiModalObject]:
   if not objects:
     raise FileNotFoundError(f'Bagz files {shard_spec} contained zero records')
   return objects
+
+
+class WriteToBagz(beam.PTransform):
+  """Serializes MultiModalObjects and writes them to sharded Bagz files."""
+
+  def __init__(self, prefix: str, num_shards: int = 1):
+    self._prefix = prefix
+    self._num_shards = max(1, num_shards)
+
+  def expand(self, pcoll):
+    encoded = (
+        pcoll
+        | 'Serialize' >> beam.Map(encode)
+        | 'Reshuffle' >> beam.Reshuffle()  # Avoid fusing with write.
+    )
+    return encoded | 'Write' >> _write_to_bagz(
+        f'{self._prefix}@{self._num_shards}.bagz'
+    )

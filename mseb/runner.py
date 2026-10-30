@@ -21,7 +21,6 @@ import itertools
 import json
 import math
 import os
-import pickle
 import time
 from typing import Any
 
@@ -29,10 +28,9 @@ from absl import flags
 from absl import logging
 import apache_beam as beam
 from apache_beam.utils import shared
-from etils import epath
 from mseb import encoder as encoder_lib
+from mseb import record
 from mseb import types
-import tensorflow as tf
 import tqdm
 
 
@@ -138,7 +136,7 @@ class DirectRunner(EncoderRunner):
     if output_prefix is not None:
       try:
         return load_embeddings(output_prefix)
-      except FileNotFoundError:
+      except (FileNotFoundError, ValueError):
         pass
 
     embeddings = {}
@@ -218,33 +216,8 @@ class EncodeDoFn(beam.DoFn):
 
 
 def load_embeddings(output_prefix: str) -> types.MultiModalEmbeddingCache:
-  """Loads embeddings from TFRecord files into a dict."""
-  output_pattern = output_prefix + '*'
-  logging.info('Loading embeddings from %s', output_pattern)
-  embeddings = {}
-  output_files = tuple(
-      epath.Path(os.path.dirname(output_pattern)).glob(
-          f'{os.path.basename(output_pattern)}'
-      )
-  )
-  if not output_files:
-    raise FileNotFoundError(f'No files found matching {output_pattern}')
-  for filename in tqdm(  # pyrefly: ignore[not-callable]
-      output_files, total=len(output_files), desc='Loading embeddings'
-  ):
-    # But don't know how to read back from TFRecord except via tf.data.
-    with tf.device('/CPU:0'):
-      dataset = tf.data.TFRecordDataset(filename)  # pyrefly: ignore[bad-instantiation]
-    for record in dataset:
-      embedding: types.MultiModalEmbedding = pickle.loads(record.numpy())
-      embeddings[embedding.context.id] = embedding
-  logging.info('Loaded %d embeddings from %s', len(embeddings), output_pattern)
-  if not embeddings:
-    raise FileNotFoundError(
-        f'Found files matching {output_pattern} but they contained zero'
-        ' embeddings'
-    )
-  return embeddings
+  """Loads embeddings from Bagz files into a dict."""
+  return record.play(output_prefix)  # pyrefly: ignore[bad-return]
 
 
 def save_embeddings(
@@ -252,24 +225,11 @@ def save_embeddings(
     embeddings: types.MultiModalEmbeddingCache,
     examples_per_shard: int = 25_000,
 ):
-  """Saves embeddings from a dict into to TFRecord files."""
-  num_embeddings = len(embeddings)
+  """Saves embeddings from a dict into Bagz files."""
   num_shards = get_num_shards(
-      num_embeddings, examples_per_shard=examples_per_shard
+      len(embeddings), examples_per_shard=examples_per_shard
   )
-  logging.info('Saving embeddings to %s', f'{output_prefix}@{num_shards}')
-  epath.Path(os.path.dirname(output_prefix)).mkdir(parents=True, exist_ok=True)
-  embed_it = iter(embeddings.values())
-  for shard_id in range(num_shards):
-    with tf.io.TFRecordWriter(
-        f'{output_prefix}-{shard_id:05d}-of-{num_shards:05d}'
-    ) as writer:
-      for _ in range(
-          shard_id * examples_per_shard,
-          min(num_embeddings, (shard_id + 1) * examples_per_shard),
-      ):
-        record_bytes = pickle.dumps(next(embed_it))
-        writer.write(record_bytes)  # pytype: disable=attribute-error
+  record.etch(output_prefix, embeddings, num_shards=num_shards)
 
 
 def parse_resource_hints(
@@ -329,7 +289,7 @@ class BeamRunner(EncoderRunner):
     try:
       logging.info('Loading embeddings from %s', output_prefix)
       return load_embeddings(output_prefix)
-    except FileNotFoundError:
+    except (FileNotFoundError, ValueError):
       logging.info('No embeddings found at %s', output_prefix)
       pass
 
@@ -385,11 +345,8 @@ class BeamRunner(EncoderRunner):
         >> beam.ParDo(
             EncodeDoFn(self._encoder, batch_size=self._batch_size)
         ).with_resource_hints(**self._resource_hints)
-        | 'Serialize' >> beam.Map(pickle.dumps)
-        | 'Reshuffle' >> beam.Reshuffle()  # Avoid fusing with write.
-        # Using TFRecord because it's available as standard beam io.
-        | 'WriteTFRecord'
-        >> beam.io.tfrecordio.WriteToTFRecord(
+        | 'WriteBagz'
+        >> record.WriteToBagz(
             output_prefix,
             # Explicitly set num_shards to avoid an excessive number of shards,
             # which unnecessarily slows down loading.

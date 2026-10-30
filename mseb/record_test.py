@@ -16,6 +16,7 @@ import dataclasses
 from os import path
 
 from absl.testing import absltest
+import apache_beam as beam
 import bagz
 from mseb import record
 from mseb import types
@@ -132,6 +133,38 @@ class RecordTest(absltest.TestCase):
     record.etch(prefix, [], num_shards=1)
     with self.assertRaisesRegex(FileNotFoundError, 'contained zero records'):
       record.play(prefix)
+
+  def test_write_to_bagz(self):
+    basedir = self.create_tempdir().full_path
+    prefix = path.join(basedir, 'beam_embeddings')
+    items = [
+        types.TextEmbedding(
+            embedding=np.array([[1.0, 2.0]], dtype=np.float32),
+            spans=np.array([[0, 5]], dtype=np.int32),
+            context=types.TextContextParams(id='item_1'),
+        ),
+        types.TextEmbedding(
+            embedding=np.array([[3.0, 4.0]], dtype=np.float32),
+            spans=np.array([[0, 5]], dtype=np.int32),
+            context=types.TextContextParams(id='item_2'),
+        ),
+    ]
+    with beam.Pipeline(
+        runner=beam.runners.direct.direct_runner.DirectRunner()
+    ) as pipeline:
+      _ = (
+          pipeline
+          | beam.Create(items)
+          | record.WriteToBagz(prefix, num_shards=2)
+      )
+    loaded = record.play(prefix)
+    self.assertCountEqual(loaded.keys(), ['item_1', 'item_2'])
+    np.testing.assert_array_equal(
+        loaded['item_1'].embedding, items[0].embedding
+    )
+    np.testing.assert_array_equal(
+        loaded['item_2'].embedding, items[1].embedding
+    )
 
 
 if __name__ == '__main__':
