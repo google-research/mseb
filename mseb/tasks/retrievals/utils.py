@@ -14,13 +14,15 @@
 
 """Utility functions for retrieval tasks."""
 
+from collections.abc import Iterable, Mapping, Sequence
 import os
 import time
-from typing import Iterable, Mapping, Sequence
 from absl import flags
 from absl import logging
+from etils import epath
 from google import genai
 from mseb import types
+import pyarrow.parquet as pq
 import tiktoken
 
 
@@ -35,6 +37,70 @@ MAX_CONTEXT_TOKENS = flags.DEFINE_integer(
     None,
     'Maximum number of tokens to use for the context.',
 )
+
+
+def document_index_path(base_path: str | None, language: str) -> str:
+  """Returns the file pattern of the full Wikipedia document index.
+
+  Args:
+    base_path: The SVQ dataset base path.
+    language: The Wikipedia language code (e.g. 'en').
+
+  Returns:
+    A glob pattern matching the sharded Parquet files of the document index.
+
+  Raises:
+    ValueError: If `base_path` is None.
+  """
+  if base_path is None:
+    raise ValueError('Dataset base path is required for the document index.')
+  return os.path.join(
+      base_path,
+      f'document_retrieval_cross_lang_{language}_index-?????-of-?????.parquet',
+  )
+
+
+def documents_from_parquet(
+    file_pattern: str, batch_size: int = 1024
+) -> Iterable[types.Text]:
+  """Yields documents from sharded Parquet files with `title`/`text` columns.
+
+  Shards are read in sorted order, and rows in file order, so the document order
+  is deterministic (partitioned indexes depend on it). Files are streamed
+  batch-wise to bound memory usage.
+
+  Args:
+    file_pattern: Glob pattern of the Parquet files.
+    batch_size: Number of rows to read per batch.
+
+  Yields:
+    A `types.Text` per row, using the title as document id and title.
+
+  Raises:
+    FileNotFoundError: If no file matches `file_pattern`.
+  """
+  files = sorted(
+      epath.Path(os.path.dirname(file_pattern)).glob(
+          os.path.basename(file_pattern)
+      )
+  )
+  if not files:
+    raise FileNotFoundError(f'No document index files match {file_pattern}')
+  for path in files:
+    with path.open('rb') as f:
+      parquet_file = pq.ParquetFile(f)
+      for batch in parquet_file.iter_batches(
+          batch_size=batch_size, columns=['title', 'text']
+      ):
+        for title, text in zip(
+            batch.column('title').to_pylist(),
+            batch.column('text').to_pylist(),
+            strict=True,
+        ):
+          yield types.Text(
+              text=text,
+              context=types.TextContextParams(id=title, title=title),
+          )
 
 
 class BackFillRetrievedItemTexts:
