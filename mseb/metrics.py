@@ -15,11 +15,96 @@
 """Common metrics for MSEB."""
 
 from collections.abc import Sequence
+import functools
+import re
 from typing import Callable, Mapping
+import unicodedata
 
 import jiwer
 import numba
 import numpy as np
+from whisper.normalizers import english
+
+_ARABIC_TASHKEEL_AND_TATWEEL_RE = re.compile(r'[\u0640\u064B-\u065F\u0670]')
+_CYRILLIC_VOWELS = (
+    'аеёиоуыэюяіїєъѣәөүұӑӓӗӛӣӥӧӫӭӯӱӳӹ'
+    'АЕЁИОУЫЭЮЯІЇЄЪѢӘӨҮҰӐӒӖӚӢӤӦӪӬӮӰӲӸ'
+)
+_CYRILLIC_STRESS_ACUTE_RE = re.compile(rf'([{_CYRILLIC_VOWELS}])\u0301+')
+_ZERO_WIDTH_FORMAT_RE = re.compile(r'[\u00AD\u200B-\u200D\uFEFF]')
+
+
+def remove_symbols_preserving_marks(s: str) -> str:
+  """Replaces Unicode symbols and punctuation with a space, keeping marks (M*).
+
+  Unlike `whisper.normalizers.basic.remove_symbols`, which replaces all
+  characters in Unicode categories 'M' (Mark), 'S' (Symbol), and 'P'
+  (Punctuation) with spaces, this function preserves category 'M' (`Mn`, `Mc`,
+  `Me`) while stripping optional Arabic `tashkeel`/`tatweel`, Cyrillic stress
+  accents, and zero-width format characters (`ZWJ`/`ZWNJ`). Preserving combining
+  marks prevents Indic abugida vowel signs (`Mc`), Southeast Asian vowel/tone
+  marks (`Mn`/`Mc`), Ge'ez markers, and stacked Latin diacritics (`Mn`) from
+  being stripped or replaced with spaces that shatter single words into
+  disconnected consonant fragments.
+
+  Args:
+    s: Input string to clean.
+
+  Returns:
+    NFKC-normalized string with symbols ('S*') and punctuation ('P*') replaced
+    by spaces and obligatory combining marks ('M*') preserved.
+  """
+  normalized = unicodedata.normalize('NFKC', s)
+  normalized = _ZERO_WIDTH_FORMAT_RE.sub('', normalized)
+  normalized = _ARABIC_TASHKEEL_AND_TATWEEL_RE.sub('', normalized)
+  if '\u0301' in normalized:
+    # Strip acute stress marks on Cyrillic vowels directly on NFKC text so
+    # precomposed letters (й, ё, Macedonian ѓ/ќ) stay intact and stressed ё́
+    # (`U+0451 U+0301`) is stripped cleanly.
+    normalized = unicodedata.normalize(
+        'NFC', _CYRILLIC_STRESS_ACUTE_RE.sub(r'\1', normalized)
+    )
+  return ''.join(
+      ' ' if unicodedata.category(c)[0] in 'SP' else c for c in normalized
+  )
+
+
+class MultilingualTextNormalizer:
+  """Multilingual text normalizer that preserves Unicode combining marks (`M*`).
+
+  Matches `whisper.normalizers.basic.BasicTextNormalizer` (case-folding,
+  bracket/parenthesis removal, NFKC normalization, symbol/punctuation stripping,
+  and whitespace collapsing), except that Unicode category `M` combining marks
+  (`Mn`, `Mc`, `Me`) are preserved rather than stripped or replaced with spaces.
+  """
+
+  def __call__(self, s: str) -> str:
+    s = s.lower()
+    s = re.sub(r'[<\[][^>\]]*[>\]]', '', s)  # remove words between brackets
+    s = re.sub(r'\(([^)]+?)\)', '', s)  # remove words between parenthesis
+    s = remove_symbols_preserving_marks(s).lower()
+    s = re.sub(
+        r'\s+', ' ', s
+    )  # replace any successive whitespace characters with a space
+    return s
+
+
+@functools.cache
+def default_text_transform(language: str) -> Callable[[str], str]:
+  """Returns the default MSEB text normalizer for `language`.
+
+  Uses Whisper's `EnglishTextNormalizer` for English locales (`en`, `en_us`,
+  `en-US`, etc.) and `MultilingualTextNormalizer` otherwise so that non-Latin
+  combining marks (`Mn`, `Mc`, `Me`) are preserved during word and character
+  error rate scoring.
+
+  Args:
+    language: A locale or language tag such as `'en'`, `'en_us'`, `'en-US'`, or
+      `'hi_in'`.
+  """
+  if language.replace('-', '_').split('_')[0].lower() == 'en':
+    return english.EnglishTextNormalizer()
+  return MultilingualTextNormalizer()
 
 
 @numba.njit

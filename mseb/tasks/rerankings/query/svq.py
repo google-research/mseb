@@ -27,8 +27,6 @@ from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import reranking_evaluator
 from mseb.tasks import reranking
-from whisper.normalizers import basic
-from whisper.normalizers import english
 
 _RANDOMIZE_CANDIDATES = flags.DEFINE_bool(
     'randomize_candidates',
@@ -166,11 +164,7 @@ class SVQQueryReranking(reranking.RerankingTask):
           example['candidates'][: self.max_candidates_per_example],
           randomize=_RANDOMIZE_CANDIDATES.value,
       )
-      text_transform = (
-          english.EnglishTextNormalizer()
-          if example['locale'].split('_')[0].lower() == 'en'
-          else basic.BasicTextNormalizer()
-      )
+      text_transform = metrics.default_text_transform(example['locale'])
       texts = [
           candidate
           for candidate in example['candidates'][
