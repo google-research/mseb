@@ -46,7 +46,6 @@ dependencies = [
     "tqdm",
     "transformers",
     "tensorflow",
-    "tensorflow-datasets>=4.9.9",
     "torch",
 ]
 

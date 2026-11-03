@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Sequence
 import os
 import pathlib
 import shutil
@@ -21,8 +22,9 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
 from mseb import dataset
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
-import tensorflow_datasets as tfds
 
 retrieval = pytest.importorskip('mseb.tasks.retrieval')
 svq = pytest.importorskip('mseb.tasks.retrievals.document_in_lang.svq')
@@ -53,15 +55,53 @@ class SVQEnUsDocumentInLangRetrievalTest(absltest.TestCase):
     self.enter_context(
         flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
     )
+    self.cache_dir = cache_dir
+
+  def _write_index_shard(
+      self,
+      language: str,
+      shard: int,
+      num_shards: int,
+      rows: Sequence[tuple[str, str]],
+  ) -> None:
+    pq.write_table(
+        pa.table({
+            'title': [title for title, _ in rows],
+            'text': [text for _, text in rows],
+        }),
+        os.path.join(
+            self.cache_dir,
+            f'document_retrieval_cross_lang_{language}_index-'
+            f'{shard:05d}-of-{num_shards:05d}.parquet',
+        ),
+    )
 
   def test_svq_document_in_lang_retrieval_documents(self):
-    with tfds.testing.mock_data(num_examples=1):
-      task = svq.SVQEnUsDocumentInLangRetrieval()
-      self.assertEqual(task.sub_tasks[0], 'document_retrieval_in_lang')
-      for document in task.documents():
-        self.assertEqual(document.context.id, 'chg dif hhia i e ce')
-        self.assertEqual(document.context.id, document.context.title)
-        self.assertEqual(document.text, 'gebc   ahgjefjhfef')
+    # Write shards out of order to check that they are read in sorted order.
+    self._write_index_shard('en', 1, 2, [('Title C', 'text c')])
+    self._write_index_shard(
+        'en', 0, 2, [('Title A', 'text a'), ('Title B', 'text b')]
+    )
+    # Index of another language must not be picked up.
+    self._write_index_shard('fi', 0, 1, [('Otsikko', 'teksti')])
+    task = svq.SVQEnUsDocumentInLangRetrieval()
+    self.assertEqual(task.sub_tasks[0], 'document_retrieval_in_lang')
+    documents = list(task.documents())
+    self.assertEqual(
+        [(d.context.id, d.context.title, d.text) for d in documents],
+        [
+            ('Title A', 'Title A', 'text a'),
+            ('Title B', 'Title B', 'text b'),
+            ('Title C', 'Title C', 'text c'),
+        ],
+    )
+
+  def test_svq_document_in_lang_retrieval_documents_missing_index(self):
+    task = svq.SVQEnUsDocumentInLangRetrieval()
+    with self.assertRaisesRegex(
+        FileNotFoundError, 'No document index files match'
+    ):
+      list(task.documents())
 
   def test_svq_en_us_document_in_lang_retrieval_sounds(self):
     task = svq.SVQEnUsDocumentInLangRetrieval()
