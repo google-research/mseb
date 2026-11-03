@@ -35,6 +35,21 @@ _LITELLM_S2T_MODEL_NAME = flags.DEFINE_string(
     "Name of the LiteLLM Transcriptions API model.",
 )
 
+# ElevenLabs Scribe v2 transcription style, see
+# https://elevenlabs.io/docs/api-reference/speech-to-text/convert. SVQ queries
+# are single-speaker, so speaker labels and audio event tags are disabled.
+_ELEVENLABS_SCRIBE_V2_MODEL_NAME = "elevenlabs/scribe_v2"
+_ELEVENLABS_SCRIBE_V2_CLEAN_KWARGS = dict(
+    tag_audio_events=False,
+    diarize=False,
+    no_verbatim=True,
+)
+_ELEVENLABS_SCRIBE_V2_VERBATIM_KWARGS = dict(
+    tag_audio_events=False,
+    diarize=False,
+    no_verbatim=False,
+)
+
 
 encoder_registry.register_encoder(
     encoder_registry.EncoderMetadata(
@@ -111,6 +126,34 @@ encoder_registry.register_encoder(
             model_name=_LITELLM_S2T_MODEL_NAME.value,
             api_key=_LITELLM_S2T_API_KEY.value,
         ),
+        base_model="litellm",
+    )
+)
+
+encoder_registry.register_encoder(
+    encoder_registry.EncoderMetadata(
+        name="elevenlabs_scribe_v2",
+        encoder=litellm_s2t_encoder.LiteLLMSpeechToTextEncoder,
+        params=lambda: dict(
+            model_name=_ELEVENLABS_SCRIBE_V2_MODEL_NAME,
+            api_key=_LITELLM_S2T_API_KEY.value,
+            transcription_kwargs=_ELEVENLABS_SCRIBE_V2_CLEAN_KWARGS,
+        ),
+        url="https://elevenlabs.io/docs/capabilities/speech-to-text",
+        base_model="litellm",
+    )
+)
+
+encoder_registry.register_encoder(
+    encoder_registry.EncoderMetadata(
+        name="elevenlabs_scribe_v2_verbatim",
+        encoder=litellm_s2t_encoder.LiteLLMSpeechToTextEncoder,
+        params=lambda: dict(
+            model_name=_ELEVENLABS_SCRIBE_V2_MODEL_NAME,
+            api_key=_LITELLM_S2T_API_KEY.value,
+            transcription_kwargs=_ELEVENLABS_SCRIBE_V2_VERBATIM_KWARGS,
+        ),
+        url="https://elevenlabs.io/docs/capabilities/speech-to-text",
         base_model="litellm",
     )
 )

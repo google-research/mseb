@@ -103,6 +103,49 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     self.assertEqual(output.timestamps[0, 0], 0.479)
     self.assertEqual(output.timestamps[0, 1], 0.84)
 
+  @mock.patch('litellm.transcription')
+  def test_no_transcription_kwargs_by_default(self, mock_transcription):
+    mock_transcription.return_value = self.mock_response
+    s2t_encoder = s2t_encoder_lib.LiteLLMSpeechToTextEncoder(
+        model_name='test_model',
+        api_key='test_api_key',
+    )
+    s2t_encoder.setup()
+    s2t_encoder.encode([self.test_sound])
+    mock_transcription.assert_called_once()
+    self.assertEqual(
+        set(mock_transcription.call_args.kwargs),
+        {
+            'model',
+            'file',
+            'response_format',
+            'timestamp_granularities',
+            'api_key',
+            'additional_drop_params',
+            'drop_params',
+        },
+    )
+
+  @mock.patch('litellm.transcription')
+  def test_transcription_kwargs_are_forwarded(self, mock_transcription):
+    mock_transcription.return_value = self.mock_response
+    s2t_encoder = s2t_encoder_lib.LiteLLMSpeechToTextEncoder(
+        model_name='test_model',
+        api_key='test_api_key',
+        transcription_kwargs=dict(
+            tag_audio_events=False, diarize=False, no_verbatim=True
+        ),
+    )
+    s2t_encoder.setup()
+    outputs = s2t_encoder.encode([self.test_sound])
+    self.assertLen(outputs, 1)
+    mock_transcription.assert_called_once()
+    kwargs = mock_transcription.call_args.kwargs
+    self.assertEqual(kwargs['model'], 'test_model')
+    self.assertEqual(kwargs['tag_audio_events'], False)
+    self.assertEqual(kwargs['diarize'], False)
+    self.assertEqual(kwargs['no_verbatim'], True)
+
 
 if __name__ == '__main__':
   absltest.main()

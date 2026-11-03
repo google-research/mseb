@@ -17,7 +17,7 @@
 
 import io
 import time
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from absl import logging
 import litellm
@@ -38,6 +38,7 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
       word_timestamps: bool = False,
       max_num_retry: int = 1,
       wait_time: float = 1.0,
+      transcription_kwargs: Mapping[str, Any] | None = None,
   ):
     """Initializes the OpenAI Speech-to-text encoder.
 
@@ -48,6 +49,11 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
       word_timestamps: Whether to return word-level or segment-level timestamps.
       max_num_retry: The maximum number of retries for the model.
       wait_time: The wait time in seconds between retries.
+      transcription_kwargs: Extra keyword arguments passed through verbatim to
+        `litellm.transcription`. Use this for provider-specific parameters that
+        are not part of the OpenAI Transcriptions API (e.g. ElevenLabs Scribe's
+        `tag_audio_events`, `diarize` or `no_verbatim`). LiteLLM forwards them
+        as-is to the provider, so they must be valid for `model_name`.
     """
     super().__init__()
     self._api_key = api_key
@@ -56,6 +62,7 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
     self._word_timestamps = word_timestamps
     self._max_try = max_num_retry
     self._wait_time = wait_time
+    self._transcription_kwargs = dict(transcription_kwargs or {})
     self._client = None
 
   def _setup(self):
@@ -159,6 +166,7 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
                 'timestamp_granularities',
             ],
             drop_params=True,
+            **self._transcription_kwargs,
         )
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
