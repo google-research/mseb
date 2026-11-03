@@ -290,6 +290,137 @@ class SimpleVoiceQuestionsBeamTest(absltest.TestCase):
           beam_testing_util.equal_to(expected_output),
       )
 
+  def test_get_task_data_beam_parquet_uses_embedded_waveform_without_index(
+      self,
+  ):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    temp_dir = self.create_tempdir().full_path
+    with open(os.path.join(testdata_path, "roses-are.wav"), "rb") as f_wav:
+      real_wav = f_wav.read()
+    pq.write_table(
+        pa.Table.from_pandas(
+            pd.DataFrame({
+                "utt_id": ["utt_p1"],
+                "locale": ["en_us"],
+                "speaker_id": ["speaker_p1"],
+                "speaker_age": [25],
+                "speaker_gender": ["Female"],
+                "text": ["hello parquet"],
+                "prompt": ["question?"],
+                "waveform": [{"bytes": real_wav, "path": "roses-are.wav"}],
+            })
+        ),
+        os.path.join(temp_dir, "parquet_task.parquet"),
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=temp_dir)
+
+    with mock.patch.object(
+        svq.SimpleVoiceQuestionsDataset, "_load_index", autospec=True
+    ) as mock_load_index:
+      with test_pipeline.TestPipeline() as p:
+        examples = p | dataset.get_task_data_beam("parquet_task")
+        beam_testing_util.assert_that(
+            examples
+            | beam.Map(
+                lambda x: (
+                    x["utt_id"],
+                    x["prompt"],
+                    "waveform" in x,
+                    x["sound"].waveform.shape,
+                )
+            ),
+            beam_testing_util.equal_to(
+                [("utt_p1", "question?", False, (147663,))]
+            ),
+        )
+
+    mock_load_index.assert_not_called()
+
+  def test_load_audio_fn_falls_back_to_utt_lookup(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    temp_dir = self.create_tempdir().full_path
+    with open(os.path.join(testdata_path, "roses-are.wav"), "rb") as f_wav:
+      real_wav = f_wav.read()
+    record = {
+        "utt_id": "utt_p1",
+        "locale": "en_us",
+        "speaker_id": "speaker_p1",
+        "speaker_age": 25,
+        "speaker_gender": "Female",
+        "environment": "clean",
+        "text": "hello parquet",
+    }
+    pd.DataFrame([record | {"waveform": real_wav}]).to_parquet(
+        os.path.join(temp_dir, "utts_en_us_clean.parquet")
+    )
+    load_fn = svq._LoadAudioFn(temp_dir)
+
+    null_bytes_out = list(
+        load_fn.process(
+            record | {"waveform": {"bytes": None, "path": "utt_p1.wav"}}
+        )
+    )
+    missing_col_out = list(load_fn.process(record))
+
+    self.assertLen(null_bytes_out, 1)
+    self.assertNotIn("waveform", null_bytes_out[0])
+    self.assertEqual(null_bytes_out[0]["sound"].waveform.shape, (147663,))
+    self.assertLen(missing_col_out, 1)
+    self.assertEqual(missing_col_out[0]["sound"].waveform.shape, (147663,))
+
+  def test_get_task_sounds_beam_parquet_projects_sound_columns(self):
+    testdata_path = os.path.join(
+        pathlib.Path(os.path.abspath(__file__)).parent.parent, "testdata"
+    )
+    temp_dir = self.create_tempdir().full_path
+    with open(os.path.join(testdata_path, "roses-are.wav"), "rb") as f_wav:
+      real_wav = f_wav.read()
+    pq.write_table(
+        pa.Table.from_pandas(
+            pd.DataFrame({
+                "utt_id": ["utt_p1"],
+                "locale": ["en_us"],
+                "speaker_id": ["speaker_p1"],
+                "speaker_age": [25],
+                "speaker_gender": ["Female"],
+                "text": ["hello parquet"],
+                "unused_col": ["ignored"],
+                "waveform": [real_wav],
+            })
+        ),
+        os.path.join(temp_dir, "parquet_task.parquet"),
+    )
+    dataset = svq.SimpleVoiceQuestionsDataset(base_path=temp_dir)
+    read_fn = svq._ReadParquetRecordsFn(columns=svq._SOUND_COLUMNS)
+
+    records = list(
+        read_fn.process(os.path.join(temp_dir, "parquet_task.parquet"))
+    )
+    with test_pipeline.TestPipeline() as p:
+      sounds = p | dataset.get_task_sounds_beam("parquet_task", locale="en_us")
+      beam_testing_util.assert_that(
+          sounds | beam.Map(lambda s: (s.context.id, s.waveform.shape)),
+          beam_testing_util.equal_to([("utt_p1", (147663,))]),
+      )
+
+    self.assertLen(records, 1)
+    self.assertEqual(
+        list(records[0].keys()),
+        [
+            "utt_id",
+            "locale",
+            "speaker_id",
+            "speaker_age",
+            "speaker_gender",
+            "text",
+            "waveform",
+        ],
+    )
+
 
 class DebugAndCompactIdsTest(absltest.TestCase):
 

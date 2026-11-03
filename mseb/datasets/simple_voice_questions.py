@@ -23,7 +23,7 @@ import logging
 import os
 import re
 import threading
-from typing import Any, Mapping
+from typing import Any, Collection, Mapping
 
 import apache_beam as beam
 
@@ -142,6 +142,19 @@ class _UttLookup:
       return reader.read([idx])[0]
 
 
+_PARQUET_BATCH_SIZE = 128
+_SOUND_COLUMNS = frozenset({
+    "utt_id",
+    "locale",
+    "speaker_id",
+    "speaker_age",
+    "gender",
+    "speaker_gender",
+    "text",
+    "waveform",
+})
+
+
 class _LoadAudioFn(beam.DoFn):
   """Loads audio for a single utterance."""
 
@@ -152,16 +165,27 @@ class _LoadAudioFn(beam.DoFn):
     self._index_df = index_df
     self._utt_lookup: _UttLookup | None = None
 
-  def setup(self):
-    index_df = self._index_df
-    if index_df is None:
-      index_df = SimpleVoiceQuestionsDataset(  # pylint: disable=protected-access
-          base_path=self._base_path
-      )._index
-    self._utt_lookup = _UttLookup(self._base_path, index_df)
+  def _get_utt_lookup(self) -> _UttLookup:
+    if self._utt_lookup is None:
+      index_df = self._index_df
+      if index_df is None:
+        index_df = SimpleVoiceQuestionsDataset(  # pylint: disable=protected-access
+            base_path=self._base_path
+        )._index
+      self._utt_lookup = _UttLookup(self._base_path, index_df)
+    return self._utt_lookup
 
   def process(self, record: dict[str, Any]):
-    wav_bytes = self._utt_lookup(record["utt_id"])  # pyrefly: ignore[not-callable]
+    record = dict(record)
+    raw_waveform = record.pop("waveform", None)
+    if isinstance(raw_waveform, dict) and isinstance(
+        raw_waveform.get("bytes"), bytes
+    ):
+      wav_bytes = raw_waveform["bytes"]
+    elif isinstance(raw_waveform, bytes):
+      wav_bytes = raw_waveform
+    else:
+      wav_bytes = self._get_utt_lookup()(record["utt_id"])
     waveform, sr = utils.wav_bytes_to_waveform(wav_bytes)
 
     speaker_age_val = record.get("speaker_age")
@@ -182,15 +206,22 @@ class _LoadAudioFn(beam.DoFn):
 
 
 class _ReadParquetRecordsFn(beam.DoFn):
-  """Reads non-waveform records from a parquet file."""
+  """Streams records from a parquet file in batches."""
+
+  def __init__(self, columns: Collection[str] | None = None):
+    self._columns = tuple(columns) if columns is not None else None
 
   def process(self, file_path: str):
     with epath.Path(file_path).open("rb") as parquet_f:
-      schema = pq.read_schema(parquet_f)
-    cols = [name for name in schema.names if name != "waveform"]
-    with epath.Path(file_path).open("rb") as parquet_f:
-      table = pq.read_table(io.BytesIO(parquet_f.read()), columns=cols)
-    yield from table.to_pylist()
+      pf = pq.ParquetFile(parquet_f, pre_buffer=True)
+      read_columns = None
+      if self._columns is not None:
+        requested = _SOUND_COLUMNS | set(self._columns)
+        read_columns = [c for c in pf.schema_arrow.names if c in requested]
+      for batch in pf.iter_batches(
+          batch_size=_PARQUET_BATCH_SIZE, columns=read_columns
+      ):
+        yield from batch.to_pylist()
 
 
 class ReadTaskData(beam.PTransform):
@@ -201,10 +232,12 @@ class ReadTaskData(beam.PTransform):
       base_path: str,
       index: pd.DataFrame | None,
       task_path: str,
+      columns: Collection[str] | None = None,
   ):
     self._base_path = base_path
     self._index = index
     self._task_path = task_path
+    self._columns = columns
 
   def expand(self, pcoll: beam.PCollection) -> beam.PCollection:
     if self._task_path.endswith(".parquet"):
@@ -219,7 +252,8 @@ class ReadTaskData(beam.PTransform):
       records = (
           pcoll
           | "CreateParquetFiles" >> beam.Create(matched_files)
-          | "ReadParquetRecords" >> beam.ParDo(_ReadParquetRecordsFn())
+          | "ReadParquetRecords"
+          >> beam.ParDo(_ReadParquetRecordsFn(columns=self._columns))
           | "ReshuffleParquetRecords" >> beam.Reshuffle()
       )
     else:
@@ -526,19 +560,33 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
           dfs.append(pd.read_json(jsonl_f, lines=True, dtype=dtype))  # pyrefly: ignore[no-matching-overload]
     return pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]  # pyrefly: ignore[bad-return]
 
-  def get_task_data_beam(self, task_name: str) -> beam.PTransform:
-    """Loads the task data with audio for the given task name with beam."""
+  def get_task_data_beam(
+      self, task_name: str, columns: Collection[str] | None = None
+  ) -> beam.PTransform:
+    """Loads the task data with audio for the given task name with beam.
+
+    Args:
+      task_name: The name or wildcard pattern of the task file.
+      columns: Optional column names to project when reading Parquet task files;
+        `_SOUND_COLUMNS` required to construct `Sound` are always retained.
+
+    Returns:
+      A Beam PTransform yielding task records with `"sound"` populated.
+    """
     return ReadTaskData(
         self.base_path,  # pyrefly: ignore[bad-argument-type]
         None,
         self._get_task_path(task_name),
+        columns=columns,
     )
 
   def get_task_sounds_beam(
       self, task_name: str, locale: str | None = None
   ) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""
-    transform = self.get_task_data_beam(task_name) | "TakeSound" >> beam.Map(
+    transform = self.get_task_data_beam(
+        task_name, columns=_SOUND_COLUMNS
+    ) | "TakeSound" >> beam.Map(
         lambda x: x["sound"]
     )
 
