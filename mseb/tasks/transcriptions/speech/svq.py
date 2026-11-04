@@ -22,6 +22,8 @@ from mseb import types
 from mseb.datasets import simple_voice_questions as svq
 from mseb.evaluators import transcription_evaluator
 from mseb.tasks import transcription
+TranscriptionTask = transcription.TranscriptionTask
+TranscriptTruth = transcription_evaluator.TranscriptTruth
 
 
 def _get_environment(sub_task: str) -> str:
@@ -46,7 +48,7 @@ def _get_environment(sub_task: str) -> str:
     raise ValueError(f'Invalid sub_task: {sub_task}')
 
 
-class SVQSpeechTranscription(transcription.TranscriptionTask):
+class SVQSpeechTranscription(TranscriptionTask):
   """SVQ speech transcription task."""
 
   locale: str | None = None
@@ -110,9 +112,7 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
         f'utts_{self.locale}_*', locale=self.locale
     )
 
-  def examples(
-      self, sub_task: str
-  ) -> Iterable[transcription_evaluator.TranscriptTruth]:
+  def examples(self, sub_task: str) -> Iterable[TranscriptTruth]:
     df = self._task_data(
         f'utts_{self.locale}_{_get_environment(sub_task)}',
         dtype={
@@ -122,11 +122,12 @@ class SVQSpeechTranscription(transcription.TranscriptionTask):
         },
     )
     for example in df.to_dict('records'):
-      yield transcription_evaluator.TranscriptTruth(
+      kwargs: dict[str, Any] = dict(
           sound_id=example['utt_id'],
           text=example['transcript_truth'],
           language=example['locale'],
       )
+      yield TranscriptTruth(**kwargs)
 
 
 # Locale -> (ClassName suffix, eval_lang)

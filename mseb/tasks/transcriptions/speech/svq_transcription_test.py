@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import pathlib
 import shutil
@@ -41,10 +42,17 @@ class SVQEnUsSpeechTranscriptionTest(absltest.TestCase):
     shutil.copytree(testdata_path, cache_dir)
     os.chmod(cache_dir, 0o755)
     pathlib.Path.touch(pathlib.Path(os.path.join(cache_dir, ".git")))
-    shutil.copyfile(
-        os.path.join(cache_dir, "speech_transcription.jsonl"),
-        os.path.join(cache_dir, "utts_en_us_clean.jsonl"),
-    )
+    # Mirror the SVQ 2.0.0 utterance records, which carry the salient terms
+    # alongside the transcript truth.
+    with open(
+        os.path.join(cache_dir, "speech_transcription.jsonl"), encoding="utf-8"
+    ) as f_in, open(
+        os.path.join(cache_dir, "utts_en_us_clean.jsonl"), "w", encoding="utf-8"
+    ) as f_out:
+      for line in f_in:
+        record = json.loads(line)
+        record["topk_salient_terms"] = ["temperature", "steel"]
+        f_out.write(json.dumps(record) + "\n")
     self.enter_context(
         flagsaver.flagsaver((dataset._DATASET_BASEPATH, cache_dir))
     )
