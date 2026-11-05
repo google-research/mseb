@@ -14,8 +14,8 @@
 
 """Doppelganger cross-domain audio retrieval tasks."""
 
+from collections.abc import Iterable
 import os
-from typing import Iterable
 
 from mseb import types
 from mseb.datasets import doppelganger
@@ -31,6 +31,7 @@ class _DoppelgangerRetrieval(retrieval.RetrievalTask):
 
   query_domain: str
   document_domain: str
+  size: str | None = None
 
   def __init__(self):
     # Full-gallery rankings are required for category-level average precision.
@@ -39,13 +40,21 @@ class _DoppelgangerRetrieval(retrieval.RetrievalTask):
 
   def _get_dataset(self) -> doppelganger.DoppelgangerDataset:
     if self._dataset is None:
-      self._dataset = doppelganger.DoppelgangerDataset(split='test')
+      filter_fn = None
+      if self.size is not None:
+        filter_fn = getattr(doppelganger, f'is_member_of_{self.size}')
+      self._dataset = doppelganger.DoppelgangerDataset(
+          split='test', filter_fn=filter_fn
+      )
     return self._dataset
 
   @property
   def index_dir(self) -> str:
     direction = f'{self.query_domain}_to_{self.document_domain}'
-    return os.path.join(super().index_dir, f'doppelganger_{direction}')
+    name = f'doppelganger_{direction}'
+    if self.size is not None:
+      name += f'_{self.size}'
+    return os.path.join(super().index_dir, name)
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -152,6 +161,64 @@ class DoppelgangerRealToSyntheticRetrieval(_DoppelgangerRetrieval):
 
   metadata = types.TaskMetadata(
       name='DoppelgangerRealToSyntheticRetrieval',
+      description=(
+          'Retrieve audio-conditioned synthetic twins from real sound '
+          'queries, using exact-source and UCS-category relevance.'
+      ),
+      reference='https://arxiv.org/abs/2607.04337',
+      type='AudioRetrieval',
+      category='audio',
+      main_score='MAP',
+      revision='1.0.0',
+      dataset=_DATASET_METADATA,
+      scores=_SCORES,
+      eval_splits=['test'],
+      eval_langs=['und'],
+      domains=['audio'],
+      task_subtypes=['retrieval', 'cross-domain'],
+      documentation_file='doppelganger_retrieval.md',
+      dataset_documentation_file='dataset_doppelganger.md',
+  )
+
+
+class DoppelgangerSyntheticToRealRetrievalDebug(_DoppelgangerRetrieval):
+  """Retrieves real sources using their synthetic twins as queries (debug)."""
+
+  query_domain = 'synthetic'
+  document_domain = 'real'
+  size = 'debug'
+
+  metadata = types.TaskMetadata(
+      name='DoppelgangerSyntheticToRealRetrievalDebug',
+      description=(
+          'Retrieve real sound effects from audio-conditioned synthetic '
+          'queries, using exact-source and UCS-category relevance.'
+      ),
+      reference='https://arxiv.org/abs/2607.04337',
+      type='AudioRetrieval',
+      category='audio',
+      main_score='MAP',
+      revision='1.0.0',
+      dataset=_DATASET_METADATA,
+      scores=_SCORES,
+      eval_splits=['test'],
+      eval_langs=['und'],
+      domains=['audio'],
+      task_subtypes=['retrieval', 'cross-domain'],
+      documentation_file='doppelganger_retrieval.md',
+      dataset_documentation_file='dataset_doppelganger.md',
+  )
+
+
+class DoppelgangerRealToSyntheticRetrievalDebug(_DoppelgangerRetrieval):
+  """Retrieves synthetic twins using their real sources as queries (debug)."""
+
+  query_domain = 'real'
+  document_domain = 'synthetic'
+  size = 'debug'
+
+  metadata = types.TaskMetadata(
+      name='DoppelgangerRealToSyntheticRetrievalDebug',
       description=(
           'Retrieve audio-conditioned synthetic twins from real sound '
           'queries, using exact-source and UCS-category relevance.'

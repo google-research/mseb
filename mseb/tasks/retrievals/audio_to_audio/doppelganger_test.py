@@ -15,6 +15,8 @@
 """Tests for Doppelganger audio-to-audio retrieval tasks."""
 
 from absl.testing import absltest
+from absl.testing import flagsaver
+from mseb import task as mseb_task
 from mseb import types
 from mseb.datasets import doppelganger as doppelganger_dataset
 from mseb.datasets.doppelganger_testutil import create_mock_dataset
@@ -25,10 +27,10 @@ class DoppelgangerRetrievalTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    base_dir = self.create_tempdir().full_path
-    create_mock_dataset(base_dir)
+    self.base_dir = self.create_tempdir().full_path
+    create_mock_dataset(self.base_dir)
     self.dataset = doppelganger_dataset.DoppelgangerDataset(
-        split='test', base_path=base_dir
+        split='test', base_path=self.base_dir
     )
 
   def _task(self, task_class):
@@ -101,6 +103,45 @@ class DoppelgangerRetrievalTest(absltest.TestCase):
     task = self._task(doppelganger.DoppelgangerSyntheticToRealRetrieval)
     with self.assertRaisesRegex(ValueError, 'Unknown Doppelganger sub-task'):
       list(task.examples('unknown'))
+
+  def test_debug_tasks(self):
+    self.assertIs(
+        mseb_task.get_task_by_name('DoppelgangerSyntheticToRealRetrievalDebug'),
+        doppelganger.DoppelgangerSyntheticToRealRetrievalDebug,
+    )
+    self.assertIs(
+        mseb_task.get_task_by_name('DoppelgangerRealToSyntheticRetrievalDebug'),
+        doppelganger.DoppelgangerRealToSyntheticRetrievalDebug,
+    )
+    synthetic_to_real_debug = (
+        doppelganger.DoppelgangerSyntheticToRealRetrievalDebug()
+    )
+    real_to_synthetic_debug = (
+        doppelganger.DoppelgangerRealToSyntheticRetrievalDebug()
+    )
+    self.assertEqual(synthetic_to_real_debug.size, 'debug')
+    self.assertEqual(real_to_synthetic_debug.size, 'debug')
+    self.assertEqual(
+        synthetic_to_real_debug.metadata.name,
+        'DoppelgangerSyntheticToRealRetrievalDebug',
+    )
+    self.assertEqual(
+        real_to_synthetic_debug.metadata.name,
+        'DoppelgangerRealToSyntheticRetrievalDebug',
+    )
+    with flagsaver.flagsaver(
+        dataset_basepath=self.base_dir,
+        task_cache_basepath=self.base_dir,
+    ):
+      self.assertEndsWith(
+          synthetic_to_real_debug.index_dir,
+          'doppelganger_synthetic_to_real_debug',
+      )
+      self.assertEndsWith(
+          real_to_synthetic_debug.index_dir,
+          'doppelganger_real_to_synthetic_debug',
+      )
+      self.assertEmpty(list(synthetic_to_real_debug.multimodal_inputs()))
 
 
 if __name__ == '__main__':

@@ -14,7 +14,10 @@
 
 """Tests for the Doppelganger dataset loader."""
 
+from unittest import mock
+
 from absl.testing import absltest
+from absl.testing import flagsaver
 from mseb import types
 from mseb.datasets import doppelganger
 from mseb.datasets.doppelganger_testutil import create_mock_dataset
@@ -60,6 +63,48 @@ class DoppelgangerDatasetTest(absltest.TestCase):
   def test_split_validation(self):
     with self.assertRaisesRegex(ValueError, 'Split must be test'):
       doppelganger.DoppelgangerDataset(split='train', base_path=self.base_dir)
+
+  def test_filter_fn(self):
+    filtered = doppelganger.DoppelgangerDataset(
+        split='test',
+        base_path=self.base_dir,
+        filter_fn=lambda pair_id: str(pair_id) in {'1', '3'},
+    )
+    self.assertEqual(filtered.get_task_data()['pair_id'].tolist(), ['1', '3'])
+
+  def test_default_base_path_resolution(self):
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          doppelganger, 'DEFAULT_BASE_PATH', self.base_dir
+      ):
+        ds = doppelganger.DoppelgangerDataset(split='test')
+        self.assertEqual(ds.base_path, self.base_dir)
+        self.assertLen(ds, 3)
+
+  def test_default_base_path_missing_files_raises(self):
+    empty_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(doppelganger, 'DEFAULT_BASE_PATH', empty_dir):
+        with self.assertRaisesRegex(
+            FileNotFoundError, 'Doppelganger metadata not found'
+        ):
+          doppelganger.DoppelgangerDataset(split='test')
+
+  def test_is_member_of_debug_true(self):
+    for pair_id in (
+        '168765981935',
+        '204643997502',
+        '218906114721',
+        '224092971726',
+        '292264958284',
+    ):
+      with self.subTest(pair_id=pair_id):
+        self.assertTrue(doppelganger.is_member_of_debug(pair_id))
+        self.assertTrue(doppelganger.is_member_of_debug(int(pair_id)))
+
+  def test_is_member_of_debug_false(self):
+    self.assertFalse(doppelganger.is_member_of_debug('non_existent_id'))
+    self.assertFalse(doppelganger.is_member_of_debug(''))
 
 
 if __name__ == '__main__':

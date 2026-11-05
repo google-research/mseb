@@ -14,11 +14,13 @@
 
 """Doppelganger synthetic-real sound-pair dataset."""
 
+from collections.abc import Callable, Mapping
 import os
-from typing import Any, Mapping
+from typing import Any
 
 from etils import epath
 from huggingface_hub import hf_hub_download
+from mseb import dataset
 from mseb import types
 from mseb import utils
 from mseb.datasets import base
@@ -27,6 +29,8 @@ import pandas as pd
 _REPO_ID = 'elliottash/doppelganger'
 _REVISION = 'mseb-v1'
 _METADATA_PATH = 'mseb/test.csv'
+
+DEFAULT_BASE_PATH = None
 
 
 class DoppelgangerDataset(base.MsebDataset):
@@ -38,13 +42,33 @@ class DoppelgangerDataset(base.MsebDataset):
       base_path: str | None = None,
       repo_id: str = _REPO_ID,
       revision: str = _REVISION,
+      filter_fn: Callable[[Any], bool] | None = None,
   ):
+    """Initializes the instance.
+
+    Args:
+      split: Dataset split to load (only `'test'` is supported).
+      base_path: Root directory containing local Doppelganger metadata and audio
+        files. If `None`, resolves via `dataset.get_base_path` using
+        `DEFAULT_BASE_PATH` (or falls back to Hugging Face Hub if unconfigured).
+      repo_id: Hugging Face Hub dataset repository ID.
+      revision: Hugging Face Hub dataset revision.
+      filter_fn: Optional predicate applied to each `pair_id` to filter the
+        loaded dataset rows. If `None`, all rows are retained.
+    """
     if split != 'test':
       raise ValueError(f'Split must be test, but got {split}.')
 
     super().__init__(base_path=base_path, split=split)
+    try:
+      self.base_path = dataset.get_base_path(
+          self.base_path, default_basepath=DEFAULT_BASE_PATH
+      )
+    except ValueError:
+      self.base_path = None
     self.repo_id = repo_id
     self.revision = revision
+    self._filter_fn = filter_fn
     self._data = self._load_metadata()
 
   @property
@@ -81,19 +105,35 @@ class DoppelgangerDataset(base.MsebDataset):
       local_metadata_path = os.path.join(self.base_path, _METADATA_PATH)
 
     if local_metadata_path and epath.Path(local_metadata_path).exists():
-      metadata_path = local_metadata_path
+      with epath.Path(local_metadata_path).open('r') as f:
+        data = pd.read_csv(
+            f,
+            dtype={'pair_id': str, 'source_clip_id': str},
+        )
+    elif (
+        DEFAULT_BASE_PATH is not None
+        and self.base_path == DEFAULT_BASE_PATH
+    ):
+      raise FileNotFoundError(
+          f'Doppelganger metadata not found at {local_metadata_path} in'
+          ' default base path.'
+      )
     else:
       metadata_path = (
           f'https://huggingface.co/datasets/{self.repo_id}/resolve/'
           f'{self.revision}/{_METADATA_PATH}'
       )
+      data = pd.read_csv(
+          metadata_path,
+          dtype={'pair_id': str, 'source_clip_id': str},
+      )
 
-    data = pd.read_csv(
-        metadata_path,
-        dtype={'pair_id': str, 'source_clip_id': str},
-    )
     if data['pair_id'].duplicated().any():
       raise ValueError('Doppelganger metadata contains duplicate pair IDs.')
+    if self._filter_fn is not None:
+      data = data[data['pair_id'].apply(self._filter_fn)].reset_index(
+          drop=True
+      )
     return data
 
   def get_task_data(
@@ -118,6 +158,14 @@ class DoppelgangerDataset(base.MsebDataset):
       local_path = os.path.join(self.base_path, relative_path)
       if epath.Path(local_path).exists():
         return local_path
+      if (
+          DEFAULT_BASE_PATH is not None
+          and self.base_path == DEFAULT_BASE_PATH
+      ):
+        raise FileNotFoundError(
+            f'Doppelganger audio file not found at {local_path} in default'
+            ' base path.'
+        )
 
     return hf_hub_download(
         repo_id=str(record[repo_key]),
@@ -152,3 +200,15 @@ class DoppelgangerDataset(base.MsebDataset):
           'Doppelganger records passed to get_sound() must include a domain.'
       )
     return self._get_domain_sound(record, str(record['domain']))
+
+
+def is_member_of_debug(pair_id: str | int) -> bool:
+  """Returns whether the Doppelganger pair ID is in the debug set."""
+  debug_ids = frozenset([
+      '168765981935',
+      '204643997502',
+      '218906114721',
+      '224092971726',
+      '292264958284',
+  ])
+  return str(pair_id) in debug_ids
