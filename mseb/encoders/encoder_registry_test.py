@@ -25,6 +25,7 @@ class EncoderRegistryTest(parameterized.TestCase):
 
   @parameterized.parameters(
       "whisper_base_speech_to_text",
+      "whisper_pooled",
       "whisper_base_pooled_last",
       "whisper_base_pooled_mean",
       "whisper_base_pooled_max",

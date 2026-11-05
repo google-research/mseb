@@ -53,6 +53,18 @@ encoder_registry.register_encoder(
 
 encoder_registry.register_encoder(
     encoder_registry.EncoderMetadata(
+        name="whisper_pooled",
+        encoder=whisper_encoder.PooledAudioEncoder,
+        params=lambda: dict(
+            model_path=_WHISPER_MODEL_PATH.value, pooling=None
+        ),
+        url="https://github.com/openai/whisper",
+        base_model="whisper",
+    )
+)
+
+encoder_registry.register_encoder(
+    encoder_registry.EncoderMetadata(
         name="whisper_base_pooled_last",
         encoder=whisper_encoder.PooledAudioEncoder,
         params=lambda: dict(model_path="base", pooling="last"),

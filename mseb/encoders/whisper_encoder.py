@@ -385,6 +385,10 @@ class PooledAudioEncoder(Whisper):
   ) -> types.SoundEmbedding:
     """Encodes speech into Whisper encoder activations.
 
+    Audio longer than 30 seconds is split into non-overlapping 30-second mel
+    spectrogram chunks, encoded per chunk, and concatenated along the time axis
+    before trimming padding frames and applying pooling.
+
     Args:
       waveform: A one-dimensional NumPy array of floating-point numbers,
         representing the audio waveform. This array must be sampled at
@@ -402,8 +406,12 @@ class PooledAudioEncoder(Whisper):
     num_embeddings = num_frames // self.encoder_stride
 
     with torch.no_grad():
-      embeddings = self.model.embed_audio(mel)
-    embeddings = embeddings.to('cpu').detach().numpy().squeeze(0)
+      chunks = [
+          self.model.embed_audio(mel[i : i + 1]) for i in range(mel.shape[0])
+      ]
+      embeddings = torch.cat(chunks, dim=0)
+    embeddings = embeddings.to('cpu').detach().numpy()
+    embeddings = embeddings.reshape(-1, embeddings.shape[-1])
     embeddings = self.pool_fn(embeddings[:num_embeddings, :]).astype(np.float32)
 
     if self._pooling is None:
@@ -427,19 +435,28 @@ class PooledAudioEncoder(Whisper):
         waveform, self.model.dims.n_mels, padding=whisper.audio.N_SAMPLES
     )
     num_frames = mel.shape[-1] - whisper.audio.N_FRAMES
-    mel = whisper.audio.pad_or_trim(mel, whisper.audio.N_FRAMES)
-    mel = mel[None, :, :].to(self.model.device)
+    chunks = [
+        whisper.audio.pad_or_trim(
+            mel[:, start : start + whisper.audio.N_FRAMES],
+            whisper.audio.N_FRAMES,
+        )
+        for start in range(0, max(1, num_frames), whisper.audio.N_FRAMES)
+    ]
+    mel = torch.stack(chunks, dim=0).to(self.model.device)
     return mel, num_frames
 
   def get_encode_flops(self, data: types.MultiModalObject):
-    if self._flops_cache is not None:
-      return self._flops_cache
     assert isinstance(data, types.Sound)
     sound = encoder.resample_sound(data, whisper.audio.SAMPLE_RATE)
-    mel, _ = self.get_mel_inputs(sound.waveform)  # pyrefly: ignore[bad-argument-type]
-    flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel)  # pyrefly: ignore[missing-attribute]
-    self._flops_cache = flop_analyzer.total()
-    return self._flops_cache
+    if self._flops_cache is None:
+      mel, _ = self.get_mel_inputs(sound.waveform)  # pyrefly: ignore[bad-argument-type]
+      flop_analyzer = nn.FlopCountAnalysis(self.model.encoder, mel[:1])  # pyrefly: ignore[missing-attribute]
+      self._flops_cache = flop_analyzer.total()
+    num_frames = len(sound.waveform) // whisper.audio.HOP_LENGTH
+    num_chunks = (
+        max(1, num_frames) + whisper.audio.N_FRAMES - 1
+    ) // whisper.audio.N_FRAMES
+    return self._flops_cache * num_chunks
 
 
 class WhisperJointEncoder(encoder.MultiModalEncoder):

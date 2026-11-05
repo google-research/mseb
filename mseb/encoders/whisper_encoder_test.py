@@ -199,6 +199,41 @@ class PooledAudioEncoderTest(parameterized.TestCase):
     assert result.encoding_stats is not None
     assert result.encoding_stats.flops is not None
 
+  def test_encode_long_audio_no_pooling(self, device):
+    enc = whisper_encoder.PooledAudioEncoder(self.model_path, device=device)
+    enc.setup()
+    short_result = enc.encode([self.sound])[0]
+    self.assertIsInstance(short_result, types.SoundEmbedding)
+    long_waveform = np.tile(self.waveform, 5)
+    long_sound = types.Sound(
+        waveform=long_waveform,  # pyrefly: ignore[bad-argument-type]
+        context=types.SoundContextParams(
+            sample_rate=48000,
+            length=long_waveform.shape[0],
+            id='test_long',
+        ),
+    )
+    results = enc.encode([long_sound])
+    self.assertLen(results, 1)
+    result = results[0]
+    self.assertIsInstance(result, types.SoundEmbedding)
+    npt.assert_equal(result.timestamps.shape, [1875, 2])
+    npt.assert_equal(result.embedding.shape, [1875, 384])
+    npt.assert_allclose(result.timestamps[-1], [37.48, 37.50], atol=1e-4)
+    # The 5th tile (30.0s–37.5s) is at the start of the second 30s chunk, so
+    # its embeddings should closely match the single-tile (0.0s–7.5s)
+    # embeddings (small differences arise from log-mel dynamic range clamping
+    # across the full waveform).
+    npt.assert_allclose(
+        result.embedding[1500:1875], short_result.embedding, atol=0.2
+    )
+    assert short_result.encoding_stats is not None
+    assert short_result.encoding_stats.flops is not None
+    assert result.encoding_stats is not None
+    self.assertEqual(
+        result.encoding_stats.flops, 2 * short_result.encoding_stats.flops
+    )
+
   def test_encode_last_pooling(self, device):
     enc = whisper_encoder.PooledAudioEncoder(
         self.model_path, pooling='last', device=device
