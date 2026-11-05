@@ -15,11 +15,15 @@
 """Tests for huthlab_fmri dataset loader."""
 
 import os
+from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 import joblib
+from mseb import types
 from mseb.datasets import huthlab_fmri
 import numpy as np
+from scipy.io import wavfile
 
 
 class HuthLabDatasetTest(absltest.TestCase):
@@ -76,8 +80,18 @@ class HuthLabDatasetTest(absltest.TestCase):
     self.assertEqual(dataset.tr_duration, 1.5)
 
   def test_init_requires_base_path(self):
-    with self.assertRaises(ValueError):
-      huthlab_fmri.HuthLabDataset(base_path=None)
+    with flagsaver.flagsaver(dataset_basepath=None, huthlab_data_path=None):
+      with mock.patch.object(huthlab_fmri, 'DEFAULT_BASE_PATH', None):
+        with self.assertRaises(ValueError):
+          huthlab_fmri.HuthLabDataset(base_path=None)
+
+  def test_default_base_path_resolution(self):
+    with flagsaver.flagsaver(dataset_basepath=None, huthlab_data_path=None):
+      with mock.patch.object(
+          huthlab_fmri, 'DEFAULT_BASE_PATH', self.base_path
+      ):
+        dataset = huthlab_fmri.HuthLabDataset(base_path=None)
+        self.assertEqual(dataset.base_path, self.base_path)
 
   # --- load_responses tests ---
 
@@ -207,6 +221,31 @@ class HuthLabDatasetTest(absltest.TestCase):
     path = dataset.get_audio_path('wheretheressmoke')
     expected = os.path.join(self.base_path, 'stimuli', 'wheretheressmoke.wav')
     self.assertEqual(path, expected)
+
+  def test_get_sound(self):
+    wav_path = os.path.join(self.base_path, 'stimuli', 'itsabox.wav')
+    wavfile.write(wav_path, 16000, np.zeros(16000, dtype=np.int16))
+    dataset = self._make_dataset()
+    sound = dataset.get_sound('itsabox')
+    self.assertIsInstance(sound, types.Sound)
+    self.assertEqual(sound.context.id, 'itsabox')
+    self.assertEqual(sound.context.sample_rate, 16000)
+    self.assertEqual(sound.context.length, 16000)
+    self.assertEqual(sound.context.waveform_end_second, 1.0)
+    self.assertEqual(sound.context.language, 'en')
+    self.assertEqual(sound.context.language_name, 'English')
+
+  def test_custom_train_and_test_stories(self):
+    dataset = self._make_dataset(
+        train_stories=huthlab_fmri.DEBUG_TRAIN_STORIES,
+        test_stories=huthlab_fmri.DEBUG_TEST_STORIES,
+    )
+    self.assertEqual(
+        dataset.get_train_stories(), huthlab_fmri.DEBUG_TRAIN_STORIES
+    )
+    self.assertEqual(
+        dataset.get_test_stories(), huthlab_fmri.DEBUG_TEST_STORIES
+    )
 
   # --- Constants tests ---
 

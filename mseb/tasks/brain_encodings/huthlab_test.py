@@ -18,11 +18,13 @@ import os
 
 from absl.testing import absltest
 import joblib
+from mseb import task as mseb_task
 from mseb import types
 from mseb.datasets import huthlab_fmri
 from mseb.evaluators import brain_encoding_evaluator
 from mseb.tasks.brain_encodings import huthlab
 import numpy as np
+from scipy.io import wavfile
 
 
 def _create_mock_data(base_path: str, subject: str = 'S03'):
@@ -51,9 +53,15 @@ def _create_mock_data(base_path: str, subject: str = 'S03'):
   # Response file is a dict: story_name -> (T, V) array.
   np.random.seed(42)
   resp_dict = {}
+  dummy_wav = np.zeros(1600, dtype=np.int16)
   for story in all_stories:
     resp_dict[story] = np.random.randn(n_trs_per_story, n_voxels).astype(
         np.float32
+    )
+    wavfile.write(
+        os.path.join(base_path, 'stimuli', f'{story}.wav'),
+        16000,
+        dummy_wav,
     )
 
   # File is named UT{subject}_responses.jbl.
@@ -137,12 +145,12 @@ class HuthLabBrainEncodingTest(absltest.TestCase):
     for story in self.mock_data['test_stories']:
       self.assertIn(story, input_ids)
 
-  def test_multimodal_inputs_are_text(self):
+  def test_multimodal_inputs_are_sound(self):
     task = self._create_task()
     inputs = list(task.multimodal_inputs())
     for inp in inputs:
-      self.assertIsInstance(inp, types.Text)
-      self.assertEqual(inp.text, inp.context.id)
+      self.assertIsInstance(inp, types.Sound)
+      self.assertEqual(inp.context.sample_rate, 16000)
       self.assertEqual(inp.context.language_name, 'English')
 
   def test_multimodal_inputs_no_duplicates(self):
@@ -183,20 +191,43 @@ class HuthLabBrainEncodingTest(absltest.TestCase):
       self.assertIsInstance(ex, brain_encoding_evaluator.BrainEncodingExample)
 
   def test_train_examples_trim_values(self):
-    """train_examples uses trim_start=10, trim_end=-5."""
+    """train_examples uses trim_start=5 and matches response length."""
     task = self._create_task()
     examples = task.train_examples('S03')
     for ex in examples:
-      self.assertEqual(ex.tr_index_start, 10)
-      self.assertEqual(ex.tr_index_end, -5)
+      self.assertEqual(ex.tr_index_start, 5)
+      self.assertEqual(ex.tr_index_end, 5 + self.mock_data['n_trs_per_story'])
 
   def test_test_examples_trim_values(self):
-    """test_examples uses trim_start=50, trim_end=-5."""
+    """test_examples uses trim_start=45 and matches test response length."""
     task = self._create_task()
     examples = task.test_examples('S03')
     for ex in examples:
-      self.assertEqual(ex.tr_index_start, 50)
-      self.assertEqual(ex.tr_index_end, -5)
+      self.assertEqual(ex.tr_index_start, 45)
+      self.assertEqual(
+          ex.tr_index_end, 45 + (self.mock_data['n_trs_per_story'] - 40)
+      )
+
+  def test_debug_task(self):
+    self.assertIs(
+        mseb_task.get_task_by_name('HuthLabBrainEncodingDebug'),
+        huthlab.HuthLabBrainEncodingDebug,
+    )
+    task = huthlab.HuthLabBrainEncodingDebug(base_path=self.base_path)
+    self.assertEqual(
+        [ex.sound_id for ex in task.train_examples('S03')],
+        list(huthlab_fmri.DEBUG_TRAIN_STORIES),
+    )
+    self.assertEqual(
+        [ex.sound_id for ex in task.test_examples('S03')],
+        list(huthlab_fmri.DEBUG_TEST_STORIES),
+    )
+    inputs = list(task.multimodal_inputs())
+    self.assertLen(
+        inputs,
+        len(huthlab_fmri.DEBUG_TRAIN_STORIES)
+        + len(huthlab_fmri.DEBUG_TEST_STORIES),
+    )
 
   # --- fMRI data tests ---
 

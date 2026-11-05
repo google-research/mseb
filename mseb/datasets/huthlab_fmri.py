@@ -36,15 +36,20 @@ Directory structure expected under `base_path`:
       {story_name}.wav                  # Audio stimuli
 """
 
+from collections.abc import Sequence
 import io
 import os
-from typing import Sequence
 
 from absl import flags
 from absl import logging
 from etils import epath
 import joblib
+from mseb import dataset
+from mseb import types
+from mseb import utils
 import numpy as np
+
+DEFAULT_BASE_PATH = None
 
 _HUTHLAB_DATA_PATH = flags.DEFINE_string(
     'huthlab_data_path',
@@ -61,6 +66,14 @@ SUBJECTS = (
     'S01',
     'S02',
     'S03',
+)
+
+DEBUG_TRAIN_STORIES = (
+    'itsabox',
+    'odetostepfather',
+)
+DEBUG_TEST_STORIES = (
+    'wheretheressmoke',
 )
 
 TRAIN_STORIES = {
@@ -281,24 +294,32 @@ class HuthLabDataset:
       base_path: str | None = None,
       subject: str = 'S03',
       tr_duration: float = DEFAULT_TR_DURATION,
+      train_stories: Sequence[str] | None = None,
+      test_stories: Sequence[str] | None = None,
   ):
     """Initializes the HuthLabDataset.
 
     Args:
       base_path: Root path to the data. If None, uses the --huthlab_data_path
-        flag.
+        flag, or falls back to --dataset_basepath / DEFAULT_BASE_PATH.
       subject: Subject identifier (e.g., 'S01', 'S02', 'S03').
       tr_duration: Duration of one fMRI TR in seconds.
+      train_stories: Optional subset of training stories to use.
+      test_stories: Optional subset of test stories to use.
     """
     if base_path is None:
       base_path = _HUTHLAB_DATA_PATH.value
-    if base_path is None:
-      raise ValueError(
-          'Must provide base_path or set --huthlab_data_path flag.'
-      )
-    self.base_path = base_path
+    self.base_path = dataset.get_base_path(
+        base_path, default_basepath=DEFAULT_BASE_PATH
+    )
     self.subject = subject
     self.tr_duration = tr_duration
+    self._train_stories = (
+        tuple(train_stories) if train_stories is not None else None
+    )
+    self._test_stories = (
+        tuple(test_stories) if test_stories is not None else None
+    )
     self._resp = None
 
   def _path(self, *args: str) -> str:
@@ -349,12 +370,31 @@ class HuthLabDataset:
 
   def get_train_stories(self) -> Sequence[str]:
     """Returns the list of training story names."""
+    if self._train_stories is not None:
+      return self._train_stories
     return TRAIN_STORIES[self.subject]
 
   def get_test_stories(self) -> Sequence[str]:
     """Returns the list of test story names."""
+    if self._test_stories is not None:
+      return self._test_stories
     return TEST_STORIES[self.subject]
 
   def get_audio_path(self, story: str) -> str:
     """Returns the path to the audio file for a story."""
     return self._path('stimuli', f'{story}.wav')
+
+  def get_sound(self, story: str) -> types.Sound:
+    """Loads the audio stimulus for a story as a Sound object."""
+    waveform, sample_rate = utils.read_audio(self.get_audio_path(story))
+    context = types.SoundContextParams(
+        id=story,
+        sample_rate=sample_rate,
+        length=len(waveform),
+        waveform_end_second=(
+            len(waveform) / sample_rate if sample_rate > 0 else 0.0
+        ),
+        language='en',
+        language_name='English',
+    )
+    return types.Sound(waveform=waveform, context=context)  # pyrefly: ignore[bad-argument-type]

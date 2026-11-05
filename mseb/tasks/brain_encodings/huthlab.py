@@ -23,7 +23,8 @@ Reference:
   A Path to Human-Level Performance?" arXiv:2401.10150.
 """
 
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+import dataclasses
 
 from mseb import types
 from mseb.datasets import huthlab_fmri
@@ -39,8 +40,8 @@ _CITATION = """@article{antonello2024scaling,
 }"""
 
 
-class HuthLabBrainEncoding(brain_encoding.BrainEncodingTask):
-  """Brain encoding task using HuthLab fMRI data.
+class _HuthLabBrainEncoding(brain_encoding.BrainEncodingTask):
+  """Base class for brain encoding tasks using HuthLab fMRI data.
 
   This task loads narrative story stimuli and corresponding fMRI responses
   from the HuthLab encoding-model-scaling-laws dataset. For each sub-task
@@ -53,6 +54,139 @@ class HuthLabBrainEncoding(brain_encoding.BrainEncodingTask):
 
   The sub-tasks correspond to individual subjects (e.g., 'S01', 'S02', 'S03').
   """
+
+  train_stories: Sequence[str] | None = None
+  test_stories: Sequence[str] | None = None
+
+  def __init__(
+      self,
+      base_path: str | None = None,
+      subjects: Sequence[str] = ('S03',),
+      tr_duration: float = huthlab_fmri.DEFAULT_TR_DURATION,
+      delays: Sequence[int] = huthlab_fmri.DEFAULT_DELAYS,
+      alphas: Sequence[float] | None = None,
+  ):
+    """Initializes the HuthLabBrainEncoding task.
+
+    Args:
+      base_path: Root path to the HuthLab data. If None, uses the
+        --huthlab_data_path flag or --dataset_basepath.
+      subjects: Subjects to evaluate (each becomes a sub-task).
+      tr_duration: Duration of one fMRI TR in seconds.
+      delays: FIR delay values in TRs.
+      alphas: Ridge regularization candidates.
+    """
+    super().__init__(
+        tr_duration=tr_duration,
+        delays=delays,
+        alphas=alphas,
+    )
+    self._subjects = list(subjects)
+    self._tr_duration = tr_duration
+    self._datasets: dict[str, huthlab_fmri.HuthLabDataset] = {}
+
+    for subject in self._subjects:
+      self._datasets[subject] = huthlab_fmri.HuthLabDataset(
+          base_path=base_path,
+          subject=subject,
+          tr_duration=tr_duration,
+          train_stories=self.train_stories,
+          test_stories=self.test_stories,
+      )
+
+  def _dataset(self, subject: str) -> huthlab_fmri.HuthLabDataset:
+    return self._datasets[subject]
+
+  @property
+  def sub_tasks(self) -> list[str]:
+    """Each subject is a sub-task."""
+    return self._subjects
+
+  def multimodal_inputs(self) -> Iterable[types.Sound]:
+    """Yields story audio as Sound objects for all stimulus stories.
+
+    Stories from both training and test sets are yielded (deduplicated).
+    """
+    # Use the first subject's dataset for story metadata (same across subjects).
+    dataset = self._dataset(self._subjects[0])
+    all_stories = list(dataset.get_train_stories()) + list(
+        dataset.get_test_stories()
+    )
+    seen = set()
+    for story in all_stories:
+      if story in seen:
+        continue
+      seen.add(story)
+      yield dataset.get_sound(story)
+
+  def _build_examples(
+      self,
+      stories: Sequence[str],
+      responses: Mapping[str, np.ndarray],
+      trim_start: int,
+      resp_offset: int = 0,
+  ) -> Sequence[brain_encoding_evaluator.BrainEncodingExample]:
+    """Builds BrainEncodingExample objects for a set of stories.
+
+    Each story maps to a contiguous range of TRs in the concatenated fMRI
+    response matrix.
+
+    Args:
+      stories: Story names.
+      responses: Mapping of story name to fMRI response matrix.
+      trim_start: Number of TRs to trim from the start of each story audio.
+      resp_offset: Starting TR offset within the story's fMRI response matrix.
+
+    Returns:
+      Sequence of BrainEncodingExample objects.
+    """
+    examples = []
+    for story in stories:
+      n_trs = responses[story][resp_offset:].shape[0]
+      examples.append(
+          brain_encoding_evaluator.BrainEncodingExample(
+              sound_id=story,
+              tr_index_start=trim_start,
+              tr_index_end=trim_start + n_trs,
+          )
+      )
+    return examples
+
+  def train_examples(
+      self, sub_task: str
+  ) -> Sequence[brain_encoding_evaluator.BrainEncodingExample]:
+    """Returns training examples for a subject."""
+    dataset = self._dataset(sub_task)
+    return self._build_examples(
+        dataset.get_train_stories(),
+        dataset.load_responses(),
+        trim_start=5,
+        resp_offset=0,
+    )
+
+  def test_examples(
+      self, sub_task: str
+  ) -> Sequence[brain_encoding_evaluator.BrainEncodingExample]:
+    """Returns test examples for a subject."""
+    dataset = self._dataset(sub_task)
+    return self._build_examples(
+        dataset.get_test_stories(),
+        dataset.load_responses(),
+        trim_start=45,
+        resp_offset=40,
+    )
+
+  def fmri_train(self, sub_task: str) -> np.ndarray:
+    """Returns training fMRI responses for a subject."""
+    return self._dataset(sub_task).load_train_responses()
+
+  def fmri_test(self, sub_task: str) -> np.ndarray:
+    """Returns test fMRI responses (averaged across sessions) for a subject."""
+    return self._dataset(sub_task).load_test_responses()
+
+
+class HuthLabBrainEncoding(_HuthLabBrainEncoding):
+  """Brain encoding task using HuthLab fMRI data."""
 
   metadata = types.TaskMetadata(
       name='HuthLabBrainEncoding',
@@ -82,127 +216,14 @@ class HuthLabBrainEncoding(brain_encoding.BrainEncodingTask):
       task_subtypes=['brain_encoding', 'ridge_regression'],
   )
 
-  def __init__(
-      self,
-      base_path: str | None = None,
-      subjects: Sequence[str] = ('S03',),
-      tr_duration: float = huthlab_fmri.DEFAULT_TR_DURATION,
-      delays: Sequence[int] = huthlab_fmri.DEFAULT_DELAYS,
-      alphas: Sequence[float] | None = None,
-  ):
-    """Initializes the HuthLabBrainEncoding task.
 
-    Args:
-      base_path: Root path to the HuthLab data. If None, uses the
-        --huthlab_data_path flag.
-      subjects: Subjects to evaluate (each becomes a sub-task).
-      tr_duration: Duration of one fMRI TR in seconds.
-      delays: FIR delay values in TRs.
-      alphas: Ridge regularization candidates.
-    """
-    super().__init__(
-        tr_duration=tr_duration,
-        delays=delays,
-        alphas=alphas,
-    )
-    self._subjects = list(subjects)
-    self._tr_duration = tr_duration
-    self._datasets: dict[str, huthlab_fmri.HuthLabDataset] = {}
+class HuthLabBrainEncodingDebug(_HuthLabBrainEncoding):
+  """Debug version of HuthLabBrainEncoding using a small subset of stories."""
 
-    for subject in self._subjects:
-      self._datasets[subject] = huthlab_fmri.HuthLabDataset(
-          base_path=base_path,
-          subject=subject,
-          tr_duration=tr_duration,
-      )
+  train_stories = huthlab_fmri.DEBUG_TRAIN_STORIES
+  test_stories = huthlab_fmri.DEBUG_TEST_STORIES
 
-  def _dataset(self, subject: str) -> huthlab_fmri.HuthLabDataset:
-    return self._datasets[subject]
-
-  @property
-  def sub_tasks(self) -> list[str]:
-    """Each subject is a sub-task."""
-    return self._subjects
-
-  def multimodal_inputs(self) -> Iterable[types.MultiModalObject]:
-    """Yields story names as Text objects for all stimulus stories.
-
-    Stories from both training and test sets are yielded (deduplicated).
-    Each story is represented as a Text object with the story name as both
-    the text content and the context ID. This is designed for use with
-    precomputed embeddings, where the story name serves as the lookup key.
-    """
-    # Use the first subject's dataset for story metadata (same across subjects).
-    dataset = self._dataset(self._subjects[0])
-    all_stories = list(dataset.get_train_stories()) + list(
-        dataset.get_test_stories()
-    )
-    seen = set()
-    for story in all_stories:
-      if story in seen:
-        continue
-      seen.add(story)
-      yield types.Text(
-          text=story,
-          context=types.TextContextParams(
-              id=story,
-              language_name='English',
-          ),
-      )
-
-  def _build_examples(
-      self,
-      stories: Sequence[str],
-      trim_start: int,
-      trim_end: int,
-  ) -> Sequence[brain_encoding_evaluator.BrainEncodingExample]:
-    """Builds BrainEncodingExample objects for a set of stories.
-
-    Each story maps to a contiguous range of TRs in the concatenated fMRI
-    response matrix. Stories not found in the dataset's story_trs metadata
-    are skipped.
-
-    Args:
-      stories: Story names.
-      trim_start: Number of TRs to trim from the start of each story.
-      trim_end: Number of TRs to trim from the end of each story.
-
-    Returns:
-      Sequence of BrainEncodingExample objects.
-    """
-    examples = []
-    for story in stories:
-      examples.append(
-          brain_encoding_evaluator.BrainEncodingExample(
-              sound_id=story,
-              tr_index_start=trim_start,
-              tr_index_end=trim_end,
-          )
-      )
-    return examples
-
-  def train_examples(
-      self, sub_task: str
-  ) -> Sequence[brain_encoding_evaluator.BrainEncodingExample]:
-    """Returns training examples for a subject."""
-    dataset = self._dataset(sub_task)
-    return self._build_examples(
-        dataset.get_train_stories(), trim_start=10, trim_end=-5
-    )
-
-  def test_examples(
-      self, sub_task: str
-  ) -> Sequence[brain_encoding_evaluator.BrainEncodingExample]:
-    """Returns test examples for a subject."""
-    dataset = self._dataset(sub_task)
-    return self._build_examples(
-        dataset.get_test_stories(), trim_start=50, trim_end=-5
-    )
-
-  def fmri_train(self, sub_task: str) -> np.ndarray:
-    """Returns training fMRI responses for a subject."""
-    return self._dataset(sub_task).load_train_responses()
-
-  def fmri_test(self, sub_task: str) -> np.ndarray:
-    """Returns test fMRI responses (averaged across sessions) for a subject."""
-    return self._dataset(sub_task).load_test_responses()
+  metadata = dataclasses.replace(
+      HuthLabBrainEncoding.metadata,
+      name='HuthLabBrainEncodingDebug',
+  )
