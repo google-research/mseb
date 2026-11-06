@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from src.config import ACTIVE_TASK_KEYS
 from src.config import get_source_file_url
 from src.config import MSEB_TASKS
 from src.config import normalize_metric_for_svq
@@ -186,9 +187,9 @@ def build_overall_dataframe(
       else:
         row[col_name] = np.nan
 
-    # SVQ Macro-average across all tasks, treating missing tasks as 0.0
+    # SVQ Macro-average across all active tasks, treating missing tasks as 0.0
     task_norm_scores: List[float] = []
-    for t in ORDERED_TASK_KEYS:
+    for t in ACTIVE_TASK_KEYS:
       col_name = t.capitalize()
       disp_val = row.get(col_name)
       if pd.notna(disp_val):
@@ -619,7 +620,7 @@ def compute_dynamic_overall_average(
     return df.copy()
 
   df_copy = df.copy()
-  task_keys = [t.capitalize() for t in ORDERED_TASK_KEYS]
+  task_keys = [t.capitalize() for t in ACTIVE_TASK_KEYS]
 
   if selected_task_columns is None:
     active_tasks = [c for c in task_keys if c in df_copy.columns]
