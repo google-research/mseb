@@ -581,9 +581,13 @@ class SimpleVoiceQuestionsDataset(base.MsebDataset):
     )
 
   def get_task_sounds_beam(
-      self, task_name: str, locale: str | None = None
+      self, task_name: str | None = None, locale: str | None = None
   ) -> beam.PTransform:
     """Loads the task data with audio for the given task name with beam."""
+    if task_name is None:
+      raise ValueError(
+          "task_name must be provided for SimpleVoiceQuestionsDataset."
+      )
     transform = self.get_task_data_beam(
         task_name, columns=_SOUND_COLUMNS
     ) | "TakeSound" >> beam.Map(
