@@ -146,6 +146,110 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     self.assertEqual(kwargs['diarize'], False)
     self.assertEqual(kwargs['no_verbatim'], True)
 
+  def _empty_response(self, **kwargs):
+    # ElevenLabs Scribe with no_verbatim=True returns an empty transcript and
+    # an empty `words` list for utterances made only of disfluencies.
+    return TranscriptionResponse.model_construct(
+        text='',
+        usage=None,
+        task='transcribe',
+        language='eng',
+        words=[],
+        **kwargs,
+    )
+
+  def _encode_one(self, mock_transcription, response, sound=None, **kwargs):
+    mock_transcription.return_value = response
+    s2t_encoder = s2t_encoder_lib.LiteLLMSpeechToTextEncoder(
+        model_name='test_model',
+        api_key='test_api_key',
+        **kwargs,
+    )
+    s2t_encoder.setup()
+    outputs = s2t_encoder.encode([sound or self.test_sound])
+    self.assertLen(outputs, 1)
+    output = outputs[0]
+    assert isinstance(output, types.SoundEmbedding)
+    return output
+
+  @mock.patch('litellm.transcription')
+  def test_encode_empty_transcript(self, mock_transcription):
+    output = self._encode_one(mock_transcription, self._empty_response())
+    self.assertEqual(output.embedding.tolist(), [''])
+    self.assertEqual(output.timestamps.shape, (1, 2))
+    self.assertEqual(output.timestamps[0, 0], 0.0)
+    self.assertEqual(
+        output.timestamps[0, 1],
+        len(self.test_sound.waveform) / self.test_sound.context.sample_rate,
+    )
+
+  @mock.patch('litellm.transcription')
+  def test_encode_empty_transcript_uses_response_duration(
+      self, mock_transcription
+  ):
+    output = self._encode_one(
+        mock_transcription, self._empty_response(duration=1.25)
+    )
+    self.assertEqual(output.embedding.tolist(), [''])
+    self.assertEqual(output.timestamps.tolist(), [[0.0, 1.25]])
+
+  @mock.patch('litellm.transcription')
+  def test_encode_empty_transcript_default_context(self, mock_transcription):
+    # `waveform_end_second` defaults to float32 max; the fallback must use the
+    # actual waveform length instead.
+    sound = types.Sound(
+        waveform=self.test_sound.waveform,
+        context=types.SoundContextParams(
+            id='test',
+            sample_rate=self.test_sound.context.sample_rate,
+            length=len(self.test_sound.waveform),
+        ),
+    )
+    output = self._encode_one(
+        mock_transcription, self._empty_response(), sound=sound
+    )
+    self.assertEqual(output.timestamps.shape, (1, 2))
+    self.assertEqual(output.timestamps[0, 0], 0.0)
+    self.assertEqual(
+        output.timestamps[0, 1],
+        len(sound.waveform) / sound.context.sample_rate,
+    )
+
+  @mock.patch('litellm.transcription')
+  def test_encode_missing_words_and_none_text(self, mock_transcription):
+    response = TranscriptionResponse.model_construct(
+        text=None, usage=None, task='transcribe', language='eng'
+    )
+    output = self._encode_one(mock_transcription, response)
+    self.assertEqual(output.embedding.tolist(), [''])
+    self.assertEqual(output.timestamps.shape, (1, 2))
+    self.assertEqual(output.timestamps[0, 0], 0.0)
+    self.assertEqual(
+        output.timestamps[0, 1],
+        len(self.test_sound.waveform) / self.test_sound.context.sample_rate,
+    )
+
+  @mock.patch('litellm.transcription')
+  def test_encode_empty_transcript_with_word_timestamps(
+      self, mock_transcription
+  ):
+    output = self._encode_one(
+        mock_transcription, self._empty_response(), word_timestamps=True
+    )
+    self.assertEqual(output.embedding.tolist(), [])
+    self.assertEqual(output.timestamps.shape, (0, 2))
+
+  @mock.patch('litellm.transcription')
+  def test_encode_missing_words_with_word_timestamps(self, mock_transcription):
+    response = TranscriptionResponse.model_construct(
+        text=None, usage=None, task='transcribe', language='eng'
+    )
+    output = self._encode_one(
+        mock_transcription, response, word_timestamps=True
+    )
+    self.assertEqual(output.embedding.tolist(), [])
+    self.assertEqual(output.timestamps.shape, (0, 2))
+
 
 if __name__ == '__main__':
   absltest.main()

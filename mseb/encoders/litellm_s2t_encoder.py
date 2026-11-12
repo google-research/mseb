@@ -177,31 +177,36 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
     if transcription is None:
       timestamps = np.array([[0.0, 0.0]], dtype=float)
       embeddings = np.array([types.LLM_NO_RESPONSE_STR], dtype=object)
-    elif self._word_timestamps:
-      timestamps_list = []
-      embeddings_list = []
-      prefix = ''
-      if ''.join([x['word'] for x in transcription['words']]).count(
-          ' '
-      ) < transcription['text'].count(' '):
-        prefix = ' '
-      for word in transcription['words']:
-        timestamps_list.append([word['start'], word['end']])
-        embeddings_list.append(prefix + word['word'])
-      timestamps = np.array(timestamps_list, dtype=float)
-      embeddings = np.array(embeddings_list, dtype=object)
-    elif hasattr(transcription, 'words'):
-      timestamps = np.array(
-          [[
-              transcription['words'][0]['start'],
-              transcription['words'][-1]['end'],
-          ]],
-          dtype=float,
-      )
-      embeddings = np.array([transcription['text']], dtype=object)
     else:
-      timestamps = np.array([[0.0, transcription['duration']]], dtype=float)
-      embeddings = np.array([transcription['text']], dtype=object)
+      # Providers may omit `words` (or return an empty list) and `text` may be
+      # None; e.g. ElevenLabs Scribe with no_verbatim=True returns an empty
+      # transcript for utterances that consist only of disfluencies.
+      words = transcription.get('words') or []
+      text = transcription.get('text') or ''
+      if self._word_timestamps:
+        timestamps_list = []
+        embeddings_list = []
+        prefix = ''
+        if ''.join([x['word'] for x in words]).count(' ') < text.count(' '):
+          prefix = ' '
+        for word in words:
+          timestamps_list.append([word['start'], word['end']])
+          embeddings_list.append(prefix + word['word'])
+        timestamps = np.array(timestamps_list, dtype=float).reshape(-1, 2)
+        embeddings = np.array(embeddings_list, dtype=object)
+      elif words:
+        timestamps = np.array(
+            [[words[0]['start'], words[-1]['end']]], dtype=float
+        )
+        embeddings = np.array([text], dtype=object)
+      else:
+        # No word-level timing available. Fall back to the span of the audio
+        # that was sent to the provider (word timestamps are relative to it).
+        end = transcription.get('duration')
+        if end is None:
+          end = len(sound.waveform) / sound.context.sample_rate
+        timestamps = np.array([[0.0, end]], dtype=float)
+        embeddings = np.array([text], dtype=object)
 
     return types.SoundEmbedding(
         embedding=embeddings, timestamps=timestamps, context=sound.context  # pyrefly: ignore[bad-argument-type]
