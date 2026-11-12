@@ -69,6 +69,9 @@ dev = [
     "pylint>=2.6.0",
     "pyink",
 ]
+litert = [
+    "ai-edge-litert>=1.2.0",
+]
 scann = [
     "scann[tf]>=1.4.0",
     "tensorflow-metadata",

@@ -20,11 +20,13 @@ from mseb import encoder
 from mseb import types
 import numpy as np
 import requests
-import tensorflow as tf
+from ai_edge_litert import interpreter as _litert
+_Interpreter = _litert.Interpreter
 
 
 class FetchError(RuntimeError):
   """Custom exception for errors during file fetching."""
+
   pass
 
 
@@ -166,8 +168,7 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
   def _setup(self):
     try:
       encoder_bytes = fetch_lyra_component_bytes(self.encoder_model_filename)
-      self.encoder_interpreter = tf.lite.Interpreter(
-          model_content=encoder_bytes)
+      self.encoder_interpreter = _Interpreter(model_content=encoder_bytes)
       self.encoder_interpreter.allocate_tensors()
     except FetchError as e:
       raise RuntimeError(
@@ -208,8 +209,7 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
         quantizer_bytes = fetch_lyra_component_bytes(
             self.quantizer_model_filename
         )
-        quantizer_interpreter = tf.lite.Interpreter(
-            model_content=quantizer_bytes)
+        quantizer_interpreter = _Interpreter(model_content=quantizer_bytes)
         quantizer_interpreter.allocate_tensors()
         self.quantizer_runner = quantizer_interpreter.get_signature_runner(
             'encode')
@@ -248,8 +248,9 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
               f'{self.num_desired_quantizers}. '
               'Check bits_per_second, frame_rate, and NBPQ settings.')
         raise ValueError('Calculated num_desired_quantizers is non-positive.')
-      self._num_quantizers_tf_tensor_input = tf.constant(
-          [self.num_desired_quantizers], dtype=tf.int32)
+      self._num_quantizers_input = np.array(
+          [self.num_desired_quantizers], dtype=np.int32
+      )
 
   def _encode(
       self, batch: Sequence[types.MultiModalObject]
@@ -299,10 +300,10 @@ class SoundStreamEncoder(encoder.MultiModalEncoder):
             self._encoder_output_tensor_idx)
 
         if self.quantize and self.quantizer_runner:
-          features_for_quantizer = tf.constant(raw_embedding, dtype=tf.float32)
+          features_for_quantizer = np.asarray(raw_embedding, dtype=np.float32)
           quantizer_output_dict = self.quantizer_runner(
               input_frames=features_for_quantizer,
-              num_quantizers=self._num_quantizers_tf_tensor_input
+              num_quantizers=self._num_quantizers_input,
           )
           quantized_codes_tensor = quantizer_output_dict['output_0']
 

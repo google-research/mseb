@@ -17,12 +17,15 @@ import pathlib
 
 from absl.testing import absltest
 from mseb import types
-from mseb.encoders import soundstream_encoder
 import numpy as np
 import numpy.testing as npt
 import pyarrow.parquet as pq
+import pytest
+
+soundstream_encoder = pytest.importorskip('mseb.encoders.soundstream_encoder')
 
 
+@pytest.mark.optional
 class SoundStreamEncoderTest(absltest.TestCase):
 
   def setUp(self):
