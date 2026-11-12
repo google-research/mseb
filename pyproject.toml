@@ -47,7 +47,6 @@ dependencies = [
     "tiktoken",
     "tqdm",
     "transformers",
-    "tensorflow",
     "torch",
 ]
 
@@ -73,8 +72,7 @@ litert = [
     "ai-edge-litert>=1.2.0",
 ]
 scann = [
-    "scann[tf]>=1.4.0",
-    "tensorflow-metadata",
+    "scann>=1.4.2",
 ]
 spacy = [
     "spacy",

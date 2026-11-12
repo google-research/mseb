@@ -22,7 +22,6 @@ import absl.flags
 import torch
 import transformers
 import jax
-import tensorflow
 
 
 def pytest_configure(config):
