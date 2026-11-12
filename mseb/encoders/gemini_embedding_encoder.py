@@ -29,8 +29,6 @@ from mseb.encoders import retrieval_encoder
 from mseb.encoders import text_encoder_with_prompt as prompt_encoder_lib
 from mseb.encoders import whisper_encoder
 import numpy as np
-import tensorflow as tf
-
 
 
 def encoder_genai(  # pylint: disable=invalid-name
