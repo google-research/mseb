@@ -74,6 +74,9 @@ litert = [
 scann = [
     "scann>=1.4.2",
 ]
+sentence-transformers = [
+    "sentence-transformers",
+]
 spacy = [
     "spacy",
 ]
@@ -98,6 +101,7 @@ build-backend = "flit_core.buildapi"
 exclude = [
   # Do not release tests files on PyPI
   "**/*_test.py",
+  "**/testdata/**",
 ]
 
 [tool.pytest.ini_options]

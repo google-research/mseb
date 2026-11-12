@@ -31,6 +31,7 @@ class EncoderRegistryTest(parameterized.TestCase):
       "whisper_base_pooled_max",
       "whisper_forced_alignment",
       "laion_clap_encoder",
+      "embeddinggemma2",
       "genai_llm",
       "openai_llm_with_title_and_context",
       "openai_speech_to_text",
