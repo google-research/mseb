@@ -15,6 +15,7 @@
 from os import path
 
 from absl.testing import absltest
+import apache_beam as beam
 from mseb import runner as runner_lib
 from mseb import types
 import numpy as np
@@ -23,6 +24,7 @@ import pytest
 text_encoder_with_prompt = pytest.importorskip(
     'mseb.encoders.text_encoder_with_prompt'
 )
+
 
 
 @pytest.mark.embedding
@@ -70,12 +72,30 @@ class RunnerTest(absltest.TestCase):
         embeddings['utt_14868079180393484423'].context,
     )
 
+
   def test_encoder_output_type(self):
     runner = runner_lib.DirectRunner(
         encoder=text_encoder_with_prompt.MockTextEncoder()
     )
     self.assertEqual(runner.encoder_output_type(),
                      types.TextEmbedding | types.SoundEmbedding)
+
+  def test_beam_runner(self):
+    basedir = self.create_tempdir().full_path
+    runner = runner_lib.BeamRunner(
+        encoder=text_encoder_with_prompt.MockTextEncoder(),
+        output_path=basedir,
+        runner=beam.runners.direct.direct_runner.DirectRunner(),
+    )
+    elements = [
+        types.Text(
+            text='hello world',
+            context=types.TextContextParams(id='beam_utt_1'),
+        ),
+    ]
+    loaded = runner.run(elements)
+    self.assertIn('beam_utt_1', loaded)
+    self.assertEqual(loaded['beam_utt_1'].context.id, 'beam_utt_1')
 
 
 if __name__ == '__main__':
