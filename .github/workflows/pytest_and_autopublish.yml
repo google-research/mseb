@@ -38,7 +38,7 @@ jobs:
             marker: "segmentation"
 
           - name: "Embedding"
-            extras: "dev,scann"
+            extras: "dev,scann,sentence-transformers"
             marker: "embedding"
 
     name: Pytest (${{ matrix.name }})

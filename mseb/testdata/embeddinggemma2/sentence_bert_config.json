@@ -1,0 +1,27 @@
+{
+    "transformer_task": "feature-extraction",
+    "modality_config": {
+        "text": {
+            "method": "forward",
+            "method_output_name": "last_hidden_state"
+        },
+        "image": {
+            "method": "forward",
+            "method_output_name": "last_hidden_state"
+        },
+        "audio": {
+            "method": "forward",
+            "method_output_name": "last_hidden_state"
+        },
+        "video": {
+            "method": "forward",
+            "method_output_name": "last_hidden_state"
+        },
+        "message": {
+            "method": "forward",
+            "method_output_name": "last_hidden_state",
+            "format": "structured"
+        }
+    },
+    "module_output_name": "token_embeddings"
+}

@@ -1,0 +1,38 @@
+{
+  "__version__": {
+    "pytorch": "2.14.0+cu130",
+    "sentence_transformers": "6.1.0",
+    "transformers": "5.18.0.dev0"
+  },
+  "default_prompt_name": null,
+  "model_type": "SentenceTransformer",
+  "prompts": {
+    "BitextMining": "task: search result | query: ",
+    "Classification": "task: classification | query: ",
+    "Clustering": "task: clustering | query: ",
+    "CodeRetrieval": "task: code retrieval | query: ",
+    "Document": "title: none | text: ",
+    "FactChecking": "task: fact checking | query: ",
+    "InstructionRetrieval": "task: code retrieval | query: ",
+    "MultilabelClassification": "task: classification | query: ",
+    "PairClassification": "task: sentence similarity | query: ",
+    "QuestionAnswering": "task: question answering | query: ",
+    "Reranking": "task: search result | query: ",
+    "Retrieval": "task: search result | query: ",
+    "Retrieval-document": "title: none | text: ",
+    "Retrieval-query": "task: search result | query: ",
+    "STS": "task: sentence similarity | query: ",
+    "SearchQuery": "task: search result | query: ",
+    "SentenceSimilarity": "task: sentence similarity | query: ",
+    "Summarization": "task: sentence similarity | query: ",
+    "document": "title: none | text: ",
+    "query": "task: search result | query: "
+  },
+  "requirements": {
+    "sentence-transformers": {
+      "reason": "Older versions ignore the order of multimodal dict inputs and cannot put several images or texts into a single embedding.",
+      "specifier": ">=6.1.0"
+    }
+  },
+  "similarity_fn_name": "cosine"
+}

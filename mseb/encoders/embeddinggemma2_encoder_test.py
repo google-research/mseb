@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 import json
 import os
+import pathlib
 import sys
 import tempfile
 from typing import Any, TYPE_CHECKING, cast
@@ -24,9 +25,11 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from etils import epath
 from mseb import types
 from mseb.encoders import embeddinggemma2_encoder
 import numpy as np
+import pyarrow.parquet as pq
 import pytest
 import safetensors.torch
 import torch
@@ -180,6 +183,7 @@ class _TinySentenceTransformer:
     return stacked.cpu().numpy()
 
 
+@pytest.mark.embedding
 @pytest.mark.optional
 class EmbeddingGemma2EncoderTest(parameterized.TestCase):
 
@@ -846,6 +850,55 @@ class EmbeddingGemma2EncoderTest(parameterized.TestCase):
     )
     with self.assertRaises(RuntimeError):
       enc.encode([text])
+
+  def test_checked_in_sharded_testdata_checkpoint(self):
+    from mseb.encoders import embeddinggemma2_modeling  # pylint: disable=g-import-not-at-top
+
+    testdata_path = epath.resource_path('mseb') / 'testdata'
+    model_dir = pathlib.Path(testdata_path) / 'embeddinggemma2'
+    parquet_path = pathlib.Path(testdata_path) / 'en_us.parquet'
+
+    self.assertTrue(
+        (model_dir / embeddinggemma2_modeling.SHARDS_INDEX_NAME).is_file()
+    )
+    shards = sorted(model_dir.glob('shard-*-of-*.safetensors'))
+    self.assertLen(shards, 17)
+    for shard in shards:
+      self.assertLessEqual(shard.stat().st_size, 100 * 1000 * 1000)
+    self.assertFalse((model_dir / 'model.safetensors').exists())
+
+    enc = embeddinggemma2_encoder.EmbeddingGemma2Encoder(
+        model_path=str(model_dir),
+        device='cpu',
+    )
+    enc.setup()
+
+    svq_table = pq.read_table(parquet_path)
+    example = svq_table.slice(0, 1).to_pylist()[0]
+    waveform = np.asarray(example['waveform'], dtype=np.int16)
+    sound = types.Sound(
+        waveform=cast(Any, waveform),
+        context=types.SoundContextParams(
+            id='sound_0',
+            sample_rate=48000,
+            length=len(waveform),
+            language='en',
+        ),
+    )
+    text = types.Text(
+        text='What is the tallest mountain?',
+        context=types.TextContextParams(id='text_1'),
+    )
+    sound_out = cast(Sequence[types.SoundEmbedding], enc.encode([sound]))
+    text_out = cast(Sequence[types.TextEmbedding], enc.encode([text]))
+    self.assertEqual(sound_out[0].embedding.shape, (1, 768))
+    self.assertEqual(text_out[0].embedding.shape, (1, 768))
+    np.testing.assert_allclose(
+        np.linalg.norm(sound_out[0].embedding[0]), 1.0, atol=1e-2
+    )
+    np.testing.assert_allclose(
+        np.linalg.norm(text_out[0].embedding[0]), 1.0, atol=1e-2
+    )
 
 
 if __name__ == '__main__':
