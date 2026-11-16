@@ -60,6 +60,14 @@ _OPENAI_S2T_SERVER_URL = flags.DEFINE_string(
     "URL of OpenAI S2T API server.",
 )
 
+_OPENAI_S2T_CONTEXT_PROMPT_TEMPLATE = flags.DEFINE_string(
+    "openai_s2t_context_prompt_template",
+    openai_s2t_encoder.DEFAULT_CONTEXT_PROMPT_TEMPLATE,
+    "Template with a `{context}` placeholder rendered from"
+    " `SoundWithTitleAndContext.context_text` and sent as the Audio"
+    " Transcriptions API `prompt` by `openai_speech_to_text_contextual`.",
+)
+
 encoder_registry.register_encoder(
     encoder_registry.EncoderMetadata(
         name="openai_speech_to_text",
@@ -71,6 +79,26 @@ encoder_registry.register_encoder(
         ),
         url="https://platform.openai.com/docs/guides/speech-to-text",
         base_model="openai",
+    )
+)
+
+# Same as `openai_speech_to_text`, but forwards the contextual-biasing terms of
+# `SoundWithTitleAndContext` inputs (e.g. the Contextual Earnings-22 local and
+# global context tasks) to the API as a `prompt`. Plain `Sound` inputs are
+# transcribed without a prompt, exactly as `openai_speech_to_text` does.
+encoder_registry.register_encoder(
+    encoder_registry.EncoderMetadata(
+        name="openai_speech_to_text_contextual",
+        encoder=openai_s2t_encoder.OpenAISpeechToTextEncoder,
+        params=lambda: dict(
+            model_name=_OPENAI_S2T_MODEL_NAME.value,
+            api_key=_OPENAI_S2T_API_KEY.value,
+            server_url=_OPENAI_S2T_SERVER_URL.value,
+            context_prompt_template=_OPENAI_S2T_CONTEXT_PROMPT_TEMPLATE.value,
+        ),
+        url="https://platform.openai.com/docs/guides/speech-to-text#prompting",
+        base_model="openai",
+        tags=("contextual",),
     )
 )
 

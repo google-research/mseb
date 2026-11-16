@@ -15,7 +15,9 @@
 """Speech-to-text encoder using the OpenAI Audio Transciptions API.
 """
 
+import dataclasses
 import io
+import json
 import time
 from typing import Sequence
 
@@ -25,6 +27,14 @@ from mseb import types
 import numpy as np
 import openai
 import soundfile
+
+# Default template used to turn the biasing context of a
+# `SoundWithTitleAndContext` into the API `prompt`, see
+# https://platform.openai.com/docs/guides/speech-to-text#prompting.
+DEFAULT_CONTEXT_PROMPT_TEMPLATE = (
+    'The speech may mention some of the following names and terms. When one'
+    ' of them is spoken, use this exact spelling: {context}'
+)
 
 
 class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
@@ -39,6 +49,7 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       server_url: str | None = None,
       max_num_retry: int = 1,
       wait_time: float = 1.0,
+      context_prompt_template: str | None = None,
   ):
     """Initializes the OpenAI Speech-to-text encoder.
 
@@ -50,6 +61,13 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       server_url: URL of the OpenAI server.
       max_num_retry: The maximum number of retries for the model.
       wait_time: The wait time in seconds between retries.
+      context_prompt_template: Optional `str.format` template with a `{context}`
+        placeholder. When set and an input is a `SoundWithTitleAndContext` with
+        a non-empty `context_text` (e.g. contextual-biasing terms), the rendered
+        template is sent as the transcription API `prompt`. When None (the
+        default) context is ignored and no prompt is sent, so plain `Sound`
+        inputs and context-free tasks are unaffected. See
+        `DEFAULT_CONTEXT_PROMPT_TEMPLATE`.
     """
     super().__init__()
     self._server_url = server_url
@@ -59,6 +77,7 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
     self._word_timestamps = word_timestamps
     self._max_try = max_num_retry
     self._wait_time = wait_time
+    self._context_prompt_template = context_prompt_template
     self._client = None
 
   def _setup(self):
@@ -107,6 +126,16 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       outputs.append(self._encode_sound(sound))
     return outputs
 
+  def _context_prompt(self, sound: types.Sound) -> str | None:
+    """Returns the API `prompt` rendered from the sound's context, if any."""
+    if self._context_prompt_template is None:
+      return None
+    if not isinstance(sound, types.SoundWithTitleAndContext):
+      return None
+    if not sound.context_text:
+      return None
+    return self._context_prompt_template.format(context=sound.context_text)
+
   def _encode_sound(
       self,
       sound: types.Sound,
@@ -130,6 +159,11 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
         * embeddings: A numpy.ndarray of shape [n_words] containing
             the individual words (strings).
 
+    If `context_prompt_template` is set and `sound` carries a `context_text`,
+    the rendered template is passed to the API as `prompt` to bias the
+    transcription, and the output context's `debug_text` records the prompt
+    and raw response as JSON (`{"prompt_text": ..., "model_response": ...}`).
+
     Args:
       sound: A `Sound` object containing the audio waveform and context.
 
@@ -151,6 +185,11 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       response_format = 'json'
       timestamp_granularity = None
 
+    prompt_kwargs = {}
+    prompt = self._context_prompt(sound)
+    if prompt is not None:
+      prompt_kwargs['prompt'] = prompt
+
     flac_file = io.BytesIO()
     flac_file.name = 'file.flac'
     soundfile.write(flac_file, sound.waveform, sound.context.sample_rate)
@@ -163,6 +202,7 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
             response_format=response_format,
             temperature=self._temperature,
             timestamp_granularities=timestamp_granularity,
+            **prompt_kwargs,
         )
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
@@ -191,6 +231,24 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       )
       embeddings = np.array([transcription.text], dtype=object)
 
+    context = sound.context
+    if prompt is not None:
+      # Record the prompt actually sent, as TextEncoderWithPrompt does.
+      context = dataclasses.replace(
+          sound.context,
+          debug_text=json.dumps({
+              'prompt_text': prompt,
+              'model_response': (
+                  None if transcription is None else transcription.text
+              ),
+          }),
+      )
+
+    # `embeddings` / `timestamps` are built with `np.array(...)`, which pyrefly
+    # infers as `ndarray[Any, dtype[Any]]`; it does not consider that
+    # assignable to the jaxtyping-annotated `SoundEmbedding.embedding`
+    # (`Shaped[np.ndarray, "N"]`) and `.timestamps` (`Float[np.ndarray, "M 2"]`)
+    # fields, although the shapes and dtypes match at runtime.
     return types.SoundEmbedding(
-        embedding=embeddings, timestamps=timestamps, context=sound.context  # pyrefly: ignore[bad-argument-type]
+        embedding=embeddings, timestamps=timestamps, context=context  # pyrefly: ignore[bad-argument-type]
     )

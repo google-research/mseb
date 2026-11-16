@@ -14,6 +14,7 @@
 
 """Tests for the OpenAI API-based encoder."""
 
+import json
 import os
 import pathlib
 from unittest import mock
@@ -32,12 +33,17 @@ s2t_encoder_lib = pytest.importorskip('mseb.encoders.openai_s2t_encoder')
 class MockOpenAISpeechToTextEncoder(s2t_encoder_lib.OpenAISpeechToTextEncoder):
   """Mock OpenAISpeechToTextEncoder for testing."""
 
-  def __init__(self, word_timestamps: bool = False):
+  def __init__(
+      self,
+      word_timestamps: bool = False,
+      context_prompt_template: str | None = None,
+  ):
     super().__init__(
         server_url='https://mock_server_url',
         api_key='mock_api_key',
         model_name='mock_model_name',
         word_timestamps=word_timestamps,
+        context_prompt_template=context_prompt_template,
     )
 
   def _setup(self):
@@ -104,6 +110,17 @@ class OpenAISpeechToTextEncoderTest(absltest.TestCase):
             waveform_end_second=len(samples) / sample_rate,
         ),
     )
+    self.test_sound_with_context = types.SoundWithTitleAndContext(
+        waveform=self.test_sound.waveform,
+        context=self.test_sound.context,
+        context_text='Roses, Violets',
+    )
+
+  def _create_kwargs(self, s2t_encoder):
+    """Returns the keyword arguments of the last transcription API call."""
+    create = s2t_encoder._client.audio.transcriptions.create  # pylint: disable=protected-access
+    create.assert_called_once()
+    return create.call_args.kwargs
 
   def test_encode(self):
     s2t_encoder = MockOpenAISpeechToTextEncoder()
@@ -118,6 +135,71 @@ class OpenAISpeechToTextEncoderTest(absltest.TestCase):
     self.assertEqual(output.timestamps.shape, (1, 2))
     self.assertEqual(output.timestamps[0, 0], 0.0)
     self.assertEqual(output.timestamps[0, 1], 3.0763125)
+    self.assertNotIn('prompt', self._create_kwargs(s2t_encoder))
+    self.assertIsNone(output.context.debug_text)
+
+  def test_encode_with_context_prompt(self):
+    s2t_encoder = MockOpenAISpeechToTextEncoder(
+        context_prompt_template='Terms: {context}'
+    )
+    s2t_encoder.setup()
+    outputs = s2t_encoder.encode([self.test_sound_with_context])
+    self.assertLen(outputs, 1)
+    output = outputs[0]
+    assert isinstance(output, types.SoundEmbedding)
+    self.assertEqual(
+        str(output.embedding[0]), 'Roses are red. Violets are blue.'
+    )
+    self.assertEqual(
+        self._create_kwargs(s2t_encoder)['prompt'], 'Terms: Roses, Violets'
+    )
+    self.assertIsNotNone(output.context.debug_text)
+    assert output.context.debug_text is not None
+    self.assertEqual(
+        json.loads(output.context.debug_text),
+        {
+            'prompt_text': 'Terms: Roses, Violets',
+            'model_response': 'Roses are red. Violets are blue.',
+        },
+    )
+    # The input context is not mutated.
+    self.assertIsNone(self.test_sound_with_context.context.debug_text)
+
+  def test_encode_with_default_context_prompt_template(self):
+    s2t_encoder = MockOpenAISpeechToTextEncoder(
+        context_prompt_template=s2t_encoder_lib.DEFAULT_CONTEXT_PROMPT_TEMPLATE
+    )
+    s2t_encoder.setup()
+    s2t_encoder.encode([self.test_sound_with_context])
+    prompt = self._create_kwargs(s2t_encoder)['prompt']
+    self.assertEndsWith(prompt, 'use this exact spelling: Roses, Violets')
+
+  def test_encode_with_context_prompt_ignores_plain_sound(self):
+    s2t_encoder = MockOpenAISpeechToTextEncoder(
+        context_prompt_template='Terms: {context}'
+    )
+    s2t_encoder.setup()
+    s2t_encoder.encode([self.test_sound])
+    self.assertNotIn('prompt', self._create_kwargs(s2t_encoder))
+
+  def test_encode_with_context_prompt_ignores_empty_context(self):
+    s2t_encoder = MockOpenAISpeechToTextEncoder(
+        context_prompt_template='Terms: {context}'
+    )
+    s2t_encoder.setup()
+    sound = types.SoundWithTitleAndContext(
+        waveform=self.test_sound.waveform,
+        context=self.test_sound.context,
+        context_text='',
+    )
+    s2t_encoder.encode([sound])
+    self.assertNotIn('prompt', self._create_kwargs(s2t_encoder))
+
+  def test_encode_without_template_ignores_context(self):
+    s2t_encoder = MockOpenAISpeechToTextEncoder()
+    s2t_encoder.setup()
+    s2t_encoder.encode([self.test_sound_with_context])
+    self.assertNotIn('prompt', self._create_kwargs(s2t_encoder))
 
   def test_encode_with_word_timestamps(self):
     s2t_encoder = MockOpenAISpeechToTextEncoder(word_timestamps=True)
