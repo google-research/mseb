@@ -159,7 +159,9 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     )
 
   def _encode_one(self, mock_transcription, response, sound=None, **kwargs):
-    mock_transcription.return_value = response
+    # Pass no response if the mock already has a side effect.
+    if response is not None:
+      mock_transcription.return_value = response
     s2t_encoder = s2t_encoder_lib.LiteLLMSpeechToTextEncoder(
         model_name='test_model',
         api_key='test_api_key',
@@ -249,6 +251,61 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     )
     self.assertEqual(output.embedding.tolist(), [])
     self.assertEqual(output.timestamps.shape, (0, 2))
+
+  @mock.patch('litellm.transcription')
+  def test_successful_request_is_not_repeated(self, mock_transcription):
+    output = self._encode_one(
+        mock_transcription, self.mock_response, max_num_retry=3, wait_time=0.0
+    )
+    self.assertEqual(
+        str(output.embedding[0]), 'Roses are red, violets are blue.'
+    )
+    self.assertEqual(mock_transcription.call_count, 1)
+
+  @mock.patch('litellm.transcription')
+  def test_failed_request_is_retried_until_it_succeeds(
+      self, mock_transcription
+  ):
+    mock_transcription.side_effect = [
+        RuntimeError('unavailable'),
+        self.mock_response,
+    ]
+    output = self._encode_one(
+        mock_transcription, None, max_num_retry=3, wait_time=0.0
+    )
+    self.assertEqual(
+        str(output.embedding[0]), 'Roses are red, violets are blue.'
+    )
+    self.assertEqual(mock_transcription.call_count, 2)
+
+  @mock.patch('litellm.transcription')
+  def test_no_response_after_all_attempts_failed(self, mock_transcription):
+    mock_transcription.side_effect = RuntimeError('unavailable')
+    output = self._encode_one(
+        mock_transcription, None, max_num_retry=3, wait_time=0.0
+    )
+    self.assertEqual(output.embedding.tolist(), [types.LLM_NO_RESPONSE_STR])
+    self.assertEqual(output.timestamps.tolist(), [[0.0, 0.0]])
+    self.assertEqual(mock_transcription.call_count, 3)
+
+  @mock.patch('litellm.transcription')
+  def test_audio_is_sent_from_its_start_on_every_attempt(
+      self, mock_transcription
+  ):
+    sent = []
+
+    def transcription_that_reads_the_file_without_rewinding(**kwargs):
+      sent.append(kwargs['file'].read())
+      if len(sent) == 1:
+        raise RuntimeError('unavailable')
+      return self.mock_response
+
+    mock_transcription.side_effect = (
+        transcription_that_reads_the_file_without_rewinding
+    )
+    self._encode_one(mock_transcription, None, max_num_retry=3, wait_time=0.0)
+    expected_wav = utils.sound_to_wav_bytes(self.test_sound)
+    self.assertEqual(sent, [expected_wav, expected_wav])
 
 
 if __name__ == '__main__':

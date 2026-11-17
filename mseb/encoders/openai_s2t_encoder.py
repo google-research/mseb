@@ -191,10 +191,15 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
       prompt_kwargs['prompt'] = prompt
 
     flac_file = io.BytesIO()
-    flac_file.name = 'file.flac'
+    # The audio is not a file on disk. The name is still needed: its extension
+    # selects the audio format, and it is sent to the server as the file name.
+    flac_file.name = 'in-memory.flac'
     soundfile.write(flac_file, sound.waveform, sound.context.sample_rate)
     transcription = None
     for n_try in range(self._max_try):
+      # Send the audio from its start on every attempt, whether or not the
+      # client rewinds the file.
+      flac_file.seek(0)
       try:
         transcription = self._client.audio.transcriptions.create(
             model=self._model_name,
@@ -204,6 +209,7 @@ class OpenAISpeechToTextEncoder(encoder.MultiModalEncoder):
             timestamp_granularities=timestamp_granularity,
             **prompt_kwargs,
         )
+        break
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
         logging.warning('Failed to get prediction, retrying %d', n_try)

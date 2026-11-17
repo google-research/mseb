@@ -153,6 +153,9 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
     wav_file = io.BytesIO(utils.sound_to_wav_bytes(sound))
     transcription = None
     for n_try in range(self._max_try):
+      # Send the audio from its start on every attempt, whether or not the
+      # client rewinds the file.
+      wav_file.seek(0)
       try:
         transcription = litellm.transcription(
             model=self._model_name,
@@ -168,6 +171,7 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
             drop_params=True,
             **self._transcription_kwargs,
         )
+        break
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
         logging.warning('Failed to get prediction, retrying %d', n_try)

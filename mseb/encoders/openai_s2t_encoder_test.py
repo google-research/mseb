@@ -216,6 +216,68 @@ class OpenAISpeechToTextEncoderTest(absltest.TestCase):
     self.assertEqual(output.timestamps[0, 0], 0.0)
     self.assertEqual(output.timestamps[0, 1], 0.7599999904632568)
 
+  def _encoder_with_retries(self, create: mock.MagicMock):
+    s2t_encoder = s2t_encoder_lib.OpenAISpeechToTextEncoder(
+        server_url='https://mock_server_url',
+        api_key='mock_api_key',
+        model_name='mock_model_name',
+        max_num_retry=3,
+        wait_time=0.0,
+    )
+    s2t_encoder._client = mock.MagicMock()
+    s2t_encoder._client.audio.transcriptions.create = create
+    s2t_encoder.setup()
+    return s2t_encoder
+
+  def test_successful_request_is_not_repeated(self):
+    create = mock.MagicMock(return_value=Transcription(text='ok', usage=None))
+    s2t_encoder = self._encoder_with_retries(create)
+    output = s2t_encoder.encode([self.test_sound])[0]
+    assert isinstance(output, types.SoundEmbedding)
+    self.assertEqual(str(output.embedding[0]), 'ok')
+    self.assertEqual(create.call_count, 1)
+
+  def test_failed_request_is_retried_until_it_succeeds(self):
+    create = mock.MagicMock(
+        side_effect=[
+            RuntimeError('unavailable'),
+            Transcription(text='ok', usage=None),
+        ]
+    )
+    s2t_encoder = self._encoder_with_retries(create)
+    output = s2t_encoder.encode([self.test_sound])[0]
+    assert isinstance(output, types.SoundEmbedding)
+    self.assertEqual(str(output.embedding[0]), 'ok')
+    self.assertEqual(create.call_count, 2)
+
+  def test_audio_is_sent_from_its_start_on_every_attempt(self):
+    sent = []
+
+    def create_that_reads_the_file_without_rewinding(**kwargs):
+      sent.append(kwargs['file'].read())
+      if len(sent) == 1:
+        raise RuntimeError('unavailable')
+      return Transcription(text='ok', usage=None)
+
+    create = mock.MagicMock(
+        side_effect=create_that_reads_the_file_without_rewinding
+    )
+    s2t_encoder = self._encoder_with_retries(create)
+    s2t_encoder.encode([self.test_sound])
+    self.assertLen(sent, 2)
+    # The audio starts with the marker of a FLAC stream.
+    self.assertEqual(sent[0][:4], b'fLaC')
+    self.assertEqual(sent[0], sent[1])
+
+  def test_no_response_after_all_attempts_failed(self):
+    create = mock.MagicMock(side_effect=RuntimeError('unavailable'))
+    s2t_encoder = self._encoder_with_retries(create)
+    output = s2t_encoder.encode([self.test_sound])[0]
+    assert isinstance(output, types.SoundEmbedding)
+    self.assertEqual(output.embedding.tolist(), [types.LLM_NO_RESPONSE_STR])
+    self.assertEqual(output.timestamps.tolist(), [[0.0, 0.0]])
+    self.assertEqual(create.call_count, 3)
+
   def test_encode_with_no_response(self):
     s2t_encoder = s2t_encoder_lib.OpenAISpeechToTextEncoder(
         server_url='mock_server_url',

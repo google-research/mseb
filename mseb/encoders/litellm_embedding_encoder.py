@@ -165,6 +165,7 @@ class LiteLLMEmbeddingEncoder(prompt_encoder.TextEncoderWithPrompt):
             input=input_content,
             api_key=api_key,
         )
+        break
       except Exception as e:  # pylint: disable=broad-exception-caught
         logging.exception(e)
         logging.warning(

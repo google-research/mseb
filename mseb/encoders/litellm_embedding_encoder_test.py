@@ -98,6 +98,53 @@ class LiteLLMEmbeddingEncoderTest(absltest.TestCase):
     self.assertEqual(output1.timestamps[0, 0], 0.0)
     self.assertAlmostEqual(output1.timestamps[0, 1], 3.0763125, places=6)  # pyrefly: ignore[no-matching-overload]
 
+  def _response(self) -> EmbeddingResponse:
+    return EmbeddingResponse(
+        data=[
+            Embedding(embedding=[0.1, 0.2, 0.3], index=0, object='embedding'),
+        ],
+        model='test_model',
+        object='list',
+    )
+
+  def _encode_with_retries(self) -> types.SoundEmbedding:
+    embedding_encoder = encoder_lib.LiteLLMEmbeddingEncoder(
+        model_name='test_model',
+        api_key='test_api_key',
+        embedding_dim=3,
+        max_num_retry=3,
+        wait_time=0.0,
+    )
+    embedding_encoder.setup()
+    output = embedding_encoder.encode([self.test_sound])[0]
+    assert isinstance(output, types.SoundEmbedding)
+    return output
+
+  @mock.patch('litellm.embedding')
+  def test_successful_request_is_not_repeated(self, mock_embedding):
+    mock_embedding.return_value = self._response()
+    output = self._encode_with_retries()
+    self.assertSequenceAlmostEqual(
+        output.embedding[0].tolist(), [0.1, 0.2, 0.3], places=6
+    )
+    self.assertEqual(mock_embedding.call_count, 1)
+
+  @mock.patch('litellm.embedding')
+  def test_failed_request_is_retried_until_it_succeeds(self, mock_embedding):
+    mock_embedding.side_effect = [RuntimeError('unavailable'), self._response()]
+    output = self._encode_with_retries()
+    self.assertSequenceAlmostEqual(
+        output.embedding[0].tolist(), [0.1, 0.2, 0.3], places=6
+    )
+    self.assertEqual(mock_embedding.call_count, 2)
+
+  @mock.patch('litellm.embedding')
+  def test_zero_embedding_after_all_attempts_failed(self, mock_embedding):
+    mock_embedding.side_effect = RuntimeError('unavailable')
+    output = self._encode_with_retries()
+    self.assertEqual(output.embedding.tolist(), [[0.0, 0.0, 0.0]])
+    self.assertEqual(mock_embedding.call_count, 3)
+
 
 if __name__ == '__main__':
   absltest.main()
