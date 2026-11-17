@@ -64,71 +64,72 @@ class GenaiLLMTextEncoderTest(absltest.TestCase):
       self.assertEqual(output.embedding.shape, (1,))
       self.assertEqual(str(output.embedding[0]), 'Paris')
 
-  class GenaiLLMTranscriptTruthEncoderTest(parameterized.TestCase):
 
-    @parameterized.named_parameters(
-        dict(
-            testcase_name='answer_and_rationale',
-            return_value=(
-                '{"answer": "Paris", "rationale": "Paris is the capital of'
-                ' France."}'
-            ),
-            expected_answer='Paris',
-        ),
-        dict(
-            testcase_name='answer_only',
-            return_value='{"answer": "Paris"}',
-            expected_answer='Paris',
-        ),
-        dict(
-            testcase_name='rationale_only',
-            return_value='{"rationale": "Paris is the capital of France."}',
-            expected_answer=INVALID_ANSWER_STR,
-        ),
-        dict(
-            testcase_name='invalid_json',
-            return_value='invalid json',
-            expected_answer=INVALID_ANSWER_STR,
-        ),
-        dict(
-            testcase_name='no_answer',
-            return_value=(
-                '{{"{no_answer}": "Answer not found in passage."}}'.format(
-                    no_answer=NO_ANSWER_STR
-                )
-            ),
-            expected_answer=NO_ANSWER_STR,
-        ),
+class GenaiLLMTranscriptTruthEncoderTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='answer_and_rationale',
+          return_value=(
+              '{"answer": "Paris", "rationale": "Paris is the capital of'
+              ' France."}'
+          ),
+          expected_answer='Paris',
+      ),
+      dict(
+          testcase_name='answer_only',
+          return_value='{"answer": "Paris"}',
+          expected_answer='Paris',
+      ),
+      dict(
+          testcase_name='rationale_only',
+          return_value='{"rationale": "Paris is the capital of France."}',
+          expected_answer=INVALID_ANSWER_STR,
+      ),
+      dict(
+          testcase_name='invalid_json',
+          return_value='invalid json',
+          expected_answer=INVALID_ANSWER_STR,
+      ),
+      dict(
+          testcase_name='no_answer',
+          return_value=(
+              '{{"{no_answer}": "Answer not found in passage."}}'.format(
+                  no_answer=NO_ANSWER_STR
+              )
+          ),
+          expected_answer=NO_ANSWER_STR,
+      ),
+  )
+  def test_encode_batch(self, return_value: str, expected_answer: str):
+    genai_llm_encoder = genai_llm_encoder_lib.GenaiLLMTranscriptTruthEncoder(
+        model_path='mock_model_path', api_key='mock_api_key'
     )
-    def test_encode_batch(self, return_value: str, expected_answer: str):
-      genai_llm_encoder = genai_llm_encoder_lib.GenaiLLMTranscriptTruthEncoder(
-          model_path='mock_model_path', api_key='mock_api_key'
-      )
-      genai_llm_encoder._encoders[-2].prompt_encode_fn = (  # pyrefly: ignore[missing-attribute]
-          lambda prompts: np.array([return_value] * len(prompts))
-      )
-      genai_llm_encoder._encoders[-2]._is_setup = True
-      genai_llm_encoder.setup()
-      outputs = genai_llm_encoder.encode(
-          [
-              types.SoundWithTitleAndContext(
-                  waveform=np.array([1.0, 2.0, 3.0]),  # pyrefly: ignore[bad-argument-type]
-                  context=types.SoundContextParams(
-                      id='1',
-                      sample_rate=48000,
-                      length=3,
-                      text='What is the capital of France?',
-                  ),
-                  title_text='France',
-                  context_text='Paris is the capital of France.',
-              ),
-          ],
-      )
-      self.assertLen(outputs, 1)
-      output = outputs[0]
-      self.assertEqual(output.context.id, '1')
-      self.assertIsInstance(output, types.TextPrediction)
-      self.assertEqual(str(output.prediction), expected_answer)
+    genai_llm_encoder._encoders[-2].prompt_encode_fn = (  # pyrefly: ignore[missing-attribute]
+        lambda prompts: np.array([return_value] * len(prompts))
+    )
+    genai_llm_encoder._encoders[-2]._is_setup = True
+    genai_llm_encoder.setup()
+    outputs = genai_llm_encoder.encode(
+        [
+            types.SoundWithTitleAndContext(
+                waveform=np.array([1.0, 2.0, 3.0]),  # pyrefly: ignore[bad-argument-type]
+                context=types.SoundContextParams(
+                    id='1',
+                    sample_rate=48000,
+                    length=3,
+                    text='What is the capital of France?',
+                ),
+                title_text='France',
+                context_text='Paris is the capital of France.',
+            ),
+        ],
+    )
+    self.assertLen(outputs, 1)
+    output = outputs[0]
+    self.assertEqual(output.context.id, '1')
+    self.assertIsInstance(output, types.TextPrediction)
+    self.assertEqual(str(output.prediction), expected_answer)
 
 
 if __name__ == '__main__':
