@@ -307,6 +307,13 @@ class LiteLLMSpeechToTextEncoderTest(absltest.TestCase):
     expected_wav = utils.sound_to_wav_bytes(self.test_sound)
     self.assertEqual(sent, [expected_wav, expected_wav])
 
+  @mock.patch('litellm.transcription')
+  def test_audio_file_is_named_after_its_format(self, mock_transcription):
+    self._encode_one(mock_transcription, self.mock_response)
+    self.assertEqual(
+        mock_transcription.call_args.kwargs['file'].name, 'in-memory.wav'
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

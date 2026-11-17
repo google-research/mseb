@@ -151,6 +151,9 @@ class LiteLLMSpeechToTextEncoder(encoder.MultiModalEncoder):
       timestamp_granularity = None
 
     wav_file = io.BytesIO(utils.sound_to_wav_bytes(sound))
+    # The audio is not a file on disk. The name is still needed: providers that
+    # upload the file as is use its extension to tell the audio format.
+    wav_file.name = 'in-memory.wav'
     transcription = None
     for n_try in range(self._max_try):
       # Send the audio from its start on every attempt, whether or not the
