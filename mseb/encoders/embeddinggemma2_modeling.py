@@ -156,7 +156,7 @@ class EmbeddingGemma2Config(Gemma4Config):
   """Multimodal configuration for EmbeddingGemma 2."""
 
   model_type = 'embedding_gemma2'
-  sub_configs = {
+  sub_configs = {  # pyrefly: ignore[bad-override]
       'text_config': EmbeddingGemma2TextConfig,
       'vision_config': Gemma4VisionConfig,
       'audio_config': Gemma4AudioConfig,
@@ -195,10 +195,10 @@ class EmbeddingGemma2TextModel(Gemma4TextModel):
     # `_init_weights` initializes `embedding_projection`.
     self.post_init()
 
-  def get_per_layer_inputs(
+  def get_per_layer_inputs(  # pyrefly: ignore[bad-override]
       self,
       input_ids: torch.Tensor | None,
-      inputs_embeds: torch.Tensor | None,
+      inputs_embeds: torch.Tensor | None = None,
   ) -> torch.Tensor | None:
     del input_ids, inputs_embeds
     return None
