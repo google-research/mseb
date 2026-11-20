@@ -92,7 +92,10 @@ class FSD50KDataset(base.MsebDataset):
         ),
         homepage='https://huggingface.co/datasets/Fhrozen/FSD50k',
         version='1.0',
-        license='Creative Commons Attribution-NonCommercial 4.0',
+        license=(
+            'CC BY 4.0 (dataset and annotations); per-clip Creative Commons'
+            ' licenses'
+        ),
         mseb_tasks=['classification', 'clustering', 'retrieval'],
         citation="""
 @article{fonseca2022fsd50k,
@@ -293,5 +296,5 @@ class FSD50KDataset(base.MsebDataset):
 
 def is_member_of_debug(fname: str | int) -> bool:
   """Returns whether the FSD50K file name is in the debug set."""
-  debug_ids = frozenset(['37199', '175151', '253463', '329838', '1277'])
+  debug_ids = frozenset(['37199', '175151', '329838', '1277'])
   return str(fname) in debug_ids
