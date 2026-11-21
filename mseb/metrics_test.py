@@ -412,6 +412,171 @@ class MetricsTest(parameterized.TestCase):
     )
     self.assertAlmostEqual(ndcg, expected_ndcg, places=6)
 
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='hindi_devanagari_vowel_signs_preserved',
+          language='hi_in',
+          truth='किसानों को स्वास्थ्य और शिक्षा।',
+          hypothesis='किसानों को स्वास्थ्य और शिक्षा',
+          expected_normalized_words=[
+              'किसानों',
+              'को',
+              'स्वास्थ्य',
+              'और',
+              'शिक्षा',
+          ],
+          expected_word_errors=0,
+          expected_ref_words=5,
+      ),
+      dict(
+          testcase_name='marathi_devanagari_single_word_substitution',
+          language='mr_in',
+          truth='शेतकऱ्यांसाठी आरोग्य सेवा',
+          hypothesis='शेतकऱ्यांसाठी उत्तम सेवा',
+          expected_normalized_words=['शेतकऱ्यांसाठी', 'आरोग्य', 'सेवा'],
+          expected_word_errors=1,
+          expected_ref_words=3,
+      ),
+      dict(
+          testcase_name='bengali_abugida_vowel_signs_preserved',
+          language='bn_in',
+          truth='কৃষকদের স্বাস্থ্য ও শিক্ষা',
+          hypothesis='কৃষকদের স্বাস্থ্য ও শিক্ষা',
+          expected_normalized_words=['কৃষকদের', 'স্বাস্থ্য', 'ও', 'শিক্ষা'],
+          expected_word_errors=0,
+          expected_ref_words=4,
+      ),
+      dict(
+          testcase_name='tamil_abugida_vowel_signs_preserved',
+          language='ta_in',
+          truth='விவசாயிகளுக்கு சுகாதாரம் மற்றும் கல்வி',
+          hypothesis='விவசாயிகளுக்கு சுகாதாரம் மற்றும் கல்வி',
+          expected_normalized_words=[
+              'விவசாயிகளுக்கு',
+              'சுகாதாரம்',
+              'மற்றும்',
+              'கல்வி',
+          ],
+          expected_word_errors=0,
+          expected_ref_words=4,
+      ),
+      dict(
+          testcase_name='telugu_abugida_vowel_signs_preserved',
+          language='te_in',
+          truth='రైతులకు ఆరోగ్యం మరియు విద్య',
+          hypothesis='రైతులకు ఆరోగ్యం మరియు విద్య',
+          expected_normalized_words=['రైతులకు', 'ఆరోగ్యం', 'మరియు', 'విద్య'],
+          expected_word_errors=0,
+          expected_ref_words=4,
+      ),
+      dict(
+          testcase_name='thai_vowel_and_tone_marks_preserved',
+          language='th_th',
+          truth='สวัสดี ครับ!',
+          hypothesis='สวัสดี ครับ',
+          expected_normalized_words=['สวัสดี', 'ครับ'],
+          expected_word_errors=0,
+          expected_ref_words=2,
+      ),
+      dict(
+          testcase_name='yoruba_combining_tone_and_subdot_preserved',
+          language='yo_ng',
+          truth='Àwọn àgbẹ̀ ní ìlera.',
+          hypothesis='àwọn àgbẹ̀ ní ìlera',
+          expected_normalized_words=['àwọn', 'àgbẹ̀', 'ní', 'ìlera'],
+          expected_word_errors=0,
+          expected_ref_words=4,
+      ),
+      dict(
+          testcase_name='amharic_geez_preserved_and_ethiopian_punct_stripped',
+          language='am_et',
+          truth='ሰላም ለሁሉም።',
+          hypothesis='ሰላም ለሁሉም',
+          expected_normalized_words=['ሰላም', 'ለሁሉም'],
+          expected_word_errors=0,
+          expected_ref_words=2,
+      ),
+      dict(
+          testcase_name='german_latin_and_brackets_removed',
+          language='de_de',
+          truth='Hallo, [noise] Welt (test)!',
+          hypothesis='hallo welt',
+          expected_normalized_words=['hallo', 'welt'],
+          expected_word_errors=0,
+          expected_ref_words=2,
+      ),
+      dict(
+          testcase_name='arabic_tashkeel_and_tatweel_stripped',
+          language='ar_eg',
+          truth='السَّلَامُ عَلَيْكُمْ وَرَحْمَةُ اللّٰهِ',
+          hypothesis='السلام عليكم ورحمة الله',
+          expected_normalized_words=['السلام', 'عليكم', 'ورحمة', 'الله'],
+          expected_word_errors=0,
+          expected_ref_words=4,
+      ),
+      dict(
+          testcase_name='russian_stress_mark_stripped_preserving_yo_and_yi',
+          language='ru_ru',
+          truth='замо́к и ёжик йод',
+          hypothesis='замок и ёжик йод',
+          expected_normalized_words=['замок', 'и', 'ёжик', 'йод'],
+          expected_word_errors=0,
+          expected_ref_words=4,
+      ),
+      dict(
+          testcase_name='russian_stressed_yo_stripped',
+          language='ru_ru',
+          truth='ё\u0301лка и е\u0301\u0308жик',
+          hypothesis='ёлка и ёжик',
+          expected_normalized_words=['ёлка', 'и', 'ёжик'],
+          expected_word_errors=0,
+          expected_ref_words=3,
+      ),
+      dict(
+          testcase_name='macedonian_gje_and_kje_preserved',
+          language='mk_mk',
+          truth='Куќа, ку\u0301ќа, Ѓеврек и г\u0301еврек!',
+          hypothesis='куќа куќа ѓеврек и ѓеврек',
+          expected_normalized_words=['куќа', 'куќа', 'ѓеврек', 'и', 'ѓеврек'],
+          expected_word_errors=0,
+          expected_ref_words=5,
+      ),
+      dict(
+          testcase_name='bengali_zwnj_normalized_without_splitting_words',
+          language='bn_bd',
+          truth='র\u200c্যাব ও কৃষক',
+          hypothesis='র্যাব ও কৃষক',
+          expected_normalized_words=['র্যাব', 'ও', 'কৃষক'],
+          expected_word_errors=0,
+          expected_ref_words=3,
+      ),
+  )
+  def test_multilingual_text_normalizer_preserves_combining_marks(
+      self,
+      language,
+      truth,
+      hypothesis,
+      expected_normalized_words,
+      expected_word_errors,
+      expected_ref_words,
+  ):
+    transform = metrics.default_text_transform(language)
+    self.assertEqual(transform(truth).split(), expected_normalized_words)
+    word_errors, ref_words = metrics.compute_word_errors(
+        truth=truth,
+        hypothesis=hypothesis,
+        text_transform=transform,
+    )
+    self.assertEqual(word_errors, expected_word_errors)
+    self.assertEqual(ref_words, expected_ref_words)
+
+  def test_default_text_transform_uses_english_normalizer_for_en(self):
+    for locale in ('en_us', 'en-US', 'en-GB', 'en'):
+      transform = metrics.default_text_transform(locale)
+      self.assertEqual(
+          transform('Mr. Smith has 2 apples.'), 'mister smith has 2 apples'
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

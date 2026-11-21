@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Callable, Mapping, Sequence
+from typing import Mapping, Sequence
 
 import jaxtyping
 from mseb import evaluator
@@ -25,8 +25,6 @@ from mseb import metrics
 from mseb import types
 import numpy as np
 from sklearn import metrics as sklearn_metrics
-from whisper.normalizers import basic
-from whisper.normalizers import english
 
 
 def map(value: float = 0.0, std: float | None = None):  # pylint: disable=redefined-builtin
@@ -170,12 +168,7 @@ class RerankingEvaluator:
       candidates_batch: Sequence[RerankingCandidates],
   ) -> list[types.Score]:
     """Returns quality metrics of the predictions."""
-
-    def text_transform(language: str) -> Callable[[str], str]:
-      if language.split('_')[0].lower() == 'en':
-        return english.EnglishTextNormalizer()
-      else:
-        return basic.BasicTextNormalizer()
+    text_transform = metrics.default_text_transform
 
     values_by_metric: dict[str, list[types.WeightedValue]] = {
         'map': [],

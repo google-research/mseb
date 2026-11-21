@@ -253,6 +253,34 @@ class TranscriptionEvaluatorTest(absltest.TestCase):
     self.assertEqual(scores[0].metric, 'WER')
     self.assertEqual(scores[1].metric, 'SER')
 
+  def test_compute_metrics_indic_combining_marks_not_split(self):
+    evaluator = transcription_evaluator.TranscriptionEvaluator()
+    # Hindi reference has 5 whitespace-delimited words containing Unicode 'Mc'
+    # and 'Mn' combining vowel/nasal marks ('ि', 'ा', 'ो', 'ं', 'ी').
+    # Hypothesis substitutes 1 word ('शिक्षा' -> 'सुरक्षा').
+    # WordCount must remain 5 (not 9 from splitting on 'Mc' vowel signs), and
+    # WER must be 1/5 = 0.20.
+    scores = evaluator.compute_metrics(
+        transcript_by_sound_id={
+            'hi_test': types.TextPrediction(
+                prediction='किसानों को स्वास्थ्य और सुरक्षा',
+                context=types.PredictionContextParams(id='hi_test'),
+            )
+        },
+        transcript_truths=[
+            transcription_evaluator.TranscriptTruth(
+                sound_id='hi_test',
+                text='किसानों को स्वास्थ्य और शिक्षा।',
+                language='hi_in',
+            ),
+        ],
+    )
+    self.assertLen(scores, 5)
+    self.assertEqual(scores[0].metric, 'WER')
+    self.assertAlmostEqual(scores[0].value, 1 / 5)
+    self.assertEqual(scores[4].metric, 'WordCount')
+    self.assertEqual(scores[4].value, 5.0)
+
 
 if __name__ == '__main__':
   absltest.main()

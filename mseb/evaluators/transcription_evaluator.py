@@ -27,8 +27,6 @@ from mseb import metrics
 from mseb import types
 import numpy as np
 import opencc
-from whisper.normalizers import basic
-from whisper.normalizers import english
 
 
 def wer(value: float = 0.0, std: float | None = None):
@@ -109,10 +107,7 @@ class TranscriptTruth:
 
 @functools.cache
 def text_transform(language: str) -> Callable[[str], str]:
-  if language.split('_')[0].lower() == 'en':
-    return english.EnglishTextNormalizer()
-  else:
-    return basic.BasicTextNormalizer()
+  return metrics.default_text_transform(language)
 
 
 class TranscriptionEvaluator:
