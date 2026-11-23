@@ -186,8 +186,12 @@ def _make_task_class(
               reference=(
                   "https://huggingface.co/datasets/FBK-MT/Speech-MASSIVE-test"
               ),
-              documentation_file="speech_massive_classification.md",
-              dataset_documentation_file="dataset_speech_massive.md",
+              documentation_file=(
+                  "https://github.com/google-research/mseb/blob/main/docs/speech_massive_classification.md"
+              ),
+              dataset_documentation_file=(
+                  "https://github.com/google-research/mseb/blob/main/docs/dataset_speech_massive.md"
+              ),
               type="IntentClassification",
               category="speech",
               main_score="Accuracy",

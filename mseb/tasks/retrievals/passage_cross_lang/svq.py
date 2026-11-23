@@ -205,8 +205,12 @@ def _make_task_class(
               name=class_name,
               description=description,
               reference='https://huggingface.co/datasets/google/svq',
-              documentation_file='svq_retrieval.md',
-              dataset_documentation_file='dataset_svq.md',
+              documentation_file=(
+                  'https://github.com/google-research/mseb/blob/main/docs/svq_retrieval.md'
+              ),
+              dataset_documentation_file=(
+                  'https://github.com/google-research/mseb/blob/main/docs/dataset_svq.md'
+              ),
               type='PassageCrossLangRetrieval',
               category='speech',
               main_score='MRR',

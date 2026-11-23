@@ -23,6 +23,12 @@ from mseb.evaluators import classification_evaluator
 from mseb.tasks import classification
 
 ReferenceType = classification_evaluator.MultiLabelClassificationReference
+_DOCUMENTATION_FILE = (
+    "https://github.com/google-research/mseb/blob/main/docs/fsd50k_classification.md"
+)
+_DATASET_DOCUMENTATION_FILE = (
+    "https://github.com/google-research/mseb/blob/main/docs/dataset_fsd50k.md"
+)
 
 
 class FSD50KClassification(classification.ClassificationTask):
@@ -91,8 +97,8 @@ class FSD50KTestClassification(FSD50KClassification):
  year    = {2021},
  doi     = {10.1109/TASLP.2022.3149014}
 }""",
-      documentation_file="fsd50k_classification.md",
-      dataset_documentation_file="dataset_fsd50k.md",
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
       type="Classification",
       category="audio",
       main_score="mAP",
@@ -134,8 +140,8 @@ class FSD50KTestClassificationDebug(FSD50KClassification):
  year    = {2021},
  doi     = {10.1109/TASLP.2022.3149014}
 }""",
-      documentation_file="fsd50k_classification.md",
-      dataset_documentation_file="dataset_fsd50k.md",
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
       type="Classification",
       category="audio",
       main_score="mAP",

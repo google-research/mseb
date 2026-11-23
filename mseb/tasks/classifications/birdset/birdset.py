@@ -29,8 +29,12 @@ def _get_birdset_metadata(configuration: str) -> types.TaskMetadata:
       name=f"Birdset{configuration}Classification",
       description=f"Ebird classification task on Birdset {configuration}.",
       reference="https://arxiv.org/abs/2403.10380",
-      documentation_file="birdset_classification.md",
-      dataset_documentation_file="dataset_birdset.md",
+      documentation_file=(
+          "https://github.com/google-research/mseb/blob/main/docs/birdset_classification.md"
+      ),
+      dataset_documentation_file=(
+          "https://github.com/google-research/mseb/blob/main/docs/dataset_birdset.md"
+      ),
       type="Classification",
       category="audio",
       main_score="mAP",

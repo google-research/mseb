@@ -117,6 +117,12 @@ _DATASET_METADATA = types.Dataset(
     path='https://huggingface.co/datasets/elliottash/doppelganger',
     revision='mseb-v1',
 )
+_DOCUMENTATION_FILE = (
+    'https://github.com/google-research/mseb/blob/main/docs/doppelganger_retrieval.md'
+)
+_DATASET_DOCUMENTATION_FILE = (
+    'https://github.com/google-research/mseb/blob/main/docs/dataset_doppelganger.md'
+)
 
 _SCORES = [
     retrieval_evaluator.map(),
@@ -148,8 +154,8 @@ class DoppelgangerSyntheticToRealRetrieval(_DoppelgangerRetrieval):
       eval_langs=['und'],
       domains=['audio'],
       task_subtypes=['retrieval', 'cross-domain'],
-      documentation_file='doppelganger_retrieval.md',
-      dataset_documentation_file='dataset_doppelganger.md',
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
   )
 
 
@@ -176,8 +182,8 @@ class DoppelgangerRealToSyntheticRetrieval(_DoppelgangerRetrieval):
       eval_langs=['und'],
       domains=['audio'],
       task_subtypes=['retrieval', 'cross-domain'],
-      documentation_file='doppelganger_retrieval.md',
-      dataset_documentation_file='dataset_doppelganger.md',
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
   )
 
 
@@ -205,8 +211,8 @@ class DoppelgangerSyntheticToRealRetrievalDebug(_DoppelgangerRetrieval):
       eval_langs=['und'],
       domains=['audio'],
       task_subtypes=['retrieval', 'cross-domain'],
-      documentation_file='doppelganger_retrieval.md',
-      dataset_documentation_file='dataset_doppelganger.md',
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
   )
 
 
@@ -234,6 +240,6 @@ class DoppelgangerRealToSyntheticRetrievalDebug(_DoppelgangerRetrieval):
       eval_langs=['und'],
       domains=['audio'],
       task_subtypes=['retrieval', 'cross-domain'],
-      documentation_file='doppelganger_retrieval.md',
-      dataset_documentation_file='dataset_doppelganger.md',
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
   )

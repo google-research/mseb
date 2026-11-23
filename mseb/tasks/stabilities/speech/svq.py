@@ -109,8 +109,9 @@ def create_svq_stability_variant(
                   f"for {locale}. Measures representational drift under noise."
               ),
               reference="https://huggingface.co/datasets/google/svq",
-              documentation_file="svq_stability.md",
-              dataset_documentation_file="dataset_svq.md",
+              dataset_documentation_file=(
+                  "https://github.com/google-research/mseb/blob/main/docs/dataset_svq.md"
+              ),
               type="Stability",
               category="speech",
               main_score=main_metric,

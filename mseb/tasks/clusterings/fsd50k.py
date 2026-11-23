@@ -22,6 +22,13 @@ from mseb.datasets import fsd50k
 from mseb.evaluators import clustering_evaluator
 from mseb.tasks import clustering
 
+_DOCUMENTATION_FILE = (
+    "https://github.com/google-research/mseb/blob/main/docs/fsd50k_clustering.md"
+)
+_DATASET_DOCUMENTATION_FILE = (
+    "https://github.com/google-research/mseb/blob/main/docs/dataset_fsd50k.md"
+)
+
 
 class FSD50KClustering(clustering.ClusteringTask):
   """Base class for sound event clustering on the FSD50K dataset."""
@@ -78,8 +85,8 @@ class FSD50KTestClustering(FSD50KClustering):
  year    = {2021},
  doi     = {10.1109/TASLP.2022.3149014}
 }""",
-      documentation_file="fsd50k_clustering.md",
-      dataset_documentation_file="dataset_fsd50k.md",
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
       type="Clustering",
       category="audio",
       main_score="VMeasure",
@@ -114,8 +121,8 @@ class FSD50KTestClusteringDebug(FSD50KClustering):
  year    = {2021},
  doi     = {10.1109/TASLP.2022.3149014}
 }""",
-      documentation_file="fsd50k_clustering.md",
-      dataset_documentation_file="dataset_fsd50k.md",
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
       type="Clustering",
       category="audio",
       main_score="VMeasure",

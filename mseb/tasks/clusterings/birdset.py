@@ -28,8 +28,12 @@ def _get_birdset_clustering_metadata(configuration: str) -> types.TaskMetadata:
       name=f"BirdsetClustering{configuration}",
       description=f"Clustering task on Birdset {configuration} configuration.",
       reference="https://arxiv.org/abs/2403.10380",
-      documentation_file="birdset_clustering.md",
-      dataset_documentation_file="dataset_birdset.md",
+      documentation_file=(
+          "https://github.com/google-research/mseb/blob/main/docs/birdset_clustering.md"
+      ),
+      dataset_documentation_file=(
+          "https://github.com/google-research/mseb/blob/main/docs/dataset_birdset.md"
+      ),
       type="Clustering",
       category="audio",
       main_score="VMeasure",
