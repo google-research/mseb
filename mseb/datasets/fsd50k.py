@@ -14,8 +14,10 @@
 
 """FSD50K dataset."""
 
+from collections.abc import Callable, Mapping
+import json
 import os
-from typing import Any, Callable, Mapping
+from typing import Any
 import urllib.request
 
 from absl import logging
@@ -34,7 +36,61 @@ _PARQUET_BATCH_SIZE = 1024
 # In measurements, 1 GiB blocks were slower, too.
 _PARQUET_BUFFER_SIZE = 256 * 1024 * 1024
 
+# Single source of truth for the FSD50K dataset versions/revisions (referenced
+# by task metadata `types.Dataset.revision`).
+FULL_VERSION = '1.0.0'
+COMMERCIAL_VERSION = '2.0.0'
+
+# Creative Commons licenses permitting commercial use (excluding
+# `CC BY-NC 3.0` and `CC Sampling+ 1.0`).
+COMMERCIAL_LICENSE_URLS: frozenset[str] = frozenset({
+    'http://creativecommons.org/publicdomain/zero/1.0/',
+    'https://creativecommons.org/publicdomain/zero/1.0/',
+    'http://creativecommons.org/licenses/by/3.0/',
+    'https://creativecommons.org/licenses/by/3.0/',
+    'http://creativecommons.org/licenses/by/4.0/',
+    'https://creativecommons.org/licenses/by/4.0/',
+})
+
+# Parquet schema metadata marker written onto pre-filtered commercial-only
+# Parquet caches so `commercial_only=False` refuses to read them silently.
+COMMERCIAL_ONLY_PARQUET_METADATA_KEY = b'mseb_commercial_only'
+COMMERCIAL_ONLY_PARQUET_METADATA_VALUE = b'true'
+
 DEFAULT_BASE_PATH = None
+
+
+def is_commercial_license(license_url: str | None) -> bool:
+  """Returns whether a Creative Commons license URL permits commercial use.
+
+  Retains `CC0 1.0`, `CC BY 3.0`, and `CC BY 4.0`, and excludes non-commercial
+  licenses such as `CC BY-NC 3.0` and `CC Sampling+ 1.0`.
+
+  Args:
+    license_url: License URL string from `FSD50K.metadata` or a Parquet
+      `license` column.
+  """
+  if not isinstance(license_url, str):
+    return False
+  return license_url.strip() in COMMERCIAL_LICENSE_URLS
+
+
+def load_clip_licenses(metadata_path: str) -> dict[str, str]:
+  """Loads clip ID to license URL mappings from an FSD50K metadata JSON file.
+
+  Args:
+    metadata_path: Path to `eval_clips_info_FSD50K.json` or
+      `dev_clips_info_FSD50K.json`.
+
+  Returns:
+    Mapping from string clip ID (`fname`) to license URL string.
+  """
+  with epath.Path(metadata_path).open('r') as f:
+    clips_info = json.load(f)
+  return {
+      str(clip_id): str(info.get('license', '')).strip()
+      for clip_id, info in clips_info.items()
+  }
 
 
 class FSD50KDataset(base.MsebDataset):
@@ -47,35 +103,47 @@ class FSD50KDataset(base.MsebDataset):
       repo_id: str = 'Fhrozen/FSD50k',
       streaming: bool = False,
       filter_fn: Callable[[Any], bool] | None = None,
+      commercial_only: bool = True,
   ):
     """Initializes the FSD50K dataset.
 
     Args:
       split: Dataset split ('validation' or 'test').
       base_path: Root directory containing the dataset files or cache. If None,
-        falls back to `--dataset_basepath`, then a built-in default if one is
-        configured.
+        falls back to `--dataset_basepath`, then `DEFAULT_BASE_PATH` when
+        `commercial_only=True` and a built-in default is configured.
       repo_id: Hugging Face repository ID.
       streaming: Whether to stream data from Hugging Face.
       filter_fn: Optional predicate over `fname` to filter loaded examples.
+      commercial_only: If True, drops clips carrying non-commercial licenses
+        (`CC BY-NC 3.0` and `CC Sampling+ 1.0`) and retains only `CC0 1.0` and
+        `CC BY 3.0` clips.
     """
     if split not in ['validation', 'test']:
       raise ValueError(f'Split must be validation or test, but got {split}.')
 
     super().__init__(base_path=base_path, split=split)
+    default_basepath = DEFAULT_BASE_PATH if commercial_only else None
     self.base_path = dataset.get_base_path(
-        self.base_path, default_basepath=DEFAULT_BASE_PATH
+        self.base_path, default_basepath=default_basepath
     )
     self._clip_dir = 'eval' if split == 'test' else 'dev'
     self.repo_id = repo_id
     self.streaming = streaming
+    self._commercial_only = commercial_only
     # If set, only the examples whose `fname` satisfies `filter_fn` are loaded.
     # `fname` is passed as stored, which is an `int` for the FSD50K metadata.
     self._filter_fn = filter_fn
 
     self._data = self._load_metadata()
-    if filter_fn is not None and self._data.empty:
-      logging.warning('No FSD50K %s examples match filter_fn.', self.split)
+    if (self._commercial_only or self._filter_fn is not None) and (
+        self._data.empty
+    ):
+      logging.warning(
+          'No FSD50K %s examples remain after filtering (commercial_only=%s).',
+          self.split,
+          self._commercial_only,
+      )
     self._load_vocabulary()
 
   def __len__(self) -> int:
@@ -83,6 +151,11 @@ class FSD50KDataset(base.MsebDataset):
 
   @property
   def metadata(self) -> types.DatasetMetadata:
+    clip_license = (
+        'CC0 1.0 and CC BY 3.0 (commercial-use clip subset)'
+        if self._commercial_only
+        else 'per-clip Creative Commons licenses'
+    )
     return types.DatasetMetadata(
         name='FSD50K',
         description=(
@@ -91,8 +164,10 @@ class FSD50KDataset(base.MsebDataset):
             'Ontology.'
         ),
         homepage='https://huggingface.co/datasets/Fhrozen/FSD50k',
-        version='1.0',
-        license='Creative Commons Attribution-NonCommercial 4.0',
+        version=(
+            COMMERCIAL_VERSION if self._commercial_only else FULL_VERSION
+        ),
+        license=f'CC BY 4.0 (dataset and annotations); {clip_license}',
         mseb_tasks=['classification', 'clustering', 'retrieval'],
         citation="""
 @article{fonseca2022fsd50k,
@@ -195,6 +270,22 @@ class FSD50KDataset(base.MsebDataset):
         raise ValueError(f'Unsupported split {self.split} for _load_csv')
     return df  # pyrefly: ignore[unbound-name]
 
+  def _load_clip_licenses(self) -> dict[str, str] | None:
+    """Loads per-clip license URLs from `metadata/{eval,dev}_clips_info_FSD50K.json`."""
+    metadata_filename = f'{self._clip_dir}_clips_info_FSD50K.json'
+    if self.streaming:
+      metadata_url = self._hf_path('metadata', metadata_filename)
+      with urllib.request.urlopen(metadata_url, timeout=30) as f:
+        clips_info = json.loads(f.read().decode('utf-8'))
+      return {
+          str(clip_id): str(info.get('license', '')).strip()
+          for clip_id, info in clips_info.items()
+      }
+    metadata_path = self._path('metadata', metadata_filename)
+    if not epath.Path(metadata_path).exists():
+      return None
+    return load_clip_licenses(metadata_path)
+
   def _load_metadata(self) -> pd.DataFrame:
     """Loads the dataset metadata, utilizing a parquet cache for speed.
 
@@ -203,12 +294,14 @@ class FSD50KDataset(base.MsebDataset):
     fast startup.
 
     If the cache is not found, it triggers a one-time download of the raw
-    dataset from Hugging Face, processes the data via `_load_csv`, and saves
-    the result to a new `.parquet` file to accelerate all future loads.
+    dataset from Hugging Face, processes the data via `_load_csv`, attaches
+    per-clip license metadata when available, and saves the result to a new
+    `.parquet` file to accelerate all future loads.
 
-    If `filter_fn` is set, only the matching rows are returned. When reading
-    the cache, the other rows are dropped batch by batch, before their audio is
-    converted to pandas, and reading stops after the last matching row.
+    If `commercial_only` or `filter_fn` is set, only the matching rows are
+    returned. When reading the cache, non-matching rows are dropped batch by
+    batch before their audio is converted to pandas, and reading stops after
+    the last matching row.
 
     Returns:
       A pandas DataFrame containing the dataset's metadata.
@@ -216,6 +309,9 @@ class FSD50KDataset(base.MsebDataset):
     Raises:
       FileNotFoundError: If the cache file is missing when using
         `DEFAULT_BASE_PATH`.
+      ValueError: If `commercial_only=False` is requested against a Parquet
+        cache marked as commercial-only, or if `commercial_only=True` is
+        requested without a `license` column or clip metadata JSON.
     """
     cache_path = self._path(f'{self.split}.parquet')
     if epath.Path(cache_path).exists():
@@ -224,18 +320,81 @@ class FSD50KDataset(base.MsebDataset):
       )
       with epath.Path(cache_path).open('rb') as f:
         parquet_file = pq.ParquetFile(f, buffer_size=_PARQUET_BUFFER_SIZE)
+        schema_metadata = parquet_file.schema_arrow.metadata or {}
+        if (
+            not self._commercial_only
+            and schema_metadata.get(COMMERCIAL_ONLY_PARQUET_METADATA_KEY)
+            == COMMERCIAL_ONLY_PARQUET_METADATA_VALUE
+        ):
+          raise ValueError(
+              f'FSD50K Parquet cache at {cache_path} contains only '
+              'commercial-licensed clips and cannot be loaded with '
+              'commercial_only=False. Point --dataset_basepath to an '
+              'unfiltered FSD50K directory or load from Hugging Face.'
+          )
+        has_license_col = 'license' in parquet_file.schema_arrow.names
+        clip_licenses: dict[str, str] | None = None
+        if self._commercial_only and not has_license_col:
+          clip_licenses = self._load_clip_licenses()
+          if clip_licenses is None:
+            metadata_filename = f'{self._clip_dir}_clips_info_FSD50K.json'
+            raise ValueError(
+                f'Cannot filter FSD50K {self.split} split to commercial '
+                f'licenses: Parquet cache at {cache_path} has no `license` '
+                f'column and {self._path("metadata", metadata_filename)} was '
+                'not found.'
+            )
+
+        needs_filtering = self._commercial_only or self._filter_fn is not None
+
+        def _matches(fname: Any, license_url: str | None) -> bool:
+          if self._commercial_only:
+            if has_license_col:
+              resolved_license = license_url
+            elif clip_licenses is not None:
+              resolved_license = clip_licenses.get(str(fname))
+            else:
+              resolved_license = None
+            if not is_commercial_license(resolved_license):
+              return False
+          if self._filter_fn is not None and not self._filter_fn(fname):
+            return False
+          return True
+
         num_matches = None
-        if self._filter_fn is not None:
+        all_match = True
+        if needs_filtering:
           # Count the matching rows, to stop reading after the last one.
-          fnames = parquet_file.read(columns=['fname'])['fname'].to_pylist()
-          num_matches = sum(1 for fname in fnames if self._filter_fn(fname))
+          scan_cols = (
+              ['fname', 'license']
+              if self._commercial_only and has_license_col
+              else ['fname']
+          )
+          scan_table = parquet_file.read(columns=scan_cols)
+          fnames = scan_table['fname'].to_pylist()
+          licenses = (
+              scan_table['license'].to_pylist()
+              if self._commercial_only and has_license_col
+              else [None] * len(fnames)
+          )
+          num_matches = sum(
+              1 for fname, lic in zip(fnames, licenses) if _matches(fname, lic)
+          )
+          all_match = bool(fnames) and num_matches == len(fnames)
         dfs = []
         num_rows = 0
         for batch in parquet_file.iter_batches(batch_size=_PARQUET_BATCH_SIZE):
-          if self._filter_fn is not None:
-            batch = batch.filter(
-                [self._filter_fn(fname) for fname in batch['fname'].to_pylist()]
+          if needs_filtering and not all_match:
+            batch_fnames = batch['fname'].to_pylist()
+            batch_licenses = (
+                batch['license'].to_pylist()
+                if self._commercial_only and has_license_col
+                else [None] * len(batch_fnames)
             )
+            batch = batch.filter([
+                _matches(fname, lic)
+                for fname, lic in zip(batch_fnames, batch_licenses)
+            ])
           dfs.append(batch.to_pandas())
           num_rows += batch.num_rows
           if num_rows == num_matches:
@@ -253,14 +412,32 @@ class FSD50KDataset(base.MsebDataset):
     )
     if not self.streaming:
       utils.download_from_hf(self.repo_id, self.base_path)  # pyrefly: ignore[bad-argument-type]
-    df = self._load_csv()
+    df = self._load_csv().copy()
+    if 'license' not in df.columns and (
+        self._commercial_only or not self.streaming
+    ):
+      clip_licenses = self._load_clip_licenses()
+      if clip_licenses is not None:
+        df['license'] = df['fname'].map(
+            lambda fname: clip_licenses.get(str(fname), '')
+        )
+      elif self._commercial_only:
+        metadata_filename = f'{self._clip_dir}_clips_info_FSD50K.json'
+        raise ValueError(
+            f'Cannot filter FSD50K {self.split} split to commercial licenses: '
+            f'{self._path("metadata", metadata_filename)} was not found.'
+        )
     if not self.streaming:
       logging.info(
           'Saving FSD50K %s split to cache at %s', self.split, cache_path
       )
       df.to_parquet(cache_path, row_group_size=32)
+    if self._commercial_only:
+      df = df[df['license'].map(is_commercial_license)]
     if self._filter_fn is not None:
       df = df[df['fname'].apply(self._filter_fn)]
+    if self._commercial_only or self._filter_fn is not None:
+      df = df.reset_index(drop=True)
     return df
 
   def _load_wav_for_row(self, row):
@@ -293,5 +470,5 @@ class FSD50KDataset(base.MsebDataset):
 
 def is_member_of_debug(fname: str | int) -> bool:
   """Returns whether the FSD50K file name is in the debug set."""
-  debug_ids = frozenset(['37199', '175151', '253463', '329838', '1277'])
+  debug_ids = frozenset(['37199', '175151', '329838', '1277'])
   return str(fname) in debug_ids
