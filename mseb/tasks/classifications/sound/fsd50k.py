@@ -31,11 +31,60 @@ _DATASET_DOCUMENTATION_FILE = (
 )
 
 
+_FSD50K_REFERENCE = """@article{fonseca2022fsd50k,
+ author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
+ title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
+ journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
+ volume  = {30},
+ pages   = {829--852},
+ year    = {2021},
+ doi     = {10.1109/TASLP.2022.3149014}
+}"""
+
+
+def _build_metadata(
+    *,
+    name: str,
+    description: str,
+    revision: str,
+    dataset_revision: str,
+) -> types.TaskMetadata:
+  """Builds TaskMetadata for an FSD50K multi-label classification task."""
+  return types.TaskMetadata(
+      name=name,
+      description=description,
+      reference=_FSD50K_REFERENCE,
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
+      type="Classification",
+      category="audio",
+      main_score="mAP",
+      revision=revision,
+      dataset=types.Dataset(
+          name="FSD50K",
+          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
+          revision=dataset_revision,
+      ),
+      scores=[
+          classification_evaluator.mean_average_precision(),
+          classification_evaluator.micro_f1(),
+          classification_evaluator.macro_f1(),
+          classification_evaluator.hamming_loss(),
+          classification_evaluator.subset_accuracy(),
+      ],
+      eval_splits=["test"],
+      eval_langs=["und"],
+      domains=["audio", "acoustic", "environmental"],
+      task_subtypes=["classification"],
+  )
+
+
 class FSD50KClassification(classification.ClassificationTask):
   """Base class for multi-label classification on the FSD50K dataset."""
 
   split: str | None = None
   size: str | None = None
+  commercial_only: bool = True
 
   @functools.cached_property
   def _fsd_dataset(self) -> fsd50k.FSD50KDataset:
@@ -45,6 +94,7 @@ class FSD50KClassification(classification.ClassificationTask):
     return fsd50k.FSD50KDataset(
         split=self.split,  # pyrefly: ignore[bad-argument-type]
         filter_fn=filter_fn,
+        commercial_only=self.commercial_only,
     )
 
   @property
@@ -81,85 +131,45 @@ class FSD50KClassification(classification.ClassificationTask):
 
 class FSD50KTestClassification(FSD50KClassification):
   split = "test"
+  commercial_only = False
 
-  metadata = types.TaskMetadata(
+  metadata = _build_metadata(
       name="FSD50KTestClassification",
       description=(
-          "Multi-label sound event classification on the test split of "
-          "the FSD50K dataset."
+          "Multi-label sound event classification on the test split of the"
+          " FSD50K dataset."
       ),
-      reference="""@article{fonseca2022fsd50k,
- author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
- title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
- journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
- volume  = {30},
- pages   = {829--852},
- year    = {2021},
- doi     = {10.1109/TASLP.2022.3149014}
-}""",
-      documentation_file=_DOCUMENTATION_FILE,
-      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
-      type="Classification",
-      category="audio",
-      main_score="mAP",
       revision="1.0.0",
-      dataset=types.Dataset(
-          name="FSD50K",
-          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
-          revision="1.0.0",
+      dataset_revision=fsd50k.FULL_VERSION,
+  )
+
+
+class FSD50KTestClassificationCommercial(FSD50KClassification):
+  split = "test"
+  commercial_only = True
+
+  metadata = _build_metadata(
+      name="FSD50KTestClassificationCommercial",
+      description=(
+          "Multi-label sound event classification on the commercial-licensed"
+          " test split of the FSD50K dataset."
       ),
-      scores=[
-          classification_evaluator.mean_average_precision(),
-          classification_evaluator.micro_f1(),
-          classification_evaluator.macro_f1(),
-          classification_evaluator.hamming_loss(),
-          classification_evaluator.subset_accuracy(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["und"],
-      domains=["audio", "acoustic", "environmental"],
-      task_subtypes=["classification"],
+      revision="2.0.0",
+      dataset_revision=fsd50k.COMMERCIAL_VERSION,
   )
 
 
 class FSD50KTestClassificationDebug(FSD50KClassification):
   split = "test"
   size = "debug"
-  metadata = types.TaskMetadata(
+  commercial_only = True
+
+  metadata = _build_metadata(
       name="FSD50KTestClassificationDebug",
       description=(
-          "Multi-label sound event classification on the test split of "
-          "the FSD50K dataset."
+          "Multi-label sound event classification on the commercial-licensed"
+          " debug test split of the FSD50K dataset."
       ),
-      reference="""@article{fonseca2022fsd50k,
- author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
- title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
- journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
- volume  = {30},
- pages   = {829--852},
- year    = {2021},
- doi     = {10.1109/TASLP.2022.3149014}
-}""",
-      documentation_file=_DOCUMENTATION_FILE,
-      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
-      type="Classification",
-      category="audio",
-      main_score="mAP",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="FSD50K",
-          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
-          revision="1.0.0",
-      ),
-      scores=[
-          classification_evaluator.mean_average_precision(),
-          classification_evaluator.micro_f1(),
-          classification_evaluator.macro_f1(),
-          classification_evaluator.hamming_loss(),
-          classification_evaluator.subset_accuracy(),
-      ],
-      eval_splits=["test"],
-      eval_langs=["und"],
-      domains=["audio", "acoustic", "environmental"],
-      task_subtypes=["classification"],
+      revision="2.0.0",
+      dataset_revision=fsd50k.COMMERCIAL_VERSION,
   )

@@ -21,7 +21,9 @@ from unittest import mock
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
+from absl.testing import parameterized
 from mseb import dataset
+from mseb.datasets import speech_massive as speech_massive_dataset
 from mseb.tasks.classifications.intent import speech_massive as speech_massive_intent
 
 FLAGS = flags.FLAGS
@@ -224,7 +226,7 @@ class BaseClassTest(absltest.TestCase):
     self.assertEqual(task.task_type, 'multi_class')
 
 
-class DebugClassesTest(absltest.TestCase):
+class DebugClassesTest(parameterized.TestCase):
   """Tests for Debug variants."""
 
   def test_debug_dede_has_correct_locale(self):
@@ -260,6 +262,50 @@ class DebugClassesTest(absltest.TestCase):
       # Debug IDs are unlikely to match testdata IDs, so expect fewer results.
       examples = list(task.examples('intent_classification'))
       self.assertLessEqual(len(examples), 2)
+
+  @parameterized.named_parameters(
+      (
+          'de_de',
+          speech_massive_intent.SpeechMassiveDeDeIntentClassificationDebug,
+      ),
+      (
+          'fr_fr',
+          speech_massive_intent.SpeechMassiveFrFrIntentClassificationDebug,
+      ),
+  )
+  def test_debug_tasks_enable_dataset_streaming(self, task_cls):
+    empty_dir = self.create_tempdir().full_path
+    with (
+        flagsaver.flagsaver(dataset_basepath=None),
+        mock.patch.object(
+            speech_massive_dataset, 'DEFAULT_BASE_PATH', empty_dir
+        ),
+    ):
+      ds = task_cls().speech_massive_dataset
+      self.assertTrue(ds.streaming)
+      self.assertIsNone(ds.base_path)
+
+  @parameterized.named_parameters(
+      (
+          'default_de_de',
+          speech_massive_intent.SpeechMassiveDeDeIntentClassification,
+      ),
+      (
+          'compact_de_de',
+          speech_massive_intent.SpeechMassiveDeDeIntentClassificationCompact,
+      ),
+  )
+  def test_non_debug_tasks_disable_dataset_streaming(self, task_cls):
+    empty_dir = self.create_tempdir().full_path
+    with (
+        flagsaver.flagsaver(dataset_basepath=None),
+        mock.patch.object(
+            speech_massive_dataset, 'DEFAULT_BASE_PATH', empty_dir
+        ),
+    ):
+      ds = task_cls().speech_massive_dataset
+      self.assertFalse(ds.streaming)
+      self.assertEqual(ds.base_path, empty_dir)
 
 
 if __name__ == '__main__':

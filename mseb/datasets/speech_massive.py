@@ -14,9 +14,15 @@
 
 """Speech-MASSIVE dataset."""
 
+from collections.abc import Callable, Mapping
 import fnmatch
+import glob
+import io
 import os
-from typing import Any, Mapping
+from typing import Any
+import urllib.error
+import urllib.parse
+import urllib.request
 
 import apache_beam as beam
 from etils import epath
@@ -25,6 +31,7 @@ from mseb import types
 from mseb import utils
 from mseb.datasets import base
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 bcp47_by_locale = {
@@ -46,6 +53,176 @@ locale_by_bcp47 = {v: k for k, v in bcp47_by_locale.items()}
 DEFAULT_BASE_PATH = None
 
 
+class _HttpRangeFile(io.RawIOBase):
+  """Seekable read-only HTTP Range wrapper for selective Parquet reads."""
+
+  def __init__(
+      self,
+      url: str,
+      headers: Mapping[str, str] | None = None,
+      repo_id: str | None = None,
+      opener: urllib.request.OpenerDirector | None = None,
+  ):
+    super().__init__()
+    self._url = url
+    self._origin = urllib.parse.urlsplit(url)[:2]
+    self._resolved_url: str | None = None
+    self._headers = dict(headers) if headers else {}
+    self._repo_id = repo_id
+    self._opener = opener or utils.build_safe_url_opener()
+    self._pos = 0
+    self._size = self._fetch_size()
+
+  def _urlopen(self, byte_range: str):
+    """Opens an HTTP Range request and translates 401/403 to PermissionError."""
+    target_url = self._resolved_url or self._url
+    target_parts = urllib.parse.urlsplit(target_url)
+    if self._origin[0] == "https" and target_parts.scheme != "https":
+      raise urllib.error.URLError(
+          f"Refusing non-HTTPS URL scheme {target_parts.scheme!r}"
+      )
+    same_origin = (target_parts.scheme, target_parts.netloc) == self._origin
+    if same_origin:
+      headers = dict(self._headers)
+    else:
+      headers = {
+          header_name: header_value
+          for header_name, header_value in self._headers.items()
+          if header_name.lower() != "authorization"
+      }
+    req = urllib.request.Request(target_url, headers=headers)
+    req.add_header("Range", byte_range)
+    try:
+      response = self._opener.open(
+          req, timeout=utils.DEFAULT_HTTP_TIMEOUT_SECONDS
+      )
+    except urllib.error.HTTPError as e:
+      if e.code in (401, 403) and target_url != self._url:
+        self._resolved_url = None
+        return self._urlopen(byte_range)
+      if e.code in (401, 403) and self._repo_id:
+        raise PermissionError(
+            f"Access to Hugging Face dataset '{self._repo_id}' denied "
+            f"(HTTP {e.code}). Accept the dataset terms at "
+            f"https://huggingface.co/datasets/{self._repo_id} and authenticate "
+            "via 'hf auth login' or the HF_TOKEN environment variable."
+        ) from e
+      raise
+    if target_url == self._url:
+      resolved_url = response.geturl()
+      if resolved_url:
+        resolved_scheme = urllib.parse.urlsplit(resolved_url).scheme
+        if self._origin[0] != "https" or resolved_scheme == "https":
+          self._resolved_url = resolved_url
+    return response
+
+  def _fetch_size(self) -> int:
+    with self._urlopen("bytes=0-0") as response:
+      content_range = response.headers.get("Content-Range", "")
+      if "/" in content_range:
+        total_size = content_range.rsplit("/", 1)[1]
+        if total_size != "*":
+          return int(total_size)
+      if response.status in (None, 200):
+        content_length = response.headers.get("Content-Length")
+        if content_length is not None:
+          return int(content_length)
+      raise OSError(
+          "Remote server did not provide total file size in Content-Range or "
+          "Content-Length headers."
+      )
+
+  def readable(self) -> bool:
+    return True
+
+  def seekable(self) -> bool:
+    return True
+
+  def tell(self) -> int:
+    return self._pos
+
+  def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
+    if whence == io.SEEK_SET:
+      new_pos = offset
+    elif whence == io.SEEK_CUR:
+      new_pos = self._pos + offset
+    elif whence == io.SEEK_END:
+      new_pos = self._size + offset
+    else:
+      raise ValueError(f"Unsupported whence: {whence}")
+    if new_pos < 0:
+      raise ValueError(f"Negative seek position: {new_pos}")
+    self._pos = new_pos
+    return self._pos
+
+  def readinto(self, b: Any) -> int:
+    buffer_view = memoryview(b).cast("B")
+    if self._pos >= self._size or not buffer_view:
+      return 0
+    end = min(self._pos + len(buffer_view), self._size) - 1
+    expected_bytes = end - self._pos + 1
+    with self._urlopen(f"bytes={self._pos}-{end}") as response:
+      if response.status is not None and response.status != 206:
+        raise OSError(
+            "Expected HTTP 206 Partial Content for Range request, got "
+            f"{response.status}"
+        )
+      chunk = response.read(expected_bytes + 1)
+    if len(chunk) > expected_bytes:
+      raise OSError(
+          f"HTTP Range response exceeded requested {expected_bytes} bytes"
+      )
+    byte_count = len(chunk)
+    buffer_view[:byte_count] = chunk
+    self._pos += byte_count
+    return byte_count
+
+
+def _open_hf_parquet(
+    repo_id: str, filename: str, token: str | None = None
+) -> pa.PythonFile:
+  """Opens a Parquet file on Hugging Face via buffered HTTP Range requests."""
+  url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{filename}"
+  resolved_token = utils.get_hf_token(token)
+  headers = {}
+  if resolved_token:
+    headers["Authorization"] = f"Bearer {resolved_token}"
+  raw_file = _HttpRangeFile(url, headers=headers, repo_id=repo_id)
+  buffered = io.BufferedReader(raw_file, buffer_size=256 * 1024)
+  return pa.PythonFile(buffered, mode="r")
+
+
+def _read_parquet_file(
+    parquet_f: Any,
+    with_audio: bool = False,
+    filter_fn: Callable[[Any], bool] | None = None,
+) -> pd.DataFrame:
+  """Reads a Parquet file with optional column and row-group filtering."""
+  pf = pq.ParquetFile(parquet_f, pre_buffer=True, buffer_size=8 * 1024 * 1024)
+  cols = [field.name for field in pf.schema_arrow]
+  if not with_audio and "audio" in cols:
+    cols.remove("audio")
+  if filter_fn is None:
+    return pf.read(columns=cols).to_pandas()
+
+  all_ids = pf.read(columns=["id"])["id"].to_pylist()
+  matching_rgs = []
+  flat_mask: list[bool] = []
+  offset = 0
+  for i in range(pf.num_row_groups):
+    rg_rows = pf.metadata.row_group(i).num_rows
+    rg_ids = all_ids[offset : offset + rg_rows]
+    offset += rg_rows
+    matches = [bool(filter_fn(val)) for val in rg_ids]
+    if any(matches):
+      matching_rgs.append(i)
+      flat_mask.extend(matches)
+  if not matching_rgs:
+    return pf.schema_arrow.empty_table().select(cols).to_pandas()
+  rg_table = pf.read_row_groups(matching_rgs, columns=cols)
+  return rg_table.filter(pa.array(flat_mask, type=pa.bool_())).to_pandas()
+
+
 class SpeechMassiveDataset(base.MsebDataset):
   """SpeechMassive dataset."""
 
@@ -56,29 +233,44 @@ class SpeechMassiveDataset(base.MsebDataset):
       repo_id: str = "FBK-MT/Speech-MASSIVE-test",
       streaming: bool = False,
       token: str | None = None,
+      filter_fn: Callable[[Any], bool] | None = None,
   ):
     """Initializes the dataset for a specific file pattern.
 
     Args:
       filename: The file name relative to the base path.
       base_path: The root directory to store/find the dataset. If None, falls
-        back to `--dataset_basepath`, then a built-in default if one is
-        configured.
-      repo_id: The Hugging Face repository ID to download from. Defaults to the
-        richer 'FBK-MT/Speech-MASSIVE' version, but the original
-        'speechcolab/massive' is also supported.
-      streaming: Whether to stream data from Hugging Face instead of
-        downloading.
+        back to `--dataset_basepath`, then `DEFAULT_BASE_PATH` when `streaming`
+        is False.
+      repo_id: The Hugging Face repository ID to download from. Defaults to
+        'FBK-MT/Speech-MASSIVE-test'.
+      streaming: Whether to stream data selectively from Hugging Face when no
+        explicit `base_path` or `--dataset_basepath` override is set.
       token: Hugging Face authentication token for private/gated repos.
+      filter_fn: Optional predicate over example `id` to filter loaded rows.
     """
     super().__init__(base_path=base_path, split="no_used")
-    self.base_path = dataset.get_base_path(
-        self.base_path, default_basepath=DEFAULT_BASE_PATH
-    )
+    if streaming:
+      try:
+        explicit_path = dataset.get_base_path(
+            self.base_path, default_basepath=None
+        )
+      except ValueError:
+        explicit_path = None
+      if explicit_path:
+        self.base_path = explicit_path
+        streaming = False
+      else:
+        self.base_path = None
+    else:
+      self.base_path = dataset.get_base_path(
+          self.base_path, default_basepath=DEFAULT_BASE_PATH
+      )
     self.repo_id = repo_id
     self.filename = filename
     self.streaming = streaming
     self.token = token
+    self._filter_fn = filter_fn
     self._data_cache = None
 
   @property
@@ -118,19 +310,19 @@ class SpeechMassiveDataset(base.MsebDataset):
   def _get_files(self) -> list[str]:
     """Returns the list of files to read."""
     if self.streaming:
-      if "*" not in self.filename:
+      if not glob.has_magic(self.filename):
         return [self.filename]
       else:
         all_files = utils.list_hf_files(
             self.repo_id, path=os.path.dirname(self.filename), token=self.token
         )
-        filtered_files = [
+        filtered_files = sorted(
             f
             for f in all_files
             if fnmatch.fnmatch(
                 os.path.basename(f), os.path.basename(self.filename)
             )
-        ]
+        )
         if not filtered_files:
           raise FileNotFoundError(
               f"No match for {self.filename} in {self.repo_id}"
@@ -155,7 +347,7 @@ class SpeechMassiveDataset(base.MsebDataset):
       if not parquet_files:
         raise FileNotFoundError(f"No parquet files found for {parquet_path}")
 
-      return [os.fspath(file) for file in parquet_files]
+      return sorted(os.fspath(file) for file in parquet_files)
 
   def _load_data(self, with_audio: bool = False) -> pd.DataFrame:
     """Loads the task data for the given task name.
@@ -173,18 +365,18 @@ class SpeechMassiveDataset(base.MsebDataset):
     dfs = []
     for f in files:
       if self.streaming:
-        df = utils.read_hf_parquet(self.repo_id, f, token=self.token)
+        with _open_hf_parquet(self.repo_id, f, token=self.token) as parquet_f:
+          df = _read_parquet_file(
+              parquet_f, with_audio=with_audio, filter_fn=self._filter_fn
+          )
       else:
         with epath.Path(f).open("rb") as parquet_f:
-          schema = pq.read_schema(parquet_f)
-          cols = [c.name for c in schema]
-          if not with_audio and "audio" in cols:
-            cols.remove("audio")
-          parquet_f.seek(0)
-          df = pd.read_parquet(parquet_f, columns=cols)
+          df = _read_parquet_file(
+              parquet_f, with_audio=with_audio, filter_fn=self._filter_fn
+          )
       dfs.append(df)
 
-    df = pd.concat(dfs)
+    df = pd.concat(dfs, ignore_index=True)
 
     def _wav_bytes_to_waveform(x):
       if "bytes" in x:
@@ -192,6 +384,9 @@ class SpeechMassiveDataset(base.MsebDataset):
         return {"samples": samples, "sample_rate": sample_rate}
       else:
         return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
+
+    if self._data_cache is None:
+      self._data_cache = df.drop(columns=["audio"], errors="ignore")
 
     if "audio" in df.columns:
       df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
@@ -276,6 +471,7 @@ class SpeechMassiveDataset(base.MsebDataset):
         streaming=self.streaming,
         token=self.token,
         files=self._get_files(),
+        filter_fn=self._filter_fn,
     )
 
   def get_task_sounds_beam(
@@ -304,11 +500,14 @@ class _LoadFileFn(beam.DoFn):
     streaming = self.kwargs.get("streaming", False)
     repo_id = self.kwargs.get("repo_id", "FBK-MT/Speech-MASSIVE-test")
     token = self.kwargs.get("token")
+    filter_fn = self.kwargs.get("filter_fn")
 
     if streaming:
-      df = utils.read_hf_parquet(repo_id, filename, token=token)
+      with _open_hf_parquet(repo_id, filename, token=token) as parquet_f:
+        df = _read_parquet_file(parquet_f, with_audio=True, filter_fn=filter_fn)
     else:
-      df = pd.read_parquet(filename)
+      with epath.Path(filename).open("rb") as parquet_f:
+        df = _read_parquet_file(parquet_f, with_audio=True, filter_fn=filter_fn)
 
     def _wav_bytes_to_waveform(x):
       if "bytes" in x:
@@ -317,7 +516,8 @@ class _LoadFileFn(beam.DoFn):
       else:
         return {"samples": x["waveform"], "sample_rate": x["sample_rate"]}
 
-    df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
+    if not df.empty:
+      df["audio"] = df["audio"].apply(_wav_bytes_to_waveform)
 
     ds = SpeechMassiveDataset(**self.kwargs)
 
@@ -337,6 +537,7 @@ class ReadTaskData(beam.PTransform):
       streaming: bool,
       token: str | None,
       files: list[str],
+      filter_fn: Callable[[Any], bool] | None = None,
   ):
     self._kwargs = {
         "filename": filename,
@@ -344,6 +545,7 @@ class ReadTaskData(beam.PTransform):
         "repo_id": repo_id,
         "streaming": streaming,
         "token": token,
+        "filter_fn": filter_fn,
     }
     self._files = files
 

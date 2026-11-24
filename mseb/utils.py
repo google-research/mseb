@@ -16,16 +16,20 @@
 
 import dataclasses
 import hashlib
+import http.client
 import io
 import json
 import logging
 import os
 import subprocess
-from typing import Optional
+from typing import IO, Optional, override
+import urllib.error
+import urllib.parse
 import urllib.request
 
 from etils import epath
 import fsspec
+import huggingface_hub
 import jaxtyping
 import librosa
 from mseb import encoder
@@ -37,6 +41,83 @@ import soundfile
 
 
 logger = logging.getLogger(__name__)
+
+
+DEFAULT_HTTP_TIMEOUT_SECONDS = 30
+
+
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+  """Strips Authorization across origins and blocks HTTPS downgrades."""
+
+  @override
+  def redirect_request(
+      self,
+      req: urllib.request.Request,
+      fp: IO[bytes],
+      code: int,
+      msg: str,
+      headers: http.client.HTTPMessage,
+      newurl: str,
+  ) -> urllib.request.Request | None:
+    """Returns a redirected request with cross-origin Authorization stripped.
+
+    Args:
+      req: The original HTTP request.
+      fp: The HTTP response body stream.
+      code: The HTTP redirect status code.
+      msg: The HTTP status message.
+      headers: The HTTP response headers.
+      newurl: The target Location URL from the redirect response.
+
+    Returns:
+      The redirected Request, or None if no redirect request should be issued.
+
+    Raises:
+      urllib.error.URLError: If an HTTPS request redirects to a non-HTTPS URL.
+    """
+    origin_parts = urllib.parse.urlsplit(req.full_url)
+    resolved_newurl = urllib.parse.urljoin(req.full_url, newurl)
+    target_parts = urllib.parse.urlsplit(resolved_newurl)
+    if origin_parts.scheme == "https" and target_parts.scheme != "https":
+      raise urllib.error.URLError(
+          f"Refusing redirect from HTTPS to {target_parts.scheme!r}"
+      )
+    redirected_req = super().redirect_request(
+        req, fp, code, msg, headers, newurl
+    )
+    if redirected_req is None:
+      return None
+    if (target_parts.scheme, target_parts.netloc) != (
+        origin_parts.scheme,
+        origin_parts.netloc,
+    ):
+      for header_map in (
+          redirected_req.headers,
+          redirected_req.unredirected_hdrs,
+      ):
+        for header_name in list(header_map):
+          if header_name.lower() == "authorization":
+            del header_map[header_name]
+    return redirected_req
+
+
+def build_safe_url_opener() -> urllib.request.OpenerDirector:
+  """Returns a URL opener that strips Authorization across origins."""
+  return urllib.request.build_opener(SafeRedirectHandler())
+
+
+def get_hf_token(token: str | None = None) -> str | None:
+  """Resolves a Hugging Face token from explicit arg, env, or cached login.
+
+  Args:
+    token: Explicit Hugging Face token. If None or empty, falls back to the
+      `HF_TOKEN` environment variable and then `huggingface_hub.get_token()`.
+
+  Returns:
+    The resolved Hugging Face token string, or None when no token is configured
+    in any source.
+  """
+  return token or os.environ.get("HF_TOKEN") or huggingface_hub.get_token()
 
 
 def download_from_hf(repo_id: str, target_dir: str, repo_type: str = "dataset"):
@@ -62,12 +143,13 @@ def list_hf_files(
   """Lists all files in a Hugging Face repository recursively."""
   url = f"https://huggingface.co/api/datasets/{repo_id}/tree/main/{path}"
   logger.info("Listing files from HF API: %s", url)
-  token = token or os.environ.get("HF_TOKEN")
+  token = get_hf_token(token)
   try:
     req = urllib.request.Request(url)
     if token:
       req.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(req) as response:
+    opener = build_safe_url_opener()
+    with opener.open(req, timeout=DEFAULT_HTTP_TIMEOUT_SECONDS) as response:
       data = json.loads(response.read().decode("utf-8"))
       files = []
       for item in data:
@@ -76,6 +158,16 @@ def list_hf_files(
         elif item["type"] == "directory":
           files.extend(list_hf_files(repo_id, item["path"], token=token))
       return files
+  except urllib.error.HTTPError as e:
+    if e.code in (401, 403):
+      raise PermissionError(
+          f"Access to Hugging Face dataset '{repo_id}' denied (HTTP {e.code})."
+          " Accept the dataset terms at"
+          f" https://huggingface.co/datasets/{repo_id} and authenticate via"
+          " 'hf auth login' or the HF_TOKEN environment variable."
+      ) from e
+    logger.error("Failed to list files from HF API for path '%s': %s", path, e)
+    raise
   except Exception as e:
     logger.error("Failed to list files from HF API for path '%s': %s", path, e)
     raise
@@ -88,7 +180,7 @@ def read_hf_parquet(
   url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/{filename}"
   logger.info("Reading HF Parquet from URL: %s", url)
   storage_options = {}
-  token = token or os.environ.get("HF_TOKEN")
+  token = get_hf_token(token)
   if token:
     storage_options["headers"] = {"Authorization": f"Bearer {token}"}
 
