@@ -68,6 +68,9 @@ dev = [
     "pylint>=2.6.0",
     "pyink",
 ]
+elevenlabs = [
+    "elevenlabs",
+]
 litert = [
     "ai-edge-litert>=1.2.0",
 ]

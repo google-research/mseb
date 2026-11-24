@@ -37,6 +37,10 @@ class EncoderRegistryTest(parameterized.TestCase):
       "openai_speech_to_text",
       "litellm_speech_to_text",
       "litellm_embedding",
+      "elevenlabs_sdk_scribe_v2",
+      "elevenlabs_sdk_scribe_v2_verbatim",
+      "elevenlabs_scribe_v2_contextual",
+      "elevenlabs_scribe_v2_verbatim_contextual",
       "raw_spectrogram_25ms_10ms_mean",
   )
   def test_load_encoder(self, name):
