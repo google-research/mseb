@@ -190,6 +190,19 @@ class TrackContentTest(absltest.TestCase):
             entries, generative.GENERATIVE.tasks_by_size[size]
         )
 
+  def test_tracks_use_commercial_fsd50k_tasks(self):
+    for size in (track_lib.Size.COMPACT, track_lib.Size.FULL):
+      with self.subTest(track='retrieval', size=size):
+        retrieval_tasks = retrieval.RETRIEVAL.list_tasks(size)
+        self.assertIn('FSD50KTestClassificationCommercial', retrieval_tasks)
+        self.assertIn('FSD50KTestClusteringCommercial', retrieval_tasks)
+        self.assertNotIn('FSD50KTestClassification', retrieval_tasks)
+        self.assertNotIn('FSD50KTestClustering', retrieval_tasks)
+      with self.subTest(track='generative', size=size):
+        generative_tasks = generative.GENERATIVE.list_tasks(size)
+        self.assertIn('FSD50KTestClassificationCommercial', generative_tasks)
+        self.assertNotIn('FSD50KTestClassification', generative_tasks)
+
 
 class ConstantsTest(absltest.TestCase):
 
