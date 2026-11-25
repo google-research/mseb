@@ -14,8 +14,11 @@
 
 """Tests for Doppelganger audio-to-audio retrieval tasks."""
 
+from unittest import mock
+
 from absl.testing import absltest
 from absl.testing import flagsaver
+from absl.testing import parameterized
 from mseb import task as mseb_task
 from mseb import types
 from mseb.datasets import doppelganger as doppelganger_dataset
@@ -23,7 +26,7 @@ from mseb.datasets.doppelganger_testutil import create_mock_dataset
 from mseb.tasks.retrievals.audio_to_audio import doppelganger
 
 
-class DoppelgangerRetrievalTest(absltest.TestCase):
+class DoppelgangerRetrievalTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -142,6 +145,60 @@ class DoppelgangerRetrievalTest(absltest.TestCase):
           'doppelganger_real_to_synthetic_debug',
       )
       self.assertEmpty(list(synthetic_to_real_debug.multimodal_inputs()))
+
+  @parameterized.named_parameters(
+      (
+          'synthetic_to_real',
+          doppelganger.DoppelgangerSyntheticToRealRetrievalDebug,
+      ),
+      (
+          'real_to_synthetic',
+          doppelganger.DoppelgangerRealToSyntheticRetrievalDebug,
+      ),
+  )
+  def test_debug_tasks_enable_dataset_streaming(self, task_cls):
+    empty_dir = self.create_tempdir().full_path
+    mock_df = self.dataset.get_task_data().copy()
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with (
+          mock.patch.object(
+              doppelganger_dataset, 'DEFAULT_BASE_PATH', empty_dir
+          ),
+          mock.patch.object(
+              doppelganger_dataset.pd,
+              'read_csv',
+              autospec=True,
+              return_value=mock_df,
+          ),
+      ):
+        ds, _ = task_cls().get_documents_source()
+        self.assertTrue(ds.streaming)
+        self.assertIsNone(ds.base_path)
+
+  @parameterized.named_parameters(
+      ('synthetic_to_real', doppelganger.DoppelgangerSyntheticToRealRetrieval),
+      ('real_to_synthetic', doppelganger.DoppelgangerRealToSyntheticRetrieval),
+  )
+  def test_non_debug_tasks_disable_dataset_streaming(self, task_cls):
+    with flagsaver.flagsaver(dataset_basepath=self.base_dir):
+      ds, _ = task_cls().get_documents_source()
+      self.assertFalse(ds.streaming)
+      self.assertEqual(ds.base_path, self.base_dir)
+
+  @parameterized.named_parameters(
+      ('synthetic_to_real', doppelganger.DoppelgangerSyntheticToRealRetrieval),
+      ('real_to_synthetic', doppelganger.DoppelgangerRealToSyntheticRetrieval),
+  )
+  def test_non_debug_tasks_raise_when_metadata_missing(self, task_cls):
+    empty_dir = self.create_tempdir().full_path
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with mock.patch.object(
+          doppelganger_dataset, 'DEFAULT_BASE_PATH', empty_dir
+      ):
+        with self.assertRaisesRegex(
+            FileNotFoundError, 'Doppelganger metadata not found'
+        ):
+          task_cls().get_documents_source()
 
 
 if __name__ == '__main__':

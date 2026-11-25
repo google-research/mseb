@@ -18,12 +18,13 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import flagsaver
+from absl.testing import parameterized
 from mseb import types
 from mseb.datasets import doppelganger
 from mseb.datasets.doppelganger_testutil import create_mock_dataset
 
 
-class DoppelgangerDatasetTest(absltest.TestCase):
+class DoppelgangerDatasetTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -89,6 +90,64 @@ class DoppelgangerDatasetTest(absltest.TestCase):
             FileNotFoundError, 'Doppelganger metadata not found'
         ):
           doppelganger.DoppelgangerDataset(split='test')
+
+  def test_streaming_bypasses_default_base_path(self):
+    empty_dir = self.create_tempdir().full_path
+    mock_df = self.dataset.get_task_data().copy()
+    real_wav = f"{self.base_dir}/{mock_df.iloc[0]['real_audio_path']}"
+    with flagsaver.flagsaver(dataset_basepath=None):
+      with (
+          mock.patch.object(doppelganger, 'DEFAULT_BASE_PATH', empty_dir),
+          mock.patch.object(
+              doppelganger.pd, 'read_csv', autospec=True, return_value=mock_df
+          ) as mock_read_csv,
+          mock.patch.object(
+              doppelganger,
+              'hf_hub_download',
+              autospec=True,
+              return_value=real_wav,
+          ) as mock_hf_download,
+      ):
+        ds = doppelganger.DoppelgangerDataset(
+            split='test',
+            streaming=True,
+            filter_fn=lambda pair_id: str(pair_id) == '1',
+        )
+        self.assertIsNone(ds.base_path)
+        self.assertLen(ds, 1)
+        mock_read_csv.assert_called_once()
+        sound = ds.get_real_sound(ds.get_task_data().iloc[0].to_dict())
+        self.assertEqual(sound.context.id, 'real:1')
+        mock_hf_download.assert_called_once()
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='explicit_base_path',
+          use_explicit_arg=True,
+          use_flag=False,
+      ),
+      dict(
+          testcase_name='dataset_basepath_flag',
+          use_explicit_arg=False,
+          use_flag=True,
+      ),
+  )
+  def test_streaming_honors_local_base_path(
+      self, use_explicit_arg: bool, use_flag: bool
+  ):
+    base_path = self.base_dir if use_explicit_arg else None
+    flag_basepath = self.base_dir if use_flag else None
+    with flagsaver.flagsaver(dataset_basepath=flag_basepath):
+      with mock.patch.object(
+          doppelganger, 'hf_hub_download', autospec=True
+      ) as mock_hf_download:
+        ds = doppelganger.DoppelgangerDataset(
+            split='test', base_path=base_path, streaming=True
+        )
+        self.assertEqual(ds.base_path, self.base_dir)
+        sound = ds.get_real_sound(ds.get_task_data().iloc[0].to_dict())
+        self.assertEqual(sound.context.id, 'real:1')
+        mock_hf_download.assert_not_called()
 
   def test_is_member_of_debug_true(self):
     for pair_id in (
