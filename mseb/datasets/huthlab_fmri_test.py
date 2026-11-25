@@ -14,19 +14,50 @@
 
 """Tests for huthlab_fmri dataset loader."""
 
+import email.message
+import io
 import os
+import re
+import struct
 from unittest import mock
+import urllib.request
+import urllib.response
 
 from absl.testing import absltest
 from absl.testing import flagsaver
+from absl.testing import parameterized
 import joblib
 from mseb import types
+from mseb import utils
 from mseb.datasets import huthlab_fmri
 import numpy as np
 from scipy.io import wavfile
 
 
-class HuthLabDatasetTest(absltest.TestCase):
+class _FakeUrlResponse(urllib.response.addinfourl):
+
+  def __init__(self, body: bytes, url: str, code: int):
+    hdrs = email.message.Message()
+    super().__init__(io.BytesIO(body), hdrs, url, code=code)
+    self.msg = 'OK'
+
+
+class _ScriptedRangeHandler(
+    urllib.request.HTTPHandler, urllib.request.HTTPSHandler
+):
+
+  def __init__(self, responder):
+    urllib.request.HTTPHandler.__init__(self)
+    urllib.request.HTTPSHandler.__init__(self)
+    self._responder = responder
+    self.ranges: list[str] = []
+
+  def https_open(self, req: urllib.request.Request):
+    self.ranges.append(req.get_header('Range') or '')
+    return self._responder(req)
+
+
+class HuthLabDatasetTest(parameterized.TestCase):
   """Tests for the HuthLabDataset class."""
 
   def setUp(self):
@@ -234,6 +265,311 @@ class HuthLabDatasetTest(absltest.TestCase):
     self.assertEqual(sound.context.waveform_end_second, 1.0)
     self.assertEqual(sound.context.language, 'en')
     self.assertEqual(sound.context.language_name, 'English')
+
+  def test_get_sound_fetches_prefix_via_http_range_when_missing_locally(self):
+    buf = io.BytesIO()
+    full_audio = np.arange(16000 * 200, dtype=np.int16)
+    wavfile.write(buf, 16000, full_audio)
+    wav_bytes = buf.getvalue()
+
+    def respond_range(req: urllib.request.Request):
+      byte_range = req.get_header('Range') or ''
+      match = re.match(r'bytes=(\d+)-(\d+)', byte_range)
+      if match is None:
+        raise ValueError(f'Unexpected Range header: {byte_range!r}')
+      start = int(match.group(1))
+      end = min(int(match.group(2)), len(wav_bytes) - 1)
+      return _FakeUrlResponse(wav_bytes[start : end + 1], req.full_url, 206)
+
+    handler = _ScriptedRangeHandler(respond_range)
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler(), handler)
+    dataset = self._make_dataset(streaming=True)
+    with mock.patch.object(
+        utils, 'build_safe_url_opener', autospec=True, return_value=opener
+    ):
+      sound = dataset.get_sound('itsabox')
+
+    # n_trs_per_story=50 -> max_seconds = (10 + 50) * 2.0 = 120s (< 200s full).
+    self.assertEqual(sound.context.id, 'itsabox')
+    self.assertEqual(sound.context.sample_rate, 16000)
+    self.assertEqual(sound.context.length, 16000 * 120)
+    self.assertEqual(
+        handler.ranges, ['bytes=0-4095', f'bytes=44-{44 + 16000 * 120 * 2 - 1}']
+    )
+
+  def test_bundled_debug_responses_fixture_loads(self):
+    with flagsaver.flagsaver(dataset_basepath=None, huthlab_data_path=None):
+      ds = huthlab_fmri.HuthLabDataset(streaming=True)
+      self.assertEqual(ds.base_path, huthlab_fmri._DEBUG_TESTDATA_PATH)
+      responses = ds.load_responses()
+      expected_stories = set(huthlab_fmri.DEBUG_TRAIN_STORIES) | set(
+          huthlab_fmri.DEBUG_TEST_STORIES
+      )
+      self.assertEqual(set(responses.keys()), expected_stories)
+      self.assertEqual(responses['itsabox'].shape, (10, 100))
+      self.assertEqual(responses['odetostepfather'].shape, (10, 100))
+      self.assertEqual(responses['wheretheressmoke'].shape, (50, 100))
+
+  def test_fetch_wav_prefix_bytes_stops_at_first_data_chunk(self):
+    buf = io.BytesIO()
+    wavfile.write(buf, 16000, np.array([100, -100], dtype=np.int16))
+    trailing_data = b'data' + struct.pack('<I', 4) + b'\x00\x00\x00\x00'
+    wav_with_trailing = buf.getvalue() + trailing_data
+    handler = _ScriptedRangeHandler(
+        lambda req: _FakeUrlResponse(wav_with_trailing, req.full_url, 206)
+    )
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler(), handler)
+    out_bytes = huthlab_fmri._fetch_wav_prefix_bytes(
+        'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli/itsabox.wav',
+        opener=opener,
+    )
+    _, samples = wavfile.read(io.BytesIO(out_bytes))
+    np.testing.assert_array_equal(
+        samples, np.array([100, -100], dtype=np.int16)
+    )
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='small_prefix_inside_probe',
+          max_seconds=0.01,
+          expected_samples=160,
+          expected_requests=1,
+      ),
+      dict(
+          testcase_name='fractional_sample_rounds_up',
+          max_seconds=0.01 + 1e-6,
+          expected_samples=161,
+          expected_requests=1,
+      ),
+      dict(
+          testcase_name='zero_duration_prefix',
+          max_seconds=0.0,
+          expected_samples=0,
+          expected_requests=1,
+      ),
+  )
+  def test_fetch_wav_prefix_bytes_single_probe_cases(
+      self,
+      max_seconds: float,
+      expected_samples: int,
+      expected_requests: int,
+  ):
+    buf = io.BytesIO()
+    wavfile.write(buf, 16000, np.ones(1600, dtype=np.int16))
+    wav_bytes = buf.getvalue()
+    handler = _ScriptedRangeHandler(
+        lambda req: _FakeUrlResponse(wav_bytes, req.full_url, 206)
+    )
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler(), handler)
+    out_bytes = huthlab_fmri._fetch_wav_prefix_bytes(
+        'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli/itsabox.wav',
+        max_seconds=max_seconds,
+        opener=opener,
+    )
+    self.assertEqual(struct.unpack('<I', out_bytes[4:8])[0], len(out_bytes) - 8)
+    rate, samples = wavfile.read(io.BytesIO(out_bytes))
+    self.assertEqual(rate, 16000)
+    self.assertLen(samples, expected_samples)
+    self.assertLen(handler.ranges, expected_requests)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='default_debug_testdata',
+          explicit_arg=None,
+          huthlab_flag=None,
+          dataset_flag=None,
+          expect_streaming=True,
+          expect_debug_path=True,
+      ),
+      dict(
+          testcase_name='placer_default_disables_streaming',
+          explicit_arg=None,
+          huthlab_flag=None,
+          dataset_flag='PLACER',
+          expect_streaming=False,
+          expect_debug_path=False,
+      ),
+      dict(
+          testcase_name='huthlab_flag_override',
+          explicit_arg=None,
+          huthlab_flag='CUSTOM',
+          dataset_flag=None,
+          expect_streaming=True,
+          expect_debug_path=False,
+      ),
+      dict(
+          testcase_name='explicit_base_path_arg',
+          explicit_arg='CUSTOM',
+          huthlab_flag=None,
+          dataset_flag='PLACER',
+          expect_streaming=True,
+          expect_debug_path=False,
+      ),
+  )
+  def test_streaming_base_path_precedence(
+      self,
+      explicit_arg: str | None,
+      huthlab_flag: str | None,
+      dataset_flag: str | None,
+      expect_streaming: bool,
+      expect_debug_path: bool,
+  ):
+    placer_dir = self.create_tempdir().full_path
+    custom_dir = self.create_tempdir().full_path
+    resolved_explicit_arg = custom_dir if explicit_arg == 'CUSTOM' else None
+    resolved_huthlab_flag = custom_dir if huthlab_flag == 'CUSTOM' else None
+    resolved_dataset_flag = placer_dir if dataset_flag == 'PLACER' else None
+    with (
+        flagsaver.flagsaver(
+            huthlab_data_path=resolved_huthlab_flag,
+            dataset_basepath=resolved_dataset_flag,
+        ),
+        mock.patch.object(huthlab_fmri, 'DEFAULT_BASE_PATH', placer_dir),
+    ):
+      ds = huthlab_fmri.HuthLabDataset(
+          base_path=resolved_explicit_arg, streaming=True
+      )
+      self.assertEqual(ds.streaming, expect_streaming)
+      if expect_debug_path:
+        self.assertEqual(ds.base_path, huthlab_fmri._DEBUG_TESTDATA_PATH)
+      elif explicit_arg == 'CUSTOM' or huthlab_flag == 'CUSTOM':
+        self.assertEqual(ds.base_path, custom_dir)
+      else:
+        self.assertEqual(ds.base_path, placer_dir)
+
+  def test_get_sound_raises_when_not_streaming_and_missing_locally(self):
+    dataset = self._make_dataset(streaming=False)
+    with self.assertRaisesRegex(FileNotFoundError, 'itsabox.wav'):
+      dataset.get_sound('itsabox')
+
+  def test_get_sound_rejects_invalid_story_name(self):
+    dataset = self._make_dataset(streaming=True)
+    with self.assertRaisesRegex(ValueError, 'Invalid HuthLab story name'):
+      dataset.get_sound('../traversal')
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='non_riff_header',
+          body=b'NOT_A_WAV_FILE' * 4,
+          error_regex='valid WAV header',
+      ),
+      dict(
+          testcase_name='missing_data_chunk',
+          body=b'RIFF' + struct.pack('<I', 48) + b'WAVEJUNK' + struct.pack(
+              '<I', 32
+          ) + b'\x00' * 32,
+          error_regex='missing fmt or data chunk',
+      ),
+      dict(
+          testcase_name='truncated_fmt_chunk',
+          body=(
+              b'RIFF'
+              + struct.pack('<I', 48)
+              + b'WAVEJUNK'
+              + struct.pack('<I', 28)
+              + b'\x00' * 28
+              + b'fmt '
+              + struct.pack('<I', 16)
+          ),
+          error_regex='missing fmt or data chunk',
+      ),
+      dict(
+          testcase_name='oversized_data_chunk_in_header',
+          body=(
+              b'RIFF'
+              + struct.pack('<I', 36)
+              + b'WAVEfmt '
+              + struct.pack('<IHHIIHH', 16, 1, 1, 16000, 32000, 2, 16)
+              + b'data'
+              + struct.pack('<I', huthlab_fmri._MAX_WAV_BYTES + 2)
+          ),
+          error_regex='exceeds limit',
+      ),
+  )
+  def test_fetch_wav_prefix_bytes_rejects_invalid_wav_headers(
+      self, body: bytes, error_regex: str
+  ):
+    handler = _ScriptedRangeHandler(
+        lambda req: _FakeUrlResponse(body, req.full_url, 206)
+    )
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler(), handler)
+    with self.assertRaisesRegex(ValueError, error_regex):
+      huthlab_fmri._fetch_wav_prefix_bytes(
+          'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli/itsabox.wav',
+          opener=opener,
+      )
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='non_206_status',
+          status=200,
+          body=b'RIFF' + b'\x00' * 40,
+          error_regex='Expected HTTP 206 Partial Content',
+      ),
+      dict(
+          testcase_name='oversized_range_response',
+          status=206,
+          body=b'\x00' * (huthlab_fmri._WAV_HEADER_PROBE_BYTES + 10),
+          error_regex='exceeded requested',
+      ),
+      dict(
+          testcase_name='truncated_pcm_payload',
+          status=206,
+          body=(
+              b'RIFF'
+              + struct.pack('<I', 8036)
+              + b'WAVEfmt '
+              + struct.pack('<IHHIIHH', 16, 1, 1, 16000, 32000, 2, 16)
+              + b'data'
+              + struct.pack('<I', 8000)
+              + b'\x00' * 100
+          ),
+          error_regex='Truncated HTTP Range response',
+      ),
+  )
+  def test_fetch_wav_prefix_bytes_rejects_invalid_http_range_responses(
+      self, status: int, body: bytes, error_regex: str
+  ):
+    handler = _ScriptedRangeHandler(
+        lambda req: _FakeUrlResponse(body, req.full_url, status)
+    )
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler(), handler)
+    with self.assertRaisesRegex(OSError, error_regex):
+      huthlab_fmri._fetch_wav_prefix_bytes(
+          'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli/itsabox.wav',
+          opener=opener,
+      )
+
+  @parameterized.named_parameters(
+      dict(testcase_name='negative_start', start=-1, end=10),
+      dict(testcase_name='end_before_start', start=10, end=5),
+  )
+  def test_read_bounded_range_rejects_invalid_bounds(
+      self, start: int, end: int
+  ):
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler())
+    with self.assertRaisesRegex(ValueError, 'Invalid byte range'):
+      huthlab_fmri._read_bounded_range(
+          opener,
+          'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli/itsabox.wav',
+          start,
+          end,
+      )
+
+  @parameterized.named_parameters(
+      dict(testcase_name='negative_seconds', max_seconds=-1.0),
+      dict(testcase_name='nan_seconds', max_seconds=float('nan')),
+  )
+  def test_fetch_wav_prefix_bytes_rejects_invalid_max_seconds(
+      self, max_seconds: float
+  ):
+    opener = urllib.request.build_opener(utils.SafeRedirectHandler())
+    with self.assertRaisesRegex(ValueError, 'max_seconds'):
+      huthlab_fmri._fetch_wav_prefix_bytes(
+          'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli/itsabox.wav',
+          max_seconds=max_seconds,
+          opener=opener,
+      )
 
   def test_custom_train_and_test_stories(self):
     dataset = self._make_dataset(

@@ -44,7 +44,9 @@ class _DoppelgangerRetrieval(retrieval.RetrievalTask):
       if self.size is not None:
         filter_fn = getattr(doppelganger, f'is_member_of_{self.size}')
       self._dataset = doppelganger.DoppelgangerDataset(
-          split='test', filter_fn=filter_fn
+          split='test',
+          streaming=(self.size == 'debug'),
+          filter_fn=filter_fn,
       )
     return self._dataset
 

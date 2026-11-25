@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import dataset
+from mseb.datasets import fsd50k as fsd50k_dataset
 from mseb.tasks.classifications.sound import fsd50k
 import numpy as np
 import pandas as pd
@@ -41,16 +43,43 @@ def _create_testdata(test_case):
       header=False,
   )
 
+  # Include non-commercial clip 253463 to verify it is excluded automatically.
   eval_data = pd.DataFrame({
-      'fname': [1234, 5678, 121314],
-      'labels': ['Bark', 'Meow', 'Bark,Siren'],
-      'split': ['test', 'test', 'test'],
+      'fname': [1234, 253463, 5678, 121314],
+      'labels': ['Bark', 'Siren', 'Meow', 'Bark,Siren'],
+      'split': ['test', 'test', 'test', 'test'],
   })
   eval_data.to_csv(os.path.join(labels_dir, 'eval.csv'), index=False)
 
+  metadata_dir = os.path.join(testdata_dir.full_path, 'metadata')
+  os.makedirs(metadata_dir)
+  with open(
+      os.path.join(metadata_dir, 'eval_clips_info_FSD50K.json'), 'w'
+  ) as f:
+    json.dump(
+        {
+            '1234': {
+                'license': 'http://creativecommons.org/publicdomain/zero/1.0/'
+            },
+            '253463': {
+                'license': 'http://creativecommons.org/licenses/by-nc/3.0/'
+            },
+            '5678': {'license': 'http://creativecommons.org/licenses/by/3.0/'},
+            '121314': {
+                'license': 'http://creativecommons.org/licenses/by/3.0/'
+            },
+        },
+        f,
+    )
+
   clips_dir = os.path.join(testdata_dir.full_path, 'clips', 'eval')
   os.makedirs(clips_dir)
-  for fname, n_samples in [(1234, 16000), (5678, 24000), (121314, 32000)]:
+  for fname, n_samples in [
+      (1234, 16000),
+      (253463, 16000),
+      (5678, 24000),
+      (121314, 32000),
+  ]:
     wavfile.write(
         os.path.join(clips_dir, f'{fname}.wav'),
         16000,
@@ -71,20 +100,38 @@ class FSD50KTestClassificationTest(absltest.TestCase):
     super().setUp()
     _create_testdata(self)
 
-  def test_sounds(self):
+  def test_full_sounds_retains_non_commercial(self):
     task = fsd50k.FSD50KTestClassification()
     sounds = list(task.multimodal_inputs())
-    self.assertLen(sounds, 3)
-    self.assertEqual(sounds[0].context.id, '1234')
-    self.assertEqual(sounds[1].context.id, '5678')
-    self.assertEqual(sounds[2].context.id, '121314')
+    self.assertLen(sounds, 4)
+    self.assertEqual(
+        [sound.context.id for sound in sounds],
+        ['1234', '253463', '5678', '121314'],
+    )
 
-  def test_examples(self):
+  def test_full_examples_retains_non_commercial(self):
     task = fsd50k.FSD50KTestClassification()
     examples = list(task.examples('classification'))
-    self.assertLen(examples, 3)
+    self.assertLen(examples, 4)
     self.assertEqual(examples[0].example_id, '1234')
     self.assertListEqual(examples[0].label_ids, ['Bark'])
+    self.assertEqual(examples[1].example_id, '253463')
+
+  def test_commercial_sounds_drops_non_commercial(self):
+    task = fsd50k.FSD50KTestClassificationCommercial()
+    sounds = list(task.multimodal_inputs())
+    self.assertLen(sounds, 3)
+    self.assertEqual(
+        [sound.context.id for sound in sounds], ['1234', '5678', '121314']
+    )
+
+  def test_commercial_examples_drops_non_commercial(self):
+    task = fsd50k.FSD50KTestClassificationCommercial()
+    examples = list(task.examples('classification'))
+    self.assertLen(examples, 3)
+    self.assertEqual(
+        [ex.example_id for ex in examples], ['1234', '5678', '121314']
+    )
 
   def test_class_labels(self):
     task = fsd50k.FSD50KTestClassification()
@@ -165,12 +212,37 @@ class FSD50KTestClassificationMetadataTest(absltest.TestCase):
         issubclass(fsd50k.FSD50KTestClassification, fsd50k.FSD50KClassification)
     )
 
+  def test_revisions(self):
+    self.assertFalse(fsd50k.FSD50KTestClassification.commercial_only)
+    self.assertEqual(fsd50k.FSD50KTestClassification.metadata.revision, '1.0.0')
+    self.assertEqual(
+        fsd50k.FSD50KTestClassification.metadata.dataset.revision,
+        fsd50k_dataset.FULL_VERSION,
+    )
+
+    self.assertTrue(fsd50k.FSD50KTestClassificationCommercial.commercial_only)
+    self.assertEqual(
+        fsd50k.FSD50KTestClassificationCommercial.metadata.name,
+        'FSD50KTestClassificationCommercial',
+    )
+    self.assertEqual(
+        fsd50k.FSD50KTestClassificationCommercial.metadata.revision, '2.0.0'
+    )
+    self.assertEqual(
+        fsd50k.FSD50KTestClassificationCommercial.metadata.dataset.revision,
+        fsd50k_dataset.COMMERCIAL_VERSION,
+    )
+
 
 class DebugClassTest(absltest.TestCase):
   """Tests for FSD50KTestClassificationDebug."""
 
   def test_size_is_debug(self):
     self.assertEqual(fsd50k.FSD50KTestClassificationDebug.size, 'debug')
+    self.assertTrue(fsd50k.FSD50KTestClassificationDebug.commercial_only)
+    self.assertEqual(
+        fsd50k.FSD50KTestClassificationDebug.metadata.revision, '2.0.0'
+    )
 
   def test_metadata_name(self):
     self.assertEqual(
