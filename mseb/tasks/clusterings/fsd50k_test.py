@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from unittest import mock
 
@@ -19,6 +20,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from mseb import dataset
 from mseb import types
+from mseb.datasets import fsd50k as fsd50k_dataset
 from mseb.evaluators import clustering_evaluator
 from mseb.tasks.clusterings import fsd50k
 import numpy as np
@@ -52,18 +54,39 @@ class FSD50KClusteringTest(absltest.TestCase):
         os.path.join(labels_dir, 'vocabulary.csv'), header=False, index=False
     )
 
-    # Mock eval.csv for the 'test' split.
+    # Mock eval.csv for the 'test' split, including non-commercial clip 253463.
     eval_data = {
-        'fname': [37199, 175151],
+        'fname': [37199, 253463, 175151],
         'labels': [
             'Electric_guitar,Guitar,Plucked_string_instrument',
+            'Guitar',
             'Music',
         ],
-        'split': ['test', 'test'],
+        'split': ['test', 'test', 'test'],
     }
     pd.DataFrame(eval_data).to_csv(
         os.path.join(labels_dir, 'eval.csv'), index=False
     )
+
+    metadata_dir = os.path.join(self.testdata_dir.full_path, 'metadata')
+    os.makedirs(metadata_dir)
+    with open(
+        os.path.join(metadata_dir, 'eval_clips_info_FSD50K.json'), 'w'
+    ) as f:
+      json.dump(
+          {
+              '37199': {
+                  'license': 'http://creativecommons.org/publicdomain/zero/1.0/'
+              },
+              '253463': {
+                  'license': 'http://creativecommons.org/licenses/by-nc/3.0/'
+              },
+              '175151': {
+                  'license': 'http://creativecommons.org/licenses/by/3.0/'
+              },
+          },
+          f,
+      )
 
     # Mock dev.csv for the 'validation' split.
     dev_data = {
@@ -86,6 +109,11 @@ class FSD50KClusteringTest(absltest.TestCase):
         os.path.join(clips_eval_dir, '37199.wav'),
         16000,
         np.zeros(16000, dtype=np.float32),
+    )
+    wavfile.write(
+        os.path.join(clips_eval_dir, '253463.wav'),
+        16000,
+        np.zeros(24000, dtype=np.float32),
     )
     wavfile.write(
         os.path.join(clips_eval_dir, '175151.wav'),
@@ -125,8 +153,29 @@ class FSD50KClusteringTest(absltest.TestCase):
     task.setup()
     self.assertEqual(task.sub_tasks, ['sound_event'])
 
-  def test_test_clustering_examples(self):
+  def test_full_clustering_examples_retains_non_commercial(self):
     task = fsd50k.FSD50KTestClustering()
+    task.setup()
+    examples = list(task.examples('sound_event'))
+    expected_examples = [
+        clustering_evaluator.ClusteringExample('37199', 'Electric_guitar'),
+        clustering_evaluator.ClusteringExample('253463', 'Guitar'),
+        clustering_evaluator.ClusteringExample('175151', 'Music'),
+    ]
+    self.assertEqual(examples, expected_examples)
+
+  def test_full_clustering_sounds_retains_non_commercial(self):
+    task = fsd50k.FSD50KTestClustering()
+    task.setup()
+    sounds = list(task.multimodal_inputs())
+    self.assertLen(sounds, 3)
+    self.assertIsInstance(sounds[0], types.Sound)
+    self.assertEqual(
+        [sound.context.id for sound in sounds], ['37199', '253463', '175151']
+    )
+
+  def test_commercial_clustering_examples_drops_non_commercial(self):
+    task = fsd50k.FSD50KTestClusteringCommercial()
     task.setup()
     examples = list(task.examples('sound_event'))
     expected_examples = [
@@ -135,14 +184,15 @@ class FSD50KClusteringTest(absltest.TestCase):
     ]
     self.assertEqual(examples, expected_examples)
 
-  def test_test_clustering_sounds(self):
-    task = fsd50k.FSD50KTestClustering()
+  def test_commercial_clustering_sounds_drops_non_commercial(self):
+    task = fsd50k.FSD50KTestClusteringCommercial()
     task.setup()
     sounds = list(task.multimodal_inputs())
     self.assertLen(sounds, 2)
     self.assertIsInstance(sounds[0], types.Sound)
-    self.assertEqual(sounds[0].context.id, '37199')
-    self.assertEqual(sounds[1].context.id, '175151')
+    self.assertEqual(
+        [sound.context.id for sound in sounds], ['37199', '175151']
+    )
 
 
 class BaseClassTest(absltest.TestCase):
@@ -196,6 +246,32 @@ class FSD50KTestClusteringMetadataTest(absltest.TestCase):
   def test_inherits_from_base(self):
     self.assertTrue(
         issubclass(fsd50k.FSD50KTestClustering, fsd50k.FSD50KClustering)
+    )
+
+  def test_revisions(self):
+    self.assertFalse(fsd50k.FSD50KTestClustering.commercial_only)
+    self.assertEqual(fsd50k.FSD50KTestClustering.metadata.revision, '1.0.0')
+    self.assertEqual(
+        fsd50k.FSD50KTestClustering.metadata.dataset.revision,
+        fsd50k_dataset.FULL_VERSION,
+    )
+
+    self.assertTrue(fsd50k.FSD50KTestClusteringCommercial.commercial_only)
+    self.assertEqual(
+        fsd50k.FSD50KTestClusteringCommercial.metadata.name,
+        'FSD50KTestClusteringCommercial',
+    )
+    self.assertEqual(
+        fsd50k.FSD50KTestClusteringCommercial.metadata.revision, '2.0.0'
+    )
+    self.assertEqual(
+        fsd50k.FSD50KTestClusteringCommercial.metadata.dataset.revision,
+        fsd50k_dataset.COMMERCIAL_VERSION,
+    )
+
+    self.assertTrue(fsd50k.FSD50KTestClusteringDebug.commercial_only)
+    self.assertEqual(
+        fsd50k.FSD50KTestClusteringDebug.metadata.revision, '2.0.0'
     )
 
 

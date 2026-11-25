@@ -42,6 +42,7 @@ class DoppelgangerDataset(base.MsebDataset):
       base_path: str | None = None,
       repo_id: str = _REPO_ID,
       revision: str = _REVISION,
+      streaming: bool = False,
       filter_fn: Callable[[Any], bool] | None = None,
   ):
     """Initializes the instance.
@@ -50,9 +51,14 @@ class DoppelgangerDataset(base.MsebDataset):
       split: Dataset split to load (only `'test'` is supported).
       base_path: Root directory containing local Doppelganger metadata and audio
         files. If `None`, resolves via `dataset.get_base_path` using
-        `DEFAULT_BASE_PATH` (or falls back to Hugging Face Hub if unconfigured).
+        `DEFAULT_BASE_PATH` when `streaming` is `False`, or falls back to
+        Hugging Face Hub when `streaming` is `True` or `DEFAULT_BASE_PATH` is
+        unconfigured.
       repo_id: Hugging Face Hub dataset repository ID.
       revision: Hugging Face Hub dataset revision.
+      streaming: If `True` and no explicit `base_path` or `--dataset_basepath`
+        is provided, fetches metadata and requested audio files selectively from
+        Hugging Face Hub instead of `DEFAULT_BASE_PATH`.
       filter_fn: Optional predicate applied to each `pair_id` to filter the
         loaded dataset rows. If `None`, all rows are retained.
     """
@@ -60,14 +66,18 @@ class DoppelgangerDataset(base.MsebDataset):
       raise ValueError(f'Split must be test, but got {split}.')
 
     super().__init__(base_path=base_path, split=split)
+    default_basepath = None if streaming else DEFAULT_BASE_PATH
     try:
       self.base_path = dataset.get_base_path(
-          self.base_path, default_basepath=DEFAULT_BASE_PATH
+          self.base_path, default_basepath=default_basepath
       )
     except ValueError:
       self.base_path = None
+    if not self.base_path:
+      self.base_path = None
     self.repo_id = repo_id
     self.revision = revision
+    self.streaming = streaming
     self._filter_fn = filter_fn
     self._data = self._load_metadata()
 

@@ -77,7 +77,7 @@ _COMPACT_RETRIEVAL = tuple(
                 for locale in constants.SVQ_LOCALES
             ]
             + [
-                'FSD50KTestClustering',
+                'FSD50KTestClusteringCommercial',
                 'BirdsetClusteringHSN',
                 'BirdsetClusteringNBP',
                 'BirdsetClusteringPOW',
@@ -87,7 +87,7 @@ _COMPACT_RETRIEVAL = tuple(
                 for locale in constants.SPEECH_MASSIVE_LOCALES
             ]
             + [
-                'FSD50KTestClassification',
+                'FSD50KTestClassificationCommercial',
                 'BirdsetHSNClassification',
                 'BirdsetNBPClassification',
                 'BirdsetPOWClassification',
@@ -134,7 +134,7 @@ _FULL_RETRIEVAL = tuple(
             ]
             + [f'SVQClustering{locale}' for locale in constants.SVQ_LOCALES]
             + [
-                'FSD50KTestClustering',
+                'FSD50KTestClusteringCommercial',
                 'BirdsetClusteringHSN',
                 'BirdsetClusteringNBP',
                 'BirdsetClusteringPOW',
@@ -152,7 +152,7 @@ _FULL_RETRIEVAL = tuple(
                 for locale in constants.SPEECH_MASSIVE_LOCALES
             ]
             + [
-                'FSD50KTestClassification',
+                'FSD50KTestClassificationCommercial',
                 'BirdsetHSNClassification',
                 'BirdsetNBPClassification',
                 'BirdsetPOWClassification',

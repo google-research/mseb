@@ -12,15 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import email.message
 import io
+import json
 import os
+from unittest import mock
+import urllib.error
+import urllib.request
+import urllib.response
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from mseb import types
 from mseb import utils
 import numpy as np
 from scipy.io import wavfile
 import soundfile
+
+
+class _FakeUrlResponse(urllib.response.addinfourl):
+
+  def __init__(
+      self, body: bytes, hdrs: email.message.Message, url: str, code: int
+  ):
+    super().__init__(io.BytesIO(body), hdrs, url, code=code)
+    self.msg = 'OK'
 
 
 class UtilsTest(absltest.TestCase):
@@ -169,6 +185,126 @@ class SpecAugmentTest(absltest.TestCase):
     rng = np.random.default_rng(42)
     aug = utils.apply_specaugment_to_waveform(short_waveform, self.config, rng)
     self.assertLen(aug, 512)
+
+
+class ListHfFilesTest(parameterized.TestCase):
+
+  def test_get_hf_token_resolution(self):
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(
+            utils.huggingface_hub,
+            'get_token',
+            autospec=True,
+            return_value='cached_tok',
+        ),
+    ):
+      self.assertEqual(utils.get_hf_token('explicit_tok'), 'explicit_tok')
+      self.assertEqual(utils.get_hf_token(None), 'cached_tok')
+
+    with (
+        mock.patch.dict(os.environ, {'HF_TOKEN': 'env_tok'}, clear=True),
+        mock.patch.object(
+            utils.huggingface_hub,
+            'get_token',
+            autospec=True,
+            return_value='cached_tok',
+        ),
+    ):
+      self.assertEqual(utils.get_hf_token(None), 'env_tok')
+
+  @parameterized.parameters(401, 403)
+  def test_list_hf_files_raises_permission_error_on_auth_failure(
+      self, status_code: int
+  ):
+    http_err = urllib.error.HTTPError(
+        url='https://huggingface.co/api/datasets/org/repo/tree/main/',
+        code=status_code,
+        msg='Forbidden',
+        hdrs=email.message.Message(),
+        fp=None,
+    )
+    mock_opener = mock.create_autospec(
+        urllib.request.OpenerDirector, instance=True
+    )
+    mock_opener.open.side_effect = http_err
+    with (
+        mock.patch.dict(os.environ, {}, clear=True),
+        mock.patch.object(
+            utils.huggingface_hub,
+            'get_token',
+            autospec=True,
+            return_value=None,
+        ),
+        mock.patch.object(
+            utils,
+            'build_safe_url_opener',
+            autospec=True,
+            return_value=mock_opener,
+        ),
+    ):
+      with self.assertRaisesRegex(PermissionError, 'HF_TOKEN'):
+        utils.list_hf_files('org/repo', path='de-DE', token=None)
+
+  def test_list_hf_files_strips_auth_on_cross_origin_redirect_with_timeout(
+      self,
+  ):
+    seen_requests: list[urllib.request.Request] = []
+    seen_timeouts: list[float | None] = []
+
+    class _RedirectHandler(
+        urllib.request.HTTPHandler, urllib.request.HTTPSHandler
+    ):
+
+      def https_open(self, req: urllib.request.Request):
+        seen_requests.append(req)
+        seen_timeouts.append(req.timeout)
+        hdrs = email.message.Message()
+        if req.full_url.startswith('https://huggingface.co/'):
+          hdrs['Location'] = 'https://cdn.example.com/tree.json'
+          return _FakeUrlResponse(b'', hdrs, req.full_url, 302)
+        payload = json.dumps([{'type': 'file', 'path': 'de-DE/a.parquet'}])
+        return _FakeUrlResponse(
+            payload.encode('utf-8'), hdrs, req.full_url, 200
+        )
+
+    opener = urllib.request.build_opener(
+        utils.SafeRedirectHandler(), _RedirectHandler()
+    )
+    with mock.patch.object(
+        utils, 'build_safe_url_opener', autospec=True, return_value=opener
+    ):
+      files = utils.list_hf_files('org/repo', path='de-DE', token='secret_tok')
+    self.assertEqual(files, ['de-DE/a.parquet'])
+    self.assertLen(seen_requests, 2)
+    self.assertIn('Authorization', dict(seen_requests[0].header_items()))
+    self.assertNotIn('Authorization', dict(seen_requests[1].header_items()))
+    self.assertEqual(
+        seen_timeouts,
+        [utils.DEFAULT_HTTP_TIMEOUT_SECONDS] * 2,
+    )
+
+  def test_read_hf_parquet_uses_resolved_token(self):
+    fake_file = io.BytesIO(b'parquet')
+    with (
+        mock.patch.object(
+            utils, 'get_hf_token', autospec=True, return_value='resolved_tok'
+        ),
+        mock.patch.object(
+            utils.fsspec, 'open', autospec=True, return_value=fake_file
+        ) as mock_open,
+        mock.patch.object(
+            utils.pd, 'read_parquet', autospec=True
+        ) as mock_read_parquet,
+    ):
+      result = utils.read_hf_parquet('org/repo', 'test.parquet')
+      mock_open.assert_called_once_with(
+          'https://huggingface.co/datasets/org/repo/resolve/main/test.parquet',
+          'rb',
+          headers={'Authorization': 'Bearer resolved_tok'},
+      )
+      mock_read_parquet.assert_called_once_with(fake_file)
+      self.assertEqual(result, mock_read_parquet.return_value)
 
 
 if __name__ == '__main__':

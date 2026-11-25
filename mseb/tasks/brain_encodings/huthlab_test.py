@@ -15,8 +15,11 @@
 """Tests for the HuthLab brain encoding task."""
 
 import os
+from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import flagsaver
+from absl.testing import parameterized
 import joblib
 from mseb import task as mseb_task
 from mseb import types
@@ -79,7 +82,7 @@ def _create_mock_data(base_path: str, subject: str = 'S03'):
   }
 
 
-class HuthLabBrainEncodingTest(absltest.TestCase):
+class HuthLabBrainEncodingTest(parameterized.TestCase):
   """Tests for the HuthLabBrainEncoding task."""
 
   def setUp(self):
@@ -228,6 +231,36 @@ class HuthLabBrainEncodingTest(absltest.TestCase):
         len(huthlab_fmri.DEBUG_TRAIN_STORIES)
         + len(huthlab_fmri.DEBUG_TEST_STORIES),
     )
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='debug_enables_streaming',
+          task_cls=huthlab.HuthLabBrainEncodingDebug,
+          expect_streaming=True,
+      ),
+      dict(
+          testcase_name='default_disables_streaming',
+          task_cls=huthlab.HuthLabBrainEncoding,
+          expect_streaming=False,
+      ),
+  )
+  def test_task_streaming_default_without_flags(
+      self, task_cls, expect_streaming: bool
+  ):
+    non_placer_default = self.create_tempdir().full_path
+    with (
+        flagsaver.flagsaver(dataset_basepath=None, huthlab_data_path=None),
+        mock.patch.object(
+            huthlab_fmri, 'DEFAULT_BASE_PATH', non_placer_default
+        ),
+    ):
+      task = task_cls()
+      ds = task._dataset('S03')
+      self.assertEqual(ds.streaming, expect_streaming)
+      if expect_streaming:
+        self.assertEqual(ds.base_path, huthlab_fmri._DEBUG_TESTDATA_PATH)
+      else:
+        self.assertEqual(ds.base_path, non_placer_default)
 
   # --- fMRI data tests ---
 
