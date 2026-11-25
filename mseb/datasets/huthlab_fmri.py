@@ -38,7 +38,11 @@ Directory structure expected under `base_path`:
 
 from collections.abc import Sequence
 import io
+import math
 import os
+import re
+import struct
+import urllib.request
 
 from absl import flags
 from absl import logging
@@ -56,6 +60,18 @@ _HUTHLAB_DATA_PATH = flags.DEFINE_string(
     None,
     'Path to the HuthLab encoding-model-scaling-laws data directory.',
 )
+
+_OPENNEURO_STIMULI_URL = (
+    'https://s3.amazonaws.com/openneuro.org/ds003020/stimuli'
+)
+_DEBUG_TESTDATA_PATH = os.path.normpath(
+    os.path.join(
+        os.path.dirname(__file__), '..', 'testdata', 'debug', 'huthlab'
+    )
+)
+_WAV_HEADER_PROBE_BYTES = 4096
+_MAX_WAV_BYTES = 256 * 1024 * 1024
+_STORY_NAME_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 
 # Default parameters from the paper and tutorial notebook.
 DEFAULT_TR_DURATION = 2.0  # seconds
@@ -282,6 +298,108 @@ TEST_STORIES = {
 }
 
 
+def _read_bounded_range(
+    opener: urllib.request.OpenerDirector, url: str, start: int, end: int
+) -> bytes:
+  """Reads an inclusive HTTP byte range with HTTP 206 and size validation."""
+  if start < 0 or end < start:
+    raise ValueError(f'Invalid byte range: start={start}, end={end}')
+  expected_bytes = end - start + 1
+  request = urllib.request.Request(url)
+  request.add_header('Range', f'bytes={start}-{end}')
+  with opener.open(
+      request, timeout=utils.DEFAULT_HTTP_TIMEOUT_SECONDS
+  ) as response:
+    if response.status != 206:
+      raise OSError(
+          'Expected HTTP 206 Partial Content for Range request, got '
+          f'{response.status}'
+      )
+    chunk = response.read(expected_bytes + 1)
+  if len(chunk) > expected_bytes:
+    raise OSError(
+        f'HTTP Range response exceeded requested {expected_bytes} bytes'
+    )
+  return chunk
+
+
+def _fetch_wav_prefix_bytes(
+    url: str,
+    max_seconds: float | None = None,
+    opener: urllib.request.OpenerDirector | None = None,
+) -> bytes:
+  """Downloads a WAV stimulus (or prefix) via HTTP Range requests."""
+  if max_seconds is not None and (
+      not math.isfinite(max_seconds) or max_seconds < 0
+  ):
+    raise ValueError(
+        f'max_seconds must be non-negative and finite, got {max_seconds}'
+    )
+  active_opener = opener or utils.build_safe_url_opener()
+  header_probe = _read_bounded_range(
+      active_opener, url, 0, _WAV_HEADER_PROBE_BYTES - 1
+  )
+
+  if (
+      len(header_probe) < 44
+      or header_probe[:4] != b'RIFF'
+      or header_probe[8:12] != b'WAVE'
+  ):
+    raise ValueError('Remote stimulus does not start with a valid WAV header.')
+
+  pos = 12
+  byte_rate = 0
+  block_align = 0
+  data_header_pos = None
+  orig_data_size = 0
+  while pos + 8 <= len(header_probe):
+    chunk_id = header_probe[pos : pos + 4]
+    chunk_size = struct.unpack('<I', header_probe[pos + 4 : pos + 8])[0]
+    if chunk_id == b'fmt ' and pos + 24 <= len(header_probe):
+      byte_rate = struct.unpack('<I', header_probe[pos + 16 : pos + 20])[0]
+      block_align = struct.unpack('<H', header_probe[pos + 20 : pos + 22])[0]
+    elif chunk_id == b'data':
+      data_header_pos = pos
+      orig_data_size = chunk_size
+      break
+    pos += 8 + chunk_size + (chunk_size % 2)
+
+  if data_header_pos is None or byte_rate == 0 or block_align == 0:
+    raise ValueError('Remote WAV header is missing fmt or data chunk metadata.')
+
+  data_offset = data_header_pos + 8
+  target_data_bytes = orig_data_size
+  if max_seconds is not None:
+    wanted = int(math.ceil(max_seconds * byte_rate))
+    wanted = ((wanted + block_align - 1) // block_align) * block_align
+    target_data_bytes = min(orig_data_size, wanted)
+  if target_data_bytes > _MAX_WAV_BYTES:
+    raise ValueError(
+        f'Requested WAV payload ({target_data_bytes} bytes) exceeds limit.'
+    )
+
+  if target_data_bytes == 0:
+    pcm_bytes = b''
+  elif data_offset + target_data_bytes <= len(header_probe):
+    pcm_bytes = header_probe[data_offset : data_offset + target_data_bytes]
+  else:
+    pcm_bytes = _read_bounded_range(
+        active_opener, url, data_offset, data_offset + target_data_bytes - 1
+    )
+  if len(pcm_bytes) != target_data_bytes:
+    raise OSError(
+        f'Truncated HTTP Range response: expected {target_data_bytes} bytes, '
+        f'got {len(pcm_bytes)}'
+    )
+
+  prefix = bytearray(header_probe[:data_offset])
+  prefix[4:8] = struct.pack('<I', data_offset - 8 + len(pcm_bytes))
+  prefix[data_header_pos + 4 : data_header_pos + 8] = struct.pack(
+      '<I', len(pcm_bytes)
+  )
+  return bytes(prefix) + pcm_bytes
+
+
 class HuthLabDataset:
   """Loads HuthLab encoding model scaling laws data.
 
@@ -296,24 +414,34 @@ class HuthLabDataset:
       tr_duration: float = DEFAULT_TR_DURATION,
       train_stories: Sequence[str] | None = None,
       test_stories: Sequence[str] | None = None,
+      streaming: bool = False,
   ):
     """Initializes the HuthLabDataset.
 
     Args:
       base_path: Root path to the data. If None, uses the --huthlab_data_path
-        flag, or falls back to --dataset_basepath / DEFAULT_BASE_PATH.
+        flag, or falls back to --dataset_basepath / DEFAULT_BASE_PATH (or the
+        bundled debug responses directory when `streaming` is True).
       subject: Subject identifier (e.g., 'S01', 'S02', 'S03').
       tr_duration: Duration of one fMRI TR in seconds.
       train_stories: Optional subset of training stories to use.
       test_stories: Optional subset of test stories to use.
+      streaming: If True, defaults to bundled debug responses when no base path
+        is provided and fetches missing stimulus WAV prefixes from OpenNeuro.
     """
     if base_path is None:
       base_path = _HUTHLAB_DATA_PATH.value
-    self.base_path = dataset.get_base_path(
-        base_path, default_basepath=DEFAULT_BASE_PATH
+    default_basepath = (
+        _DEBUG_TESTDATA_PATH if streaming else DEFAULT_BASE_PATH
     )
+    self.base_path = dataset.get_base_path(
+        base_path, default_basepath=default_basepath
+    )
+    if DEFAULT_BASE_PATH is not None and self.base_path == DEFAULT_BASE_PATH:
+      streaming = False
     self.subject = subject
     self.tr_duration = tr_duration
+    self.streaming = streaming
     self._train_stories = (
         tuple(train_stories) if train_stories is not None else None
     )
@@ -386,7 +514,32 @@ class HuthLabDataset:
 
   def get_sound(self, story: str) -> types.Sound:
     """Loads the audio stimulus for a story as a Sound object."""
-    waveform, sample_rate = utils.read_audio(self.get_audio_path(story))
+    if not _STORY_NAME_RE.fullmatch(story):
+      raise ValueError(f'Invalid HuthLab story name: {story!r}')
+    audio_path = self.get_audio_path(story)
+    if epath.Path(audio_path).exists():
+      waveform, sample_rate = utils.read_audio(audio_path)
+    elif not self.streaming:
+      raise FileNotFoundError(
+          f'HuthLab audio file not found at {audio_path}.'
+      )
+    else:
+      max_seconds = None
+      if epath.Path(
+          self._path('responses', f'UT{self.subject}_responses.jbl')
+      ).exists():
+        responses = self.load_responses()
+        if story in responses:
+          max_seconds = (10 + responses[story].shape[0]) * self.tr_duration
+      url = f'{_OPENNEURO_STIMULI_URL}/{story}.wav'
+      logging.info(
+          'Downloading HuthLab stimulus %s from %s (max_seconds=%s)',
+          story,
+          url,
+          max_seconds,
+      )
+      wav_bytes = _fetch_wav_prefix_bytes(url, max_seconds=max_seconds)
+      waveform, sample_rate = utils.wav_bytes_to_waveform(wav_bytes)
     context = types.SoundContextParams(
         id=story,
         sample_rate=sample_rate,

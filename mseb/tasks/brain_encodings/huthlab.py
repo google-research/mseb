@@ -57,6 +57,7 @@ class _HuthLabBrainEncoding(brain_encoding.BrainEncodingTask):
 
   train_stories: Sequence[str] | None = None
   test_stories: Sequence[str] | None = None
+  streaming: bool = False
 
   def __init__(
       self,
@@ -92,6 +93,7 @@ class _HuthLabBrainEncoding(brain_encoding.BrainEncodingTask):
           tr_duration=tr_duration,
           train_stories=self.train_stories,
           test_stories=self.test_stories,
+          streaming=self.streaming,
       )
 
   def _dataset(self, subject: str) -> huthlab_fmri.HuthLabDataset:
@@ -222,6 +224,7 @@ class HuthLabBrainEncodingDebug(_HuthLabBrainEncoding):
 
   train_stories = huthlab_fmri.DEBUG_TRAIN_STORIES
   test_stories = huthlab_fmri.DEBUG_TEST_STORIES
+  streaming = True
 
   metadata = dataclasses.replace(
       HuthLabBrainEncoding.metadata,

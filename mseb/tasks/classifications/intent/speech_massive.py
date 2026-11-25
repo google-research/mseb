@@ -53,7 +53,14 @@ class SpeechMassiveIntentClassification(classification.ClassificationTask):
 
   @functools.cached_property
   def speech_massive_dataset(self) -> speech_massive.SpeechMassiveDataset:
-    return speech_massive.SpeechMassiveDataset(filename=self.filename)  # pyrefly: ignore[bad-argument-type]
+    filter_fn = None
+    if self.size is not None:
+      filter_fn = getattr(speech_massive, f"is_member_of_{self.size}")
+    return speech_massive.SpeechMassiveDataset(
+        filename=self.filename,  # pyrefly: ignore[bad-argument-type]
+        streaming=(self.size == "debug"),
+        filter_fn=filter_fn,
+    )
 
   def _task_data(self, task_name: str | None = None, with_audio: bool = False):
     df = self.speech_massive_dataset.get_task_data(
