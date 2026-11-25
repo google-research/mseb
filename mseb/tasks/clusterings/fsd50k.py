@@ -30,11 +30,54 @@ _DATASET_DOCUMENTATION_FILE = (
 )
 
 
+_FSD50K_REFERENCE = """@article{fonseca2022fsd50k,
+ author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
+ title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
+ journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
+ volume  = {30},
+ pages   = {829--852},
+ year    = {2021},
+ doi     = {10.1109/TASLP.2022.3149014}
+}"""
+
+
+def _build_metadata(
+    *,
+    name: str,
+    description: str,
+    revision: str,
+    dataset_revision: str,
+) -> types.TaskMetadata:
+  """Builds TaskMetadata for an FSD50K sound event clustering task."""
+  return types.TaskMetadata(
+      name=name,
+      description=description,
+      reference=_FSD50K_REFERENCE,
+      documentation_file=_DOCUMENTATION_FILE,
+      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
+      type="Clustering",
+      category="audio",
+      main_score="VMeasure",
+      revision=revision,
+      dataset=types.Dataset(
+          name="FSD50K",
+          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
+          revision=dataset_revision,
+      ),
+      scores=[clustering_evaluator.vmeasure_score()],
+      eval_splits=["test"],
+      eval_langs=["und"],
+      domains=["audio", "acoustic", "environmental"],
+      task_subtypes=["clustering"],
+  )
+
+
 class FSD50KClustering(clustering.ClusteringTask):
   """Base class for sound event clustering on the FSD50K dataset."""
 
   split: str | None = None
   size: str | None = None
+  commercial_only: bool = True
 
   @functools.cached_property
   def _fsd_dataset(self) -> fsd50k.FSD50KDataset:
@@ -43,7 +86,11 @@ class FSD50KClustering(clustering.ClusteringTask):
     filter_fn = None
     if self.size is not None:
       filter_fn = getattr(fsd50k, f"is_member_of_{self.size}")
-    return fsd50k.FSD50KDataset(split=self.split, filter_fn=filter_fn)
+    return fsd50k.FSD50KDataset(
+        split=self.split,
+        filter_fn=filter_fn,
+        commercial_only=self.commercial_only,
+    )
 
   @property
   def sub_tasks(self) -> list[str]:
@@ -71,70 +118,41 @@ class FSD50KClustering(clustering.ClusteringTask):
 
 class FSD50KTestClustering(FSD50KClustering):
   split = "test"
-  metadata = types.TaskMetadata(
+  commercial_only = False
+  metadata = _build_metadata(
       name="FSD50KTestClustering",
       description=(
           "Sound event clustering on the test split of the FSD50K dataset."
       ),
-      reference="""@article{fonseca2022fsd50k,
- author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
- title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
- journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
- volume  = {30},
- pages   = {829--852},
- year    = {2021},
- doi     = {10.1109/TASLP.2022.3149014}
-}""",
-      documentation_file=_DOCUMENTATION_FILE,
-      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
-      type="Clustering",
-      category="audio",
-      main_score="VMeasure",
       revision="1.0.0",
-      dataset=types.Dataset(
-          name="FSD50K",
-          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
-          revision="1.0.0",
+      dataset_revision=fsd50k.FULL_VERSION,
+  )
+
+
+class FSD50KTestClusteringCommercial(FSD50KClustering):
+  split = "test"
+  commercial_only = True
+  metadata = _build_metadata(
+      name="FSD50KTestClusteringCommercial",
+      description=(
+          "Sound event clustering on the commercial-licensed test split of the"
+          " FSD50K dataset."
       ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=["test"],
-      eval_langs=["und"],
-      domains=["audio", "acoustic", "environmental"],
-      task_subtypes=["clustering"],
+      revision="2.0.0",
+      dataset_revision=fsd50k.COMMERCIAL_VERSION,
   )
 
 
 class FSD50KTestClusteringDebug(FSD50KClustering):
   split = "test"
   size = "debug"
-  metadata = types.TaskMetadata(
+  commercial_only = True
+  metadata = _build_metadata(
       name="FSD50KTestClusteringDebug",
       description=(
-          "Sound event clustering on the test split of the FSD50K dataset."
+          "Sound event clustering on the commercial-licensed debug test split"
+          " of the FSD50K dataset."
       ),
-      reference="""@article{fonseca2022fsd50k,
- author  = {Eduardo Fonseca and Xavier Favory and Jordi Pons and Frederic Font and Xavier Serra},
- title   = {{FSD50K}: an Open Dataset of Human-Labeled Sound Events},
- journal   = {IEEE/ACM Transactions on Audio, Speech, and Language Processing},
- volume  = {30},
- pages   = {829--852},
- year    = {2021},
- doi     = {10.1109/TASLP.2022.3149014}
-}""",
-      documentation_file=_DOCUMENTATION_FILE,
-      dataset_documentation_file=_DATASET_DOCUMENTATION_FILE,
-      type="Clustering",
-      category="audio",
-      main_score="VMeasure",
-      revision="1.0.0",
-      dataset=types.Dataset(
-          name="FSD50K",
-          path="https://huggingface.co/datasets/Fhrozen/FSD50k",
-          revision="1.0.0",
-      ),
-      scores=[clustering_evaluator.vmeasure_score()],
-      eval_splits=["test"],
-      eval_langs=["und"],
-      domains=["audio", "acoustic", "environmental"],
-      task_subtypes=["clustering"],
+      revision="2.0.0",
+      dataset_revision=fsd50k.COMMERCIAL_VERSION,
   )

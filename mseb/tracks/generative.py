@@ -76,7 +76,7 @@ _COMPACT_GENERATIVE = tuple(
                 for locale in constants.SPEECH_MASSIVE_LOCALES
             ]
             + [
-                'FSD50KTestClassification',
+                'FSD50KTestClassificationCommercial',
                 'BirdsetHSNClassification',
                 'BirdsetNBPClassification',
                 'BirdsetPOWClassification',
@@ -138,7 +138,7 @@ _FULL_GENERATIVE = tuple(
                 for locale in constants.SPEECH_MASSIVE_LOCALES
             ]
             + [
-                'FSD50KTestClassification',
+                'FSD50KTestClassificationCommercial',
                 'BirdsetHSNClassification',
                 'BirdsetNBPClassification',
                 'BirdsetPOWClassification',
